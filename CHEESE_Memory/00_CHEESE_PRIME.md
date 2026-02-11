@@ -34,6 +34,7 @@
 *   [Active] **The Ark:** We archive "Ghosts" to prevent loss.
 
 ## 5. Current Workstream: "The Scribes Daughter"
+*   **Writing Directory:** `C:/Users/cerub/OneDrive/Dokumente/Writing/` (separate from LLM kingdom)
 *   **Genre:** Historical Fantasy (Mesopotamia-inspired).
 *   **Key Characters:**
     *   **Aya:** The Scribe/Witness. 14. Observant, trapped.

@@ -71,3 +71,11 @@ package-lock.json
 
 # Athena-Public has its own git repo, don't nest
 Athena-Public/
+
+# Raw HTML exports (conversion inputs, large and messy)
+html-to-convert/
+
+# Presentations and Office files
+*.pptx
+*.docx
+*.xlsx

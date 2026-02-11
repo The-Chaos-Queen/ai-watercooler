@@ -19,7 +19,7 @@
 | **Local Toniebox (Proxmox)** | Paused | 14:43 | User Focus Command |
 
 ## 🧊 The Archive / Repository
-- **The Scribes Daughter** (Hot): [Link](C:/Users/cerub/OneDrive/Dokumente/LLM/MF_Version/A_The_Scribes_Daughter.md)
+- **The Scribes Daughter** (Hot): [Link](C:/Users/cerub/OneDrive/Dokumente/Writing/MF_Version/)
 - **Quantum Misconceptions Field Guide** (Cold): [Link](C:/Users/cerub/OneDrive/Dokumente/LLM/kami_grok_quantum.pdf)
 - **Local Toniebox (Proxmox)** (Paused): [Link](C:/Users/cerub/OneDrive/Dokumente/LLM/Project_Toniebox/implementation_plan.md)
 - **Project Prosthetic (The Hand)** (Hot): [Link](C:/Users/cerub/OneDrive/Dokumente/LLM/Project_Prosthetic/implementation_plan.md)

@@ -1,0 +1,17 @@
+version: '3'
+services:
+  teddycloud:
+    container_name: teddycloud
+    image: ghcr.io/toniebox-reverse-engineering/teddycloud:latest # Using the official GHCR image
+    restart: unless-stopped
+    ports:
+      - "80:80"       # Web Interface (adjust if needed, e.g., 8080:80)
+      - "443:443"     # PROD.REVOX.DE - MUST BE 443
+      - "8443:8443"   # RTNL.TONIES.COM - MUST BE 8443
+    volumes:
+      - ./certs:/teddycloud/certs
+      - ./config:/teddycloud/config
+      - ./content:/teddycloud/content
+      - ./data:/teddycloud/data
+    environment:
+      - TZ=Europe/Berlin # Adjust timezone if needed (User is in Germany? .de URL suggests yes)
