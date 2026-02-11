@@ -1,0 +1,73 @@
+# === C.H.E.E.S.E. Exocortex .gitignore ===
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Environment / Secrets
+.env
+.env.local
+*.key
+*.pem
+*.secret
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Large binary files (models, databases, media)
+*.gguf
+*.bin
+*.safetensors
+*.onnx
+*.pt
+*.pth
+*.h5
+*.db
+*.sqlite
+*.sqlite3
+
+# Chrome profile (Cortex browser data, massive)
+Project_Prosthetic/chrome_profile/
+
+# Temporary / cache
+*.tmp
+*.log
+*.cache
+
+# Gemini/Antigravity internal state (has its own location)
+# .gemini/ is outside this folder, so not needed here
+
+# Media exports (large)
+*.mp3
+*.wav
+*.mp4
+*.webm
+*.webp
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.pdf
+
+# Node (if any future web projects)
+node_modules/
+package-lock.json
+
+# Athena-Public has its own git repo, don't nest
+Athena-Public/
