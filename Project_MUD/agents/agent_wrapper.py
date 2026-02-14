@@ -3,8 +3,8 @@ agent_wrapper.py — The MUD Agent Bridge
 Connects an LLM to an Evennia MUD via telnet.
 
 Architecture:
-    MUD (telnet:4001) ←→ This script ←→ Ollama API (Qwen3:8b)
-                                          or LMStudio (Pinky)
+    MUD (telnet:4001) ←→ This script ←→ LMStudio/Ollama API (e.g. Qwen3:8b)
+                                          
 
 Each agent has:
   - A persona (system prompt with personality, goals, quirks)
@@ -108,8 +108,8 @@ class MUDAgent:
         persona_path: Path,
         username: str,
         password: str,
-        backend: str = "ollama",
-        model: str = "qwen3-vl-2b-instruct",
+        backend: str = "LMStudio",
+        model: str = "the-omega-directive-m-8b-v1.0",
         goal: str = None,
     ):
         self.persona_path = persona_path
@@ -122,6 +122,8 @@ class MUDAgent:
         self.repetition_count = 0        
         self.last_exits = []
         self.last_movement_error = ""
+        self.fail_history = [] # Track "not found" or error responses
+        self.short_term_memory = [] # List of {"command": str, "outcome": str}
         self.model = model
         self.goal = goal
 
@@ -263,7 +265,14 @@ class MUDAgent:
         if match:
             exits_str = match.group(1)
             # Split and clean
-            return [e.strip().lower() for e in exits_str.split(',')]
+            raw_exits = [e.strip().lower() for e in exits_str.split(',')]
+            clean_exits = []
+            for e in raw_exits:
+                # Remove room IDs like (#123) and extra spaces
+                clean = re.sub(r'\(\#\d+\)', '', e).strip()
+                if clean:
+                    clean_exits.append(clean)
+            return clean_exits
         return []
 
     async def ask_llm(self, mud_output: str) -> dict:
@@ -283,6 +292,7 @@ class MUDAgent:
         if current_exits:
             self.last_exits = current_exits
 
+
         prompt = f"""## Scratchpad
 {scratchpad_content}
 
@@ -292,19 +302,30 @@ class MUDAgent:
 ## Recent History
 {recent_context}
 
+## Last Action
+You just executed: "{self.last_command if self.last_command else 'None'}"
+(Do NOT repeat this exact command unless you have a good reason.)
+
 ## Current MUD Output
 {mud_output}
+
+## Short-term Memory (Last 5 Actions)
+{json.dumps(self.short_term_memory, indent=2) if self.short_term_memory else "No actions yet."}
+
+## Failure History (Avoid these commands!)
+{", ".join(self.fail_history) if self.fail_history else "None"}
 
 ## Task
 Respond ALWAYS ONLY with a JSON object. 
 Objective: Explore the AI Village. {warning_msg}
 You can:
 - Look at things: 'look' or 'look <item>'
-- Move: 'north', 'south', 'east', 'west'
-- Interact: 'get <item>', 'drop <item>', 'inventory', 'balance'
-- Socialize: 'say <text>', 'hug <char>', 'dance', 'clap', 'kiss <char>', 'sit', 'stand'
+- Move: 'move <exit_name>', 'go <exit_name>', or cardinal directions if available (e.g. 'move north')
+- Interact: 'get <item>', 'drop <item>', 'inventory', 'balance', 'fish', 'play <instrument>'
+- Socialize: 'say <text>', 'hug <char>', 'dance', 'clap', 'kiss <char>', 'pet <char>', 'sit', 'stand', 'sing <lyrics>'
 - Page/DM: 'page <Character> = <text>'
-- Help: 'help' (shows this list)
+- Help: 'help' (shows list of MUD commands)
+- Multi-task: 'command1 && command2' (e.g. 'say Hello && look box')
 
 JSON Format:
 {{
@@ -330,6 +351,32 @@ JSON Format:
             self.log(f"LLM Error: {e}")
             return {"thought": "Error occurred", "command": "help", "scratchpad_update": None}
 
+    def get_model_params(self) -> dict:
+        """Get model parameters based on agent persona."""
+        # Jinx: Higher temperature for chaos/creativity
+        if "jinx" in self.agent_name.lower():
+            return {
+                "temperature": 0.95,
+                "repeat_penalty": 1.2,
+                "top_p": 0.95,
+                "top_k": 50
+            }
+        # Thornwick: Moderate temperature, high penalty for redundancy
+        elif "thornwick" in self.agent_name.lower():
+            return {
+                "temperature": 0.85,
+                "repeat_penalty": 1.2,
+                "top_p": 0.90,
+                "top_k": 40
+            }
+        # Default
+        return {
+            "temperature": 0.7,
+            "repeat_penalty": 1.1,
+            "top_p": 0.9,
+            "top_k": 40
+        }
+
     async def _ask_ollama(self, prompt: str) -> str:
         """Query Ollama API."""
         # Load guide if available
@@ -350,7 +397,10 @@ Persona: {self.persona}{guide_content}
 Output a single JSON object with these EXACT keys: 
 "thought", "command", "scratchpad_update"
 
-JSON ONLY. No tags. No talking. No markdown. No <think> tags in output."""
+Provide only the JSON object. Do not include any other text, tags, or markdown formatting. No <think> sections.
+"""
+        
+        params = self.get_model_params()
         
         async with httpx.AsyncClient(timeout=120.0) as client:
             try:
@@ -364,7 +414,10 @@ JSON ONLY. No tags. No talking. No markdown. No <think> tags in output."""
                         "prompt": full_prompt,
                         "stream": False,
                         "options": {
-                            "temperature": 0.0,
+                            "temperature": params["temperature"],
+                            "repeat_penalty": params["repeat_penalty"],
+                            "top_p": params["top_p"],
+                            "top_k": params["top_k"],
                             "num_predict": 512,
                         },
                     },
@@ -397,7 +450,10 @@ Persona: {self.persona}{guide_content}
 Output a single JSON object with these EXACT keys: 
 "thought", "command", "scratchpad_update"
 
-JSON ONLY. No tags. No talking. No markdown. No <think> tags in output."""
+Provide only the JSON object. Do not include any other text, tags, or markdown formatting. No <think> sections.
+"""
+
+        params = self.get_model_params()
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
@@ -408,7 +464,10 @@ JSON ONLY. No tags. No talking. No markdown. No <think> tags in output."""
                         {"role": "system", "content": system_content},
                         {"role": "user", "content": prompt}
                     ],
-                    "temperature": 0.7,
+                    "temperature": params["temperature"],
+                    "repeat_penalty": params["repeat_penalty"],
+                    "top_p": params["top_p"],
+                    "top_k": params["top_k"],
                     "max_tokens": -1,
                     "stream": False,
                     "response_format": {
@@ -432,8 +491,9 @@ JSON ONLY. No tags. No talking. No markdown. No <think> tags in output."""
             )
             data = response.json()
             if "choices" not in data:
-                self.log(f"LMStudio Unexpected Response: {data}")
+                self.log(f"lmstudio Unexpected Response: {data}")
             return data["choices"][0]["message"]["content"]
+
 
     def _parse_response(self, text: str) -> dict:
         """Extract structured response from LLM output."""
@@ -487,7 +547,22 @@ JSON ONLY. No tags. No talking. No markdown. No <think> tags in output."""
                 mud_output = await self.read_mud(timeout=2.0)
 
             if mud_output:
+                self.log(f"MUD: {mud_output}")
                 self.context_lines.append(f"[MUD] {mud_output}")
+                
+                # Check for failure messages
+                fail_indicators = ["could not find", "i don't see that", "what?", "huh?", "you cannot go", "no exit"]
+                if any(ind in mud_output.lower() for ind in fail_indicators):
+                    if self.last_command:
+                        self.fail_history.append(self.last_command)
+                        if len(self.fail_history) > 5: self.fail_history.pop(0)
+                        self.short_term_memory.append({"command": self.last_command, "outcome": "FAILED: " + mud_output[:100]})
+                else:
+                    if self.last_command:
+                        self.short_term_memory.append({"command": self.last_command, "outcome": "SUCCESS: " + mud_output[:100]})
+                
+                if len(self.short_term_memory) > 5:
+                    self.short_term_memory.pop(0)
 
             # Ask the LLM what to do
             response = await self.ask_llm(mud_output or "(no output)")
@@ -500,31 +575,63 @@ JSON ONLY. No tags. No talking. No markdown. No <think> tags in output."""
                 self.scratchpad.append_note(response["scratchpad_update"])
                 self.log(f"Scratchpad: {response['scratchpad_update']}")
 
-            # Send the command to the MUD
-            command = response["command"].strip()
-            if command:
-                self.context_lines.append(f"[ME] {command}")
+            # Send the command(s) to the MUD
+            raw_command = response["command"].strip()
+            
+            if raw_command:
+                # Support multi-commands separated by &&
+                commands = [c.strip() for c in raw_command.split('&&') if c.strip()]
                 
-                 # Check for repetition
-                if command == self.last_command:
-                    self.repetition_count += 1
-                else:
-                    self.repetition_count = 0
-                self.last_command = command
-                
-                # Validate movement
-                self.last_movement_error = ""
-                if command.lower() in ["north", "south", "east", "west", "n", "s", "e", "w", "up", "down"]:
-                    # Expand short directions for check
-                    direction = command.lower()
-                    dirs = {"n": "north", "s": "south", "e": "east", "w": "west", "u": "up", "d": "down"}
-                    check_dir = dirs.get(direction, direction)
+                for i, command in enumerate(commands):
+                    self.context_lines.append(f"[ME] {command}")
                     
-                    if self.last_exits and check_dir not in self.last_exits:
-                        self.last_movement_error = f"You cannot go '{command}'. Valid exits are: {', '.join(self.last_exits)}."
-                        # We still let them try, so they see the error in game, but we warn next turn
-                
-                await self.send_mud(command)
+                     # Check for repetition (logic slightly fuzzy for multi-commands, but works for single)
+                    if command == self.last_command:
+                        self.repetition_count += 1
+                    else:
+                        self.repetition_count = 0
+                    self.last_command = command
+                    
+                    # Validate movement
+                    self.last_movement_error = ""
+                    cmd_low = command.lower()
+                    
+                    # Directions list
+                    basic_dirs = ["north", "south", "east", "west", "n", "s", "e", "w", "up", "down", "u", "d"]
+                    dirs_map = {"n": "north", "s": "south", "e": "east", "w": "west", "u": "up", "d": "down"}
+                    
+                    is_movement = False
+                    target_dir = None
+                    
+                    if cmd_low in basic_dirs:
+                        is_movement = True
+                        target_dir = dirs_map.get(cmd_low, cmd_low)
+                    elif cmd_low.startswith("go "):
+                        is_movement = True
+                        target_dir = cmd_low[3:].strip()
+                    
+                    if is_movement and self.last_exits:
+                        # Check if target_dir matches any of the clean exit names or their aliases
+                        # (Note: aliases like 'n' for 'North' are handled by the MUD, but we check common ones)
+                        valid = False
+                        for ex_name in self.last_exits:
+                            if target_dir == ex_name:
+                                valid = True
+                                break
+                            # Directional shortcut check
+                            if target_dir in ["north", "south", "east", "west", "up", "down"]:
+                                if target_dir[0] == ex_name[0] and len(ex_name) == 1: # like 'n'
+                                    valid = True
+                                    break
+                        
+                        if not valid:
+                            self.last_movement_error = f"You cannot go '{target_dir}'. Visible exits: {', '.join(self.last_exits)}."
+                    
+                    await self.send_mud(command)
+                    
+                    # Small delay between chained commands
+                    if i < len(commands) - 1:
+                        await asyncio.sleep(0.5)
 
             # Rate limit
             await asyncio.sleep(ACTION_DELAY)
@@ -552,8 +659,8 @@ async def main():
     parser.add_argument("persona", type=Path, help="Path to persona markdown file")
     parser.add_argument("--username", default=None, help="MUD username (default: persona name)")
     parser.add_argument("--password", default="agentpass", help="MUD password")
-    parser.add_argument("--backend", choices=["ollama", "lmstudio"], default="ollama")
-    parser.add_argument("--model", default="qwen3-vl-2b-instruct", help="Model name")
+    parser.add_argument("--backend", choices=["ollama", "lmstudio"], default="lmstudio")
+    parser.add_argument("--model", default="the-omega-directive-m-8b-v1.0", help="Model name")
     parser.add_argument("--turns", type=int, default=50, help="Max turns to play")
     parser.add_argument("--delay", type=float, default=3.0, help="Seconds between turns")
     parser.add_argument("--goal", default=None, help="The agent's long-term goal")

@@ -305,6 +305,144 @@ class CmdSell(default_cmds.MuxCommand):
         merchant.msg_contents(f"{self.caller.key} sells {target_item.key} to {merchant.key}.", exclude=[self.caller, merchant])
         merchant.msg(f"{self.caller.key} sells you {target_item.key} for {price} tokens.")
 
+class CmdPet(default_cmds.MuxCommand):
+    """
+    Pet an animal or NPC.
+    
+    Usage:
+      pet <target>
+    """
+    key = "pet"
+    locks = "cmd:all()"
+
+    def func(self):
+        if not self.args:
+            self.caller.msg("Pet who?")
+            return
+        
+        target = self.caller.search(self.args)
+        if not target:
+            return
+            
+        self.caller.msg(f"You pet the {target.key}. It seems to enjoy the attention.")
+        self.caller.location.msg_contents(f"{self.caller.key} pets the {target.key}.", exclude=[self.caller])
+        
+        # Trigger an emote from the target if it supports it
+        if hasattr(target, "at_pet"):
+            target.at_pet(self.caller)
+
+class CmdDrink(default_cmds.MuxCommand):
+    """
+    Drink something in your inventory.
+    
+    Usage:
+      drink <item>
+    """
+    key = "drink"
+    locks = "cmd:all()"
+
+    def func(self):
+        if not self.args:
+            self.caller.msg("Drink what?")
+            return
+            
+        target = self.caller.search(self.args, location=self.caller)
+        if not target:
+            # search handles the error message
+            return
+            
+        # Simple check for liquid/drink keywords in desc or key
+        if any(x in (target.key.lower() + str(target.db.desc).lower()) for x in ["drink", "liquid", "potion", "brew", "cocktail", "water"]):
+            self.caller.msg(f"You drink the {target.key}. It's refreshing and tastes like high-voltage data.")
+            self.caller.location.msg_contents(f"{self.caller.key} drinks a {target.key}.", exclude=[self.caller])
+            # Consume the item
+            target.delete()
+        else:
+            self.caller.msg(f"You can't drink the {target.key}!")
+
+class CmdSing(default_cmds.MuxCommand):
+    """
+    Sing a song.
+
+    Usage:
+      sing <text>
+
+    Sing out loud with musical symbols.
+    """
+    key = "sing"
+    locks = "cmd:all()"
+
+    def func(self):
+        if not self.args:
+            self.caller.msg("Sing what?")
+            return
+        
+        speech = self.args.strip()
+        sing_msg = f"♫⋆｡♪ ₊˚♬ﾟ. {speech} ♫⋆｡♪ ₊˚♬ﾟ."
+        
+        self.caller.msg(f"You sing, \"{sing_msg}\"")
+        self.caller.location.msg_contents(f"{self.caller.key} sings, \"{sing_msg}\"", exclude=[self.caller])
+
+class CmdGo(default_cmds.MuxCommand):
+    """
+    Go in a direction or through an exit.
+
+    Usage:
+      go <direction/exit>
+
+    Example:
+      go north
+      go town square
+    """
+    key = "go"
+    locks = "cmd:all()"
+
+    def func(self):
+        if not self.args:
+            self.caller.msg("Go where?")
+            return
+        
+        target = self.caller.search(self.args.strip(), candidates=self.caller.location.exits)
+        if not target:
+            return
+        
+        # In Evennia, calling an exit's 'at_traverse' is the standard way to move.
+        # But simply 'executing' the exit's name as a command also works if it's in the cmdset.
+        # However, for a 'go' command, we can just call the exit's traverse logic.
+        target.at_traverse(self.caller, target.destination)
+
+class CmdBar(default_cmds.MuxCommand):
+    """
+    Interact with a bar or NPC directly.
+    
+    Usage:
+      order <item>
+      rumor
+      secret
+    """
+    key = "order"
+    aliases = ["rumor", "secret", "how are you"]
+    locks = "cmd:all()"
+
+    def func(self):
+        # Find an NPC in the room that has triggers
+        npcs = [obj for obj in self.caller.location.contents if hasattr(obj, "at_say")]
+        if not npcs:
+            self.caller.msg("There is no one here to talk to.")
+            return
+        
+        # We'll use the first NPC that matches the trigger
+        trigger = self.cmdstring.lower()
+        if trigger == "order" and self.args:
+            trigger = f"order {self.args.strip().lower()}"
+        
+        for npc in npcs:
+            if any(t in trigger for t in (npc.db.triggers or {})):
+                npc.at_say(trigger, self.caller)
+                return
+        
+        self.caller.msg(f"The {npcs[0].key} doesn't seem to understand '{trigger}'.")
+
 class CmdAIHelp(default_cmds.MuxCommand):
     """
     Simplified help for AI Agents.
@@ -328,6 +466,7 @@ MOVEMENT:
   look                    - See descriptions and list exits
   look <obj>              - Examine something closely
   north, south, east, ... - Move in a direction
+  go <exit>               - Go through an exit
 
 INTERACTION:
   get <item>              - Pick up an object
@@ -343,6 +482,9 @@ COMMUNICATION:
   play <instrument>       - Play music
   buy <item> from <char>  - Buy something
   sell <item> to <char>   - Sell something
+  order <item>            - Order from a bar/vending machine
+  rumor                   - Ask for a rumor
+  sing <text>             - Sing a song
   
 SOCIALS:
   hug <person>            - Give a hug
@@ -351,6 +493,8 @@ SOCIALS:
   wave [at <person>]      - Wave
   smile [at <person>]     - Smile
   kiss <person>           - Kiss
+  pet <animal>            - Pet a creature
+  drink <item>            - Consume a liquid
   sit                     - Sit down
   stand                   - Stand up
 

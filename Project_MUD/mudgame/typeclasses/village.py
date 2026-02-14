@@ -159,29 +159,37 @@ class LLMRoom(Room):
     It provides structured information in its description.
     """
     def return_appearance(self, looker, **kwargs):
-        # Initial description from standard Room
-        desc = super().return_appearance(looker, **kwargs)
+        """
+        Custom appearance that bypasses the standard Evennia look in favor of a 
+        sleek, sexy Manifest-first approach.
+        """
+        # Get the actual description text
+        desc = self.db.desc or "A void of uninitialized data."
         
-        # Add a structured footer for LLMs
-        structure = "\n\n--- [SYSTEM_DATA] ---\n"
-        structure += f"Entity: {self.key}\n"
-        structure += f"Type: {self.__class__.__name__}\n"
-        structure += f"Exits: {', '.join([ex.key for ex in self.exits])}\n"
+        # Build the sexy Manifest
+        structure = f"\n|c{self.key}|n\n"
+        structure += f"{desc}\n\n"
+        structure += f"|y--- [MANIFEST: {self.key}] ---|n\n"
+        structure += f"|wType:|n {self.__class__.__name__}\n"
         
-        # List interactive objects (excluding exits)
-        from evennia.objects.models import ObjectDB
+        # Semantic Exits
+        visible_exits = [ex.key for ex in self.exits if ex.access(looker, 'view')]
+        structure += f"|wExits:|n {', '.join(visible_exits)}\n"
+        
+        # Cortex Awareness
         interactables = [obj.key for obj in self.contents if obj != looker and not obj.destination and obj.access(looker, "view")]
         if interactables:
-            structure += f"Contents: {', '.join(interactables)}\n"
+            structure += f"|wCortex Awareness:|n {', '.join(interactables)}\n"
             
-        # Add Weather Info
+        # Environmental Logic
         from evennia.scripts.models import ScriptDB
         weather = ScriptDB.objects.filter(db_key="global_weather")
         if weather:
             w_script = weather[0]
-            structure += f"Weather: {w_script.db.weather_state} - {w_script.db.weather_desc}\n"
+            structure += f"|wEnvironmental Logic:|n {w_script.db.weather_state} ({w_script.db.weather_desc})\n"
             
-        return desc + structure
+        structure += "|y--- [END MANIFEST] ---|n\n"
+        return structure
 
 class ClaimableHome(LLMRoom):
     """

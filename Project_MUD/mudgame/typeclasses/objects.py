@@ -15,12 +15,23 @@ class ObjectParent:
     """
     This is a mixin that can be used to override *all* entities inheriting at
     some distance from DefaultObject (Objects, Exits, Characters and Rooms).
-
-    Just add any method that exists on `DefaultObject` to this class. If one
-    of the derived classes has itself defined that same hook already, that will
-    take precedence.
-
     """
+    @property
+    def tokens(self):
+        return self.db.tokens or 0
+        
+    @tokens.setter
+    def tokens(self, value):
+        self.db.tokens = max(0, value)
+        
+    def pay(self, amount):
+        if self.tokens >= amount:
+            self.tokens -= amount
+            return True
+        return False
+        
+    def earn(self, amount):
+        self.tokens += amount
 
 
 class Object(ObjectParent, DefaultObject):

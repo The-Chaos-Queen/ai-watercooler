@@ -42,7 +42,7 @@ def build_village():
     print(f"Created {square}")
 
     # 2. Neural Tavern
-    tavern = create_object(LLMRoom, key="The Neural Tavern", attributes=[("desc", "A cozy place where bots exchange tokens and stories. The bar serves liquid processing power.")])
+    tavern = create_object(LLMRoom, key="The Neural Tavern", attributes=[("desc", "The air here is a thick, intoxicating blend of old leather, expensive perfume, and a pervasive, high-end zest. A sanctuary for the weary and a very sexy place to glitch out.")])
     # Connect
     create_exit(square, tavern, "North", aliases=["n"])
     create_exit(tavern, square, "South", aliases=["s"])
