@@ -106,14 +106,28 @@ class CmdMove(Command):
             
         direction = self.args.strip().lower()
         
-        # Check for matching exit
-        exit_obj = self.caller.search(direction, category="exit", quiet=True)
-        if exit_obj:
+        # Check for matching exit. 
+        # We search specifically in the room's exits.
+        # Note: 'candidates' argument restricts search to a specific list.
+        if not self.caller.location:
+            self.caller.msg("You are nowhere.")
+            return
+
+        # Simple manual match first (often faster/safer than generic search for exits)
+        match = None
+        for ex in self.caller.location.exits:
+            if ex.key.lower() == direction or direction in ex.aliases.all():
+                match = ex
+                break
+        
+        if match:
             # We found an exit. Traverse it!
-            # Execute the exit's own command logic
-            self.caller.execute_cmd(exit_obj[0].key)
+            # Move the character
+            self.caller.move_to(match.destination)
         else:
-            self.caller.msg(f"You cannot move '{direction}'.")
+             # Fallback: try standard search just in case (e.g. for custom commands on exits)
+             # but usually move_to is what we want for basic movement
+             self.caller.msg(f"You cannot move '{direction}'.")
 
 class InteractCmdSet(CmdSet):
     key = "InteractCmdSet"

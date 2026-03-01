@@ -10,6 +10,19 @@
             return `\n\`\`\`\n${element.textContent}\n\`\`\`\n\n`;
         }
 
+        // Handle Arena/LMSYS "Thinking" blocks
+        // Structure: <div class="not-prose"> <button>Thought for...</button> <div>...content...</div> </div>
+        if (element.classList && element.classList.contains('not-prose')) {
+            const button = element.querySelector('button');
+            if (button && button.textContent.includes('Thought for')) {
+                const contentDiv = element.querySelector('div[class*="font-mono"]');
+                if (contentDiv) {
+                    let thoughtText = contentDiv.textContent.trim();
+                    return `> **Thinking Process:**\n> ${thoughtText.replace(/\n/g, '\n> ')}\n\n`;
+                }
+            }
+        }
+
         // Handle child nodes
         element.childNodes.forEach(node => {
             if (node.nodeType === Node.TEXT_NODE) {
@@ -105,14 +118,16 @@
         'lmsys.org': {
             name: 'LMArena',
             userSelector: '.bg-surface-raised',
-            assistantSelector: '.bg-surface-primary',
-            assistantName: 'LMArena'
+            assistantSelector: '.bg-surface-primary:not(body)',
+            assistantName: 'LMArena',
+            reverse: true
         },
         'arena.ai': {
             name: 'LMArena',
             userSelector: '.bg-surface-raised',
-            assistantSelector: '.bg-surface-primary',
-            assistantName: 'LMArena'
+            assistantSelector: '.bg-surface-primary:not(body)',
+            assistantName: 'LMArena',
+            reverse: true
         }
     };
 
@@ -135,6 +150,12 @@
         // Also click any "show thinking" buttons (Claude-specific)
         document.querySelectorAll('[data-testid="thinking-toggle"], button[aria-label*="thinking"], button[aria-label*="Thinking"]').forEach(btn => {
             try { btn.click(); } catch (e) { }
+        });
+        // Arena/LMSYS specific "Thought for" buttons
+        document.querySelectorAll('button').forEach(btn => {
+            if (btn.textContent.includes('Thought for') && btn.getAttribute('aria-expanded') === 'false') {
+                try { btn.click(); } catch (e) { }
+            }
         });
         console.log('[AIExporter] Expanded all collapsed sections.');
 
@@ -179,10 +200,17 @@
                     const mdContainer = node.querySelector('.markdown');
                     if (mdContainer) contentNode = mdContainer;
                 }
-                // LMArena specific: .prose container
+                // LMArena specific: .prose container limits us (excludes thinking), .no-scrollbar includes both
+                // Structure: header(.sticky) + content(.no-scrollbar > .not-prose(thought) + .prose(response))
                 else if (platformKey.includes('lmsys.org') || platformKey.includes('arena.ai')) {
-                    const mdContainer = node.querySelector('.prose');
-                    if (mdContainer) contentNode = mdContainer;
+                    const scrollContainer = node.querySelector('.no-scrollbar');
+                    if (scrollContainer) {
+                        contentNode = scrollContainer;
+                    } else {
+                        // Fallback to prose if structure changes, though this might miss thoughts
+                        const mdContainer = node.querySelector('.prose');
+                        if (mdContainer) contentNode = mdContainer;
+                    }
                 }
 
                 let text = getMarkdownFromElement(contentNode).trim();
@@ -205,6 +233,11 @@
 
         if (messages.length === 0) {
             return `# Chat Export\n\n> **Error**: No messages found for ${config.name}.\n\nDebug Info:\n- Selectors: ${selector}\n- URL: ${window.location.href}`;
+        }
+
+        // Apply Reversal if Configured
+        if (config.reverse) {
+            messages.reverse();
         }
 
         let output = `# ${config.name} Chat Export\n\n`;

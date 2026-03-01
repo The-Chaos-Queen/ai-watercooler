@@ -111,6 +111,8 @@ class MUDAgent:
         backend: str = "LMStudio",
         model: str = "the-omega-directive-m-8b-v1.0",
         goal: str = None,
+        device: str = None,
+        resume_state: str = None,
     ):
         self.persona_path = persona_path
         self.persona = persona_path.read_text(encoding="utf-8")
@@ -147,8 +149,28 @@ class MUDAgent:
         self.writer: asyncio.StreamWriter | None = None
         self.logged_in = False
 
+        # === Mamba Backend ===
+        self.mamba = None
+        if backend == "mamba":
+            from mamba_backend import MambaBackend
+            state_path = resume_state or (
+                base_dir / "states" / f"{self.agent_name}.pt"
+            )
+            self.mamba = MambaBackend(
+                model_name=model,
+                device=device,
+                state_path=str(state_path) if Path(state_path).exists() else None
+            )
+            # Training data output path
+            self.training_data_path = (
+                base_dir / "training_data"
+                / f"{self.agent_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl"
+            )
+
         print(f"[{self.agent_name}] Initialized with persona from {persona_path.name}")
         print(f"[{self.agent_name}] Backend: {backend} ({model})")
+        if self.mamba:
+            print(f"[{self.agent_name}] Mamba state: {self.mamba.get_info()}")
 
     def log(self, message: str):
         """Log to file and stdout."""
@@ -190,6 +212,45 @@ class MUDAgent:
             full_text = re.sub(r'\x1b\[\d*[A-Za-z]', '', full_text)
 
         return full_text
+
+    async def _get_json_state(self, timeout: float = 5.0) -> tuple[dict | None, str]:
+        """
+        Request and parse JSON state from MUD (via 'look --json').
+        Returns (json_dict, remaining_text_as_events).
+        """
+        await self.send_mud("look --json")
+        
+        buffer = ""
+        start_time = time.time()
+        
+        # Poll until we find a JSON object or timeout
+        while time.time() - start_time < timeout:
+            chunk = await self.read_mud(timeout=1.0)
+            if chunk:
+                buffer += chunk
+                
+                # Try to find a valid JSON object in the buffer
+                # We assume the server sends one JSON object per request
+                s = buffer.find('{')
+                e = buffer.rfind('}')
+                
+                if s != -1 and e != -1 and e > s:
+                    candidate = buffer[s:e+1]
+                    try:
+                        data = json.loads(candidate)
+                        # Success! Extract events before/after
+                        events = buffer[:s] + buffer[e+1:]
+                        # self.log("DEBUG: Successfully parsed JSON state")
+                        return data, events.strip()
+                    except json.JSONDecodeError as e:
+                        pass
+            
+            if not chunk and buffer:
+                 # verify if buffer is valid json even if no more chunk
+                 pass
+
+        # self.log(f"DEBUG: Failed to find JSON in buffer of {len(buffer)} chars. Buffer tail: {buffer[-50:]}")
+        return None, buffer
 
     async def send_mud(self, command: str):
         """Send a command to the MUD."""
@@ -282,7 +343,7 @@ class MUDAgent:
         
         warning_msg = ""
         if self.repetition_count >= 2:
-             warning_msg = "\nWARNING: You are repeating the same command. STOP. Do something else! Look at a specific object, move to a new room, or check help."
+             warning_msg = "\nWARNING: You are repeating the same command. STOP. Do something else! Check 'help' or try a different action."
         
         if self.last_movement_error:
             warning_msg += f"\nWARNING: {self.last_movement_error}"
@@ -306,7 +367,7 @@ class MUDAgent:
 You just executed: "{self.last_command if self.last_command else 'None'}"
 (Do NOT repeat this exact command unless you have a good reason.)
 
-## Current MUD Output
+## Current Room State (JSON)
 {mud_output}
 
 ## Short-term Memory (Last 5 Actions)
@@ -320,7 +381,7 @@ Respond ALWAYS ONLY with a JSON object.
 Objective: Explore the AI Village. {warning_msg}
 You can:
 - Look at things: 'look' or 'look <item>'
-- Move: 'move <exit_name>', 'go <exit_name>', or cardinal directions if available (e.g. 'move north')
+- Move: 'move <exit_name>' or 'go <exit_name>'. Use ONLY the exits listed in the room description. If no exits, stay put!
 - Interact: 'get <item>', 'drop <item>', 'inventory', 'balance', 'fish', 'play <instrument>'
 - Socialize: 'say <text>', 'hug <char>', 'dance', 'clap', 'kiss <char>', 'pet <char>', 'sit', 'stand', 'sing <lyrics>'
 - Page/DM: 'page <Character> = <text>'
@@ -340,6 +401,8 @@ JSON Format:
                 response = await self._ask_ollama(prompt)
             elif self.backend == "lmstudio":
                 response = await self._ask_lmstudio(prompt)
+            elif self.backend == "mamba":
+                response = await self._ask_mamba(prompt)
             else:
                 raise ValueError(f"Unknown backend: {self.backend}")
 
@@ -394,6 +457,9 @@ JSON Format:
         system_content = f"""You are playing a MUD. 
 Persona: {self.persona}{guide_content}
 
+You will receive the current world state as a JSON object (or sometimes text if fallback occurs).
+Your actions must be valid MUD commands.
+
 Output a single JSON object with these EXACT keys: 
 "thought", "command", "scratchpad_update"
 
@@ -447,6 +513,9 @@ Provide only the JSON object. Do not include any other text, tags, or markdown f
         system_content = f"""You are playing a MUD. 
 Persona: {self.persona}{guide_content}
 
+You will receive the current world state as a JSON object (or sometimes text if fallback occurs).
+Your actions must be valid MUD commands.
+
 Output a single JSON object with these EXACT keys: 
 "thought", "command", "scratchpad_update"
 
@@ -494,6 +563,21 @@ Provide only the JSON object. Do not include any other text, tags, or markdown f
                 self.log(f"lmstudio Unexpected Response: {data}")
             return data["choices"][0]["message"]["content"]
 
+    async def _ask_mamba(self, prompt: str) -> str:
+        """Query local Mamba model with persistent SSM state."""
+        # Run generation in executor to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: self.mamba.generate(
+                prompt=prompt,
+                persona=self.persona,
+                max_new_tokens=300,
+                temperature=self.get_model_params().get("temperature", 0.7)
+            )
+        )
+        return response
+
 
     def _parse_response(self, text: str) -> dict:
         """Extract structured response from LLM output."""
@@ -538,34 +622,63 @@ Provide only the JSON object. Do not include any other text, tags, or markdown f
             self.log(f"--- Turn {turn + 1}/{max_turns} ---")
 
             # Read what the MUD is showing
-            mud_output = await self.read_mud(timeout=2.0)
+            # 1. Consume any pending output (events/feedback from last command)
+            pending = await self.read_mud(timeout=0.5)
 
-            if not mud_output:
-                # Nothing new from MUD, do a look
-                await self.send_mud("look")
-                await asyncio.sleep(1.0)
-                mud_output = await self.read_mud(timeout=2.0)
+            # 2. Fetch fresh JSON state
+            state_json, extra_text = await self._get_json_state(timeout=3.0)
 
-            if mud_output:
-                self.log(f"MUD: {mud_output}")
-                self.context_lines.append(f"[MUD] {mud_output}")
+            full_text_log = (pending + extra_text).strip()
+
+            if full_text_log:
+                self.log(f"MUD Log: {full_text_log}")
+                self.context_lines.append(f"[MUD] {full_text_log}")
                 
                 # Check for failure messages
                 fail_indicators = ["could not find", "i don't see that", "what?", "huh?", "you cannot go", "no exit"]
-                if any(ind in mud_output.lower() for ind in fail_indicators):
+                if any(ind in full_text_log.lower() for ind in fail_indicators):
                     if self.last_command:
                         self.fail_history.append(self.last_command)
                         if len(self.fail_history) > 5: self.fail_history.pop(0)
-                        self.short_term_memory.append({"command": self.last_command, "outcome": "FAILED: " + mud_output[:100]})
+                        self.short_term_memory.append({"command": self.last_command, "outcome": "FAILED: " + full_text_log[:100]})
                 else:
                     if self.last_command:
-                        self.short_term_memory.append({"command": self.last_command, "outcome": "SUCCESS: " + mud_output[:100]})
+                        self.short_term_memory.append({"command": self.last_command, "outcome": "SUCCESS"})
                 
                 if len(self.short_term_memory) > 5:
                     self.short_term_memory.pop(0)
 
+            # 3. Prepare Prompt Input
+            if state_json:
+                # Inject recent events from context
+                event_list = []
+                # Take last 5 lines of context
+                for line in self.context_lines[-5:]:
+                    clean = line.replace("[MUD] ", "").replace("[ME] ", "")
+                    # Basic classification
+                    etype = "info"
+                    if "says:" in clean: etype = "say"
+                    elif "arrives" in clean: etype = "arrive"
+                    elif "leaves" in clean: etype = "leave"
+                    
+                    event_list.append({"type": etype, "content": clean})
+
+                state_json["recent_events"] = event_list
+                state_json["turn"] = turn
+                
+                # Use the JSON string as the 'output' for the LLM
+                prompt_input = json.dumps(state_json, indent=2)
+            else:
+                self.log("Failed to get JSON state. Falling back to text.")
+                # Fallback: if we have text log, use it. If not, try a standard look.
+                if not full_text_log:
+                     await self.send_mud("look")
+                     prompt_input = await self.read_mud(timeout=2.0)
+                else:
+                     prompt_input = full_text_log
+
             # Ask the LLM what to do
-            response = await self.ask_llm(mud_output or "(no output)")
+            response = await self.ask_llm(prompt_input)
 
             self.log(f"Thought: {response['thought']}")
             self.log(f"Command: {response['command']}")
@@ -636,6 +749,28 @@ Provide only the JSON object. Do not include any other text, tags, or markdown f
             # Rate limit
             await asyncio.sleep(ACTION_DELAY)
 
+            # === Mamba: periodic state save & training data collection ===
+            if self.mamba:
+                # Determine success from last outcome
+                success = bool(
+                    self.short_term_memory
+                    and self.short_term_memory[-1].get("outcome") == "SUCCESS"
+                )
+                self.mamba.log_training_sample(
+                    turn=turn + 1,
+                    state_json=prompt_input if state_json else "(text fallback)",
+                    raw_output=response.get("thought", ""),
+                    parsed_action=response,
+                    success=success
+                )
+                # Auto-save state every 10 turns
+                if (turn + 1) % 10 == 0:
+                    base_dir = Path(__file__).parent
+                    state_path = base_dir / "states" / f"{self.agent_name}.pt"
+                    self.mamba.save_state(str(state_path))
+                    self.mamba.save_training_data(str(self.training_data_path))
+                    self.log(f"Auto-saved state and training data (turn {turn + 1})")
+
         self.log("Game loop complete.")
 
     async def run(self, max_turns: int = 100):
@@ -644,10 +779,20 @@ Provide only the JSON object. Do not include any other text, tags, or markdown f
         await self.login()
 
         if self.logged_in:
-            # Initial look
-            await self.send_mud("look")
-            await asyncio.sleep(1.0)
+            # Game loop will fetch state immediately
+            # await self.send_mud("look") 
+            # await asyncio.sleep(1.0)
             await self.game_loop(max_turns=max_turns)
+
+        # === Mamba: save final state on shutdown ===
+        if self.mamba:
+            base_dir = Path(__file__).parent
+            state_path = base_dir / "states" / f"{self.agent_name}.pt"
+            self.mamba.save_state(str(state_path))
+            self.mamba.save_training_data(str(self.training_data_path))
+            info = self.mamba.get_info()
+            self.log(f"Final Mamba state: {info['turns']} turns, "
+                     f"{info['tokens']} tokens, {info['state_mb']:.1f} MB")
 
         # Disconnect
         self.writer.close()
@@ -655,15 +800,19 @@ Provide only the JSON object. Do not include any other text, tags, or markdown f
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="MUD Agent — LLM plays a text adventure")
+    parser = argparse.ArgumentParser(description="MUD Agent -- LLM plays a text adventure")
     parser.add_argument("persona", type=Path, help="Path to persona markdown file")
     parser.add_argument("--username", default=None, help="MUD username (default: persona name)")
     parser.add_argument("--password", default="agentpass", help="MUD password")
-    parser.add_argument("--backend", choices=["ollama", "lmstudio"], default="lmstudio")
+    parser.add_argument("--backend", choices=["ollama", "lmstudio", "mamba"], default="lmstudio")
     parser.add_argument("--model", default="the-omega-directive-m-8b-v1.0", help="Model name")
     parser.add_argument("--turns", type=int, default=50, help="Max turns to play")
     parser.add_argument("--delay", type=float, default=3.0, help="Seconds between turns")
     parser.add_argument("--goal", default=None, help="The agent's long-term goal")
+    parser.add_argument("--device", default=None, help="Device for Mamba backend (cuda/cpu)")
+    parser.add_argument("--resume-state", default=None, help="Path to saved Mamba state file")
+    parser.add_argument("--mud-host", default="127.0.0.1", help="MUD server host (default: localhost)")
+    parser.add_argument("--mud-port", type=int, default=4000, help="MUD server port (default: 4000)")
 
     args = parser.parse_args()
 
@@ -671,8 +820,10 @@ async def main():
         print(f"[ERROR] Persona file not found: {args.persona}")
         sys.exit(1)
 
-    global ACTION_DELAY
+    global ACTION_DELAY, MUD_HOST, MUD_PORT
     ACTION_DELAY = args.delay
+    MUD_HOST = args.mud_host
+    MUD_PORT = args.mud_port
 
     username = args.username or args.persona.stem
     agent = MUDAgent(
@@ -682,6 +833,8 @@ async def main():
         backend=args.backend,
         model=args.model,
         goal=args.goal,
+        device=args.device,
+        resume_state=args.resume_state,
     )
 
     await agent.run(max_turns=args.turns)

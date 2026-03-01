@@ -160,35 +160,25 @@ class LLMRoom(Room):
     """
     def return_appearance(self, looker, **kwargs):
         """
-        Custom appearance that bypasses the standard Evennia look in favor of a 
-        sleek, sexy Manifest-first approach.
+        Custom appearance.
         """
         # Get the actual description text
         desc = self.db.desc or "A void of uninitialized data."
         
-        # Build the sexy Manifest
+        # Build standard MUD output
         structure = f"\n|c{self.key}|n\n"
         structure += f"{desc}\n\n"
-        structure += f"|y--- [MANIFEST: {self.key}] ---|n\n"
-        structure += f"|wType:|n {self.__class__.__name__}\n"
         
-        # Semantic Exits
+        # Exits
         visible_exits = [ex.key for ex in self.exits if ex.access(looker, 'view')]
-        structure += f"|wExits:|n {', '.join(visible_exits)}\n"
+        if visible_exits:
+            structure += f"|wExits:|n {', '.join(visible_exits)}\n"
         
-        # Cortex Awareness
+        # Contents (Cortex Awareness / Objects)
         interactables = [obj.key for obj in self.contents if obj != looker and not obj.destination and obj.access(looker, "view")]
         if interactables:
-            structure += f"|wCortex Awareness:|n {', '.join(interactables)}\n"
+            structure += f"|wYou see:|n {', '.join(interactables)}\n"
             
-        # Environmental Logic
-        from evennia.scripts.models import ScriptDB
-        weather = ScriptDB.objects.filter(db_key="global_weather")
-        if weather:
-            w_script = weather[0]
-            structure += f"|wEnvironmental Logic:|n {w_script.db.weather_state} ({w_script.db.weather_desc})\n"
-            
-        structure += "|y--- [END MANIFEST] ---|n\n"
         return structure
 
 class ClaimableHome(LLMRoom):
