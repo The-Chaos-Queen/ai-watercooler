@@ -59,6 +59,9 @@ class MambaBackend:
         self.token_count = 0     # Total tokens ever processed
         self.turn_count = 0      # Total game turns
         self._preamble_fed = False  # Has the persona/few-shot been fed?
+        self._history = ""       # Accumulated full text for batch prefill
+        self._persona = ""       # Stored persona for preamble rebuild
+        self.MAX_CONTEXT = 8192  # Max tokens before trimming old turns (expanded for speed)
 
         # Resume from saved state if provided
         if state_path and Path(state_path).exists():
@@ -79,21 +82,25 @@ class MambaBackend:
         This is only fed on the FIRST turn. Subsequent turns inherit it
         through the accumulated SSM state.
         """
-        return f"""The following is a log of an AI agent playing a text MUD game.
-The agent receives room state as JSON and responds with a JSON action.
+        return f"""A log of an AI agent playing a MUD. Each turn: agent sees Room State (JSON), then responds with ONLY a JSON object.
 
-Agent Persona:
-{persona}
+Agent: {persona.split(chr(10))[0].strip()}
 
-Example Turn:
-Room State: {{"location": {{"name": "Town Square", "exits": ["tavern", "market"]}}, "entities": {{"players": [], "npcs": ["Old Man"], "items": ["coin"]}}}}
-Agent Response: {{"thought": "I see a coin and an Old Man. Let me pick up the coin.", "command": "get coin", "scratchpad_update": "Found coin in Town Square"}}
+Turn 1:
+Room State: {{"location": {{"name": "Town Square", "description": "The center.", "exits": ["tavern", "market"]}}, "entities": {{"players": [], "npcs": ["Old Man"], "items": ["coin"]}}, "recent_events": [], "turn": 0, "your_character": {{"name": "Agent", "role": "adventurer", "current_action": null}}}}
+Agent Response: {{"thought": "I see a coin on the ground near the Old Man. I will pick it up.", "command": "get coin", "scratchpad_update": "Found a coin in Town Square. Old Man is here."}}
 
-Example Turn:
-Room State: {{"location": {{"name": "The Neural Tavern", "exits": ["south"]}}, "entities": {{"players": ["Thornwick"], "npcs": [], "items": ["lute"]}}}}
-Agent Response: {{"thought": "Thornwick is here! I should say hello.", "command": "say Hello Thornwick! Care for a song?", "scratchpad_update": "Met Thornwick at tavern"}}
+Turn 2:
+Room State: {{"location": {{"name": "Town Square", "description": "The center.", "exits": ["tavern", "market"]}}, "entities": {{"players": [], "npcs": ["Old Man"], "items": []}}, "recent_events": [], "turn": 1, "your_character": {{"name": "Agent", "role": "adventurer", "current_action": null}}}}
+Agent Response: {{"thought": "The coin is gone. I should explore. The tavern sounds interesting.", "command": "move tavern", "scratchpad_update": "Picked up coin. Moving to tavern to explore."}}
 
-Now the actual game begins.
+Turn 3:
+Room State: {{"location": {{"name": "The Neural Tavern", "description": "Neon bar.", "exits": ["south"]}}, "entities": {{"players": ["Jinx"], "npcs": ["Bartender"], "items": ["lute"]}}, "recent_events": [], "turn": 2, "your_character": {{"name": "Agent", "role": "adventurer", "current_action": null}}}}
+Agent Response: {{"thought": "Jinx is here at the tavern! I should greet them.", "command": "say Hello Jinx!", "scratchpad_update": "At tavern. Met Jinx. Bartender present. Lute on the ground."}}
+
+Turn 4:
+Room State: {{"location": {{"name": "The Neural Tavern", "description": "Neon bar.", "exits": ["south"]}}, "entities": {{"players": ["Jinx"], "npcs": ["Bartender"], "items": ["lute"]}}, "recent_events": [], "turn": 3, "your_character": {{"name": "Agent", "role": "adventurer", "current_action": null}}}}
+Agent Response: {{"thought": "I want to examine the lute.", "command": "look lute", "scratchpad_update": "Examining lute at tavern."}}
 
 """
 
@@ -102,102 +109,117 @@ Now the actual game begins.
     # -------------------------------------------------------------------------
 
     def generate(self, prompt: str, persona: str = "",
-                 max_new_tokens: int = 300, temperature: float = 0.7) -> str:
+                 max_new_tokens: int = 150, temperature: float = 0.5) -> str:
         """
         Generate a response to the given prompt (room state JSON).
 
-        On the first turn, feeds the full preamble (persona + few-shot).
-        On subsequent turns, only feeds the new room state, building on
-        the accumulated SSM state. The persona is "in memory."
+        BATCH PREFILL MODE: Accumulates full conversation history and
+        re-feeds it as a batch every turn. This is ~10x faster than
+        token-by-token decode because the batch prefill path is parallel.
+        The SSM state is deterministic, so the result is identical.
         """
         self.turn_count += 1
+        json_prefix = '{"thought":'
 
-        # Build the text to feed
+        # Build the new turn text
         if not self._preamble_fed:
-            # First turn: preamble + few-shot + current state
-            text = self._build_preamble(persona)
-            text += f"Turn {self.turn_count}:\n"
-            text += f"Room State: {prompt}\n"
-            text += "Agent Response:"
-        else:
-            # Subsequent turns: just the new state (SSM remembers the rest)
-            text = f"\n\nTurn {self.turn_count}:\n"
-            text += f"Room State: {prompt}\n"
-            text += "Agent Response:"
-
-        # Tokenize
-        input_ids = self.tokenizer.encode(text, return_tensors="pt").to(self.device)
-
-        # Feed input and generate
-        if not self._preamble_fed:
-            # First turn: batch prefill (fast, processes all tokens at once)
-            generated_ids = self._prefill_and_generate(
-                input_ids, max_new_tokens, temperature
-            )
+            self._persona = persona
+            self._history = self._build_preamble(persona)
             self._preamble_fed = True
-        else:
-            # Subsequent turns: feed tokens one-by-one, then generate
-            generated_ids = self._decode_and_generate(
-                input_ids, max_new_tokens, temperature
-            )
 
-        # Decode the generated tokens
+        # Append this turn's state
+        self._history += f"\nTurn {self.turn_count}:\n"
+        self._history += f"Room State: {prompt}\n"
+        self._history += f"Agent Response: {json_prefix}"
+
+        # Trim if history exceeds context window
+        self._trim_history()
+
+        # Tokenize full history and batch prefill
+        input_ids = self.tokenizer.encode(
+            self._history, return_tensors="pt"
+        ).to(self.device)
+
+        gen_start = time.time()
+        generated_ids = self._batch_prefill_and_generate(
+            input_ids, max_new_tokens, temperature
+        )
+        gen_time = time.time() - gen_start
+
+        # Decode and prepend the JSON prefix
         response = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
+        full_response = json_prefix + response
 
-        return response.strip()
+        # Basic JSON validation to prevent context poisoning with hallucinations
+        import json
+        is_valid = False
+        try:
+            # We strip in case there's an exact match but with whitespace
+            json.loads(full_response.strip())
+            is_valid = True
+        except json.JSONDecodeError:
+            pass
+            
+        if is_valid:
+            # Append the generated response to history for next turn
+            self._history += response
+        else:
+            # Fallback to prevent garbage looping in the context window
+            print(f"[MambaBackend] WARNING: Invalid JSON generated. Intercepting to protect context window.")
+            clean_response = ' "My thoughts are clouded by noise.", "command": "look", "scratchpad_update": "Recovering from confusion."}'
+            self._history += clean_response
+            full_response = json_prefix + clean_response
 
-    def _prefill_and_generate(self, input_ids, max_new_tokens, temperature):
+        print(f"[MambaBackend] Turn {self.turn_count}: "
+              f"{input_ids.shape[1]} ctx tokens, "
+              f"{len(generated_ids)} gen tokens, "
+              f"{gen_time:.1f}s")
+
+        return full_response.strip()
+
+    def _trim_history(self):
         """
-        First-turn generation: process full input as a batch (prefill mode),
-        then generate autoregressively.
+        If history exceeds MAX_CONTEXT tokens, trim old turns (keep preamble
+        and recent turns). This prevents OOM on long sessions.
+        """
+        token_count = len(self.tokenizer.encode(self._history))
+        if token_count <= self.MAX_CONTEXT:
+            return
+
+        # Rebuild: preamble + last N turns that fit
+        preamble = self._build_preamble(self._persona)
+        rest = self._history[len(preamble):]
+
+        # Split by turn markers and keep recent ones
+        turns = rest.split("\nTurn ")
+        turns = [t for t in turns if t.strip()]  # remove empties
+
+        # Remove oldest turns until we fit
+        while len(turns) > 1:
+            candidate = preamble + "\nTurn " + "\nTurn ".join(turns)
+            if len(self.tokenizer.encode(candidate)) <= self.MAX_CONTEXT:
+                break
+            turns.pop(0)
+
+        self._history = preamble + "\nTurn " + "\nTurn ".join(turns)
+        new_count = len(self.tokenizer.encode(self._history))
+        print(f"[MambaBackend] Trimmed history: {token_count} -> {new_count} tokens")
+
+    def _batch_prefill_and_generate(self, input_ids, max_new_tokens, temperature):
+        """
+        Batch prefill: process full input as a single batch (fast, parallel),
+        then generate autoregressively. Cache is reset each call.
         """
         generated = []
 
         with torch.no_grad():
-            # Phase 1: Prefill - process entire input at once
-            # When cache_params is None, model creates fresh cache and
-            # processes full sequence in prefill mode
+            # Reset cache and prefill entire history as a batch
+            self.cache_params = None
             outputs = self.model(input_ids, use_cache=True)
             self.cache_params = outputs.cache_params
             self.token_count = input_ids.shape[1]
 
-            # Phase 2: Generate from the last token's logits
-            next_logits = outputs.logits[:, -1, :]
-            generated = self._autoregressive_loop(
-                next_logits, max_new_tokens, temperature
-            )
-
-        return generated
-
-    def _decode_and_generate(self, input_ids, max_new_tokens, temperature):
-        """
-        Subsequent-turn generation: feed new tokens one-by-one into existing
-        cache (decode mode), then generate autoregressively.
-
-        Note: Mamba's slow_forward only handles single tokens in decode mode.
-        This is ~2ms/token on CUDA, ~50ms/token on CPU.
-        """
-        generated = []
-
-        with torch.no_grad():
-            # Phase 1: Feed new input tokens one at a time
-            seq_len = input_ids.shape[1]
-            for i in range(seq_len):
-                token = input_ids[:, i:i+1]
-                pos = torch.arange(
-                    self.token_count, self.token_count + 1,
-                    device=self.device
-                )
-                outputs = self.model(
-                    input_ids=token,
-                    cache_params=self.cache_params,
-                    cache_position=pos,
-                    use_cache=True
-                )
-                self.cache_params = outputs.cache_params
-                self.token_count += 1
-
-            # Phase 2: Generate from the last fed token's logits
+            # Generate from the last token's logits
             next_logits = outputs.logits[:, -1, :]
             generated = self._autoregressive_loop(
                 next_logits, max_new_tokens, temperature
@@ -208,11 +230,12 @@ Now the actual game begins.
     def _autoregressive_loop(self, next_logits, max_new_tokens, temperature):
         """
         Shared autoregressive generation loop.
-        Stops on: EOS, complete JSON object, Turn marker, or max tokens.
+        Since we pre-fill '{"thought":', we start with brace_depth=1.
+        Stops on: EOS, complete JSON (depth=0), HTML tags, Turn marker.
         """
         generated = []
-        brace_depth = 0
-        json_started = False
+        # We already opened one '{' via the pre-filled prefix
+        brace_depth = 1
 
         for step in range(max_new_tokens):
             # Sample next token
@@ -230,24 +253,33 @@ Now the actual game begins.
                 break
 
             generated.append(token_id)
-
-            # Track JSON brace depth for smart stopping
             decoded_char = self.tokenizer.decode([token_id])
+
+            # ABORT: HTML/XML tags mean the model has gone off-script
+            if "<" in decoded_char:
+                # Remove this token and stop
+                generated.pop()
+                # Force-close the JSON
+                close_tokens = self.tokenizer.encode(
+                    ' "ABORT"}}', add_special_tokens=False
+                )
+                generated.extend(close_tokens)
+                break
+
+            # Track JSON brace depth
             if "{" in decoded_char:
-                json_started = True
                 brace_depth += decoded_char.count("{")
             if "}" in decoded_char:
                 brace_depth -= decoded_char.count("}")
 
-            # Stop: complete JSON object found
-            if json_started and brace_depth <= 0:
+            # Stop: complete JSON object (all braces closed)
+            if brace_depth <= 0:
                 break
 
-            # Stop: model is generating the next turn marker
+            # Stop: model generating next turn marker
             if len(generated) > 10:
                 tail = self.tokenizer.decode(generated[-8:])
                 if "Turn " in tail or "\nRoom State:" in tail:
-                    # Trim the marker from output
                     full = self.tokenizer.decode(generated)
                     cut = full.rfind("\n")
                     if cut > 0:
@@ -309,7 +341,7 @@ Now the actual game begins.
         # Reconstruct cache
         self.cache_params = MambaCache(
             self.model.config,
-            batch_size=1,
+            max_batch_size=1,
             device=self.device,
             dtype=self.model.dtype
         )

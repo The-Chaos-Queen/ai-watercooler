@@ -158,28 +158,7 @@ class LLMRoom(Room):
     A Room specifically designed to be easily parsed by LLM agents.
     It provides structured information in its description.
     """
-    def return_appearance(self, looker, **kwargs):
-        """
-        Custom appearance.
-        """
-        # Get the actual description text
-        desc = self.db.desc or "A void of uninitialized data."
-        
-        # Build standard MUD output
-        structure = f"\n|c{self.key}|n\n"
-        structure += f"{desc}\n\n"
-        
-        # Exits
-        visible_exits = [ex.key for ex in self.exits if ex.access(looker, 'view')]
-        if visible_exits:
-            structure += f"|wExits:|n {', '.join(visible_exits)}\n"
-        
-        # Contents (Cortex Awareness / Objects)
-        interactables = [obj.key for obj in self.contents if obj != looker and not obj.destination and obj.access(looker, "view")]
-        if interactables:
-            structure += f"|wYou see:|n {', '.join(interactables)}\n"
-            
-        return structure
+    pass
 
 class ClaimableHome(LLMRoom):
     """
@@ -191,10 +170,26 @@ class ClaimableHome(LLMRoom):
         self.cmdset.add(HomeCmdSet, persistent=True)
         
     def return_appearance(self, looker, **kwargs):
-        desc = super().return_appearance(looker, **kwargs)
+        appearance = super().return_appearance(looker, **kwargs)
+        
+        # Check if the result is a JSON string
+        is_json = False
+        try:
+            import json
+            data = json.loads(appearance)
+            is_json = True
+        except (ValueError, TypeError, json.JSONDecodeError):
+            pass
+
+        if is_json:
+            # Inject property status into JSON
+            data["property_status"] = f"Owned by {self.db.owner}" if self.db.owner else "FOR SALE"
+            return json.dumps(data)
+        
+        # Human fallback
         if self.db.owner:
-            return f"{desc}\n[PROPERY STATUS]: Owned by {self.db.owner}"
-        return f"{desc}\n[PROPERTY STATUS]: FOR SALE (Use 'claim' to acquire)"
+            return f"{appearance}\n[PROPERTY STATUS]: Owned by {self.db.owner}"
+        return f"{appearance}\n[PROPERTY STATUS]: FOR SALE (Use 'claim' to acquire)"
 
 class BulletinBoard(Object):
     """

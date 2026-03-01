@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(conda info:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:openreview.net)",
+      "WebSearch",
+      "WebFetch(domain:r.jina.ai)",
+      "Bash(grep:*)",
+      "Bash(sort -k2)",
+      "Bash(xargs ls -lh)",
+      "Bash(ls:*)"
+    ]
+  }
+}

@@ -39,6 +39,15 @@ class CmdSmartLook(CmdLook):
             # Handle "look around" -> "look"
             elif args.lower() == "around":
                 self.args = ""
+                
+            if self.args:
+                try:
+                    from commands.social import fuzzy_match
+                    match = fuzzy_match(self.caller, self.args, candidates=self.caller.location.contents + self.caller.location.exits, quiet=True)
+                    if match:
+                        self.args = match.key
+                except Exception as e:
+                    print(f"DEBUG: fuzzy_match error in look: {e}")
         
         super().func()
 
@@ -57,6 +66,21 @@ class CmdSmartLook(CmdLook):
 
             print(f"DEBUG: Processing location {location.key}")
 
+            # Weather Integration
+            is_outdoor = location.tags.has("outdoor", category="environment")
+            weather_state = "Clear"
+            weather_desc = ""
+            
+            if is_outdoor:
+                from evennia.utils.search import search_script
+                scripts = search_script("global_weather")
+                if scripts:
+                    weather = scripts[0]
+                    weather_state = weather.db.weather_state or "Clear"
+                    weather_desc = weather.db.weather_desc or ""
+
+            fog_active = (is_outdoor and weather_state == "Glitch Storm")
+
             # Entities
             players = []
             npcs = []
@@ -67,12 +91,16 @@ class CmdSmartLook(CmdLook):
                 if obj == caller:
                     continue
                 
+                # If fog is active, hide some objects
+                if fog_active and not (obj.has_account or obj.is_typeclass("typeclasses.characters.Character")):
+                    import random
+                    if random.random() < 0.5:
+                        continue  # Hidden by fog
+                
                 name = obj.key
-                # print(f"DEBUG: Found object {name} ({obj.typeclass_path})")
                  
                 if obj.has_account:
                     players.append(name)
-                # Check based on typeclass string match if possible, or attributes
                 elif obj.is_typeclass("typeclasses.npc_cast.StaticNPC") or \
                      obj.is_typeclass("typeclasses.npc_cast.RoamingAnimal") or \
                      (obj.is_typeclass("typeclasses.characters.Character") and not obj.has_account):
@@ -81,13 +109,29 @@ class CmdSmartLook(CmdLook):
                     items.append(name)
 
             # Exits
-            exits = [ex.key.lower() for ex in location.exits]
+            exits = []
+            for ex in location.exits:
+                if fog_active:
+                    import random
+                    if random.random() < 0.3:
+                        continue # Exit hidden by fog!
+                exits.append((ex.destination.key if hasattr(ex, 'destination') and ex.destination else ex.key).lower())
+
+            # Weather additions to description
+            base_desc = location.db.desc or ""
+            if is_outdoor and weather_desc:
+                weather_flavor = f"\n[WEATHER: {weather_state}] {weather_desc}"
+                if fog_active:
+                    base_desc = "The thick pixelated fog makes it impossible to see much of anything."
+                
+                base_desc += weather_flavor
 
             # Construct JSON data
             data = {
                 "location": {
                     "name": location.key,
-                    "description": location.db.desc or "",
+                    "description": base_desc,
+                    "weather": weather_state if is_outdoor else "Indoor",
                     "exits": exits
                 },
                 "entities": {

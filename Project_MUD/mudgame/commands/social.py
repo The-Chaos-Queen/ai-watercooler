@@ -1,5 +1,58 @@
 from evennia import default_cmds
 from evennia.utils import utils
+import re
+
+def fuzzy_match(caller, search_string, candidates=None, quiet=False):
+    if not search_string:
+        return None
+        
+    # 1. Strip object ID (e.g., #123)
+    import re
+    clean_string = re.sub(r'#\d+', '', search_string).strip()
+    
+    # 2. Try standard Evennia search first (quiet mode)
+    target = caller.search(clean_string, candidates=candidates, quiet=True)
+    if target and len(target) == 1:
+        return target[0]
+        
+    # 3. If no exact match (or multiple), fuzzy normalize
+    norm_str = clean_string.replace('_', ' ').replace('-', ' ').lower()
+    if candidates is None:
+        candidates = caller.location.contents
+        
+    matches = []
+    for obj in candidates:
+        obj_name = obj.key.lower().replace('_', ' ').replace('-', ' ')
+        # allow substring matching so "neural tavern" matches "the neural tavern"
+        if norm_str in obj_name or obj_name in norm_str:
+            matches.append(obj)
+            continue
+            
+        # check aliases
+        if hasattr(obj, 'aliases'):
+            for alias in obj.aliases.all():
+                alias_norm = alias.lower().replace('_', ' ').replace('-', ' ')
+                if norm_str in alias_norm or alias_norm in norm_str:
+                    matches.append(obj)
+                    break
+                    
+        # check destination name for exits
+        if hasattr(obj, 'destination') and obj.destination:
+            dest_name = obj.destination.key.lower().replace('_', ' ').replace('-', ' ')
+            if norm_str in dest_name or dest_name in norm_str:
+                if obj not in matches:
+                    matches.append(obj)
+                    
+    if len(matches) == 1:
+        return matches[0]
+    elif len(matches) > 1:
+        if not quiet:
+            caller.msg(f"Could you be more specific? Matches: {', '.join(m.key for m in matches)}")
+        return None
+        
+    if not quiet:
+        caller.msg(f"Could not find '{clean_string}'.")
+    return None
 
 class CmdSocial(default_cmds.MuxCommand):
     """
@@ -320,7 +373,7 @@ class CmdPet(default_cmds.MuxCommand):
             self.caller.msg("Pet who?")
             return
         
-        target = self.caller.search(self.args)
+        target = fuzzy_match(self.caller, self.args, candidates=self.caller.location.contents)
         if not target:
             return
             
@@ -395,6 +448,7 @@ class CmdGo(default_cmds.MuxCommand):
       go town square
     """
     key = "go"
+    aliases = ["move", "walk"]
     locks = "cmd:all()"
 
     def func(self):
@@ -402,7 +456,7 @@ class CmdGo(default_cmds.MuxCommand):
             self.caller.msg("Go where?")
             return
         
-        target = self.caller.search(self.args.strip(), candidates=self.caller.location.exits)
+        target = fuzzy_match(self.caller, self.args.strip(), candidates=self.caller.location.exits)
         if not target:
             return
         
@@ -466,7 +520,7 @@ MOVEMENT:
   look                    - See descriptions and list exits
   look <obj>              - Examine something closely
   north, south, east, ... - Move in a direction
-  go <exit>               - Go through an exit
+  move/go <exit>          - Go through an exit
 
 INTERACTION:
   get <item>              - Pick up an object
@@ -503,3 +557,50 @@ META:
 ==============================================================================
 """
         self.caller.msg(msg)
+
+class CmdTalk(default_cmds.MuxCommand):
+    """
+    A forgiving alias for 'say' or 'page'.
+
+    Usage:
+      talk <person> = <message>
+      talk <person> <message>
+      talk <message>
+    """
+    key = "talk"
+    locks = "cmd:all()"
+
+    def func(self):
+        if not self.args:
+            self.caller.msg("Talk about what?")
+            return
+
+        # If it uses the page syntax:
+        if "=" in self.args:
+            self.caller.execute_cmd(f"page {self.args}")
+            return
+            
+        # Try to see if it's `talk to <person> <msg>` or `talk <person> <msg>`
+        args = self.args.strip()
+        if args.lower().startswith("to "):
+            args = args[3:].strip()
+            
+        parts = args.split(" ", 1)
+        # Verify if the first word might be a person/object in the room
+        target = None
+        if parts:
+            # We don't want fuzzy_match to complain loudly if we are just guessing, 
+            # so let's check quietly if it matches anything. 
+            import re
+            clean_string = re.sub(r'#\d+', '', parts[0]).strip().lower()
+            for obj in self.caller.location.contents:
+                obj_name = obj.key.lower().replace('_', ' ').replace('-', ' ')
+                if clean_string in obj_name or obj_name in clean_string:
+                    target = obj
+                    break
+                    
+        if target and len(parts) > 1:
+            self.caller.execute_cmd(f"say {parts[1]}")
+        else:
+            # Just say the whole thing
+            self.caller.execute_cmd(f"say {self.args}")

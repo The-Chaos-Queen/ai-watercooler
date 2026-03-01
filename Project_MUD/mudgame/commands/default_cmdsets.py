@@ -15,7 +15,7 @@ own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
 """
 
 from evennia import default_cmds
-from commands.social import CmdSocial, CmdAIHelp, CmdSit, CmdStand, CmdBalance, CmdFish, CmdPlay, CmdBuy, CmdSell, CmdPet, CmdBar, CmdDrink, CmdSing, CmdGo
+from commands.social import CmdSocial, CmdAIHelp, CmdSit, CmdStand, CmdBalance, CmdFish, CmdPlay, CmdBuy, CmdSell, CmdPet, CmdBar, CmdDrink, CmdSing, CmdGo, CmdTalk
 from commands.smart_look import CmdSmartLook
 
 
@@ -50,6 +50,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdDrink())
         self.add(CmdSing())
         self.add(CmdGo())
+        self.add(CmdTalk())
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

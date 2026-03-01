@@ -144,3 +144,80 @@ class AnimalScript(DefaultScript):
                 animal.location.msg_contents(f"{animal.key} wanders away toward the {target.key}.")
                 animal.move_to(target.destination)
                 animal.location.msg_contents(f"{animal.key} wanders in.")
+class DialogNPC(StaticNPC):
+    """
+    An NPC that supports menu-driven dialog.
+    Triggered by 'talk <npc>'.
+    Responds to A, B, C while in a dialog state.
+    """
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.db.dialog_tree = {
+            "start": {
+                "text": "Hello, I am a dialog NPC.",
+                "options": [
+                    ("A", "Ask about the quest", "quest"),
+                    ("B", "Ask about the weather", "weather"),
+                    ("C", "Say goodbye", "end")
+                ]
+            },
+            "news": {
+                "text": "I have no news for you.",
+                "options": [
+                    ("C", "Back", "start")
+                ]
+            }
+        }
+
+    def at_talk(self, caller):
+        """Called by the 'talk' command."""
+        self.display_dialog(caller, "start")
+
+    def display_dialog(self, caller, node_key):
+        """Displays a node of the dialog tree to the caller."""
+        if node_key == "end":
+            caller.msg(f"{self.key} nods as you conclude the conversation.")
+            if self.key in caller.ndb.active_dialogs:
+                del caller.ndb.active_dialogs[self.key]
+            return
+
+        node = self.db.dialog_tree.get(node_key)
+        if not node:
+            caller.msg(f"{self.key} seems to have lost their train of thought.")
+            return
+
+        # Track state on the caller
+        if not caller.ndb.active_dialogs:
+            caller.ndb.active_dialogs = {}
+        caller.ndb.active_dialogs[self.key] = node_key
+
+        # Construct message
+        msg = f"|w{self.key}|n says: \"{node['text']}\"\n"
+        for opt_key, opt_desc, _ in node["options"]:
+            msg += f"  |g[{opt_key}]|n {opt_desc}\n"
+        
+        caller.msg(msg)
+
+    def at_say(self, message, speaker, **kwargs):
+        """Intercept A/B/C if in dialog state."""
+        if not speaker or not speaker.ndb.active_dialogs or self.key not in speaker.ndb.active_dialogs:
+            # Fallback to static trigger logic if not in a dialog menu
+            super().at_say(message, speaker, **kwargs)
+            return
+
+        node_key = speaker.ndb.active_dialogs[self.key]
+        node = self.db.dialog_tree.get(node_key)
+        
+        choice = message.strip().upper()
+        if len(choice) > 1: # Just check first letter if they said 'say A'
+             if choice.startswith("LIFT "): choice = choice[5:] # handle some common prefixes
+             choice = choice[0]
+
+        for opt_key, _, next_node in node["options"]:
+            if choice == opt_key.upper():
+                self.display_dialog(speaker, next_node)
+                return
+
+        # If they said something else and we are in dialog, maybe they want to ignore the menu?
+        # Or just repeat the menu.
+        super().at_say(message, speaker, **kwargs)

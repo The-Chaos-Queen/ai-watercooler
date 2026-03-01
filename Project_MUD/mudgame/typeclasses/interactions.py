@@ -129,12 +129,38 @@ class CmdMove(Command):
              # but usually move_to is what we want for basic movement
              self.caller.msg(f"You cannot move '{direction}'.")
 
+class CmdTalk(Command):
+    """
+    Talk to an NPC to start a dialog.
+    
+    Usage:
+      talk <npc>
+    """
+    key = "talk"
+    aliases = ["chat", "speak"]
+    locks = "cmd:all()"
+
+    def func(self):
+        if not self.args:
+            self.caller.msg("Talk to whom?")
+            return
+            
+        target = self.caller.search(self.args)
+        if not target:
+            return
+            
+        if hasattr(target, "at_talk"):
+            target.at_talk(self.caller)
+        else:
+            self.caller.msg(f"{target.key} doesn't seem to have much to say.")
+
 class InteractCmdSet(CmdSet):
     key = "InteractCmdSet"
     def at_cmdset_creation(self):
         self.add(CmdInteract())
         self.add(CmdSay())
         self.add(CmdMove())
+        self.add(CmdTalk())
 
 # -----------------------------------------------------------------------------
 # TypeClasses

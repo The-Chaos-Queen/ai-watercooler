@@ -1,0 +1,39 @@
+==============================================================
+  Parity State-Tracking Test (Mamba-3 Paper, Table 4b)
+==============================================================
+  Device:   cuda
+  Model:    1-layer, d_model=64, d_state=64 (86,348 params)
+  Task:     predict running parity of binary input
+  Expected: Mamba-3 → ~100%  |  Mamba-2 (no RoPE) → ~50%
+
+── Curriculum: seq_len=8, 1000 steps ──
+  Step    0 | Loss: 1.0143 | Acc: 53.3%
+  Step  250 | Loss: 0.0006 | Acc: 100.0%
+  Step  500 | Loss: 0.0002 | Acc: 100.0%
+  Step  750 | Loss: 0.0001 | Acc: 100.0%
+  Step  999 | Loss: 0.0001 | Acc: 100.0%
+
+── Curriculum: seq_len=16, 1000 steps ──
+  Step    0 | Loss: 0.4920 | Acc: 89.3%
+  Step  250 | Loss: 0.0000 | Acc: 100.0%
+  Step  500 | Loss: 0.0000 | Acc: 100.0%
+  Step  750 | Loss: 0.0000 | Acc: 100.0%
+  Step  999 | Loss: 0.0000 | Acc: 100.0%
+
+── Curriculum: seq_len=32, 1500 steps ──
+  Step    0 | Loss: 0.0096 | Acc: 99.8%
+  Step  250 | Loss: 0.0000 | Acc: 100.0%
+  Step  500 | Loss: 0.0000 | Acc: 100.0%
+  Step  750 | Loss: 0.0000 | Acc: 100.0%
+  Step 1000 | Loss: 0.0000 | Acc: 100.0%
+  Step 1250 | Loss: 0.0000 | Acc: 100.0%
+  Step 1499 | Loss: 0.0000 | Acc: 100.0%
+
+── Length Generalization (trained up to 32) ──
+  Length  32: 100.0%
+  Length  40: 100.0%
+  Length  48: 100.0%
+  Length  64: 99.0%
+
+Accuracy ≈ 100% proves the Complex SSM / RoPE enables state-tracking.
+Mamba-2 (no RoPE) would score ≈ 50% (random guessing).

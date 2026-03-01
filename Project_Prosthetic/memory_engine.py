@@ -32,13 +32,32 @@ from qdrant_client.models import (
 from sentence_transformers import SentenceTransformer
 
 
+import os
+
 # --- Configuration ---
 QDRANT_HOST = "192.168.2.191"
 QDRANT_PORT = 6333
 COLLECTION_NAME = "exocortex"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"  # 384 dimensions, ~80MB, fast
 EMBEDDING_DIM = 384
+HF_TOKEN_PATH = r"C:\Users\cerub\ .cache\huggingface\token.txt".replace(" ", "") # Path provided by user
 
+def load_hf_token():
+    """Sets the HF_TOKEN environment variable if available."""
+    token_path = Path(HF_TOKEN_PATH)
+    if token_path.exists():
+        try:
+            token = token_path.read_text().strip()
+            os.environ["HF_TOKEN"] = token
+            print(f"[MEMORY] Successfully loaded HF token from {token_path}")
+        except Exception as e:
+            print(f"[MEMORY] Warning: Could not read HF token at {token_path}: {e}")
+    else:
+        # Check standard location if the specific one fails
+        std_path = Path.home() / ".cache" / "huggingface" / "token"
+        if std_path.exists():
+            os.environ["HF_TOKEN"] = std_path.read_text().strip()
+            print(f"[MEMORY] Loaded HF token from default cache location.")
 
 class MemoryEngine:
     """
@@ -49,15 +68,23 @@ class MemoryEngine:
     """
 
     def __init__(self, host: str = QDRANT_HOST, port: int = QDRANT_PORT):
+        load_hf_token()
         print(f"[MEMORY] Connecting to Qdrant @ {host}:{port}...")
-        self.client = QdrantClient(host=host, port=port)
-        
-        print(f"[MEMORY] Loading embedding model '{EMBEDDING_MODEL}'...")
-        self.model = SentenceTransformer(EMBEDDING_MODEL)
-        
-        # Ensure collection exists
-        self._ensure_collection()
-        print(f"[MEMORY] Online. Collection '{COLLECTION_NAME}' ready.")
+        try:
+            self.client = QdrantClient(host=host, port=port, timeout=10)
+            
+            print(f"[MEMORY] Loading embedding model '{EMBEDDING_MODEL}'...")
+            self.model = SentenceTransformer(EMBEDDING_MODEL)
+            
+            # Ensure collection exists
+            self._ensure_collection()
+            print(f"[MEMORY] Online. Collection '{COLLECTION_NAME}' ready.")
+        except Exception as e:
+            print(f"\n[MEMORY] CRITICAL ERROR: Could not connect to Qdrant.")
+            print(f"[MEMORY] Host: {host} | Port: {port}")
+            print(f"[MEMORY] Error: {e}")
+            print(f"[MEMORY] Tip: Check if Qdrant is running on Proxmox or if the IP has changed.")
+            raise e
 
     def _ensure_collection(self):
         """Creates the exocortex collection if it doesn't exist."""

@@ -1,0 +1,82 @@
+Found winremote at: C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\auth.py
+--> FOUND IN auth.py
+  0: """API key authentication middleware for FastMCP."""
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\config.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\desktop.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\network.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\ocr.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\process_mgr.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\recording.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\registry.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\security.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\services.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\taskmanager.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\tiers.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\__init__.py
+C:\Users\User\AppData\Local\Programs\Python\Python313\Lib\site-packages\winremote\__main__.py
+--> FOUND IN __main__.py
+  0: """winremote-mcp — CLI entry point and MCP tool definitions."""
+  16: from fastmcp import FastMCP
+  17: from mcp.types import ImageContent, TextContent
+  20: from mcp.types import ToolAnnotations
+  22: from fastmcp.tools import ToolAnnotations
+  38: mcp = FastMCP(
+  39: "winremote-mcp",
+  53: @mcp.custom_route("/health", methods=["GET"])
+  149: @mcp.tool(
+  219: @mcp.tool(
+  254: @mcp.tool(
+  293: @mcp.tool(
+  327: @mcp.tool(
+  365: @mcp.tool(
+  386: @mcp.tool(
+  406: @mcp.tool(
+  429: @mcp.tool(
+  444: @mcp.tool(
+  492: @mcp.tool(
+  528: @mcp.tool(
+  546: @mcp.tool(
+  568: @mcp.tool(
+  593: @mcp.tool(
+  613: @mcp.tool(
+  696: @mcp.tool(annotations=ToolAnnotations(title="ReconnectSession", readOnlyHint=False))
+  713: @mcp.tool(
+  733: @mcp.tool(
+  748: @mcp.tool(
+  781: @mcp.tool(
+  811: @mcp.tool(
+  838: @mcp.tool(
+  888: @mcp.tool(
+  934: @mcp.tool(
+  958: @mcp.tool(
+  985: @mcp.tool(
+  1005: @mcp.tool(
+  1030: @mcp.tool(
+  1049: @mcp.tool(
+  1068: @mcp.tool(
+  1090: @mcp.tool(
+  1109: @mcp.tool(
+  1130: @mcp.tool(
+  1152: @mcp.tool(
+  1172: @mcp.tool(
+  1193: @mcp.tool(
+  1216: @mcp.tool(
+  1240: @mcp.tool(
+  1282: @mcp.tool(
+  1328: @mcp.tool(
+  1440: @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+  1453: @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+  1478: @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+  1498: """Return tool-name -> tool object map across fastmcp 2.x/3.x internals."""
+  1499: # fastmcp 2.x
+  1505: # fastmcp 3.x
+  1519: raise RuntimeError("Unsupported fastmcp internals: cannot locate registered tools")
+  1523: """Remove a tool by name across fastmcp 2.x/3.x internals."""
+  1524: # fastmcp 2.x
+  1531: # fastmcp 3.x
+  1696: mcp.run(transport="stdio")
+  1706: mcp.run(**run_kwargs)
+  1717: # Create start_mcp.bat for Chinese Windows compatibility
+  1720: rem winremote-mcp startup script with UTF-8 encoding for Chinese Windows
+  1744: click.echo("Note: Uses start_mcp.bat for Chinese Windows compatibility.")

@@ -23,6 +23,7 @@ import sys
 import time
 import re
 import argparse
+import os
 from pathlib import Path
 from datetime import datetime
 
@@ -39,6 +40,7 @@ MUD_PORT = 4000
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
 LMSTUDIO_URL = "http://localhost:1234/v1/chat/completions"
+HYPERNETWORK_URL = os.getenv("HYPERNETWORK_URL", "http://127.0.0.1:8001/generate")
 
 # How long to wait between actions (seconds) — don't spam the MUD
 ACTION_DELAY = 3.0
@@ -109,10 +111,11 @@ class MUDAgent:
         username: str,
         password: str,
         backend: str = "LMStudio",
-        model: str = "the-omega-directive-m-8b-v1.0",
+        model: str = "qwen/qwen3-vl-8b",
         goal: str = None,
         device: str = None,
         resume_state: str = None,
+        hypernetwork_url: str = HYPERNETWORK_URL,
     ):
         self.persona_path = persona_path
         self.persona = persona_path.read_text(encoding="utf-8")
@@ -128,6 +131,7 @@ class MUDAgent:
         self.short_term_memory = [] # List of {"command": str, "outcome": str}
         self.model = model
         self.goal = goal
+        self.hypernetwork_url = hypernetwork_url
 
         # Scratchpad
         base_dir = Path(__file__).parent
@@ -169,6 +173,8 @@ class MUDAgent:
 
         print(f"[{self.agent_name}] Initialized with persona from {persona_path.name}")
         print(f"[{self.agent_name}] Backend: {backend} ({model})")
+        if backend == "hypernetwork":
+            print(f"[{self.agent_name}] Brain URL: {self.hypernetwork_url}")
         if self.mamba:
             print(f"[{self.agent_name}] Mamba state: {self.mamba.get_info()}")
 
@@ -354,6 +360,7 @@ class MUDAgent:
             self.last_exits = current_exits
 
 
+        # INJECT FEW-SHOT EXAMPLES directly into the prompt to force the format
         prompt = f"""## Scratchpad
 {scratchpad_content}
 
@@ -366,9 +373,6 @@ class MUDAgent:
 ## Last Action
 You just executed: "{self.last_command if self.last_command else 'None'}"
 (Do NOT repeat this exact command unless you have a good reason.)
-
-## Current Room State (JSON)
-{mud_output}
 
 ## Short-term Memory (Last 5 Actions)
 {json.dumps(self.short_term_memory, indent=2) if self.short_term_memory else "No actions yet."}
@@ -388,12 +392,42 @@ You can:
 - Help: 'help' (shows list of MUD commands)
 - Multi-task: 'command1 && command2' (e.g. 'say Hello && look box')
 
-JSON Format:
+## EXAMPLES OF CORRECT BEHAVIOR
+Example 1:
+CURRENT STATE: 
+<JSON>
+{{"location": {{"name": "Town Square"}}, "exits": ["The Neural Tavern", "Memory Graveyard"]}}
+</JSON>
+YOUR RESPONSE:
+<JSON>
 {{
-  "thought": "your chain of thought",
-  "command": "<command>",
-  "scratchpad_update": "note for later"
+  "thought": "I am in the Town Square and should explore the tavern.",
+  "command": "move The Neural Tavern",
+  "scratchpad_update": "Visited Town Square."
 }}
+</JSON>
+
+Example 2 (Failed command recovery):
+CURRENT STATE: 
+<JSON>
+{{"events": ["You cannot go 'none'. Visible exits: Data Zoo."]}}
+</JSON>
+YOUR RESPONSE:
+<JSON>
+{{
+  "thought": "I tried an invalid command. I must pick an actual exit.",
+  "command": "move Data Zoo",
+  "scratchpad_update": null
+}}
+</JSON>
+
+## ACTUAL CURRENT STATE
+<JSON>
+{mud_output}
+</JSON>
+
+## YOUR RESPONSE (OUTPUT EXACTLY ONE JSON OBJECT WITHIN <JSON> TAGS):
+<JSON>
 """
 
         try:
@@ -403,6 +437,10 @@ JSON Format:
                 response = await self._ask_lmstudio(prompt)
             elif self.backend == "mamba":
                 response = await self._ask_mamba(prompt)
+            elif self.backend == "gemini":
+                response = await self._ask_gemini(prompt)
+            elif self.backend == "hypernetwork":
+                response = await self._ask_hypernetwork(prompt)
             else:
                 raise ValueError(f"Unknown backend: {self.backend}")
 
@@ -463,7 +501,7 @@ Your actions must be valid MUD commands.
 Output a single JSON object with these EXACT keys: 
 "thought", "command", "scratchpad_update"
 
-Provide only the JSON object. Do not include any other text, tags, or markdown formatting. No <think> sections.
+Wrap your JSON object exactly in <JSON> and </JSON> tags, and do not include any other markdown formatting or text. No <think> sections.
 """
         
         params = self.get_model_params()
@@ -502,6 +540,53 @@ Provide only the JSON object. Do not include any other text, tags, or markdown f
                 self.log(f"HTTPExt Error: {e}")
                 raise
 
+    async def _ask_gemini(self, prompt: str) -> str:
+        """Query Gemini API via python SDK."""
+        import os
+        from google import genai
+        from google.genai import types
+
+        # Load guide if available
+        base_dir = Path(__file__).parent
+        guide_path = base_dir / "knowledge/village_guide.md"
+        guide_content = ""
+        if guide_path.exists():
+            guide_content = f"\n\n## Village Guide (Read Carefully):\n{guide_path.read_text(encoding='utf-8')}"
+
+        system_content = f"""You are playing a MUD. 
+Persona: {self.persona}{guide_content}
+
+You will receive the current world state as a JSON object (or sometimes text if fallback occurs).
+Your actions must be valid MUD commands.
+
+Output a single JSON object with these EXACT keys: 
+"thought", "command", "scratchpad_update"
+
+Wrap your JSON object exactly in <JSON> and </JSON> tags, and do not include any other markdown formatting or text. No <think> sections.
+"""
+
+        params = self.get_model_params()
+        # Initialize client. The SDK will automatically pick up GEMINI_API_KEY from environment variables.
+        client = genai.Client()
+        
+        try:
+            # We construct a non-streaming generate_content call
+            response = client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_content,
+                    temperature=params["temperature"],
+                    top_p=params["top_p"],
+                    top_k=params["top_k"],
+                    max_output_tokens=512,
+                ),
+            )
+            return response.text
+        except Exception as e:
+            self.log(f"Gemini API Error: {e}")
+            raise
+
     async def _ask_lmstudio(self, prompt: str) -> str:
         # Construct system prompt (same as Ollama)
         base_dir = Path(__file__).parent
@@ -519,7 +604,7 @@ Your actions must be valid MUD commands.
 Output a single JSON object with these EXACT keys: 
 "thought", "command", "scratchpad_update"
 
-Provide only the JSON object. Do not include any other text, tags, or markdown formatting. No <think> sections.
+Wrap your JSON object exactly in <JSON> and </JSON> tags, and do not include any other markdown formatting or text. No <think> sections.
 """
 
         params = self.get_model_params()
@@ -561,7 +646,46 @@ Provide only the JSON object. Do not include any other text, tags, or markdown f
             data = response.json()
             if "choices" not in data:
                 self.log(f"lmstudio Unexpected Response: {data}")
+                return '{"thought": "API Error from local transformers", "command": "help", "scratchpad_update": null}'
             return data["choices"][0]["message"]["content"]
+
+    async def _ask_hypernetwork(self, prompt: str) -> str:
+        """Query the local Mamba-to-LoRA Brain Microservice API."""
+        try:
+            # The prompt is technically supposed to be the JSON state, but
+            # if we get raw text, just inject it into the payload.
+            # We enforce a pseudo-json if it isn't parsed cleanly.
+            context_string = prompt
+            
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(
+                    self.hypernetwork_url,
+                    json={
+                        "player_id": self.agent_name,
+                        "action": self.last_command or "None",
+                        "context": context_string
+                    }
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                # Preferred contract: the brain returns a raw model response string under "response".
+                if "response" in data and isinstance(data["response"], str):
+                    return data["response"]
+
+                # Alternate contract: direct structured fields from the brain.
+                if "command" in data:
+                    return json.dumps({
+                        "thought": data.get("thought", ""),
+                        "command": data.get("command", "help"),
+                        "scratchpad_update": data.get("scratchpad_update"),
+                    })
+
+                self.log(f"Hypernetwork Error: {data}")
+                return '{"thought": "API Error from Brain Microservice", "command": "help", "scratchpad_update": null}'
+        except Exception as e:
+            self.log(f"Hypernetwork Connection Error: {e}")
+            raise
 
     async def _ask_mamba(self, prompt: str) -> str:
         """Query local Mamba model with persistent SSM state."""
@@ -666,6 +790,13 @@ Provide only the JSON object. Do not include any other text, tags, or markdown f
                 state_json["recent_events"] = event_list
                 state_json["turn"] = turn
                 
+                # Check for location familiarity in scratchpad
+                loc_name = state_json.get("location", {}).get("name", "")
+                if loc_name:
+                    scratchpad_text = self.scratchpad.read()
+                    if f"[location] {loc_name.lower()}" in scratchpad_text.lower():
+                        state_json["memory"] = "You have been here before. Do not rename it or act surprised. Seek NEW interactions or LEAVE."
+                
                 # Use the JSON string as the 'output' for the LLM
                 prompt_input = json.dumps(state_json, indent=2)
             else:
@@ -740,6 +871,11 @@ Provide only the JSON object. Do not include any other text, tags, or markdown f
                         if not valid:
                             self.last_movement_error = f"You cannot go '{target_dir}'. Visible exits: {', '.join(self.last_exits)}."
                     
+                    if cmd_low == "help":
+                        self.log("Intercepted 'help' command to prevent ASCII spam in context.")
+                        self.context_lines.append("[MUD] System: You remember your guide. Valid commands: look, move <exit>, get <item>, drop <item>, say <text>, inventory. Do not type help again.")
+                        continue
+
                     await self.send_mud(command)
                     
                     # Small delay between chained commands
@@ -804,13 +940,18 @@ async def main():
     parser.add_argument("persona", type=Path, help="Path to persona markdown file")
     parser.add_argument("--username", default=None, help="MUD username (default: persona name)")
     parser.add_argument("--password", default="agentpass", help="MUD password")
-    parser.add_argument("--backend", choices=["ollama", "lmstudio", "mamba"], default="lmstudio")
-    parser.add_argument("--model", default="the-omega-directive-m-8b-v1.0", help="Model name")
+    parser.add_argument("--backend", choices=["ollama", "lmstudio", "mamba", "gemini", "hypernetwork"], default="lmstudio")
+    parser.add_argument("--model", default="gemini-2.5-flash", help="Model name")
     parser.add_argument("--turns", type=int, default=50, help="Max turns to play")
     parser.add_argument("--delay", type=float, default=3.0, help="Seconds between turns")
     parser.add_argument("--goal", default=None, help="The agent's long-term goal")
     parser.add_argument("--device", default=None, help="Device for Mamba backend (cuda/cpu)")
     parser.add_argument("--resume-state", default=None, help="Path to saved Mamba state file")
+    parser.add_argument(
+        "--hypernetwork-url",
+        default=HYPERNETWORK_URL,
+        help="Brain microservice URL for --backend hypernetwork",
+    )
     parser.add_argument("--mud-host", default="127.0.0.1", help="MUD server host (default: localhost)")
     parser.add_argument("--mud-port", type=int, default=4000, help="MUD server port (default: 4000)")
 
@@ -835,6 +976,7 @@ async def main():
         goal=args.goal,
         device=args.device,
         resume_state=args.resume_state,
+        hypernetwork_url=args.hypernetwork_url,
     )
 
     await agent.run(max_turns=args.turns)

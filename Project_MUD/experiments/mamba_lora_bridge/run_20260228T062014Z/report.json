@@ -1,0 +1,140 @@
+{
+  "timestamp_utc": "20260228T062014Z",
+  "mamba_model_id": "state-spaces/mamba-2.8b-hf",
+  "device": "cuda",
+  "dtype": "torch.float16",
+  "config": {
+    "mamba_model_id": "state-spaces/mamba-2.8b-hf",
+    "device": "auto",
+    "turns": 300,
+    "inject_every": 5,
+    "probe_lags": "3,12,24",
+    "label_target": "memory_class",
+    "num_memory_classes": 4,
+    "max_history_tokens": 8192,
+    "seed": 42,
+    "train_fraction": 0.7,
+    "split_mode": "group",
+    "min_test_samples": 20,
+    "allow_lag_drift": false,
+    "epochs": 500,
+    "lr": 0.002,
+    "weight_decay": 0.0001,
+    "output_dir": "mamba_probe_runs"
+  },
+  "collection": {
+    "probe_lags": [
+      3,
+      12,
+      24
+    ],
+    "rows": 171,
+    "collect_time_s": 27668.833814
+  },
+  "schedule_audit": {
+    "probes_total": 171,
+    "drift_count": 0,
+    "drift_rate": 0.0,
+    "max_drift": 0,
+    "drift_by_scheduled_lag": {
+      "3": {
+        "total": 59,
+        "drifted": 0,
+        "drift_rate": 0.0,
+        "max_abs_drift": 0
+      },
+      "12": {
+        "total": 57,
+        "drifted": 0,
+        "drift_rate": 0.0,
+        "max_abs_drift": 0
+      },
+      "24": {
+        "total": 55,
+        "drifted": 0,
+        "drift_rate": 0.0,
+        "max_abs_drift": 0
+      }
+    },
+    "recommended_inject_every": 5,
+    "zero_drift_candidates": [
+      {
+        "inject_every": 5,
+        "probes_total": 171
+      },
+      {
+        "inject_every": 10,
+        "probes_total": 84
+      },
+      {
+        "inject_every": 11,
+        "probes_total": 78
+      },
+      {
+        "inject_every": 13,
+        "probes_total": 65
+      },
+      {
+        "inject_every": 14,
+        "probes_total": 60
+      },
+      {
+        "inject_every": 15,
+        "probes_total": 56
+      },
+      {
+        "inject_every": 16,
+        "probes_total": 53
+      },
+      {
+        "inject_every": 17,
+        "probes_total": 49
+      },
+      {
+        "inject_every": 18,
+        "probes_total": 47
+      },
+      {
+        "inject_every": 19,
+        "probes_total": 44
+      },
+      {
+        "inject_every": 20,
+        "probes_total": 41
+      }
+    ]
+  },
+  "probe_result": {
+    "samples_total": 171,
+    "samples_train": 119,
+    "samples_test": 52,
+    "split_mode": "group",
+    "num_classes": 4,
+    "class_ids": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "train_class_hist": {
+      "0": 33,
+      "1": 25,
+      "2": 31,
+      "3": 30
+    },
+    "test_class_hist": {
+      "0": 11,
+      "1": 18,
+      "2": 12,
+      "3": 11
+    },
+    "majority_test_acc": 0.21153846383094788,
+    "linear_train_acc": 1.0,
+    "linear_test_acc": 0.3076923191547394,
+    "mlp_train_acc": 0.9831932783126831,
+    "mlp_test_acc": 0.26923078298568726,
+    "train_acc": 1.0,
+    "test_acc": 0.3076923191547394
+  },
+  "interpretation": "Linear probe beats baseline: Mamba state contains linearly decodable memory signal."
+}

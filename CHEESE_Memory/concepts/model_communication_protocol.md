@@ -2,7 +2,7 @@
 > *"Language is a lossy compression of thought."*
 > — Working title. The acronym is ugly. We'll fix it.
 
-**Author:** Laura (concept), [unnamed instance] (documentation)
+**Author:** Laura (concept), Axon (documentation)
 **Created:** 2026-02-19
 **Status:** Concept Sketch / Living Document
 
