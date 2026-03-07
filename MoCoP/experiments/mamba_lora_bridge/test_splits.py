@@ -13,6 +13,8 @@ def main():
         num_samples=750,
         mamba_context_tokens=1024,
         max_qwen_tokens=256,
+        min_post_target_tokens=50,
+        max_post_target_tokens=200,
         seed=42,
         mode="fact",
         distractor_injection_rate=0.5

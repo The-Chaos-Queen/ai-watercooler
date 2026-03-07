@@ -389,6 +389,11 @@ class BridgeDataset(Dataset):
             "CARAVANS": CARAVANS,
             "EVENTS": EVENTS,
             "RELATIONSHIP_TYPES": RELATIONSHIP_TYPES,
+            "FILLER_EVENTS": FILLER_EVENTS,
+            "PLAYER_ACTIONS": PLAYER_ACTIONS,
+            "AMBIENT_LINES": AMBIENT_LINES,
+            "TIME_PHRASES": TIME_PHRASES,
+            "GENERAL_DIALOGUE_PAIRS": GENERAL_DIALOGUE_PAIRS,
         }
         self._validate_qwen_chat_tokens()
 

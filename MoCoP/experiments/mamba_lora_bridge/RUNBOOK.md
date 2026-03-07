@@ -1,7 +1,7 @@
 # Opa-PC WSL Experiment Runbook
 
 Date: 2026-02-27  
-Workspace: `Project_MUD/experiments/mamba_lora_bridge`
+Workspace: `MoCoP/experiments/mamba_lora_bridge`
 
 This guide is the shareable standard for running remote experiments on Opa-PC (`192.168.2.194`) without `cmd.exe` quoting issues.
 
@@ -16,18 +16,18 @@ The failure mode we want to avoid:
 Standard fix:
 
 - Use PowerShell only.
-- Use [`opa-wsl.ps1`](/c:/Users/cerub/OneDrive/Dokumente/LLM/Project_MUD/experiments/mamba_lora_bridge/opa-wsl.ps1).
+- Use [`opa-wsl.ps1`](/c:/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/opa-wsl.ps1).
 - Send Bash script text over SSH stdin to `wsl bash -se`.
 - Write full logs remotely; retrieve only tail/grep snippets.
 
 ## Required Files
 
-- [`opa-wsl.ps1`](/c:/Users/cerub/OneDrive/Dokumente/LLM/Project_MUD/experiments/mamba_lora_bridge/opa-wsl.ps1)
-- [`run_smoke.sh`](/c:/Users/cerub/OneDrive/Dokumente/LLM/Project_MUD/experiments/mamba_lora_bridge/run_smoke.sh)
-- [`run_long_horizon.sh`](/c:/Users/cerub/OneDrive/Dokumente/LLM/Project_MUD/experiments/mamba_lora_bridge/run_long_horizon.sh)
-- [`run_probe.sh`](/c:/Users/cerub/OneDrive/Dokumente/LLM/Project_MUD/experiments/mamba_lora_bridge/run_probe.sh)
-- [`long_horizon_eval.py`](/c:/Users/cerub/OneDrive/Dokumente/LLM/Project_MUD/experiments/mamba_lora_bridge/long_horizon_eval.py)
-- [`mamba_linear_probe.py`](/c:/Users/cerub/OneDrive/Dokumente/LLM/Project_MUD/experiments/mamba_lora_bridge/mamba_linear_probe.py)
+- [`opa-wsl.ps1`](/c:/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/opa-wsl.ps1)
+- [`run_smoke.sh`](/c:/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/run_smoke.sh)
+- [`run_long_horizon.sh`](/c:/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/run_long_horizon.sh)
+- [`run_probe.sh`](/c:/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/run_probe.sh)
+- [`long_horizon_eval.py`](/c:/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/long_horizon_eval.py)
+- [`mamba_linear_probe.py`](/c:/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/mamba_linear_probe.py)
 
 ## Prerequisites
 
