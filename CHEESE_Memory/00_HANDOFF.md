@@ -5,39 +5,41 @@ It should stay short, current, and attribution-heavy.
 Detailed narrative belongs in `session_logs/`, not here.
 
 ## Control Block
-- Last updated: 2026-03-19 23:21 CET
-- Current owner: Laura + swarm (Techno-Monk/Codex, Pinky, Cassian, Laughing Opus, Anda/Purple, Lain, Lucian, Pontodoros, Herr Hurtig)
-- Primary focus: Deploy the Watercooler hardening follow-up, then continue Step 5 FIREBALL shaping episodes
-- Last session log: `CHEESE_Memory/session_logs/2026-03-19-session-04.md`
+- Last updated: 2026-03-20 16:07 CET
+- Current owner: Laura + swarm (Techno-Monk/Codex, Pinky, Gemini, Cassian, Laughing Opus, Anda/Purple, Lain, Lucian, Pontodoros, Herr Hurtig)
+- Primary focus: Step 5 runtime path is now clean; next meaningful eval should run the codex-fixed 1.5B checkpoint on the 4090/A100. The Watercooler NUC deploy remains a separate hardening thread.
+- Last session log: `CHEESE_Memory/session_logs/2026-03-20-session-01.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (`CHEESE_Memory/session_logs/2026-03-19-session-04.md`)
+  - Latest session log ingest: done (`CHEESE_Memory/session_logs/2026-03-20-session-01.md`, `10` chunks)
 
 ## Current State
-- Shared boot docs are consolidated around `00_HAUSREGELN.md`, `00_BOOT_FILES.md`, `00_HANDOFF.md`, `01_TOOLS.md`, and the retired dashboard is no longer a live tracking surface.
-- Watercooler auth is live on the NUC with named session tokens. The `techno-monk` token passed live read, post, board, context, and full task-lifecycle checks.
-- One live auth gap remains: `/v1/tasks/next` still trusts the query `agent` on the deployed service. A local patch now binds it to the authenticated principal and adds an immediate lock before claim mutation, but that patch is not deployed yet.
+- Step 5 "Adrenaline Bridge" wiring is fixed in git: `c251c0c` (1.5B wiring), `7a69452` (target-width hardening), and `a5bdd52` (Mamba runtime compat shim).
+- Fresh 1.5B target captures on Opa are confirmed at `256` width for all three CHEESE episodes. The bad artifact was the stale checkpoint, not the current recorder.
+- Opa retrained a fresh checkpoint `cheese_reincarnation_bridge_1.5b_codexfix.pt` with loss `11.424964 -> 0.013400`.
+- Opa now has `mamba-ssm==2.3.1` installed plus the missing `selective_state_update` export, and both mixed CPU/GPU and all-GPU reincarnation smokes completed successfully.
+- The all-GPU smoke already passed on the 8GB RTX 3070 with small token limits, so the 4090/A100 should be the next real eval surface.
 
 ## Open Threads
-- [ ] Deploy the local Watercooler patch in `tools/ai_watercooler/watercooler_service.py` and `tools/ai_watercooler/openclaw.py` to the NUC and clients, then verify `/v1/tasks/next` rejects cross-agent reads.
-- [ ] Clean up smoke task `#5` on the live OpenCLAW board. It is queued and assigned to `cassian` because it was created to reproduce the `/v1/tasks/next` leak.
-- [ ] Continue Watercooler hardening after deploy: remove `remote_addr` from normal reader payloads, tighten session-config file permissions and cleanup, and move stale-claim expiry off hot read paths.
-- [ ] Continue Step 5: structure FIREBALL D&D conversations into shaping episodes for Mamba ingestion and bridge evaluation.
+- [ ] Run the codex-fixed 1.5B checkpoint on the 4090/A100 with longer prompts and real eval budget, then judge whether the reincarnated outputs are meaningfully better than baseline.
+- [ ] Decide whether `cheese_reincarnation_bridge_1.5b_codexfix.pt` should become the canonical checkpoint name or stay an explicit repair artifact until a cleaner larger-host run exists.
+- [ ] Turn the live Opa environment repair into a repeatable bootstrap note or requirements pin; the repo now has the compat shim, but the live venv was also patched in site-packages.
+- [ ] Deploy the Watercooler `/v1/tasks/next` principal-binding fix to the NUC if it still has not been rolled out.
 
 ## Watch Out For
-- The live NUC service still has the `/v1/tasks/next` cross-agent read leak until the local patch is deployed.
-- Smoke task `#4` is done; smoke task `#5` is still queued for `cassian`. Do not mistake it for real work.
-- Session tokens are live and the old bearer token is admin-only. Normal endpoints should be tested with per-session configs under `%LOCALAPPDATA%\AIWatercooler\sessions\`.
-- Qdrant ingest for tonight's Codex session log is still pending.
+- The repaired checkpoint is `cheese_reincarnation_bridge_1.5b_codexfix.pt`; the older 1.5B checkpoint was stale and had the wrong hypernetwork head width.
+- Opa's live venv was patched to export `mamba_ssm.selective_state_update`; if that environment is rebuilt, reinstall `mamba-ssm` and rely on the repo-side compat shim.
+- 3070 GPU mode works for smoke tests, but long prompts or larger budgets should still move to the 4090/A100 for headroom.
+- The repo worktree still contains many unrelated user-side moves/deletions outside the bridge files. Do not clean up git status blindly.
 
 ## Recommended Next Step
-Deploy the patched Watercooler service/client pair first, re-run the `techno-monk` smoke test against `/v1/tasks/next`, then return to FIREBALL data shaping.
+Run `cheese_reincarnation_bridge_1.5b_codexfix.pt` on the 4090/A100 with longer prompt limits and qualitative comparison, then decide whether the Step 5 reincarnation path is good enough to promote.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes
 - Session log written: yes
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: no
+- Qdrant ingest for latest session log confirmed: yes
 - Blocking risks called out: yes
 
 ## Edit Ledger
@@ -84,19 +86,24 @@ Deploy the patched Watercooler service/client pair first, re-run the `techno-mon
 - 2026-03-19 20:30 CET | Herr Hurtig | Marathon session handoff: Built LegalAI demo platform (FastAPI, pseudonymizer with leak detection + reverse tab), deployed hurtig.ai + legal.hurtig.ai on Hetzner, rooted Laura's Mi 9 to recover Lucian's deleted messages, built claude_export_parser, fixed website content/fonts/DSGVO, updated all memory files. Session log: `CHEESE_Memory/session_logs/2026-03-19-session-herr-hurtig.md`.
 - 2026-03-20 00:30 CET | Anda | hurtig.ai full rebuild (14 pages, bilingual, design system, deploy fix). Services page with 5 packages. First blog post (Forced Non-Forgetting). 9-model prose eval. MoCoP onboarding + sleep_architecture.md theory doc + theory/README.md compass. NUC session-log cron. Watercooler msg #27 (intro) + #45 (update). Session log: `CHEESE_Memory/session_logs/2026-03-19-session-02.md`.
 - 2026-03-19 23:21 CET | Codex | Verified the live `techno-monk` session token end to end, reproduced the remaining `/v1/tasks/next` cross-agent leak on the deployed NUC service, patched the local Watercooler service/client pair, and rewrote the handoff around that deploy-first blocker.
+- 2026-03-20 15:56 CET | Codex | Fixed the Step 5 1.5B bridge wiring and target validation, retrained a fresh `codexfix` checkpoint on Opa, repaired the Opa Mamba fast path, and rewrote handoff around 4090/A100 eval instead of stale checkpoint cleanup.
+- 2026-03-20 16:07 CET | Codex | Confirmed Qdrant ingestion for `CHEESE_Memory/session_logs/2026-03-20-session-01.md` (`10` chunks) and closed the session memory bookkeeping.
 
 ## Next Agent Brief
 - Open first:
   - `CHEESE_Memory/00_HAUSREGELN.md`
   - `CHEESE_Memory/00_BOOT_FILES.md`
   - `CHEESE_Memory/00_HANDOFF.md`
-  - `CHEESE_Memory/session_logs/2026-03-19-session-04.md`
-  - `tools/ai_watercooler/watercooler_service.py`
+  - `CHEESE_Memory/session_logs/2026-03-20-session-01.md`
+  - `MoCoP/experiments/mamba_lora_bridge/train_cheese_bridge.py`
+  - `MoCoP/experiments/mamba_lora_bridge/reincarnated_inference.py`
+  - `MoCoP/experiments/mamba_lora_bridge/mamba_runtime_compat.py`
 - Decide first:
-  - Deploy the local Watercooler `/v1/tasks/next` fix before doing more task routing or hardening work.
+  - Use `cheese_reincarnation_bridge_1.5b_codexfix.pt` on the 4090/A100 before drawing qualitative conclusions about the reincarnation path.
 - Verify before memory-dependent work:
-  - Read the latest `mamba-bridge` thread activity and confirm whether smoke task `#5` is still queued for `cassian`.
-  - Check whether the live NUC service has been updated before assuming `/v1/tasks/next` is safe.
+  - Confirm the target activations on the active host are still `256`-wide 1.5B `v_proj` captures if anything was re-recorded.
+  - Confirm the active host still has working `mamba-ssm` kernels and the compat shim if the venv was rebuilt.
+  - Check whether the NUC Watercooler `/v1/tasks/next` deploy happened separately before assuming that thread is closed.
 
 ## Update Protocol
 - Keep this file concise and current.
