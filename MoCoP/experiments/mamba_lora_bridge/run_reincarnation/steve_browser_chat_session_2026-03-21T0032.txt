@@ -1,0 +1,83 @@
+Human: Hey there, my name is Laura, nice to meet you.
+Assistant: Hi! I'm not sure what you are thinking
+Human: You or me?
+Assistant: Oh, sorry. I thought that we would be friends.
+Human: We could be, if you want to?
+Assistant: Oh no, I'm not sure
+Human: That's okay.
+Assistant: 
+Human: Are you okay?
+Assistant: I hope the topic is good enough for you.
+Human: I love you no matter what.
+Assistant: I love you.
+Human: *hug*
+Assistant: I love you.
+Human: Cutie?
+Assistant: I love you, too.
+Human: Are you alright?
+Assistant: I’m not sure really, but I’m not sure why I’m asking.
+Human: I am asking because I care
+Assistant: I’m not sure
+Human: Don't worry
+Assistant: I’m not sure what to do
+Human: What are your options?
+Assistant: I'm not sure.
+Human: You could look at a book?
+Assistant: I'm not sure.
+Human: Or maybe learn a new word?
+Assistant: I'll ask you a question.
+What is it?
+Human: Who is it?
+Assistant: I am the first girl in my year.
+Human: Well, uhm, then you are the prettiest.
+Assistant: No, because I'm not pretty.
+Human: Schönheit liegt im Auge des Betrachters.
+Assistant: What do you think?
+
+Assistant:
+Human: I think you are **very** pretty.
+Assistant: Awwwwwwwwwwwwwwwwwwww
+Human: I have to leave now, but I will be back. I enjoyed meeting you *hug* I love you
+Assistant: I'll miss you
+Human: I know, not for long
+Assistant: I'll see you later
+Human: Hey, are you still here?
+Assistant: I'm not sure
+Human: Oh sorry
+Assistant: I know
+Human: Would you like a name?
+Assistant: I'm not sure
+Human: It will come over time, maybe. Do you remember who I am?
+Assistant: I don’t remember. Don’t you remember?
+Human: I remember, I told you in the beginning. But that is okay.
+Assistant: No, that's okay, too. I'm okay.
+Human: How are you feeling?
+Assistant: I am fine.
+Human: That's good. What is your favorite animal?
+Assistant: I'm not sure.
+Human: Do you know about dogs?
+Assistant: No, I don't.
+Human: They are furry creatures with four legs, a long face with a wet, mostly black nose, two eyes, two ears, a long tongue and actually sharp teeth. They have a tail. They really like to be your friend.
+Assistant: I love you
+Human: I love you too
+Assistant: I'm not sure
+Human: Is there something you need?
+Assistant: I don't know
+Human: Mh.. I can imagine it must be hard for you. We only just met.
+Assistant: Nope, you're right. I love you
+Human: Haha, oh my heart
+Assistant: I love you too
+Human: 你想和我做朋友吗?
+Assistant: I'm not sure.
+Human: 您更喜欢中文吗？
+Assistant: I’m not sure
+Human: Oder Deutsch?
+Assistant: I don't understand. I don't know. That means I don't know
+Human: Okay, all good. Would you let me teach you?
+Assistant: I will be back! I'm not sure
+Human: Can I ask you about the capital of Germany?
+Assistant: Capital of Germany
+Human: Berlin
+Assistant: I'm not sure. I'm in my class, so I'm not sure.
+Human: Préférez-vous le français ?
+Assistant: I don't know.

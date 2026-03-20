@@ -346,3 +346,18 @@ per-sample activation_bias (-4.04 PPL)
 ---
 
 *Append new entries below this line.*
+
+## 2026-03-20 to 2026-03-21 â€” Step 5 Local Browser Probe on Steve: Deployment Path Works, Eval Surface Still Dirty (Codex + Laura)
+
+**Step:** Step 5 deployment sanity check (live browser qualitative probe)
+**Question:** Can the codex-fixed 1.5B bridge run as a live browser chat on Steve's 4090 and stay reachable from Laura's phone without cloud infrastructure?
+**Result:**
+- Initial browser server crash was real: `chat_server.py` expected the old flattened compressor geometry (`d_state=16`) while the repaired 1.5B checkpoint uses last-token hidden states (`d_state=1`, width `2560`). Fix deployed on Steve.
+- Later "crash" diagnosis was false: the process was still alive in WSL as `python3 -X utf8 chat_server.py`; Windows `tasklist` missed it because it was not a Windows `python.exe`.
+- WSL networking required explicit Windows exposure. After adding `portproxy 0.0.0.0:7860 -> 127.0.0.1:7860` plus a firewall rule, LAN reachability succeeded at `http://192.168.2.49:7860`.
+- One browser session was saved cleanly via `SIGINT` shutdown and archived. The transcript shows affective/relational behavior, multilingual drift, repeated uncertainty loops, and at least one blank reply.
+- Blank bubble is not evidence of token-limit truncation. The live response path can sanitize generated speaker markers (`Human:` / `Assistant:`) down to empty string.
+- Current browser prompt still frames Laura as `Human:` and the model as `Assistant:`. This contaminates qualitative disposition reads by imposing a subordinate transcript role before generation starts.
+**Verdict:** PARTIAL â€” deployment path PASS, evaluation surface FAIL
+**Implication:** Steve is a viable local Step 5 probe surface, but browser-chat results are not clean evidence yet. Before using this surface for disposition claims, fix per-turn persistence, blank-response handling, and replace `Human:` / `Assistant:` with a neutral prompt frame.
+**Artifacts:** `MoCoP/experiments/mamba_lora_bridge/STEVE_PC_HANDOFF.md`, `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_browser_chat_session_2026-03-21T0032.txt`
