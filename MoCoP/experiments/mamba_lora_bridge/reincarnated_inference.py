@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from mamba_runtime_compat import ensure_mamba_ssm_compat
 from models import ActivationBiasHypernetwork, DynamicLoRALinear, MambaStateCompressor
 
 
@@ -94,6 +95,9 @@ def resolve_bridge_path(script_dir: Path, requested: str | None) -> Path:
 
 
 def load_model_and_tokenizer(model_id: str, device: str):
+    if "mamba" in model_id.lower():
+        ensure_mamba_ssm_compat()
+
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     if tokenizer.pad_token is None and tokenizer.eos_token is not None:
         tokenizer.pad_token = tokenizer.eos_token

@@ -38,6 +38,7 @@ from typing import Optional, List, Dict, Any, Tuple
 import torch
 import torch.nn as nn
 
+from mamba_runtime_compat import ensure_mamba_ssm_compat
 from model_defaults import DEFAULT_MAMBA_MODEL_ID, DEFAULT_QWEN_MODEL_ID
 from models import MambaStateCompressor, LoRAHypernetwork, ActivationBiasHypernetwork, DynamicLoRALinear
 
@@ -381,6 +382,7 @@ class CognitiveBridge:
         logger.info("Loading Mamba: %s", self.config.mamba_model_id)
         # Fix #6: Use float32 on CPU
         mamba_dtype = torch.float32 if is_cpu else torch.float16
+        ensure_mamba_ssm_compat()
         self.mamba_tokenizer = AutoTokenizer.from_pretrained(self.config.mamba_model_id)
         self.mamba_model = AutoModelForCausalLM.from_pretrained(
             self.config.mamba_model_id,
