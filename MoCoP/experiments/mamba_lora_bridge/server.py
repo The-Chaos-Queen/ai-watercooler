@@ -19,7 +19,7 @@ import argparse
 import logging
 import os
 import json
-from typing import Any
+from typing import Any, Optional
 
 import torch
 from fastapi import FastAPI
@@ -47,6 +47,23 @@ def env_bool(name: str, default: bool) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def parse_target_layers(raw: Optional[str]):
+    if raw is None or not raw.strip():
+        return None
+
+    specs = []
+    for piece in raw.split(","):
+        part = piece.strip()
+        if not part:
+            continue
+        if ":" in part:
+            layer_text, proj_name = part.split(":", 1)
+            specs.append((int(layer_text), proj_name.strip()))
+        else:
+            specs.append((int(part), "v_proj"))
+    return specs or None
 
 
 logging.basicConfig(
@@ -89,6 +106,10 @@ ENABLE_HYPER_SCAFFOLD = env_bool("ENABLE_HYPER_SCAFFOLD", False)
 HYPER_DEVICE = os.getenv("HYPER_DEVICE", "cpu").strip().lower()
 USE_4BIT = env_bool("USE_4BIT", True)
 BRAIN_BRIDGE_MODE = os.getenv("BRAIN_BRIDGE_MODE", "lora").strip().lower()
+BRAIN_TARGET_LAYERS = parse_target_layers(os.getenv("BRAIN_TARGET_LAYERS"))
+BRAIN_CHECKPOINT_PATH = os.getenv("BRAIN_CHECKPOINT_PATH", "").strip() or None
+MAMBA_STATE_SOURCE = os.getenv("MAMBA_STATE_SOURCE", "ssm").strip().lower()
+COGNITIVE_RESPONSE_FORMAT = os.getenv("COGNITIVE_RESPONSE_FORMAT", "mud_json").strip().lower()
 COGNITIVE_STARTUP_VALIDATION = env_bool("COGNITIVE_STARTUP_VALIDATION", True)
 COGNITIVE_STARTUP_VALIDATION_TEXT = os.getenv(
     "COGNITIVE_STARTUP_VALIDATION_TEXT", "startup probe"
@@ -153,6 +174,9 @@ async def load_models():
             context_dim=CONTEXT_DIM,
             lora_rank=LORA_RANK,
             bridge_mode=BRAIN_BRIDGE_MODE,
+            target_layers=BRAIN_TARGET_LAYERS,
+            bridge_checkpoint_path=BRAIN_CHECKPOINT_PATH,
+            mamba_state_source=MAMBA_STATE_SOURCE,
             hyper_hidden_dim=1024,
             max_new_tokens=QWEN_MAX_NEW_TOKENS,
             temperature=QWEN_TEMPERATURE,
@@ -161,6 +185,7 @@ async def load_models():
             hyper_device=HYPER_DEVICE,
             startup_validation=COGNITIVE_STARTUP_VALIDATION,
             startup_validation_text=COGNITIVE_STARTUP_VALIDATION_TEXT,
+            response_format=COGNITIVE_RESPONSE_FORMAT,
         )
 
         cognitive_bridge = CognitiveBridge(config)
@@ -334,11 +359,20 @@ async def generate_response(event: MUDEvent):
     if active_mode == "cognitive" and cognitive_bridge is not None:
         async with _bridge_lock:
             try:
-                diag = cognitive_bridge.generate(event.context)
+                diag = cognitive_bridge.generate(
+                    event.context,
+                    session_id=event.player_id,
+                    action=event.action,
+                )
+                response_text = (
+                    force_json_response(diag.raw_output)
+                    if COGNITIVE_RESPONSE_FORMAT == "mud_json"
+                    else diag.raw_output
+                )
                 return {
                     "status": "success",
                     "mode": "cognitive",
-                    "response": diag.raw_output,
+                    "response": response_text,
                     "diagnostics": {
                         "turn": diag.turn_number,
                         "mamba_state_mb": round(diag.mamba_state_mb, 2),
@@ -377,17 +411,17 @@ async def generate_response(event: MUDEvent):
 
 
 @app.post("/save_state")
-async def save_state():
+async def save_state(session_id: str = "global"):
     """Save the cognitive bridge state (Mamba SSM + hypernetwork weights)."""
     if cognitive_bridge is None:
         return {"status": "error", "message": "Not in cognitive mode"}
     async with _bridge_lock:
-        path = cognitive_bridge.save_state()
+        path = cognitive_bridge.save_state(session_id=session_id)
     return {"status": "ok", "path": path}
 
 
 @app.post("/load_state")
-async def load_state(filename: str):
+async def load_state(filename: str, session_id: str = "global"):
     """Load a saved cognitive state. Fix #1: filename only, no arbitrary paths."""
     if cognitive_bridge is None:
         return {"status": "error", "message": "Not in cognitive mode"}
@@ -395,8 +429,8 @@ async def load_state(filename: str):
     from pathlib import Path
     safe_path = str(Path(cognitive_bridge.config.state_dir) / Path(filename).name)
     async with _bridge_lock:
-        cognitive_bridge.load_state(safe_path)
-    return {"status": "ok", "turn_count": cognitive_bridge.turn_count}
+        cognitive_bridge.load_state(safe_path, session_id=session_id)
+    return {"status": "ok", "turn_count": cognitive_bridge.turn_count, "session_id": session_id}
 
 
 if __name__ == "__main__":

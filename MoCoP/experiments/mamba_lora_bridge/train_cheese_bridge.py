@@ -11,9 +11,22 @@ from models import MambaStateCompressor, ActivationBiasHypernetwork
 # Reincarnation Config (1.5B PIVOT)
 MAMBA_MODEL_ID = "state-spaces/mamba-2.8b-hf"
 QWEN_MODEL_ID = "Qwen/Qwen2.5-1.5B"
-TARGET_LAYERS = [12, 13, 14, 15]
+MAMBA_TARGET_LAYER = 3
+MAMBA_STATE_SOURCE = "hidden_last_token"
+TARGET_SPECS = [(12, "v_proj"), (13, "v_proj"), (14, "v_proj"), (15, "v_proj")]
 EPISODES_FILE = "CHEESE_SHAPING_EPISODES.md"
 TARGET_DIR = "activation_sessions_1.5b"
+
+
+def extract_last_token_hidden(outputs, layer_idx: int) -> torch.Tensor:
+    hidden_states = getattr(outputs, "hidden_states", None)
+    if not hidden_states:
+        raise RuntimeError("Mamba did not return hidden_states.")
+
+    hidden_index = layer_idx
+    if len(hidden_states) > layer_idx + 1:
+        hidden_index = layer_idx + 1
+    return hidden_states[hidden_index][:, -1, :]
 
 class DirectionalLoss(nn.Module):
     def __init__(self, alpha=0.9):
@@ -22,7 +35,7 @@ class DirectionalLoss(nn.Module):
 
     def forward(self, pred_list, target_dict):
         total_loss = 0.0
-        for i, layer in enumerate(TARGET_LAYERS):
+        for i, (layer, _) in enumerate(TARGET_SPECS):
             p = pred_list[i].float()
             t = target_dict[layer].to(p.device).float()
             cos_sim = F.cosine_similarity(p, t, dim=-1)
@@ -31,7 +44,7 @@ class DirectionalLoss(nn.Module):
             t_norm = torch.norm(t, p=2, dim=-1)
             magnitude_loss = F.mse_loss(p_norm, t_norm.expand_as(p_norm))
             total_loss += (self.alpha * directional_loss) + ((1 - self.alpha) * magnitude_loss)
-        return total_loss / len(TARGET_LAYERS)
+        return total_loss / len(TARGET_SPECS)
 
 def train_reincarnation():
     print(f"Loading Mamba: {MAMBA_MODEL_ID}")
@@ -40,8 +53,18 @@ def train_reincarnation():
     mamba_model.eval()
 
     # Bridge for 1.5B (v_proj output=256)
-    compressor = MambaStateCompressor(mamba_layers=64, mamba_d_model=2560, mamba_d_state=1, output_dim=2048, target_layer=3).to("cuda:0").float()
-    hypernetwork = ActivationBiasHypernetwork(context_dim=2048, target_dims=[(1536, 256)] * len(TARGET_LAYERS), hidden_dim=1024).to("cuda:0").float()
+    compressor = MambaStateCompressor(
+        mamba_layers=64,
+        mamba_d_model=2560,
+        mamba_d_state=1,
+        output_dim=2048,
+        target_layer=MAMBA_TARGET_LAYER,
+    ).to("cuda:0").float()
+    hypernetwork = ActivationBiasHypernetwork(
+        context_dim=2048,
+        target_dims=[(1536, 256)] * len(TARGET_SPECS),
+        hidden_dim=1024,
+    ).to("cuda:0").float()
 
     with open(EPISODES_FILE, "r", encoding="utf-8") as f:
         content = f.read()
@@ -58,8 +81,10 @@ def train_reincarnation():
         inputs = mamba_tokenizer(transcript, return_tensors="pt").to("cuda:0")
         with torch.no_grad():
             outputs = mamba_model(inputs.input_ids, output_hidden_states=True)
-            mamba_state = outputs.hidden_states[4].detach().cpu()
-        training_data.append({"name": header, "mamba_state": mamba_state, "target": target_activations})
+            last_token_state = extract_last_token_hidden(outputs, MAMBA_TARGET_LAYER).detach().cpu()
+        training_data.append(
+            {"name": header, "mamba_state": last_token_state, "target": target_activations}
+        )
 
     optimizer = AdamW(list(compressor.parameters()) + list(hypernetwork.parameters()), lr=1e-3)
     loss_fn = DirectionalLoss(alpha=0.9)
@@ -69,8 +94,8 @@ def train_reincarnation():
         total_epoch_loss = 0.0
         for item in training_data:
             optimizer.zero_grad()
-            last_token_state = item["mamba_state"][:, -1, :].to("cuda:0").float() 
-            context_vector = compressor.projection(last_token_state)
+            last_token_state = item["mamba_state"].to("cuda:0").float()
+            context_vector = compressor(last_token_state)
             pred_bias_list = hypernetwork(context_vector)
             loss = loss_fn(pred_bias_list, item["target"])
             loss.backward()
@@ -83,7 +108,13 @@ def train_reincarnation():
     torch.save({
         "compressor_state_dict": compressor.state_dict(),
         "hypernetwork_state_dict": hypernetwork.state_dict(),
-        "target_layers": TARGET_LAYERS
+        "target_layers": TARGET_SPECS,
+        "target_specs": TARGET_SPECS,
+        "bridge_mode": "activation_bias",
+        "mamba_state_source": MAMBA_STATE_SOURCE,
+        "mamba_target_layer": MAMBA_TARGET_LAYER,
+        "qwen_model_id": QWEN_MODEL_ID,
+        "mamba_model_id": MAMBA_MODEL_ID,
     }, "cheese_reincarnation_bridge_1.5b.pt")
     print("\nReincarnation Complete! Saved to cheese_reincarnation_bridge_1.5b.pt")
 

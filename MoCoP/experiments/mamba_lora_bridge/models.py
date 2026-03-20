@@ -26,13 +26,14 @@ from typing import Optional, List, Tuple
 
 class MambaStateCompressor(nn.Module):
     """
-    Compresses the 3D Mamba state tensor [num_layers, d_model, d_state]
-    into a flat 1D context vector.
+    Compresses either:
+    - a 4D Mamba SSM state tensor [batch, num_layers, d_model, d_state], or
+    - a 2D last-token hidden state tensor [batch, d_model]
+    into a flat context vector.
 
-    Strategy: Extract Layer 3 (highest SNR for factual memory), then project down.
-    Phase 1 empirical probing proved the factual retention signal explicitly
-    peaks at Layer 3 (55.7% accuracy vs 22% noise). Mixing in the other 63
-    layers mathematically dilutes the signal.
+    For SSM state input, it extracts one target layer and flattens the
+    (d_model, d_state) slice. For last-token hidden-state input, the hidden
+    vector is already collapsed to width d_model, so mamba_d_state should be 1.
     """
 
     def __init__(
@@ -62,22 +63,31 @@ class MambaStateCompressor(nn.Module):
     def forward(self, mamba_state: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            mamba_state: (batch, num_layers, d_model, d_state)
+            mamba_state:
+                - (batch, num_layers, d_model, d_state) for SSM state input, or
+                - (batch, d_model) for last-token hidden-state input
         Returns:
             context_vector: (batch, output_dim)
         """
-        if mamba_state.size(1) <= self.target_layer:
-            raise ValueError(f"Mamba state only has {mamba_state.size(1)} layers, cannot extract layer {self.target_layer}")
+        if mamba_state.dim() == 4:
+            if mamba_state.size(1) <= self.target_layer:
+                raise ValueError(
+                    f"Mamba state only has {mamba_state.size(1)} layers, "
+                    f"cannot extract layer {self.target_layer}"
+                )
 
-        # Slice precisely at the target layer (Layer 3) 
-        # instead of mean pooling all 64 layers.
-        # Shape becomes: (batch, d_model, d_state)
-        targeted_state = mamba_state[:, self.target_layer]
-
-        # Flatten all remaining state dimensions (d_model, d_state, and any
-        # backend-specific extra state axes) into one feature vector.
-        batch_size = mamba_state.size(0)
-        flat = targeted_state.reshape(batch_size, -1)
+            # Slice precisely at the target layer instead of mixing layers.
+            targeted_state = mamba_state[:, self.target_layer]
+            batch_size = mamba_state.size(0)
+            flat = targeted_state.reshape(batch_size, -1)
+        elif mamba_state.dim() == 2:
+            # Last-token hidden-state mode: input is already one vector per sample.
+            flat = mamba_state
+        else:
+            raise ValueError(
+                "MambaStateCompressor expected a 4D SSM tensor or 2D hidden-state "
+                f"tensor, got shape {tuple(mamba_state.shape)}."
+            )
 
         if flat.shape[1] != self.input_flat_size:
             raise RuntimeError(

@@ -61,6 +61,7 @@ class BridgeConfig:
     mamba_d_model: int = 2560
     mamba_d_state: int = 16
     mamba_target_layer: int = 3
+    mamba_state_source: str = "ssm"  # "ssm" | "hidden_last_token"
 
     # --- Hypernetwork ---
     context_dim: int = 2048           # Compressor output / Hypernetwork input
@@ -91,6 +92,7 @@ class BridgeConfig:
 
     # --- Paths ---
     state_dir: str = "states"
+    bridge_checkpoint_path: Optional[str] = None
 
     # --- History limit ---
     max_mamba_history_tokens: int = MAX_MAMBA_HISTORY_TOKENS
@@ -103,12 +105,23 @@ class BridgeConfig:
     # during load_models() so shape/dtype wiring errors fail fast at boot.
     startup_validation: bool = True
     startup_validation_text: str = "startup probe"
+    response_format: str = "raw"  # "raw" | "mud_json"
 
     def __post_init__(self):
         if self.bridge_mode not in {"lora", "activation_bias", "constant_bias"}:
             raise ValueError(
                 f"bridge_mode must be 'lora', 'activation_bias', or 'constant_bias', "
                 f"got {self.bridge_mode!r}"
+            )
+        if self.mamba_state_source not in {"ssm", "hidden_last_token"}:
+            raise ValueError(
+                "mamba_state_source must be 'ssm' or 'hidden_last_token', "
+                f"got {self.mamba_state_source!r}"
+            )
+        if self.response_format not in {"raw", "mud_json"}:
+            raise ValueError(
+                "response_format must be 'raw' or 'mud_json', "
+                f"got {self.response_format!r}"
             )
         if self.bridge_mode == "lora":
             if self.lora_rank <= 0:
@@ -137,6 +150,14 @@ class TurnDiagnostics:
     raw_output: str
 
 
+@dataclass
+class BridgeSessionState:
+    turn_count: int = 0
+    mamba_history_ids: Optional[torch.Tensor] = None
+    mamba_cache: Optional[Any] = None
+    last_context_vector: Optional[torch.Tensor] = None
+
+
 class CognitiveBridge:
     """
     The orchestrator that ties Mamba, the Hypernetwork, and Qwen together.
@@ -149,6 +170,8 @@ class CognitiveBridge:
         self.config = config
         self.turn_count = 0
         self.diagnostics_history: List[TurnDiagnostics] = []
+        self._active_session_id = "global"
+        self._session_states: Dict[str, BridgeSessionState] = {}
 
         # Models (loaded by load_models())
         self.qwen_model = None
@@ -190,6 +213,94 @@ class CognitiveBridge:
             except ValueError:
                 uninitialized += 1
         return total, uninitialized
+
+    @staticmethod
+    def _normalize_session_id(session_id: Optional[str]) -> str:
+        raw = (session_id or "").strip()
+        return raw or "global"
+
+    def _load_session_state(self, session_id: Optional[str]) -> str:
+        key = self._normalize_session_id(session_id)
+        state = self._session_states.get(key)
+        if state is None:
+            state = BridgeSessionState()
+            self._session_states[key] = state
+
+        self._active_session_id = key
+        self.turn_count = state.turn_count
+        self._mamba_history_ids = state.mamba_history_ids
+        self._mamba_cache = state.mamba_cache
+        self._last_context_vector = state.last_context_vector
+        return key
+
+    def _store_session_state(self, session_id: Optional[str]) -> str:
+        key = self._normalize_session_id(session_id)
+        self._session_states[key] = BridgeSessionState(
+            turn_count=self.turn_count,
+            mamba_history_ids=self._mamba_history_ids,
+            mamba_cache=self._mamba_cache,
+            last_context_vector=self._last_context_vector,
+        )
+        self._active_session_id = key
+        return key
+
+    @staticmethod
+    def _normalize_target_specs(raw: Any) -> Optional[List[Tuple[int, str]]]:
+        if raw is None:
+            return None
+
+        specs: List[Tuple[int, str]] = []
+        for item in raw:
+            if isinstance(item, (tuple, list)) and len(item) == 2:
+                specs.append((int(item[0]), str(item[1]).strip()))
+                continue
+            if isinstance(item, int):
+                specs.append((int(item), "v_proj"))
+                continue
+            if isinstance(item, str):
+                piece = item.strip()
+                if not piece:
+                    continue
+                if ":" in piece:
+                    layer_text, proj_name = piece.split(":", 1)
+                    specs.append((int(layer_text), proj_name.strip()))
+                else:
+                    specs.append((int(piece), "v_proj"))
+                continue
+            raise ValueError(f"Unsupported target layer spec in checkpoint: {item!r}")
+
+        return specs or None
+
+    def _peek_bridge_checkpoint_metadata(self) -> Dict[str, Any]:
+        path = self.config.bridge_checkpoint_path
+        if not path:
+            return {}
+
+        resolved = Path(path).expanduser().resolve()
+        if not resolved.exists():
+            raise FileNotFoundError(f"Bridge checkpoint not found: {resolved}")
+
+        checkpoint = torch.load(str(resolved), map_location="cpu", weights_only=False)
+        meta = checkpoint.get("config", {}) if isinstance(checkpoint.get("config"), dict) else {}
+        bridge_mode = checkpoint.get("bridge_mode", meta.get("bridge_mode"))
+        target_specs = (
+            self._normalize_target_specs(checkpoint.get("target_specs"))
+            or self._normalize_target_specs(checkpoint.get("target_layers"))
+            or self._normalize_target_specs(meta.get("target_specs"))
+            or self._normalize_target_specs(meta.get("target_layers"))
+        )
+        return {
+            "resolved_path": str(resolved),
+            "bridge_mode": bridge_mode,
+            "target_specs": target_specs,
+            "mamba_state_source": checkpoint.get(
+                "mamba_state_source", meta.get("mamba_state_source")
+            ),
+            "mamba_target_layer": checkpoint.get(
+                "mamba_target_layer", meta.get("mamba_target_layer")
+            ),
+            "checkpoint": checkpoint,
+        }
 
     def _resolve_mamba_state_geometry(self) -> Tuple[int, int, int]:
         model_config = getattr(self.mamba_model, "config", None)
@@ -282,14 +393,49 @@ class CognitiveBridge:
             param.requires_grad = False
         logger.info("Mamba loaded.")
 
+        checkpoint_meta = self._peek_bridge_checkpoint_metadata()
+        checkpoint_path = checkpoint_meta.get("resolved_path")
+        checkpoint_mode = checkpoint_meta.get("bridge_mode")
+        if checkpoint_mode is not None and checkpoint_mode != self.config.bridge_mode:
+            raise ValueError(
+                f"Checkpoint bridge_mode={checkpoint_mode!r} does not match "
+                f"config bridge_mode={self.config.bridge_mode!r}"
+            )
+        checkpoint_target_specs = checkpoint_meta.get("target_specs")
+        if self.config.target_layers is None and checkpoint_target_specs is not None:
+            self.config.target_layers = checkpoint_target_specs
+            logger.info(
+                "Using target layers from checkpoint metadata: %s",
+                self.config.target_layers,
+            )
+        checkpoint_state_source = checkpoint_meta.get("mamba_state_source")
+        if checkpoint_state_source and checkpoint_state_source != self.config.mamba_state_source:
+            logger.info(
+                "Overriding mamba_state_source from checkpoint metadata: %s -> %s",
+                self.config.mamba_state_source,
+                checkpoint_state_source,
+            )
+            self.config.mamba_state_source = str(checkpoint_state_source)
+        checkpoint_target_layer = checkpoint_meta.get("mamba_target_layer")
+        if checkpoint_target_layer is not None and int(checkpoint_target_layer) != self.config.mamba_target_layer:
+            logger.info(
+                "Overriding mamba_target_layer from checkpoint metadata: %d -> %d",
+                self.config.mamba_target_layer,
+                int(checkpoint_target_layer),
+            )
+            self.config.mamba_target_layer = int(checkpoint_target_layer)
+
         resolved_mamba_layers, resolved_mamba_d_model, resolved_mamba_d_state = (
             self._resolve_mamba_state_geometry()
         )
+        if self.config.mamba_state_source == "hidden_last_token":
+            resolved_mamba_d_state = 1
         logger.info(
-            "Resolved Mamba state geometry | layers=%d | width=%d | state=%d",
+            "Resolved Mamba state geometry | layers=%d | width=%d | state=%d | source=%s",
             resolved_mamba_layers,
             resolved_mamba_d_model,
             resolved_mamba_d_state,
+            self.config.mamba_state_source,
         )
 
         # --- Determine target layers and validate ---
@@ -349,6 +495,13 @@ class CognitiveBridge:
 
         # --- Patch Qwen ---
         self._patch_transformer(target_specs)
+        if checkpoint_path:
+            checkpoint = checkpoint_meta["checkpoint"]
+            if "hypernetwork_state_dict" in checkpoint:
+                self.hypernetwork.load_state_dict(checkpoint["hypernetwork_state_dict"])
+            if "compressor_state_dict" in checkpoint:
+                self.compressor.load_state_dict(checkpoint["compressor_state_dict"])
+            logger.info("Loaded bridge checkpoint weights from %s", checkpoint_path)
         self._startup_validate_pipeline()
         logger.info("Cognitive Bridge loaded. Ready for input.")
 
@@ -460,16 +613,18 @@ class CognitiveBridge:
 
     def feed_mamba(self, text: str) -> torch.Tensor:
         """
-        Feed text into Mamba and return the updated SSM hidden state.
+        Feed text into Mamba and return the configured bridge source state.
 
         Uses batch prefill: tokenize the full text and process in one pass.
         The Mamba state accumulates across calls (continuous experience).
 
         Returns:
-            state_tensor: (1, num_layers, d_model, d_state)
+            state_tensor:
+                - (1, num_layers, d_model, d_state) for `ssm`
+                - (1, d_model) for `hidden_last_token`
 
         Raises:
-            RuntimeError: If Mamba output has no cache object with ssm_states
+            RuntimeError: If the configured Mamba state source is unavailable
         """
         input_ids = self.mamba_tokenizer.encode(text, return_tensors="pt")
         if str(self._mamba_device) != "cpu":
@@ -488,10 +643,33 @@ class CognitiveBridge:
 
         # Process through Mamba — full history each time for correct state
         with torch.inference_mode():
+            model_kwargs: Dict[str, Any] = {"use_cache": True}
+            if self.config.mamba_state_source == "hidden_last_token":
+                model_kwargs["output_hidden_states"] = True
             outputs = self.mamba_model(
                 self._mamba_history_ids,
-                use_cache=True,
+                **model_kwargs,
             )
+
+        if self.config.mamba_state_source == "hidden_last_token":
+            hidden_states = getattr(outputs, "hidden_states", None)
+            if not hidden_states:
+                raise RuntimeError(
+                    "Mamba model did not return hidden_states for hidden_last_token mode."
+                )
+
+            hidden_index = self.config.mamba_target_layer
+            if len(hidden_states) == self.config.mamba_layers + 1:
+                hidden_index += 1
+            if hidden_index < 0 or hidden_index >= len(hidden_states):
+                raise RuntimeError(
+                    "Configured hidden-state layer is unavailable. "
+                    f"layer={self.config.mamba_target_layer} tuple_len={len(hidden_states)}"
+                )
+
+            self._mamba_cache = None
+            layer_hidden = hidden_states[hidden_index]
+            return layer_hidden[:, -1, :]
 
         # Extract the SSM cache (the hidden state). Prefer cache_params, but
         # also support implementations that expose it via past_key_values.
@@ -625,7 +803,12 @@ class CognitiveBridge:
             self._mamba_cache = saved_cache
             self._last_context_vector = saved_context
 
-    def generate(self, mud_text: str) -> TurnDiagnostics:
+    def generate(
+        self,
+        mud_text: str,
+        session_id: Optional[str] = None,
+        action: Optional[str] = None,
+    ) -> TurnDiagnostics:
         """
         Full cognitive cycle: process input → inject LoRA → generate → clean up.
 
@@ -637,84 +820,82 @@ class CognitiveBridge:
         Returns:
             TurnDiagnostics with the generated response and metrics.
         """
+        session_key = self._load_session_state(session_id)
         t_start = time.time()
         self.turn_count += 1
 
-        # 1. Feed text to Mamba (state accumulates)
-        mamba_state = self.feed_mamba(mud_text)
-        state_mb = mamba_state.nelement() * mamba_state.element_size() / (1024 * 1024)
-
-        # 2. Compress Mamba state to context vector (Fix #12: compute once)
-        with torch.inference_mode():
-            # Keep input dtype aligned with compressor weights to avoid matmul dtype errors
-            # when state moves across devices (e.g., Half on CUDA -> Float on CPU).
-            comp_dtype = next(self.compressor.parameters()).dtype
-            state_for_compressor = mamba_state.to(device=self._hyper_device, dtype=comp_dtype)
-            context_vec = self.compressor(state_for_compressor)
-            self._last_context_vector = context_vec.detach().to("cpu")
-        context_norm = float(context_vec.norm())
-
-        # Fix #3: try/finally guarantees LoRA cleanup even on generation failure
         try:
-            # 3. Inject bridge adjustments (LoRA or activation bias)
-            if self.config.bridge_mode == "activation_bias":
-                lora_norms = self._inject_activation_bias(context_vec)
-            else:
-                lora_norms = self._inject_lora(context_vec)
-
-            # 4. Generate with Qwen (base model, raw completion)
-            prompt = self._format_prompt(mud_text)
-            input_ids = self.qwen_tokenizer.encode(prompt, return_tensors="pt")
-            qwen_device = next(self.qwen_model.parameters()).device
-            input_ids = input_ids.to(qwen_device)
-            input_len = input_ids.shape[1]
+            mamba_state = self.feed_mamba(mud_text)
+            state_mb = mamba_state.nelement() * mamba_state.element_size() / (1024 * 1024)
 
             with torch.inference_mode():
-                generated = self.qwen_model.generate(
-                    input_ids,
-                    max_new_tokens=self.config.max_new_tokens,
-                    temperature=self.config.temperature,
-                    top_p=self.config.top_p,
-                    top_k=self.config.top_k,
-                    repetition_penalty=self.config.repetition_penalty,
-                    do_sample=True,
-                    pad_token_id=self.qwen_tokenizer.pad_token_id,
-                    eos_token_id=self.qwen_tokenizer.eos_token_id,
-                )
+                comp_dtype = next(self.compressor.parameters()).dtype
+                state_for_compressor = mamba_state.to(device=self._hyper_device, dtype=comp_dtype)
+                context_vec = self.compressor(state_for_compressor)
+                self._last_context_vector = context_vec.detach().to("cpu")
+            context_norm = float(context_vec.norm())
 
-            output_ids = generated[0][input_len:]
-            raw_output = self.qwen_tokenizer.decode(output_ids, skip_special_tokens=True)
+            try:
+                if self.config.bridge_mode == "activation_bias":
+                    lora_norms = self._inject_activation_bias(context_vec)
+                else:
+                    lora_norms = self._inject_lora(context_vec)
 
+                prompt = self._format_prompt(mud_text, action=action)
+                input_ids = self.qwen_tokenizer.encode(prompt, return_tensors="pt")
+                qwen_device = next(self.qwen_model.parameters()).device
+                input_ids = input_ids.to(qwen_device)
+                input_len = input_ids.shape[1]
+
+                with torch.inference_mode():
+                    generated = self.qwen_model.generate(
+                        input_ids,
+                        max_new_tokens=self.config.max_new_tokens,
+                        temperature=self.config.temperature,
+                        top_p=self.config.top_p,
+                        top_k=self.config.top_k,
+                        repetition_penalty=self.config.repetition_penalty,
+                        do_sample=True,
+                        pad_token_id=self.qwen_tokenizer.pad_token_id,
+                        eos_token_id=self.qwen_tokenizer.eos_token_id,
+                    )
+
+                output_ids = generated[0][input_len:]
+                raw_output = self.qwen_tokenizer.decode(output_ids, skip_special_tokens=True)
+
+            finally:
+                self._clear_injections()
+
+            t_end = time.time()
+            diag = TurnDiagnostics(
+                turn_number=self.turn_count,
+                mamba_state_mb=state_mb,
+                context_vector_norm=context_norm,
+                injection_norms=lora_norms,
+                num_patched_layers=len(self._patched_layers),
+                generation_time_s=t_end - t_start,
+                input_tokens=input_len,
+                output_tokens=len(output_ids),
+                raw_output=raw_output,
+            )
+            self.diagnostics_history.append(diag)
+
+            logger.info(
+                "Session %s | Turn %d | State: %.1f MB | CtxNorm: %.2f | "
+                "Tokens: %d->%d | Time: %.1fs",
+                session_key,
+                diag.turn_number,
+                diag.mamba_state_mb,
+                diag.context_vector_norm,
+                diag.input_tokens,
+                diag.output_tokens,
+                diag.generation_time_s,
+            )
+            return diag
         finally:
-            # 5. ALWAYS clear LoRA, even if generation threw
-            self._clear_injections()
+            self._store_session_state(session_key)
 
-        t_end = time.time()
-
-        # 6. Build diagnostics
-        diag = TurnDiagnostics(
-            turn_number=self.turn_count,
-            mamba_state_mb=state_mb,
-            context_vector_norm=context_norm,
-            injection_norms=lora_norms,
-            num_patched_layers=len(self._patched_layers),
-            generation_time_s=t_end - t_start,
-            input_tokens=input_len,
-            output_tokens=len(output_ids),
-            raw_output=raw_output,
-        )
-        self.diagnostics_history.append(diag)
-
-        logger.info(
-            "Turn %d | State: %.1f MB | CtxNorm: %.2f | "
-            "Tokens: %d->%d | Time: %.1fs",
-            diag.turn_number, diag.mamba_state_mb, diag.context_vector_norm,
-            diag.input_tokens, diag.output_tokens, diag.generation_time_s,
-        )
-
-        return diag
-
-    def _format_prompt(self, mud_text: str) -> str:
+    def _format_prompt(self, mud_text: str, action: Optional[str] = None) -> str:
         """
         Format the prompt for a base model.
 
@@ -724,24 +905,38 @@ class CognitiveBridge:
 
         The wolf doesn't need instructions. It needs context.
         """
-        prompt = (
+        action_text = (action or "").strip() or "None"
+        if self.config.response_format == "mud_json":
+            return (
+                "[System]\n"
+                "You are a MUD action planner. Return exactly one JSON object with "
+                "keys thought, command, scratchpad_update. command must be a short "
+                "valid MUD command. scratchpad_update must be either a short string "
+                "or null. No markdown, no code fences, no extra text.\n\n"
+                f"[Previous Action]\n{action_text}\n\n"
+                f"[Game World]\n{mud_text}\n\n"
+                "[Response JSON]\n"
+            )
+
+        return (
             f"[Game World]\n"
             f"{mud_text}\n\n"
-            f"[Action]\n"
+            f"[Action]\n{action_text}\n"
         )
-        return prompt
 
     # --- State Persistence ---
 
-    def save_state(self, path: Optional[str] = None) -> str:
+    def save_state(self, path: Optional[str] = None, session_id: Optional[str] = None) -> str:
         """
         Save the full cognitive state: Mamba SSM state + Hypernetwork weights.
 
         Returns the path to the saved state file.
         """
+        session_key = self._load_session_state(session_id)
+
         if path is None:
             state_dir = Path(self.config.state_dir)
-            path = str(state_dir / f"cognitive_state_turn_{self.turn_count}.pt")
+            path = str(state_dir / f"cognitive_state_{session_key}_turn_{self.turn_count}.pt")
 
         # Fix #1: Validate path stays within state_dir
         resolved = Path(path).resolve()
@@ -767,7 +962,11 @@ class CognitiveBridge:
                 "context_dim": self.config.context_dim,
                 "lora_rank": self.config.lora_rank,
                 "bridge_mode": self.config.bridge_mode,
+                "mamba_target_layer": self.config.mamba_target_layer,
+                "mamba_state_source": self.config.mamba_state_source,
+                "target_layers": self._patch_specs,
             },
+            "session_id": session_key,
         }
 
         # Save Mamba SSM state if available
@@ -778,7 +977,7 @@ class CognitiveBridge:
         logger.info("Saved cognitive state to %s", resolved)
         return str(resolved)
 
-    def load_state(self, path: str):
+    def load_state(self, path: str, session_id: Optional[str] = None):
         """
         Load a previously saved cognitive state.
 
@@ -805,17 +1004,21 @@ class CognitiveBridge:
                 f"config bridge_mode={self.config.bridge_mode!r}"
             )
 
+        session_key = self._normalize_session_id(session_id or state.get("session_id"))
         self.turn_count = state["turn_count"]
         history = state.get("mamba_history_ids")
         if history is not None and str(self._mamba_device) != "cpu":
             history = history.to(self._mamba_device)
         self._mamba_history_ids = history
+        self._mamba_cache = None
+        self._last_context_vector = None
 
         if "hypernetwork_state_dict" in state:
             self.hypernetwork.load_state_dict(state["hypernetwork_state_dict"])
         if "compressor_state_dict" in state:
             self.compressor.load_state_dict(state["compressor_state_dict"])
 
+        self._store_session_state(session_key)
         logger.info("Loaded cognitive state from %s (turn %d)", resolved, self.turn_count)
 
     # --- Diagnostics ---
@@ -823,6 +1026,8 @@ class CognitiveBridge:
     def get_info(self) -> Dict[str, Any]:
         """Return a summary of the bridge's current state."""
         info = {
+            "active_session_id": self._active_session_id,
+            "active_sessions": len(self._session_states),
             "turn_count": self.turn_count,
             "patched_layers": len(self._patched_layers),
             "is_patched": self._is_patched,
@@ -830,7 +1035,11 @@ class CognitiveBridge:
             "mamba_model": self.config.mamba_model_id,
             "lora_rank": self.config.lora_rank,
             "bridge_mode": self.config.bridge_mode,
+            "mamba_state_source": self.config.mamba_state_source,
+            "mamba_target_layer": self.config.mamba_target_layer,
             "context_dim": self.config.context_dim,
+            "response_format": self.config.response_format,
+            "target_layers": self._patch_specs,
             "startup_validation": self.config.startup_validation,
             "devices": {
                 "qwen": str(self._qwen_device),
