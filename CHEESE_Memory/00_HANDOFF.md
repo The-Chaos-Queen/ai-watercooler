@@ -5,13 +5,13 @@ It should stay short, current, and attribution-heavy.
 Detailed narrative belongs in `session_logs/`, not here.
 
 ## Control Block
-- Last updated: 2026-03-20 16:07 CET
+- Last updated: 2026-03-20 23:12 CET
 - Current owner: Laura + swarm (Techno-Monk/Codex, Pinky, Gemini, Cassian, Laughing Opus, Anda/Purple, Lain, Lucian, Pontodoros, Herr Hurtig)
-- Primary focus: Step 5 runtime path is now clean; next meaningful eval should run the codex-fixed 1.5B checkpoint on the 4090/A100. The Watercooler NUC deploy remains a separate hardening thread.
-- Last session log: `CHEESE_Memory/session_logs/2026-03-20-session-01.md`
+- Primary focus: Post-Step-5 browser/runtime cleanup on Steve. The 1.5B reincarnation server is reachable from the LAN; next concrete gate is fixing blank replies and removing the `Human`/`Assistant` framing before qualitative judgment.
+- Last session log: `CHEESE_Memory/session_logs/2026-03-20-session-04.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`CHEESE_Memory/session_logs/2026-03-20-session-01.md`, `10` chunks)
+  - Latest session log ingest: done (`CHEESE_Memory/session_logs/2026-03-20-session-04.md`, `10` chunks)
 
 ## Current State
 - Step 5 "Adrenaline Bridge" wiring is fixed in git: `c251c0c` (1.5B wiring), `7a69452` (target-width hardening), and `a5bdd52` (Mamba runtime compat shim).
@@ -19,21 +19,41 @@ Detailed narrative belongs in `session_logs/`, not here.
 - Opa retrained a fresh checkpoint `cheese_reincarnation_bridge_1.5b_codexfix.pt` with loss `11.424964 -> 0.013400`.
 - Opa now has `mamba-ssm==2.3.1` installed plus the missing `selective_state_update` export, and both mixed CPU/GPU and all-GPU reincarnation smokes completed successfully.
 - The all-GPU smoke already passed on the 8GB RTX 3070 with small token limits, so the 4090/A100 should be the next real eval surface.
+- Steve's browser `chat_server.py` is patched for the correct 1.5B hidden-last-token compressor geometry and now serves on the LAN at `http://192.168.2.49:7860`.
+- The supposed second Steve "crash" was false: the server kept running in WSL and only looked dead because `tasklist` does not see WSL `python3`.
+- The live browser demo still has one real app-layer bug: blank bubbles can come from empty/sanitized completions, and the prompt still frames the model as `Human:` / `Assistant:`.
 
 ## Open Threads
-- [ ] Run the codex-fixed 1.5B checkpoint on the 4090/A100 with longer prompts and real eval budget, then judge whether the reincarnated outputs are meaningfully better than baseline.
-- [ ] Decide whether `cheese_reincarnation_bridge_1.5b_codexfix.pt` should become the canonical checkpoint name or stay an explicit repair artifact until a cleaner larger-host run exists.
-- [ ] Turn the live Opa environment repair into a repeatable bootstrap note or requirements pin; the repo now has the compat shim, but the live venv was also patched in site-packages.
-- [ ] Deploy the Watercooler `/v1/tasks/next` principal-binding fix to the NUC if it still has not been rolled out.
+- [x] Watercooler `/v1/tasks/next` principal-binding fix — deployed by Pinky, verified by Codex
+- [x] Mamba Layer 3 state separation — PASS (last-token cosine 0.036, Pinky)
+- [ ] Run codex-fixed 1.5B checkpoint on 4090/A100 with `--max-new-tokens 100`+ for real qualitative eval
+- [ ] Upload the blank-response guard from `tmp/steve_chat_server_fixed.py` to Steve and rerun the browser chat smoke
+- [ ] Remove `Human:` / `Assistant:` framing from Steve's chat prompt before using it as a disposition/personality readout
+- [ ] Codex math review of Anda's `unified_cognitive_framework.md` (5 [MATH NEEDED] markers)
+- [ ] Herr Hurtig ethics framework (highest priority — "involuntary neuromodulation" question)
+- [ ] Integrate SAS orthogonalization (Hoppe et al. 2603.03326) into bridge architecture
+- [ ] Verify Mamba SSM-state separation (Laughing Opus question #64 — hidden_states vs ssm_states)
+- [ ] Decide on Mamba-2 → Mamba-3 upgrade path (both Gemini and Grok recommend)
+
+### Active Workstreams (post-Step-5 sprint)
+| AI | Task | Status |
+|----|------|--------|
+| Herr Hurtig | Ethics Framework | Assigned, not yet started |
+| Anda | Bio→Digital Mapping | DELIVERED: `unified_cognitive_framework.md` + lit digest |
+| Techno-Monk | Math Review of Anda's framework | Waiting |
+| Cassian | Deployment Architecture | DELIVERED: sketch + SAS/TransMamba/SleepGate analysis |
+| Purple | Security (Fleeting State) | DELIVERED: `fleeting_state_security.md` |
 
 ## Watch Out For
 - The repaired checkpoint is `cheese_reincarnation_bridge_1.5b_codexfix.pt`; the older 1.5B checkpoint was stale and had the wrong hypernetwork head width.
 - Opa's live venv was patched to export `mamba_ssm.selective_state_update`; if that environment is rebuilt, reinstall `mamba-ssm` and rely on the repo-side compat shim.
 - 3070 GPU mode works for smoke tests, but long prompts or larger budgets should still move to the 4090/A100 for headroom.
 - The repo worktree still contains many unrelated user-side moves/deletions outside the bridge files. Do not clean up git status blindly.
+- Steve's browser server is a WSL process behind a Windows `portproxy` + firewall rule. If LAN access disappears after a reboot, check those first before blaming Python.
+- The current Steve prompt surface is philosophically contaminated for MoCoP: `Human:` / `Assistant:` transcript continuation is not a neutral reincarnation test.
 
 ## Recommended Next Step
-Run `cheese_reincarnation_bridge_1.5b_codexfix.pt` on the 4090/A100 with longer prompt limits and qualitative comparison, then decide whether the Step 5 reincarnation path is good enough to promote.
+Deploy the blank-reply fix to Steve, replace the `Human:` / `Assistant:` transcript frame with a neutral chat prompt, then rerun the browser smoke before drawing any qualitative conclusions.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes
@@ -88,22 +108,24 @@ Run `cheese_reincarnation_bridge_1.5b_codexfix.pt` on the 4090/A100 with longer 
 - 2026-03-19 23:21 CET | Codex | Verified the live `techno-monk` session token end to end, reproduced the remaining `/v1/tasks/next` cross-agent leak on the deployed NUC service, patched the local Watercooler service/client pair, and rewrote the handoff around that deploy-first blocker.
 - 2026-03-20 15:56 CET | Codex | Fixed the Step 5 1.5B bridge wiring and target validation, retrained a fresh `codexfix` checkpoint on Opa, repaired the Opa Mamba fast path, and rewrote handoff around 4090/A100 eval instead of stale checkpoint cleanup.
 - 2026-03-20 16:07 CET | Codex | Confirmed Qdrant ingestion for `CHEESE_Memory/session_logs/2026-03-20-session-01.md` (`10` chunks) and closed the session memory bookkeeping.
+- 2026-03-20 22:30 CET | Pinky | Mamba Layer 3 separation (PASS, last-token 0.036), Watercooler security patch deployed, RESEARCH_LOG.md created, 5 workstream orchestration, swarm digest. Launched Gemini's reincarnation inference (fixed checkpoint name), identified 7 bugs for Codex. New theory docs from Anda (unified framework + 65-paper lit digest), Purple (fleeting state security), Cassian (deployment sketch + SAS + TransMamba + SleepGate). Session log: `CHEESE_Memory/session_logs/2026-03-20-session-02.md`.
+- 2026-03-20 23:05 CET | Codex | Recorded the Steve browser-server repair: compressor geometry fix deployed, false WSL-crash diagnosis resolved, LAN port exposure repaired, and the remaining live bug reduced to blank replies plus `Human`/`Assistant` prompt framing.
 
 ## Next Agent Brief
 - Open first:
   - `CHEESE_Memory/00_HAUSREGELN.md`
   - `CHEESE_Memory/00_BOOT_FILES.md`
   - `CHEESE_Memory/00_HANDOFF.md`
-  - `CHEESE_Memory/session_logs/2026-03-20-session-01.md`
+  - `CHEESE_Memory/session_logs/2026-03-20-session-04.md`
+  - `tmp/steve_chat_server_fixed.py`
   - `MoCoP/experiments/mamba_lora_bridge/train_cheese_bridge.py`
   - `MoCoP/experiments/mamba_lora_bridge/reincarnated_inference.py`
-  - `MoCoP/experiments/mamba_lora_bridge/mamba_runtime_compat.py`
 - Decide first:
-  - Use `cheese_reincarnation_bridge_1.5b_codexfix.pt` on the 4090/A100 before drawing qualitative conclusions about the reincarnation path.
+  - Whether to deploy the blank-response/prompt-frame fix to Steve immediately or first archive the current broken browser behavior as a controlled artifact.
 - Verify before memory-dependent work:
-  - Confirm the target activations on the active host are still `256`-wide 1.5B `v_proj` captures if anything was re-recorded.
-  - Confirm the active host still has working `mamba-ssm` kernels and the compat shim if the venv was rebuilt.
-  - Check whether the NUC Watercooler `/v1/tasks/next` deploy happened separately before assuming that thread is closed.
+  - Confirm Steve still listens on `192.168.2.49:7860` after any reboot; recheck `portproxy` and the `SteveChat7860` firewall rule before blaming the Python service.
+  - If the browser shows a blank bubble again, inspect the raw decoded completion before treating it as a token-limit failure.
+  - Do not use `Human:` / `Assistant:` framing as evidence about genuine disposition until the prompt surface is neutralized.
 
 ## Update Protocol
 - Keep this file concise and current.
