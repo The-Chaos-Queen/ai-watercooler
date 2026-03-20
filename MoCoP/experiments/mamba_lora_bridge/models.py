@@ -395,6 +395,11 @@ class DynamicLoRALinear(nn.Module):
             raise ValueError(
                 f"Activation bias must have shape (out_dim,) or (batch, out_dim), got {tuple(bias.shape)}"
             )
+        if bias.shape[-1] != self.out_features:
+            raise ValueError(
+                "Activation bias width does not match layer output width: "
+                f"got {bias.shape[-1]}, expected {self.out_features}."
+            )
         self._dynamic_bias = bias
 
     def clear_activation_bias(self):
