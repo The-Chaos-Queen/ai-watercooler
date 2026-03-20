@@ -1,0 +1,249 @@
+{
+  "run_dir": "c:\\Users\\cerub\\OneDrive\\Dokumente\\LLM\\MoCoP\\experiments\\mamba_lora_bridge\\run_actbias",
+  "epoch": 3,
+  "bridge_mode": "activation_bias",
+  "train": {
+    "n_samples": 64,
+    "bias_shape": [
+      64,
+      16384
+    ],
+    "cosine": {
+      "mean": 0.9991194605827332,
+      "std": 0.0005241191247478127,
+      "min": 0.99788498878479,
+      "max": 0.9999982714653015,
+      "pct_above_090": 100.0,
+      "pct_above_095": 100.0,
+      "pct_above_099": 100.0
+    },
+    "pca": {
+      "effective_rank": 3.8762948513031006,
+      "total_dims": 16384,
+      "pc1_variance": 0.4845479726791382,
+      "pc1_pc2_variance": 0.7794601917266846,
+      "dims_at_90pct": 4,
+      "dims_at_99pct": 6,
+      "top5_variance": [
+        0.4845479726791382,
+        0.2949122190475464,
+        0.1047925353050232,
+        0.04923541843891144,
+        0.041390497237443924
+      ]
+    },
+    "c2_random_control": {
+      "mean_norm": 12.14417839050293,
+      "random_cosine_mean": 5.7052558258874345e-05,
+      "random_cosine_std": 0.00016589010870045207,
+      "interpretation": "If trained bias cosine ≈ random cosine, the learned directions carry no structure. If trained >> random, the hypernetwork learned meaningful directions."
+    },
+    "c3_fixed_mean_control": {
+      "mean_bias_norm": 12.138916015625,
+      "cosine_to_mean_mean": 0.9995665550231934,
+      "cosine_to_mean_std": 0.0001189173708553426,
+      "cosine_to_mean_min": 0.9992717504501343,
+      "cosine_to_mean_max": 0.9997313022613525,
+      "interpretation": "If cosine_to_mean ≈ 1.0 for all samples, the bias is effectively constant. If there is meaningful spread, per-sample variation exists."
+    },
+    "fact_kind_analysis": {
+      "within_kind": {
+        "caravan_time": {
+          "mean": 0.9990428686141968,
+          "std": 0.0005229716189205647,
+          "min": 0.9980090856552124,
+          "max": 0.9999810457229614,
+          "count": 28
+        },
+        "event_witness": {
+          "mean": 0.9991843104362488,
+          "std": 0.0006401883438229561,
+          "min": 0.9983141422271729,
+          "max": 0.9999982714653015,
+          "count": 28
+        },
+        "ferry_password": {
+          "mean": 0.999137818813324,
+          "std": 0.0004459621850401163,
+          "min": 0.998384416103363,
+          "max": 0.9999973773956299,
+          "count": 28
+        },
+        "healer_identity": {
+          "mean": 0.9989723563194275,
+          "std": 0.0006239023059606552,
+          "min": 0.9983065128326416,
+          "max": 0.9999924302101135,
+          "count": 28
+        },
+        "innkeeper_identity": {
+          "mean": 0.9991961121559143,
+          "std": 0.00041459777276031673,
+          "min": 0.9982355237007141,
+          "max": 0.9999789595603943,
+          "count": 28
+        },
+        "merchant_identity": {
+          "mean": 0.9991990327835083,
+          "std": 0.0004942335654050112,
+          "min": 0.9986557960510254,
+          "max": 0.9999967217445374,
+          "count": 28
+        },
+        "npc_relationship": {
+          "mean": 0.9990609884262085,
+          "std": 0.0005370592116378248,
+          "min": 0.9982993006706238,
+          "max": 0.9999948143959045,
+          "count": 28
+        },
+        "relic_location": {
+          "mean": 0.9991757273674011,
+          "std": 0.000419800664531067,
+          "min": 0.9984812140464783,
+          "max": 0.999991774559021,
+          "count": 28
+        }
+      },
+      "between_kind": {
+        "mean": 0.9991193413734436,
+        "std": 0.0005240357713773847,
+        "min": 0.99788498878479,
+        "max": 0.9999982118606567,
+        "count": 1792
+      },
+      "unique_kinds": [
+        "caravan_time",
+        "event_witness",
+        "ferry_password",
+        "healer_identity",
+        "innkeeper_identity",
+        "merchant_identity",
+        "npc_relationship",
+        "relic_location"
+      ]
+    }
+  },
+  "eval": {
+    "n_samples": 16,
+    "bias_shape": [
+      16,
+      16384
+    ],
+    "cosine": {
+      "mean": 0.9999359846115112,
+      "std": 6.707974534947425e-05,
+      "min": 0.9998472332954407,
+      "max": 0.9999995827674866,
+      "pct_above_090": 100.0,
+      "pct_above_095": 100.0,
+      "pct_above_099": 100.0
+    },
+    "pca": {
+      "effective_rank": 1.3170796632766724,
+      "total_dims": 16384,
+      "pc1_variance": 0.9535552859306335,
+      "pc1_pc2_variance": 0.9699957966804504,
+      "dims_at_90pct": 1,
+      "dims_at_99pct": 5,
+      "top5_variance": [
+        0.9535552859306335,
+        0.016440529376268387,
+        0.009418650530278683,
+        0.005913933273404837,
+        0.005428857170045376
+      ]
+    },
+    "c2_random_control": {
+      "mean_norm": 12.13745403289795,
+      "random_cosine_mean": 0.00014298842197604244,
+      "random_cosine_std": 0.0005067561470273437,
+      "interpretation": "If trained bias cosine ≈ random cosine, the learned directions carry no structure. If trained >> random, the hypernetwork learned meaningful directions."
+    },
+    "c3_fixed_mean_control": {
+      "mean_bias_norm": 12.137088775634766,
+      "cosine_to_mean_mean": 0.999970018863678,
+      "cosine_to_mean_std": 2.4939427021308802e-05,
+      "cosine_to_mean_min": 0.9999281764030457,
+      "cosine_to_mean_max": 0.9999878406524658,
+      "interpretation": "If cosine_to_mean ≈ 1.0 for all samples, the bias is effectively constant. If there is meaningful spread, per-sample variation exists."
+    },
+    "fact_kind_analysis": {
+      "within_kind": {
+        "caravan_time": {
+          "mean": 0.9998598098754883,
+          "std": 0.0,
+          "min": 0.9998598098754883,
+          "max": 0.9998598098754883,
+          "count": 1
+        },
+        "event_witness": {
+          "mean": 0.9998629093170166,
+          "std": 0.0,
+          "min": 0.9998629093170166,
+          "max": 0.9998629093170166,
+          "count": 1
+        },
+        "ferry_password": {
+          "mean": 0.9999986886978149,
+          "std": 0.0,
+          "min": 0.9999986886978149,
+          "max": 0.9999986886978149,
+          "count": 1
+        },
+        "healer_identity": {
+          "mean": 0.9999982714653015,
+          "std": 0.0,
+          "min": 0.9999982714653015,
+          "max": 0.9999982714653015,
+          "count": 1
+        },
+        "innkeeper_identity": {
+          "mean": 0.9998661279678345,
+          "std": 0.0,
+          "min": 0.9998661279678345,
+          "max": 0.9998661279678345,
+          "count": 1
+        },
+        "merchant_identity": {
+          "mean": 0.9999987483024597,
+          "std": 0.0,
+          "min": 0.9999987483024597,
+          "max": 0.9999987483024597,
+          "count": 1
+        },
+        "npc_relationship": {
+          "mean": 0.9999979734420776,
+          "std": 0.0,
+          "min": 0.9999979734420776,
+          "max": 0.9999979734420776,
+          "count": 1
+        },
+        "relic_location": {
+          "mean": 0.9999937415122986,
+          "std": 0.0,
+          "min": 0.9999937415122986,
+          "max": 0.9999937415122986,
+          "count": 1
+        }
+      },
+      "between_kind": {
+        "mean": 0.9999351501464844,
+        "std": 6.714511982863769e-05,
+        "min": 0.9998472332954407,
+        "max": 0.9999995827674866,
+        "count": 112
+      },
+      "unique_kinds": [
+        "caravan_time",
+        "event_witness",
+        "ferry_password",
+        "healer_identity",
+        "innkeeper_identity",
+        "merchant_identity",
+        "npc_relationship",
+        "relic_location"
+      ]
+    }
+  }
+}

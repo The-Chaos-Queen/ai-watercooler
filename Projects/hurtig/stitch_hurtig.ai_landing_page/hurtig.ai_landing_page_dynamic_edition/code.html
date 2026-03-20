@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>hurtig.ai | The Digital Curator</title>
+<!-- Google Fonts: Newsreader (Serif) & Manrope (Sans) -->
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-surface": "#333028",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed-dim": "#b7ccb9",
+              "primary-container": "#c0573e",
+              "on-primary-fixed": "#3d0700",
+              "surface-bright": "#fff8ef",
+              "surface-container-highest": "#e9e2d6",
+              "surface-container-high": "#eee7db",
+              "on-secondary-fixed-variant": "#394b3d",
+              "primary": "#a03f28",
+              "on-secondary-fixed": "#0e1f13",
+              "surface-variant": "#e9e2d6",
+              "on-surface": "#1e1b14",
+              "secondary-container": "#d0e5d2",
+              "outline": "#8a726c",
+              "on-primary": "#ffffff",
+              "inverse-on-surface": "#f7f0e4",
+              "surface-dim": "#e0d9cd",
+              "secondary-fixed": "#d3e8d5",
+              "on-tertiary": "#ffffff",
+              "on-tertiary-container": "#fffbff",
+              "surface": "#fff8ef",
+              "outline-variant": "#ddc0ba",
+              "on-secondary": "#ffffff",
+              "primary-fixed-dim": "#ffb4a3",
+              "on-background": "#1e1b14",
+              "primary-fixed": "#ffdad2",
+              "surface-container": "#f4ede1",
+              "background": "#fff8ef",
+              "tertiary": "#6f583c",
+              "on-tertiary-fixed": "#281803",
+              "on-primary-container": "#120100",
+              "on-tertiary-fixed-variant": "#584329",
+              "error-container": "#ffdad6",
+              "on-error": "#ffffff",
+              "on-primary-fixed-variant": "#812914",
+              "on-secondary-container": "#546758",
+              "error": "#ba1a1a",
+              "on-error-container": "#93000a",
+              "tertiary-fixed": "#fdddb9",
+              "tertiary-fixed-dim": "#e0c29f",
+              "inverse-primary": "#ffb4a3",
+              "secondary": "#506354",
+              "surface-tint": "#a03f29",
+              "surface-container-low": "#faf3e6",
+              "tertiary-container": "#897052",
+              "on-surface-variant": "#56423d"
+            },
+            fontFamily: {
+              "headline": ["Newsreader", "serif"],
+              "body": ["Manrope", "sans-serif"],
+              "label": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+            animation: {
+              'grain': 'grain 8s steps(10) infinite',
+              'flow': 'flow 20s ease-in-out infinite',
+              'hasten': 'hasten 15s linear infinite',
+            },
+            keyframes: {
+              grain: {
+                '0%, 100%': { transform: 'translate(0, 0)' },
+                '10%': { transform: 'translate(-5%, -10%)' },
+                '20%': { transform: 'translate(-15%, 5%)' },
+                '30%': { transform: 'translate(7%, -25%)' },
+                '40%': { transform: 'translate(-5%, 25%)' },
+                '50%': { transform: 'translate(-15%, 10%)' },
+                '60%': { transform: 'translate(15%, 0%)' },
+                '70%': { transform: 'translate(0%, 15%)' },
+                '80%': { transform: 'translate(3%, 35%)' },
+                '90%': { transform: 'translate(-10%, 10%)' },
+              },
+              flow: {
+                '0%, 100%': { transform: 'translate(0, 0) scale(1)', opacity: 0.3 },
+                '50%': { transform: 'translate(-2%, 2%) scale(1.05)', opacity: 0.5 },
+              },
+              hasten: {
+                '0%': { transform: 'translateX(-100%) translateY(-100%) rotate(45deg)', opacity: 0 },
+                '10%': { opacity: 0.2 },
+                '50%': { opacity: 0.1 },
+                '90%': { opacity: 0.2 },
+                '100%': { transform: 'translateX(100%) translateY(100%) rotate(45deg)', opacity: 0 },
+              }
+            }
+          },
+        },
+      }
+    </script>
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
+    }
+.kiln-gradient {
+    background: linear-gradient(45deg, #a03f28, #c0573e)
+    }
+.cuneiform-watermark {
+    user-select: none;
+    pointer-events: none
+    }
+/* Organic Background Textures */
+.grain-overlay {
+    position: fixed;
+    top: -150%;
+    left: -150%;
+    width: 300%;
+    height: 300%;
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuBNfxDSILaDckYA7K6yY0N-oQWvwNg70Hrv4SUVoLhcbccCiqdoWpNpCgmYBDDG_39BEApC9wOZHTEYNqFWAvHG4bavfF2G3Cs3RxBMhbevbGtwyhfOlgf8FpsZAtfS2saKjHM139qIvphMrbBm9paPCBpahA9EyIQwFvY7zdMjlIp9LUpjiR98arWoqlLD-9gY-SRJV9VXHRiLZpuCm3uBoJuMUN1RxQXlOuzb6XAwDwUpl8nAylTNG49LrHXSU_Qe83iQ40wgpmo);
+    /* Fine noise/sand texture */
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 1
+    }
+.clay-flow {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 50%, #e9e2d6 0%, transparent 70%);
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0
+    }
+.hasten-streak {
+    position: absolute;
+    width: 2px;
+    height: 300px;
+    background: linear-gradient(to bottom, transparent, rgba(160, 63, 40, 0.1), transparent);
+    pointer-events: none
+    }</style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary/20 relative overflow-x-hidden">
+<!-- Global Animated Grain Overlay -->
+<div class="grain-overlay animate-grain"></div>
+<!-- Top Navigation Bar -->
+<nav class="docked full-width top-0 z-50 bg-[#fff8ef]/90 backdrop-blur-md dark:bg-stone-950/90 border-b border-outline-variant/10">
+<div class="flex justify-between items-center w-full px-16 py-6 max-w-[1440px] mx-auto">
+<div class="flex items-center gap-3">
+<span class="text-2xl font-serif font-bold text-[#a03f28] dark:text-[#c0573e]">𒄉 hurtig.ai</span>
+</div>
+<div class="hidden md:flex items-center gap-12">
+<a class="text-stone-600 dark:text-stone-400 font-medium hover:text-[#a03f28] transition-colors duration-300" href="#local-ai">LocalAI</a>
+<a class="text-stone-600 dark:text-stone-400 font-medium hover:text-[#a03f28] transition-colors duration-300" href="#legal-ai">LegalAI</a>
+<a class="text-stone-600 dark:text-stone-400 font-medium hover:text-[#a03f28] transition-colors duration-300" href="#research">Research</a>
+<button class="text-stone-600 dark:text-stone-400 font-medium hover:text-[#a03f28] transition-colors duration-300 flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">language</span>
+<span>DE/EN</span>
+</button>
+</div>
+<button class="kiln-gradient text-white px-8 py-2.5 rounded-lg font-medium scale-95 active:opacity-80 transition-all hover:shadow-lg hover:shadow-primary/20">
+                Contact
+            </button>
+</div>
+</nav>
+<main class="relative z-10">
+<!-- Hero Section -->
+<section class="relative min-h-[921px] flex flex-col justify-center items-center px-16 overflow-hidden">
+<!-- Subtle Speed/Hasten Lines -->
+<div class="absolute inset-0 pointer-events-none overflow-hidden">
+<div class="hasten-streak animate-hasten top-[10%] left-[20%]" style="animation-delay: 0s;"></div>
+<div class="hasten-streak animate-hasten top-[40%] left-[80%]" style="animation-delay: 3s;"></div>
+<div class="hasten-streak animate-hasten top-[70%] left-[10%]" style="animation-delay: 7s;"></div>
+</div>
+<div class="cuneiform-watermark absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[40rem] text-primary opacity-[0.03] font-serif transition-opacity duration-1000">
+                𒄉
+            </div>
+<div class="max-w-[1024px] w-full text-center relative z-10">
+<div class="inline-flex items-center gap-4 mb-8 text-primary font-serif italic text-xl">
+<span class="h-px w-12 bg-outline-variant/30"></span>
+<span>ul / u₄-ul-li-a</span>
+<span class="h-px w-12 bg-outline-variant/30"></span>
+</div>
+<h1 class="text-7xl md:text-9xl font-headline italic font-bold tracking-tight text-on-surface mb-8">
+                    Hasten the <span class="text-primary">Future</span>
+</h1>
+<p class="text-xl md:text-2xl text-on-surface-variant max-w-2xl mx-auto leading-relaxed mb-12">
+                    Derived from the Sumerian <span class="font-serif italic">𒄉 (ul)</span>: to hasten, be quick. We bridge the weight of antiquity with the velocity of intelligence.
+                </p>
+<div class="flex flex-col md:flex-row gap-6 justify-center">
+<button class="kiln-gradient text-on-primary px-10 py-4 rounded-lg font-bold text-lg shadow-sm hover:brightness-110 transition-all">
+                        Explore Our AI Curations
+                    </button>
+<button class="bg-secondary-container text-on-secondary-container px-10 py-4 rounded-lg font-bold text-lg hover:bg-opacity-80 transition-all">
+                        Research Labs
+                    </button>
+</div>
+</div>
+<div class="absolute bottom-16 left-16 flex items-center gap-4 text-sm tracking-[0.2em] text-outline font-label uppercase">
+<span class="material-symbols-outlined text-primary animate-bounce">expand_more</span>
+<span>The Digital Curator</span>
+</div>
+</section>
+<!-- LocalAI Section (Asymmetric Bento) -->
+<section class="py-32 px-16 bg-surface-container-low relative overflow-hidden" id="local-ai">
+<!-- Clay flow background element -->
+<div class="clay-flow top-0 left-0 bg-primary/5 animate-flow"></div>
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-start relative z-10">
+<div class="md:col-span-5 mb-12 md:mb-0">
+<h2 class="text-5xl font-headline italic font-bold text-on-surface mb-6">LocalAI</h2>
+<p class="text-lg text-on-surface-variant leading-relaxed mb-8">
+                        In an era of cloud-dependency, sovereignty is luxury. We deploy high-performance Large Language Models directly onto your infrastructure. Your data never leaves the building.
+                    </p>
+<div class="space-y-6">
+<div class="flex items-start gap-4 p-6 bg-surface-container-highest/60 backdrop-blur-sm rounded-xl hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-primary" data-weight="fill">security</span>
+<div>
+<h4 class="font-bold text-on-surface mb-1">Implementierung zum Fixpreis</h4>
+<p class="text-sm text-on-surface-variant">Complete local deployment at a transparent, fixed implementation price. No hidden migration costs.</p>
+</div>
+</div>
+<div class="flex items-start gap-4 p-6 bg-surface-container-highest/60 backdrop-blur-sm rounded-xl hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-primary" data-weight="fill">support_agent</span>
+<div>
+<h4 class="font-bold text-on-surface mb-1">Wartung &amp; Support</h4>
+<p class="text-sm text-on-surface-variant">Continuous hourly support and maintenance contracts to ensure 99.9% availability of your local nodes.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="md:col-span-7 grid grid-cols-2 gap-4">
+<div class="aspect-square bg-surface rounded-2xl overflow-hidden p-8 flex flex-col justify-end group hover:bg-primary-container/10 transition-colors shadow-sm">
+<span class="text-5xl mb-4 text-primary opacity-20 group-hover:opacity-100 transition-opacity">𒄉</span>
+<h3 class="text-xl font-headline font-bold">Data Sovereignty</h3>
+</div>
+<div class="aspect-[4/5] bg-surface-dim rounded-2xl overflow-hidden relative shadow-sm group">
+<img class="w-full h-full object-cover mix-blend-multiply opacity-50 transition-transform duration-700 group-hover:scale-110" data-alt="Close up of high-tech server hardware components" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBeh3iVu6V6sUzKfRHtx9brInfnmYjtG0wZzl29RXIHKwxs8RwjyAubKNyybhwlZX2RVaYK7ELGwIofj2fXi7ND0ZT4Hukqxyp8JUBalvhxt-1gNRBUBXlDW_ZYZ6GZgcp6aulcGmXO5tZEUx0WyRnWW3vri64LWVP9Sc8-lMsniMsLwHZSSdTm-I2bD5HtMdUa9_bZCFh3caeGiE_f-1iweN8RtpRYz34wPpWsOpeiwhULrYUMxsrSbuaeSkGSKyL1jSfFyngIKw"/>
+<div class="absolute inset-0 p-8 flex flex-col justify-end">
+<h3 class="text-xl font-headline font-bold text-on-surface">Private Infrastructure</h3>
+</div>
+</div>
+<div class="col-span-2 bg-surface-container-highest/80 backdrop-blur-sm rounded-2xl p-12 flex items-center justify-between border border-outline-variant/10">
+<div>
+<h3 class="text-3xl font-headline italic font-bold mb-2">Ready for deployment?</h3>
+<p class="text-on-surface-variant">Request a sovereignty audit today.</p>
+</div>
+<button class="kiln-gradient text-white px-8 py-4 rounded-lg font-bold hover:scale-[1.02] transition-transform">Inquiry</button>
+</div>
+</div>
+</div>
+</section>
+<!-- LegalAI Section -->
+<section class="py-32 px-16 bg-surface relative overflow-hidden" id="legal-ai">
+<!-- Subtle gradient flow -->
+<div class="clay-flow bottom-0 right-0 bg-primary/5 animate-flow" style="animation-direction: reverse;"></div>
+<div class="max-w-[1024px] mx-auto text-center mb-20 relative z-10">
+<span class="text-primary font-label tracking-widest uppercase text-sm mb-4 block">Specialized Intelligence</span>
+<h2 class="text-6xl font-headline italic font-bold mb-8">LegalAI for Medizinstrafrecht</h2>
+<div class="h-1 w-24 bg-primary mx-auto mb-8"></div>
+<p class="text-xl text-on-surface-variant leading-relaxed">
+                    Precision engineering for the legal landscape. Our specialized AI model is trained on decades of medical criminal law, providing attorneys with an authoritative analytical partner that understands the nuances of legal causality and medical negligence.
+                </p>
+</div>
+<div class="max-w-[1200px] mx-auto relative z-10">
+<div class="bg-surface-container-low/50 backdrop-blur-sm rounded-2xl p-1 overflow-hidden border border-outline-variant/10">
+<div class="bg-surface/80 rounded-[calc(1rem-1px)] p-12 flex flex-col md:flex-row gap-16 items-center">
+<div class="flex-1 space-y-8">
+<div class="space-y-4">
+<h3 class="text-2xl font-headline font-bold flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">gavel</span>
+                                    Analytical Rigor
+                                </h3>
+<p class="text-on-surface-variant">Automatic cross-referencing of current medical guidelines with criminal code precedents.</p>
+</div>
+<div class="space-y-4">
+<h3 class="text-2xl font-headline font-bold flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">description</span>
+                                    Drafting Excellence
+                                </h3>
+<p class="text-on-surface-variant">Generate initial briefs for medical malpractice defense with ironclad legal logic.</p>
+</div>
+<button class="text-primary font-bold border-b-2 border-primary/20 hover:border-primary transition-all pb-1 flex items-center gap-2 group">
+                                Professional Licensing
+                                <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+<div class="flex-1">
+<div class="aspect-[4/3] bg-surface-container-highest rounded-xl shadow-2xl overflow-hidden relative group">
+<img class="w-full h-full object-cover opacity-80 mix-blend-luminosity transition-transform duration-1000 group-hover:scale-105" data-alt="Classic library with dark wood and leather books" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_HqwO8oUoyiA6qbGjA7J4YfrwklUJAWnolcE5dDI0c0FzRaRnDBOZQDNr36lywumMvcMDCMm_7hgKD0NM-8_nfrbdsJbXcczchR-UZKGVXnEd9LwqTdY2ZlBiCaLq-Hhe37tVw9_KPxIiAFXS_VLxrCEfWv69N_Tiv5dDPrv4p_kWG_W_5-eFZHp3aBVXDozixc7PjPz9odjriUfqTGLXIhFBkDlvQ3kuk7jBgRlkw8W9yZDsAhuwyi_PIxVMNOMRLioxfVf6Vd8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6 text-on-surface bg-surface/90 backdrop-blur-md px-4 py-2 rounded-lg text-sm font-label border border-outline-variant/10 shadow-sm">
+                                    Curated Database v2.4
+                                </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Research Labs -->
+<section class="py-32 px-16 bg-surface-container-highest/50 relative overflow-hidden" id="research">
+<!-- Shifting sand background -->
+<div class="clay-flow top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-dim/40 animate-flow" style="width: 150%; height: 150%;"></div>
+<div class="max-w-[1440px] mx-auto relative z-10">
+<div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+<div class="max-w-xl">
+<h2 class="text-5xl font-headline italic font-bold mb-6">Hurtig.AI Research Labs</h2>
+<p class="text-on-surface-variant text-lg">Pushing the boundaries of linguistic archaeology and neural architecture. We study the roots of communication to better predict its future.</p>
+</div>
+<div class="flex gap-4">
+<button class="p-4 rounded-full border border-outline-variant/30 hover:bg-surface transition-all">
+<span class="material-symbols-outlined">west</span>
+</button>
+<button class="p-4 rounded-full border border-outline-variant/30 hover:bg-surface transition-all">
+<span class="material-symbols-outlined">east</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Paper 1 -->
+<div class="bg-surface/80 backdrop-blur-sm border border-outline-variant/10 p-10 rounded-xl hover:-translate-y-2 transition-transform duration-500 flex flex-col justify-between h-[450px] shadow-sm">
+<div>
+<span class="text-primary font-label text-xs tracking-widest uppercase mb-4 block">Neural Archaeology</span>
+<h3 class="text-2xl font-headline font-bold mb-4 italic">Cuneiform to Code: Tokenizing Ancient Script</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">Exploring weight-optimization strategies for low-resource ancient language translation.</p>
+</div>
+<div class="flex items-center justify-between border-t border-outline-variant/15 pt-6">
+<span class="text-xs font-label text-outline">MAR 2024</span>
+<a class="text-primary font-bold text-sm hover:underline" href="#">Read Paper</a>
+</div>
+</div>
+<!-- Paper 2 -->
+<div class="bg-surface/80 backdrop-blur-sm border border-outline-variant/10 p-10 rounded-xl hover:-translate-y-2 transition-transform duration-500 flex flex-col justify-between h-[450px] shadow-sm">
+<div>
+<span class="text-primary font-label text-xs tracking-widest uppercase mb-4 block">Ethics &amp; Law</span>
+<h3 class="text-2xl font-headline font-bold mb-4 italic">The Liability of Local Inference</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">A legal framework for corporate responsibility in non-deterministic AI outputs.</p>
+</div>
+<div class="flex items-center justify-between border-t border-outline-variant/15 pt-6">
+<span class="text-xs font-label text-outline">JAN 2024</span>
+<a class="text-primary font-bold text-sm hover:underline" href="#">Read Paper</a>
+</div>
+</div>
+<!-- Paper 3 -->
+<div class="bg-surface/80 backdrop-blur-sm border border-outline-variant/10 p-10 rounded-xl hover:-translate-y-2 transition-transform duration-500 flex flex-col justify-between h-[450px] shadow-sm">
+<div>
+<span class="text-primary font-label text-xs tracking-widest uppercase mb-4 block">Architecture</span>
+<h3 class="text-2xl font-headline font-bold mb-4 italic">Fixed-Price Scaling in Edge Computing</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">Predictive maintenance algorithms for local-first AI clusters.</p>
+</div>
+<div class="flex items-center justify-between border-t border-outline-variant/15 pt-6">
+<span class="text-xs font-label text-outline">NOV 2023</span>
+<a class="text-primary font-bold text-sm hover:underline" href="#">Read Paper</a>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-40 px-16 bg-surface text-center relative overflow-hidden">
+<div class="clay-flow top-0 left-0 bg-primary/5 animate-flow" style="animation-duration: 25s;"></div>
+<div class="max-w-3xl mx-auto relative z-10">
+<div class="text-9xl text-primary opacity-10 font-serif mb-12 animate-pulse">𒄉</div>
+<h2 class="text-5xl font-headline font-bold italic mb-8">Ready to hasten your intelligence?</h2>
+<p class="text-xl text-on-surface-variant mb-12">Whether local deployment or specialized legal tools, hurtig.ai provides the weight of expertise at the speed of tomorrow.</p>
+<div class="flex flex-wrap justify-center gap-8">
+<div class="flex items-center gap-2 group">
+<span class="material-symbols-outlined text-secondary transition-transform group-hover:scale-110" data-weight="fill">check_circle</span>
+<span class="font-label text-sm uppercase tracking-wide">Fixed Price Implementation</span>
+</div>
+<div class="flex items-center gap-2 group">
+<span class="material-symbols-outlined text-secondary transition-transform group-hover:scale-110" data-weight="fill">check_circle</span>
+<span class="font-label text-sm uppercase tracking-wide">Data Sovereignty Guaranteed</span>
+</div>
+<div class="flex items-center gap-2 group">
+<span class="material-symbols-outlined text-secondary transition-transform group-hover:scale-110" data-weight="fill">check_circle</span>
+<span class="font-label text-sm uppercase tracking-wide">Specialized Legal Models</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#faf3e6]/80 backdrop-blur-md dark:bg-stone-900/80 mt-24 border-t border-[#ddc0ba]/15 relative z-10">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-16 py-12 max-w-[1440px] mx-auto">
+<div class="mb-8 md:mb-0">
+<div class="text-4xl font-serif text-[#a03f28] opacity-10 mb-4">𒄉 hurtig.ai</div>
+<p class="text-stone-500 dark:text-stone-400 font-sans text-sm tracking-wide Manrope">© 2024 hurtig.ai. The Digital Curator.</p>
+</div>
+<div class="flex gap-12 text-sm font-sans tracking-wide Manrope">
+<a class="text-stone-500 hover:text-stone-800 dark:text-stone-400 hover:underline hover:decoration-[#a03f28] transition-all" href="#">Imprint</a>
+<a class="text-stone-500 hover:text-stone-800 dark:text-stone-400 hover:underline hover:decoration-[#a03f28] transition-all" href="#">Privacy</a>
+<a class="text-stone-500 hover:text-stone-800 dark:text-stone-400 hover:underline hover:decoration-[#a03f28] transition-all" href="#">Terms</a>
+<a class="text-stone-500 hover:text-stone-800 dark:text-stone-400 hover:underline hover:decoration-[#a03f28] transition-all" href="#">Contact</a>
+</div>
+</div>
+</footer>
+</body></html>

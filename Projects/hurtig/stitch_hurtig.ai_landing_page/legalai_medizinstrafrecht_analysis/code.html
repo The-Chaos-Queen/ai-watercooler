@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>hurtig.ai | LegalAI for Medizinstrafrecht</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#b7ccb9",
+                        "inverse-surface": "#333028",
+                        "primary-container": "#c0573e",
+                        "on-secondary-fixed-variant": "#394b3d",
+                        "surface-container-high": "#eee7db",
+                        "surface-container-highest": "#e9e2d6",
+                        "surface-bright": "#fff8ef",
+                        "on-primary-fixed": "#3d0700",
+                        "surface-variant": "#e9e2d6",
+                        "on-surface": "#1e1b14",
+                        "on-secondary-fixed": "#0e1f13",
+                        "primary": "#a03f28",
+                        "outline": "#8a726c",
+                        "on-primary": "#ffffff",
+                        "secondary-container": "#d0e5d2",
+                        "on-secondary": "#ffffff",
+                        "surface": "#fff8ef",
+                        "outline-variant": "#ddc0ba",
+                        "on-tertiary-container": "#fffbff",
+                        "secondary-fixed": "#d3e8d5",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#e0d9cd",
+                        "inverse-on-surface": "#f7f0e4",
+                        "primary-fixed-dim": "#ffb4a3",
+                        "on-background": "#1e1b14",
+                        "surface-container": "#f4ede1",
+                        "primary-fixed": "#ffdad2",
+                        "background": "#fff8ef",
+                        "tertiary": "#6f583c",
+                        "on-tertiary-fixed": "#281803",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#584329",
+                        "on-primary-container": "#120100",
+                        "tertiary-fixed-dim": "#e0c29f",
+                        "tertiary-fixed": "#fdddb9",
+                        "on-secondary-container": "#546758",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#812914",
+                        "on-error": "#ffffff",
+                        "inverse-primary": "#ffb4a3",
+                        "surface-tint": "#a03f29",
+                        "secondary": "#506354",
+                        "on-surface-variant": "#56423d",
+                        "tertiary-container": "#897052",
+                        "surface-container-low": "#faf3e6"
+                    },
+                    fontFamily: {
+                        "headline": ["Newsreader", "serif"],
+                        "body": ["Manrope", "sans-serif"],
+                        "label": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .kiln-gradient {
+            background: linear-gradient(45deg, #a03f28, #c0573e);
+        }
+        .cuneiform-bg {
+            font-family: serif;
+            position: absolute;
+            pointer-events: none;
+            user-select: none;
+            opacity: 0.04;
+            font-size: 20rem;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<nav class="sticky top-0 z-50 bg-[#faf3e6] dark:bg-stone-900 flex justify-between items-center w-full px-16 py-6 max-w-[1440px] mx-auto">
+<div class="text-2xl font-serif font-bold text-[#a03f28] dark:text-[#c0573e]">
+            hurtig.ai
+        </div>
+<div class="hidden md:flex items-center gap-12">
+<a class="text-stone-600 dark:text-stone-400 font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">LocalAI</a>
+<a class="text-[#a03f28] dark:text-[#c0573e] border-b-2 border-[#a03f28] pb-1 font-medium transition-colors duration-300" href="#">LegalAI</a>
+<a class="text-stone-600 dark:text-stone-400 font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">Research</a>
+<a class="text-stone-600 dark:text-stone-400 font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">DE/EN</a>
+</div>
+<button class="kiln-gradient text-on-primary px-6 py-2 rounded font-medium scale-95 active:opacity-80 transition-all">
+            Contact
+        </button>
+</nav>
+<main class="relative">
+<div class="cuneiform-bg top-20 -left-20">𒄉</div>
+<!-- Hero Section -->
+<section class="max-w-[1440px] mx-auto px-16 pt-24 pb-32">
+<div class="max-w-4xl">
+<span class="text-primary font-label tracking-widest text-sm uppercase mb-4 block">Medical Criminal Law Specialists</span>
+<h1 class="font-headline italic text-6xl md:text-7xl text-on-surface leading-[1.1] mb-8">
+                    Sovereign Intelligence for <br/>Medizinstrafrecht.
+                </h1>
+<p class="text-xl text-on-surface-variant max-w-2xl leading-relaxed mb-12">
+                    Transforming 5,000-page medical files into actionable legal intelligence. Fully local. Zero cloud exposure. Compliant with § 203 StGB.
+                </p>
+<div class="flex flex-wrap gap-6">
+<button class="kiln-gradient text-on-primary px-8 py-4 rounded font-medium text-lg hover:shadow-lg transition-all">
+                        Consultation for defense lawyers
+                    </button>
+<button class="bg-secondary-container text-on-secondary-container px-8 py-4 rounded font-medium text-lg hover:bg-secondary-fixed-dim transition-all">
+                        Request a sovereignty audit
+                    </button>
+</div>
+</div>
+</section>
+<!-- Problem Section -->
+<section class="bg-surface-container-low py-32 px-16">
+<div class="max-w-[1440px] mx-auto grid md:grid-cols-2 gap-24 items-center">
+<div class="space-y-8">
+<h2 class="font-headline text-4xl italic text-on-surface">The Cognitive Burden of Defense.</h2>
+<div class="space-y-6 text-on-surface-variant leading-relaxed">
+<p>In medical criminal law, the volume of evidence is paralyzing. A typical manslaughter or medical malpractice file spans upwards of <span class="text-on-surface font-bold">5,000 pages</span> of patient records, expert testimonies, and handwritten clinical notes.</p>
+<p>Manual review consumes hundreds of associate hours, costing defense firms between <span class="text-on-surface font-bold">€30k and €40k per case</span> before a single legal argument is drafted.</p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-highest p-8 rounded-lg aspect-square flex flex-col justify-end">
+<span class="text-5xl font-headline text-primary mb-2">5k+</span>
+<span class="text-sm font-label uppercase tracking-tighter">Pages per file</span>
+</div>
+<div class="bg-surface-container-highest p-8 rounded-lg aspect-square flex flex-col justify-end">
+<span class="text-5xl font-headline text-primary mb-2">40k</span>
+<span class="text-sm font-label uppercase tracking-tighter">EUR Analysis Cost</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Privacy & Local Compliance Section -->
+<section class="py-32 px-16 max-w-[1440px] mx-auto">
+<div class="bg-surface-container-highest rounded-xl p-16 relative overflow-hidden">
+<div class="relative z-10 grid md:grid-cols-3 gap-12">
+<div class="md:col-span-2">
+<h2 class="font-headline text-4xl italic mb-6">Privacy is not a feature. It's the Foundation.</h2>
+<p class="text-on-surface-variant text-lg mb-8 max-w-2xl">
+                            Traditional AI sends your data to foreign servers, violating professional secrecy (§ 203 StGB). Hurtig.ai runs entirely on your hardware. Your client's medical history never leaves the legal circle of trust.
+                        </p>
+<ul class="space-y-4">
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-medium">Fully Local Processing (Air-gapped compatible)</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-medium">No OpenAI/Cloud API dependencies</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-medium">GDPR &amp; Professional Secrecy Compliant</span>
+</li>
+</ul>
+</div>
+<div class="flex items-center justify-center">
+<div class="w-48 h-48 border-4 border-primary/20 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-7xl" style="font-variation-settings: 'wght' 200;">shield_lock</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- The Solution (Bento Grid) -->
+<section class="py-32 px-16 max-w-[1440px] mx-auto">
+<h2 class="font-headline text-5xl italic mb-16 text-center">Architected for Legal Precision.</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-8 h-auto">
+<!-- Large Card -->
+<div class="md:col-span-2 md:row-span-2 bg-surface-container p-12 rounded-xl flex flex-col justify-between">
+<div>
+<h3 class="font-headline text-3xl mb-4">Chronological Case Indexing</h3>
+<p class="text-on-surface-variant leading-relaxed mb-8">
+                            Our proprietary Qwen 3.5 implementation reconstructs medical timelines automatically. It detects gaps in patient charts, inconsistencies in nursing logs, and correlates them with the indictment's allegations.
+                        </p>
+</div>
+<img alt="Minimalist interface showing indexed medical files" class="rounded-lg shadow-sm w-full h-64 object-cover" data-alt="Screenshot of legal software showing medical timeline" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDO5eeabPVJgmBn_IKQ0kVAPsuQpekDyQb1C32fEkJz70bJr1e0PPy2pKAbyKHmncSHTFnPbvwNCf-q3YMXpgsi40exuBv7SH5fIby_qwxB9xuCXBj4jLXSBhH1_WFP1jUKs69ZUCumgZWZgAL915w90Sz_TAakQqQFfOsuhp3mNVn4JZcddYaW-_NQbICUGrpQI3U4rvoLjh3UdXdPRX6Br8iDAn_K10SA-hWiQGSw22O772rQkICdsYGd-zZNkFTuW7JJZVvOX-A"/>
+</div>
+<!-- Feature 1 -->
+<div class="bg-surface-container-low p-8 rounded-xl border border-outline-variant/15">
+<span class="material-symbols-outlined text-primary mb-4">draw</span>
+<h4 class="font-headline text-2xl mb-2">OCR for Handwriting</h4>
+<p class="text-sm text-on-surface-variant">Deciphering doctors' prescriptions and clinical notes with advanced vision-language models.</p>
+</div>
+<!-- Feature 2 -->
+<div class="bg-surface-container-low p-8 rounded-xl border border-outline-variant/15">
+<span class="material-symbols-outlined text-primary mb-4">account_tree</span>
+<h4 class="font-headline text-2xl mb-2">Conflict Tracking</h4>
+<p class="text-sm text-on-surface-variant">Automatic flagging of contradictory testimonies between medical staff and expert witnesses.</p>
+</div>
+</div>
+</section>
+<!-- Feature Highlight: Citations -->
+<section class="py-32 px-16 bg-[#faf3e6]">
+<div class="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center gap-24">
+<div class="w-full md:w-1/2">
+<div class="bg-surface-container-lowest p-10 rounded shadow-sm border-l-4 border-primary">
+<div class="flex gap-2 mb-4">
+<span class="w-2 h-2 rounded-full bg-red-400"></span>
+<span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+<span class="w-2 h-2 rounded-full bg-green-400"></span>
+</div>
+<p class="font-mono text-sm text-stone-500 mb-4">Case_Fragment_0912.pdf</p>
+<p class="text-on-surface mb-6 leading-relaxed">
+                            "The administration of 50mg Propofol was noted at 14:02. However, the telemetry data indicates cardiac distress began at 13:58."
+                        </p>
+<div class="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest">
+<span class="material-symbols-outlined text-sm">link</span> Source Citation Verified
+                        </div>
+</div>
+</div>
+<div class="w-full md:w-1/2">
+<h2 class="font-headline text-4xl italic mb-6">Zero Hallucination Policy.</h2>
+<p class="text-on-surface-variant text-lg leading-relaxed mb-6">
+                        In criminal defense, "maybe" is not an option. Every insight generated by Hurtig.ai is anchored with a direct deep-link to the source page and paragraph in the original PDF.
+                    </p>
+<p class="text-on-surface-variant text-lg leading-relaxed">
+                        The AI does not "summarize"—it <span class="italic">indexes</span> and <span class="italic">cross-references</span>, leaving the final legal judgment to the defense counsel.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-48 px-16 text-center max-w-4xl mx-auto">
+<h2 class="font-headline text-5xl italic mb-8">Defending medical precision with digital sovereignty.</h2>
+<p class="text-xl text-on-surface-variant mb-12">
+                Join the leading German law firms who have already transitioned to local-first LegalAI. Schedule a technical deep-dive or a sovereignty audit of your current workflow.
+            </p>
+<div class="flex flex-col md:flex-row justify-center gap-6">
+<button class="kiln-gradient text-on-primary px-12 py-5 rounded font-medium text-xl scale-95 active:opacity-80 transition-all">
+                    Consultation for defense lawyers
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#faf3e6] dark:bg-stone-900 border-t border-[#ddc0ba]/15 mt-24">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-16 py-12 max-w-[1440px] mx-auto">
+<div class="text-4xl font-serif text-[#a03f28] opacity-10 mb-8 md:mb-0">
+                hurtig.ai
+            </div>
+<div class="flex flex-col md:flex-row gap-12 items-center">
+<div class="flex gap-8 text-stone-500 hover:text-stone-800 dark:text-stone-400 font-sans text-sm tracking-wide Manrope">
+<a class="hover:underline hover:decoration-[#a03f28] transition-all" href="#">Imprint</a>
+<a class="hover:underline hover:decoration-[#a03f28] transition-all" href="#">Privacy</a>
+<a class="hover:underline hover:decoration-[#a03f28] transition-all" href="#">Terms</a>
+<a class="hover:underline hover:decoration-[#a03f28] transition-all" href="#">Contact</a>
+</div>
+<div class="text-stone-500 font-sans text-sm tracking-wide Manrope">
+                    © 2024 hurtig.ai. The Digital Curator.
+                </div>
+</div>
+</div>
+</footer>
+</body></html>

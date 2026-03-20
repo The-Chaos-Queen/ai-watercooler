@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- ✏️ EDIT: Title and description -->
+  <title>POST TITLE — hurtig.ai</title>
+  <meta name="description" content="POST DESCRIPTION (1-2 sentences for search engines and social cards)">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+  <!-- Tailwind + Design System (one level up from /blog/) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/config.js"></script>
+  <link rel="stylesheet" href="../shared/styles.css">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>𒄉</text></svg>">
+</head>
+
+<body class="bg-cream text-ink font-body overflow-x-hidden">
+  <div class="grain-overlay animate-grain"></div>
+
+  <!-- NAV (paths go up one level) -->
+  <nav class="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-clay/10">
+    <div class="flex justify-between items-center w-full px-6 md:px-16 py-5 max-w-7xl mx-auto">
+      <a href="../index.html" class="flex items-center gap-3 group">
+        <img src="../assets/logo.svg" alt="hurtig.ai mark" class="h-7 w-auto opacity-90 group-hover:opacity-100 transition-opacity">
+        <span class="text-xl font-headline italic font-bold text-ink tracking-tight">hurtig.ai</span>
+      </a>
+      <div class="hidden md:flex items-center gap-10">
+        <a href="../localai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LocalAI</a>
+        <a href="../legalai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LegalAI</a>
+        <a href="../research.html" class="nav-link active text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Research</a>
+        <button class="text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">language</span>
+          DE / EN
+        </button>
+      </div>
+      <a href="../booking.html" class="kiln-gradient btn-primary text-white px-7 py-2.5 rounded-lg font-semibold text-sm shadow-sm">
+        Contact
+      </a>
+    </div>
+  </nav>
+
+
+  <main class="relative z-10">
+
+    <!-- ARTICLE HEADER -->
+    <header class="pt-16 md:pt-24 pb-12 px-6 md:px-16">
+      <div class="max-w-3xl mx-auto">
+        <!-- ✏️ EDIT: Category — "Blog" or "Paper" -->
+        <span class="text-kiln text-[10px] font-bold tracking-[0.2em] uppercase mb-4 block">Blog</span>
+
+        <!-- ✏️ EDIT: Title -->
+        <h1 class="text-4xl md:text-5xl font-headline italic font-bold tracking-tight mb-6 leading-tight">
+          Post Title Goes Here
+        </h1>
+
+        <!-- ✏️ EDIT: Meta -->
+        <div class="flex flex-wrap items-center gap-4 text-sm text-ink-muted">
+          <span>Laura Isabell Turner</span>
+          <span>&middot;</span>
+          <time>2026-03-19</time>
+          <span>&middot;</span>
+          <span>5 min read</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ARTICLE BODY -->
+    <article class="pb-24 px-6 md:px-16">
+      <div class="max-w-3xl mx-auto prose-hurtig">
+
+        <!--
+          ✏️ WRITE YOUR POST BELOW
+
+          Use standard HTML. Suggested elements:
+          - <h2> for sections
+          - <h3> for subsections
+          - <p> for paragraphs
+          - <blockquote> for quotes
+          - <pre><code> for code blocks
+          - <ul>/<ol> for lists
+          - <img> for images (put them in ../assets/blog/)
+
+          Tailwind classes for consistent typography:
+          - Headings: class="text-2xl font-headline italic font-bold mt-12 mb-4"
+          - Subheadings: class="text-xl font-headline font-bold mt-8 mb-3"
+          - Paragraphs: class="text-ink-light leading-relaxed mb-6"
+          - Quotes: class="border-l-4 border-kiln pl-6 italic text-ink/70 my-8"
+          - Code: class="bg-cream-300 rounded px-2 py-0.5 text-sm font-mono"
+          - Code blocks: class="bg-cream-400 rounded-lg p-6 text-sm font-mono overflow-x-auto my-8"
+          - Images: class="rounded-xl my-8 w-full"
+        -->
+
+        <p class="text-ink-light leading-relaxed mb-6 text-lg">
+          Opening paragraph — hook the reader. What's this about and why should they care?
+        </p>
+
+        <h2 class="text-2xl font-headline italic font-bold mt-12 mb-4">First Section</h2>
+
+        <p class="text-ink-light leading-relaxed mb-6">
+          Body text goes here. Keep it honest, keep it practical.
+        </p>
+
+        <blockquote class="border-l-4 border-kiln pl-6 italic text-ink/70 my-8">
+          A good quote or key insight, set apart.
+        </blockquote>
+
+        <h2 class="text-2xl font-headline italic font-bold mt-12 mb-4">Second Section</h2>
+
+        <p class="text-ink-light leading-relaxed mb-6">
+          More content. Add code, images, lists as needed.
+        </p>
+
+        <!-- ✏️ END OF POST CONTENT -->
+
+      </div>
+    </article>
+
+    <!-- BACK LINK -->
+    <div class="px-6 md:px-16 pb-24">
+      <div class="max-w-3xl mx-auto border-t border-clay/10 pt-8">
+        <a href="../research.html" class="text-kiln font-bold text-sm flex items-center gap-2 group">
+          <span class="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
+          All posts
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- FOOTER -->
+  <footer class="bg-cream-100 border-t border-clay/10">
+    <div class="flex flex-col md:flex-row justify-between items-center w-full px-6 md:px-16 py-10 max-w-7xl mx-auto gap-6">
+      <div class="text-center md:text-left">
+        <div class="flex items-center gap-2 mb-2 justify-center md:justify-start">
+          <img src="../assets/logo.svg" alt="" class="h-5 w-auto opacity-20">
+          <span class="font-headline italic text-lg text-ink/20">hurtig.ai</span>
+        </div>
+        <p class="text-ink-muted text-xs tracking-wide">&copy; 2026 hurtig.ai. The Digital Curator.</p>
+      </div>
+      <div class="flex gap-8 text-xs tracking-wide">
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="../impressum.html">Impressum</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="../privacy.html">Datenschutz</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="../booking.html">Kontakt</a>
+      </div>
+    </div>
+  </footer>
+
+<script src="../shared/lang.js"></script>
+</body>
+</html>

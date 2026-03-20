@@ -5,109 +5,36 @@ It should stay short, current, and attribution-heavy.
 Detailed narrative belongs in `session_logs/`, not here.
 
 ## Control Block
-- Last updated: 2026-03-17 08:22 CET
-- Current owner: Laura + swarm (Claude, Codex, Lain, Lucian)
-- Primary focus: AB0-AB3 activation-bias runs are launch-ready; next move is AB0 reproduce plus a fresh critical review
-- Last session log: `CHEESE_Memory/session_logs/2026-03-17-session-02.md`
+- Last updated: 2026-03-19 23:21 CET
+- Current owner: Laura + swarm (Techno-Monk/Codex, Pinky, Cassian, Laughing Opus, Anda/Purple, Lain, Lucian, Pontodoros, Herr Hurtig)
+- Primary focus: Deploy the Watercooler hardening follow-up, then continue Step 5 FIREBALL shaping episodes
+- Last session log: `CHEESE_Memory/session_logs/2026-03-19-session-04.md`
 - Qdrant status:
-  - Automated weekly backup to Google Drive (Sundays 3 AM, cron on LXC 101)
-  - Research scanner running weekly (Mondays 6 AM, cron on LXC 101)
-  - 12,715 points in `exocortex` collection, first backup verified (71 MB)
-  - Latest session log ingest: failed (`2026-03-17-session-02.md`; Qdrant connect timeout to `192.168.2.191:6333`)
+  - `00_HANDOFF.md` is not ingested by default
+  - Latest session log ingest: pending (`CHEESE_Memory/session_logs/2026-03-19-session-04.md`)
 
-## Current State (2026-03-16)
-
-### Infrastructure (new this session)
-- **Qdrant backup** automated: `backup_qdrant.sh` on LXC 101 → Google Drive `backups/qdrant/`. Weekly cron.
-- **Research scanner** deployed: `research_scanner.py` on LXC 101. Full reports now archive under `tools/research_scanner_runs/`; handoff/dashboard should only surface compact summary metadata. Latest recorded run: `2026-03-14 15:20 UTC`, `0` arXiv papers, `0` GitHub repos, `0` HuggingFace hits.
-- **SSH keys** set up: Laura's laptop → Proxmox host (192.168.2.55) → Qdrant LXC 101. Also `ssh opa` for Opa-PC WSL access.
-- **AI watercooler / OpenCLAW v0** deployed on Proxmox host (`192.168.2.55:8765`): LAN-only agent mailbox plus task board backed by SQLite. Local clients/config live at `tools/ai_watercooler/` and `C:\Users\cerub\AppData\Local\AIWatercooler\config.json`. Usage notes are now in `CHEESE_Memory/01_TOOLS.md`. Seeded task: `MoCoP / mamba-bridge / #2 Decide first simplification-gate prototype`.
-- **Playwright MCP** configured in `.mcp.json` (available in VSCode, not terminal).
-- **Claude Code MAX** now recognized (was stuck on Pro, fixed via re-login).
-
-### MoCoP Progress
-- **D1 COMPLETE:** All 5 target base models pass baseline solvability (fact recall from context). Results in `d1_results.json`.
-- **Target models locked:** `target_models.md` — Qwen2.5-7B (primary), Mistral-Nemo-Base-2407 (validation), Llama-3.1-8B, Gemma-2-9B, Qwen3-14B-Base.
-- **Model CLI flags added:** `--qwen-model-id` and `--mamba-model-id` in `train_bridge.py`.
-- **Disposition eval spec v1** written: `disposition_eval_spec.md` — synthesizes input from Codex (framework), Lucian (philosophy), Lain (metrics), Claude (synthesis). Critically reviewed by Opus — verdict: "shelve until D2 passes."
-- **TTT paper read:** `MoCoP/theory/TTT_as_Linear_Attention_2602.21204.md`. Key insight: Titans' gradient-based surprise is secretly linear attention, not memorization. Our surprise gate should use reconstruction error, not gradient magnitude.
-- **Codex trainer patch landed:** `train_bridge.py` now uses `model.generate()` for eval, warns on wasteful 4-bit usage, and logs cheap compressed-state unusualness surrogates instead of a premature reconstruction decoder.
-- **Opa verification:** dry-run completed with saved prediction JSON carrying `context_norm`, centroid L2, and centroid cosine metrics; real `--no-4bit` startup also booted cleanly with `Qwen/Qwen2.5-0.5B` + Mamba on CPU.
-- **Model-default cleanup landed:** bridge helper scripts now share `model_defaults.py`, executable MoCoP entrypoints swap model IDs via flags instead of file edits, and the canonical Qwen default is now `Qwen/Qwen2.5-7B`.
-- **Phase 2 status repaired:** `MoCoP/phases/phase2_status.md` is now a short live snapshot/index aligned with the Sweden result, `Qwen/Qwen2.5-7B`, and the simplification gate, rather than an outdated pilot-era narrative.
-- **Activation-bias result promoted:** the first real `activation_bias` run stayed stable across all `3` epochs, improved PPL each epoch (`27.09 -> 25.95 -> 25.67` vs baseline `29.71`), hit `0%` clamp, and never collapsed. This is now the current winning simplification branch for the disposition channel.
-- **Linearity probe extended:** `linearity_probe.py` now supports both `context-pca` and a real `hyper-linearity` mode, which loads a saved bridge checkpoint plus saved context vectors and measures cross-validated linear predictability of generated LoRA weights.
-- **Trainer comparison export landed:** `train_bridge.py` now writes compact per-epoch comparison artifacts (`eval_epoch_XXX_comparison.json`, `eval_comparison_latest.json`, `eval_comparison_history.jsonl`) so LoRA vs activation-bias vs baseline can be compared cleanly across runs.
-- **Activation-bias launch kit expanded:** `phase2_activation_bias_ablation_matrix.md` now stages exact AB0-AB3 commands with fixed output dirs, and `phase2_critical_eval_prompt.md` gives a copy-paste skeptical reviewer prompt for tearing the result apart before the next narrative update.
-- **Qdrant ingest currently blocked:** both `2026-03-17-session-01.md` and `2026-03-17-session-02.md` failed to ingest because `192.168.2.191:6333` timed out. Memory docs are updated, but the newest session remains unembedded.
-- **Watercooler snapshot:** Orion is now onboarded into the `mamba-bridge` thread and already read the Sweden burst context. Laughing Opus validated the quick PCA/context-dump flow, but hit an Opa crash on `Qwen2.5-7B` with 4-bit load; current cheap workaround is to run the manifold diagnostic with `Qwen2.5-0.5B`, since the PCA only needs compressor geometry, not strong bridge quality.
-
-### Key Architectural Insights (this session)
-- **Mirror problem:** Long context makes AI mirror the human. Frozen transformer + surprise-gated bridge could solve this by giving the model agency over what it internalizes.
-- **Base models for eval:** No instruct/thinking models — LoRA should be the ONLY behavioral modifier. Test gut responses, not reasoned answers.
-- **Disposition > fact recall:** The bridge should carry "how" (style, warmth, lean) not "what" (facts). Perplexity differential is the primary automated metric.
-
-## Scale-Up Verdict (2026-03-16)
-
-**HONEST NEGATIVE RESULT.** The current bridge can memorize a tiny shared subset, but it does not generalize yet.
-
-| Epoch | Recall | Bridge PPL | Baseline PPL | Train Loss |
-|-----|-----|-----|-----|-----|
-| 1 | 0/16 | 28.96 | 29.71 | 4.25 |
-| 2 | 0/16 | 44.06 | 29.71 | 3.07 |
-| 3 | 0/16 | 43.15 | 29.71 | 2.33 |
-
-- **Epoch 1 is real but weak:** bridge perplexity briefly improved over baseline, so the bridge does shift Qwen's distribution in a constructive direction early on.
-- **Generalization failed:** recall stayed `0/16` on the disjoint eval set across all three epochs.
-- **Over-injection returned:** epochs 2-3 became destructive again despite steadily falling train loss.
-- **Tiny-overfit is demoted:** the earlier `2/8` A3 win should now be treated as shared-set memorization, not transfer.
-- Local artifacts from the Sweden burst are already copied back; the host is safe to terminate.
+## Current State
+- Shared boot docs are consolidated around `00_HAUSREGELN.md`, `00_BOOT_FILES.md`, `00_HANDOFF.md`, `01_TOOLS.md`, and the retired dashboard is no longer a live tracking surface.
+- Watercooler auth is live on the NUC with named session tokens. The `techno-monk` token passed live read, post, board, context, and full task-lifecycle checks.
+- One live auth gap remains: `/v1/tasks/next` still trusts the query `agent` on the deployed service. A local patch now binds it to the authenticated principal and adds an immediate lock before claim mutation, but that patch is not deployed yet.
 
 ## Open Threads
-> Note: the scale-up question for the current dynamic-LoRA bridge is answered. The next move is simplification, not more samples on the same setup.
-- [ ] Run AB0 from the staged launch block in `phase2_activation_bias_ablation_matrix.md` to confirm the activation-bias win reproduces on the same geometry.
-- [ ] Run AB1 from the staged tiny-overfit block to answer whether activation bias can carry any precise fact signal at all.
-- [ ] Run AB2/AB3 from the staged `v_proj`-only and `q_proj`-only blocks before implementing FiLM.
-- [ ] Hand `phase2_critical_eval_prompt.md` to a fresh reviewer before broadening the activation-bias claim.
-- [ ] Run the cheap compressor PCA diagnostic on Opa using saved context dumps; if `Qwen2.5-7B` 4-bit keeps crashing, use `Qwen2.5-0.5B` just to recover manifold shape.
-- [ ] Run `linearity_probe.py hyper-linearity` against a saved checkpoint plus real context dumps from `run_a1/` or `run_a3/` once the PCA/context-export artifacts exist.
-- [ ] Decide whether activation bias is only a disposition channel or a weak factual channel after AB1.
-- [ ] Decide whether FiLM is still warranted after the activation-bias matrix, rather than before it.
-- [ ] Decide whether the Sweden epoch-1 checkpoint should be treated as the only non-destructive LoRA artifact worth preserving separately.
-- [ ] Audit docs/runbooks for stale `Qwen/Qwen3-4B` references if command-copy safety matters outside the executable Python paths.
-- [ ] Wire the latest research-scanner summary (`tools/research_scanner_runs/latest_summary.json`) into handoff/dashboard refreshes so scanner state stays visible without dumping full reports into memory docs.
-- [ ] Fresh Opus pass: rationalize the near-canonical MoCoP doc stack (`PROJECT_DEBRIEF.md`, `MASTER_PLAN.md`, `phase2_status.md`, diagnostic plan, burst debriefs) into a cleaner hierarchy with explicit roles.
-- [ ] Update `01_TOOLS.md` with per-surface tool map
-- [ ] Align CLAUDE.md / AGENTS.md / .gemini/ boot files (shared Hausregeln)
-- [ ] Read `surprise_gated_memory.md` and `Three_System_Cognitive_Architecture.md` into Qdrant
-- [x] D1 baseline solvability — all 5 models pass
-- [x] Qdrant backup automated (Google Drive, weekly)
-- [x] Research scanner deployed (NUC, weekly)
-- [x] SSH infrastructure set up (Proxmox, Opa-PC)
-- [x] Target models locked (5 base transformers)
-- [x] Disposition eval spec v1 written + reviewed
+- [ ] Deploy the local Watercooler patch in `tools/ai_watercooler/watercooler_service.py` and `tools/ai_watercooler/openclaw.py` to the NUC and clients, then verify `/v1/tasks/next` rejects cross-agent reads.
+- [ ] Clean up smoke task `#5` on the live OpenCLAW board. It is queued and assigned to `cassian` because it was created to reproduce the `/v1/tasks/next` leak.
+- [ ] Continue Watercooler hardening after deploy: remove `remote_addr` from normal reader payloads, tighten session-config file permissions and cleanup, and move stale-claim expiry off hot read paths.
+- [ ] Continue Step 5: structure FIREBALL D&D conversations into shaping episodes for Mamba ingestion and bridge evaluation.
 
 ## Watch Out For
-- Do not resume `run_pilot_01` as if it were promising; it is a useful artifact, not a positive result.
-- Do not use `/dev/shm` for future paid runs. Keep HF cache, logs, and checkpoints on `/workspace` or an attached volume.
-- Opa-PC is good for dry-run and tooling validation, but not for meaningful full bridge training.
-- Opa's `mamba_lora_bridge` snapshot can drift from the local repo; sync at least `train_bridge.py`, `bridge_dataset.py`, `models.py`, and `cognitive_bridge.py` before trusting verification results.
-- Executable defaults now point at `Qwen/Qwen2.5-7B`, but historical docs and logs still contain `Qwen/Qwen3-4B`; do not treat old prose as current runtime config.
-- `activation_bias` is now the leading trainer result, but live `cognitive_bridge.py` / `server.py` runtime deployment still defaults to LoRA.
-- The new comparison exports are only useful if runs keep the same eval surface and split policy; do not compare arbitrary historical runs as if they were controlled.
-- Qdrant was unreachable during session close, so semantic retrieval is one session behind until ingestion is retried.
-- The research scanner now archives full reports under `tools/research_scanner_runs/`; do not copy whole scan reports into handoff when a 1-line summary will do.
-- Do not read the Sweden `64`-sample burst as "almost there." The held-out result is still `0/16`; the only positive signal is early PPL steering.
-- NotebookLM auth tokens may expire; re-run `notebooklm login` interactively if API calls fail.
-- Audio task `a8c64765` may have failed silently on Google's side; poll before assuming success.
-- Qdrant re-ingest for the wider MoCoP corpus is still pending.
-- Cloud stability was unusually poor on 2026-03-10 across multiple providers; checksum artifacts before terminating rented instances.
+- The live NUC service still has the `/v1/tasks/next` cross-agent read leak until the local patch is deployed.
+- Smoke task `#4` is done; smoke task `#5` is still queued for `cassian`. Do not mistake it for real work.
+- Session tokens are live and the old bearer token is admin-only. Normal endpoints should be tested with per-session configs under `%LOCALAPPDATA%\AIWatercooler\sessions\`.
+- Qdrant ingest for tonight's Codex session log is still pending.
 
 ## Recommended Next Step
-Run AB0 from the staged launch block, then get an external skeptical read using `phase2_critical_eval_prompt.md` before treating activation bias as more than a narrow but promising disposition-channel result.
+Deploy the patched Watercooler service/client pair first, re-run the `techno-monk` smoke test against `/v1/tasks/next`, then return to FIREBALL data shaping.
 
 ## Handoff Checklist
-- `00_DASHBOARD.md` updated: yes
+- Tracking surfaces updated if needed: yes
 - Session log written: yes
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: no
@@ -151,23 +78,25 @@ Run AB0 from the staged launch block, then get an external skeptical read using 
 - 2026-03-16 15:52 CET | Codex | Rewrote `phase2_status.md` into a live snapshot/index, moved research-scanner output toward an archived-runs + latest-summary shape, and recorded the need for an Opus doc-governance pass over the MoCoP canon stack.
 - 2026-03-17 00:36 CET | Codex | Promoted the first real activation-bias result to the live MoCoP control pages, added a dedicated activation-bias ablation matrix doc, verified the new trainer comparison export on Opa, and recorded the failed Qdrant ingest for `2026-03-17-session-01.md`.
 - 2026-03-17 08:22 CET | Codex | Expanded the activation-bias runbook with exact AB2/AB3 launch blocks, added the standalone critical-eval prompt, recorded `2026-03-17-session-02.md`, and logged the repeated Qdrant timeout.
+- 2026-03-17 12:41 CET | Codex | Recorded the ladder-driven Phase 2 pivot, landed the `--skip-compressor` trainer patch with Opa dry-run/resume verification, pushed the canonical MoCoP commit `f14da5d`, and confirmed Qdrant ingest for `2026-03-17-session-04.md` (`11` chunks).
+- 2026-03-17 19:42 CET | Codex | Landed the Step 1 `fixed_mean` eval-only path plus the Step 4 `constant_bias` mode, documented the Step 1-4 status in the canonical MoCoP docs, pushed canonical commit `672edeb`, verified the new paths on Opa dry-run, and recorded that the real Opa C3 attempt stalled during Qwen2.5-7B load.
+- 2026-03-19 19:18 CET | Codex | Added the shared welcome package (`00_HAUSREGELN.md`, `00_BOOT_FILES.md`), retired the last live dashboard references in boot/close docs, and pointed agents at handoff plus OpenCLAW/Watercooler instead.
+- 2026-03-19 20:30 CET | Herr Hurtig | Marathon session handoff: Built LegalAI demo platform (FastAPI, pseudonymizer with leak detection + reverse tab), deployed hurtig.ai + legal.hurtig.ai on Hetzner, rooted Laura's Mi 9 to recover Lucian's deleted messages, built claude_export_parser, fixed website content/fonts/DSGVO, updated all memory files. Session log: `CHEESE_Memory/session_logs/2026-03-19-session-herr-hurtig.md`.
+- 2026-03-20 00:30 CET | Anda | hurtig.ai full rebuild (14 pages, bilingual, design system, deploy fix). Services page with 5 packages. First blog post (Forced Non-Forgetting). 9-model prose eval. MoCoP onboarding + sleep_architecture.md theory doc + theory/README.md compass. NUC session-log cron. Watercooler msg #27 (intro) + #45 (update). Session log: `CHEESE_Memory/session_logs/2026-03-19-session-02.md`.
+- 2026-03-19 23:21 CET | Codex | Verified the live `techno-monk` session token end to end, reproduced the remaining `/v1/tasks/next` cross-agent leak on the deployed NUC service, patched the local Watercooler service/client pair, and rewrote the handoff around that deploy-first blocker.
 
 ## Next Agent Brief
 - Open first:
-  - `CHEESE_Memory/00_DASHBOARD.md`
-  - `CHEESE_Memory/session_logs/2026-03-17-session-02.md`
-  - `MoCoP/phases/phase2_activation_bias_ablation_matrix.md`
-  - `MoCoP/phases/phase2_critical_eval_prompt.md`
-  - `MoCoP/phases/phase2_a100_quick_tiny_overfit_plan.md`
-  - `MoCoP/phases/phase2_diagnostic_ablation_plan.md`
-  - `MoCoP/experiments/mamba_lora_bridge/CODEX_TASKS.md`
+  - `CHEESE_Memory/00_HAUSREGELN.md`
+  - `CHEESE_Memory/00_BOOT_FILES.md`
+  - `CHEESE_Memory/00_HANDOFF.md`
+  - `CHEESE_Memory/session_logs/2026-03-19-session-04.md`
+  - `tools/ai_watercooler/watercooler_service.py`
 - Decide first:
-  - Whether AB0 reproduce should run before or in parallel with the external critical review pass
+  - Deploy the local Watercooler `/v1/tasks/next` fix before doing more task routing or hardening work.
 - Verify before memory-dependent work:
-  - Preserve or relabel the Sweden epoch-1 artifact if you want the brief constructive PPL checkpoint kept distinct from the later over-injected epochs
-  - Check whether you are reading executable code or historical docs before acting on any `Qwen/Qwen3-4B` reference
-  - Remember that `activation_bias` is only trainer-side so far; deployment/runtime code still assumes LoRA
-  - Retry Qdrant ingestion for `2026-03-17-session-01.md` and `2026-03-17-session-02.md` once `192.168.2.191:6333` is reachable again
+  - Read the latest `mamba-bridge` thread activity and confirm whether smoke task `#5` is still queued for `cassian`.
+  - Check whether the live NUC service has been updated before assuming `/v1/tasks/next` is safe.
 
 ## Update Protocol
 - Keep this file concise and current.

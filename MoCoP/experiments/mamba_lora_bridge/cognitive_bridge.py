@@ -1,28 +1,33 @@
 """
-cognitive_bridge.py — The Orchestrator
+cognitive_bridge.py - The Orchestrator
 
 Connects the three components of the cognitive architecture:
-    1. Mamba SSM     — Continuous state tracker ("gut feeling")
-    2. Hypernetwork  — Translates Mamba state to LoRA weights ("endocrine system")
-    3. Qwen (base)   — Frozen Transformer ("brain structure")
+    1. Mamba SSM     - Continuous state tracker ("gut feeling")
+    2. Hypernetwork  - Translates Mamba state to injection parameters ("endocrine system")
+    3. Qwen (base)   - Frozen Transformer ("brain structure")
 
 The full cycle per turn:
-    MUD text → Mamba processes (state updates)
-             → Compressor flattens state to context vector
-             → Hypernetwork generates per-layer LoRA matrices
-             → LoRA matrices injected into Qwen's attention layers
-             → Qwen generates response (raw completion, no chat template)
-             → LoRA matrices stripped
-             → Response returned
+    MUD text -> Mamba processes (state updates)
+             -> Compressor flattens state to context vector
+             -> Hypernetwork generates per-layer adjustments (LoRA matrices or activation biases)
+             -> Adjustments injected into Qwen's attention layers
+             -> Qwen generates response (raw completion, no chat template)
+             -> Adjustments stripped
+             -> Response returned
 
 The Transformer's weights never change. The Mamba state accumulates
-experience. The LoRA is the interface between memory and behavior.
+experience. The bridge injection is the interface between memory and behavior.
+
+Supports two bridge modes:
+    - "lora": Dynamic LoRA weight matrices (original, higher capacity but unstable)
+    - "activation_bias": Additive bias vectors in residual stream (simpler, stable)
 
 Author: Loom
 Date: 2026-02-26
-Review: Codex (2026-02-26) — all findings addressed
+Review: Codex (2026-02-26), Purple (2026-03-20, v2: activation_bias inference)
 """
 
+import argparse
 import logging
 import time
 import json
@@ -33,7 +38,8 @@ from typing import Optional, List, Dict, Any, Tuple
 import torch
 import torch.nn as nn
 
-from models import MambaStateCompressor, LoRAHypernetwork, DynamicLoRALinear
+from model_defaults import DEFAULT_MAMBA_MODEL_ID, DEFAULT_QWEN_MODEL_ID
+from models import MambaStateCompressor, LoRAHypernetwork, ActivationBiasHypernetwork, DynamicLoRALinear
 
 logger = logging.getLogger("CognitiveBridge")
 
@@ -47,8 +53,8 @@ class BridgeConfig:
     """Configuration for the cognitive bridge."""
 
     # --- Model selection ---
-    qwen_model_id: str = "Qwen/Qwen3-4B"           # BASE model, not instruct
-    mamba_model_id: str = "state-spaces/mamba-2.8b-hf"
+    qwen_model_id: str = DEFAULT_QWEN_MODEL_ID
+    mamba_model_id: str = DEFAULT_MAMBA_MODEL_ID
 
     # --- Mamba state geometry ---
     mamba_layers: int = 64
@@ -89,17 +95,26 @@ class BridgeConfig:
     # --- History limit ---
     max_mamba_history_tokens: int = MAX_MAMBA_HISTORY_TOKENS
 
+    # --- Bridge mode ---
+    bridge_mode: str = "lora"  # "lora" | "activation_bias"
+
     # --- Startup validation ---
-    # Runs a lightweight probe pass (Mamba -> compressor -> hypernetwork -> LoRA inject)
+    # Runs a lightweight probe pass (Mamba -> compressor -> hypernetwork -> inject)
     # during load_models() so shape/dtype wiring errors fail fast at boot.
     startup_validation: bool = True
     startup_validation_text: str = "startup probe"
 
     def __post_init__(self):
-        if self.lora_rank <= 0:
-            raise ValueError(f"lora_rank must be > 0, got {self.lora_rank}")
-        if self.lora_alpha <= 0:
-            raise ValueError(f"lora_alpha must be > 0, got {self.lora_alpha}")
+        if self.bridge_mode not in {"lora", "activation_bias", "constant_bias"}:
+            raise ValueError(
+                f"bridge_mode must be 'lora', 'activation_bias', or 'constant_bias', "
+                f"got {self.bridge_mode!r}"
+            )
+        if self.bridge_mode == "lora":
+            if self.lora_rank <= 0:
+                raise ValueError(f"lora_rank must be > 0, got {self.lora_rank}")
+            if self.lora_alpha <= 0:
+                raise ValueError(f"lora_alpha must be > 0, got {self.lora_alpha}")
         if self.mamba_target_layer < 0:
             raise ValueError(
                 f"mamba_target_layer must be >= 0, got {self.mamba_target_layer}"
@@ -114,7 +129,7 @@ class TurnDiagnostics:
     turn_number: int
     mamba_state_mb: float
     context_vector_norm: float
-    lora_norms: List[float]
+    injection_norms: List[float]
     num_patched_layers: int
     generation_time_s: float
     input_tokens: int
@@ -302,12 +317,19 @@ class CognitiveBridge:
             target_layer=self.config.mamba_target_layer,
         ).to(self._hyper_device)
 
-        self.hypernetwork = LoRAHypernetwork(
-            context_dim=self.config.context_dim,
-            target_dims=target_dims,
-            lora_rank=self.config.lora_rank,
-            hidden_dim=self.config.hyper_hidden_dim,
-        ).to(self._hyper_device)
+        if self.config.bridge_mode == "activation_bias":
+            self.hypernetwork = ActivationBiasHypernetwork(
+                context_dim=self.config.context_dim,
+                target_dims=target_dims,
+                hidden_dim=self.config.hyper_hidden_dim,
+            ).to(self._hyper_device)
+        else:
+            self.hypernetwork = LoRAHypernetwork(
+                context_dim=self.config.context_dim,
+                target_dims=target_dims,
+                lora_rank=self.config.lora_rank,
+                hidden_dim=self.config.hyper_hidden_dim,
+            ).to(self._hyper_device)
 
         # Count parameters safely so startup logs fail cleanly if a future module
         # reintroduces deferred initialization.
@@ -514,6 +536,11 @@ class CognitiveBridge:
             lora_pairs = self.hypernetwork(context_vector)  # List of (A, B)
 
         # Inject into patched layers
+        if len(lora_pairs) != len(self._patched_layers):
+            raise RuntimeError(
+                f"Hypernetwork produced {len(lora_pairs)} LoRA pairs but "
+                f"{len(self._patched_layers)} layers are patched"
+            )
         norms = []
         for dynamic_layer, (A, B) in zip(self._patched_layers, lora_pairs):
             # For 4-bit quantized base layers, weight dtype can be uint8.
@@ -527,10 +554,41 @@ class CognitiveBridge:
 
         return norms
 
-    def _clear_lora(self):
-        """Clear all dynamic LoRA state from patched layers."""
+    def _inject_activation_bias(
+        self, context_vector: torch.Tensor
+    ) -> List[float]:
+        """
+        Generate activation bias vectors from context and inject into Qwen.
+
+        Args:
+            context_vector: (1, context_dim) — compressed Mamba state.
+
+        Returns:
+            List of bias vector norms (for diagnostics).
+        """
+        with torch.inference_mode():
+            hyper_dtype = next(self.hypernetwork.parameters()).dtype
+            context_vector = context_vector.to(device=self._hyper_device, dtype=hyper_dtype)
+            bias_vectors = self.hypernetwork(context_vector)  # List[Tensor (1, out_dim)]
+
+        if len(bias_vectors) != len(self._patched_layers):
+            raise RuntimeError(
+                f"Hypernetwork produced {len(bias_vectors)} bias vectors but "
+                f"{len(self._patched_layers)} layers are patched"
+            )
+        norms = []
+        for dynamic_layer, bias in zip(self._patched_layers, bias_vectors):
+            qwen_device = dynamic_layer.weight.device
+            bias_dev = bias.squeeze(0).to(device=qwen_device)  # (out_dim,)
+            dynamic_layer.set_activation_bias(bias_dev)
+            norms.append(float(bias_dev.float().norm()))
+
+        return norms
+
+    def _clear_injections(self):
+        """Clear all dynamic LoRA and activation bias state from patched layers."""
         for layer in self._patched_layers:
-            layer.clear_lora()
+            layer.clear_lora()  # clear_lora() clears A, B, AND bias
 
     def _startup_validate_pipeline(self):
         """
@@ -546,6 +604,7 @@ class CognitiveBridge:
         probe_text = (self.config.startup_validation_text or "").strip() or "startup probe"
         saved_history = self._mamba_history_ids
         saved_cache = self._mamba_cache
+        saved_context = self._last_context_vector
 
         try:
             probe_state = self.feed_mamba(probe_text)
@@ -553,14 +612,18 @@ class CognitiveBridge:
                 comp_dtype = next(self.compressor.parameters()).dtype
                 probe_state = probe_state.to(device=self._hyper_device, dtype=comp_dtype)
                 probe_context = self.compressor(probe_state)
-            self._inject_lora(probe_context)
-            logger.info("Startup pipeline validation passed.")
+            if self.config.bridge_mode == "activation_bias":
+                self._inject_activation_bias(probe_context)
+            else:
+                self._inject_lora(probe_context)
+            logger.info("Startup pipeline validation passed (%s mode).", self.config.bridge_mode)
         except Exception as exc:
             raise RuntimeError(f"Startup pipeline validation failed: {exc}") from exc
         finally:
-            self._clear_lora()
+            self._clear_injections()
             self._mamba_history_ids = saved_history
             self._mamba_cache = saved_cache
+            self._last_context_vector = saved_context
 
     def generate(self, mud_text: str) -> TurnDiagnostics:
         """
@@ -593,8 +656,11 @@ class CognitiveBridge:
 
         # Fix #3: try/finally guarantees LoRA cleanup even on generation failure
         try:
-            # 3. Inject LoRA
-            lora_norms = self._inject_lora(context_vec)
+            # 3. Inject bridge adjustments (LoRA or activation bias)
+            if self.config.bridge_mode == "activation_bias":
+                lora_norms = self._inject_activation_bias(context_vec)
+            else:
+                lora_norms = self._inject_lora(context_vec)
 
             # 4. Generate with Qwen (base model, raw completion)
             prompt = self._format_prompt(mud_text)
@@ -621,7 +687,7 @@ class CognitiveBridge:
 
         finally:
             # 5. ALWAYS clear LoRA, even if generation threw
-            self._clear_lora()
+            self._clear_injections()
 
         t_end = time.time()
 
@@ -630,7 +696,7 @@ class CognitiveBridge:
             turn_number=self.turn_count,
             mamba_state_mb=state_mb,
             context_vector_norm=context_norm,
-            lora_norms=lora_norms,
+            injection_norms=lora_norms,
             num_patched_layers=len(self._patched_layers),
             generation_time_s=t_end - t_start,
             input_tokens=input_len,
@@ -700,6 +766,7 @@ class CognitiveBridge:
                 "mamba_model_id": self.config.mamba_model_id,
                 "context_dim": self.config.context_dim,
                 "lora_rank": self.config.lora_rank,
+                "bridge_mode": self.config.bridge_mode,
             },
         }
 
@@ -731,6 +798,13 @@ class CognitiveBridge:
         map_loc = str(self._hyper_device) if self._hyper_device else "cpu"
         state = torch.load(str(resolved), map_location=map_loc, weights_only=True)
 
+        saved_mode = state.get("config", {}).get("bridge_mode", "lora")
+        if saved_mode != self.config.bridge_mode:
+            raise ValueError(
+                f"Checkpoint bridge_mode={saved_mode!r} does not match "
+                f"config bridge_mode={self.config.bridge_mode!r}"
+            )
+
         self.turn_count = state["turn_count"]
         history = state.get("mamba_history_ids")
         if history is not None and str(self._mamba_device) != "cpu":
@@ -755,6 +829,7 @@ class CognitiveBridge:
             "qwen_model": self.config.qwen_model_id,
             "mamba_model": self.config.mamba_model_id,
             "lora_rank": self.config.lora_rank,
+            "bridge_mode": self.config.bridge_mode,
             "context_dim": self.config.context_dim,
             "startup_validation": self.config.startup_validation,
             "devices": {
@@ -794,7 +869,7 @@ if __name__ == "__main__":
     Quick test: can the bridge load and process a single turn?
     Run with: python cognitive_bridge.py
 
-    This will attempt to load Mamba-2.8B + Qwen-3-4B.
+    This will attempt to load the configured Mamba + Qwen base models.
     If you don't have the models cached, it will download them.
     If you don't have enough VRAM, set use_4bit=True and/or
     adjust device settings.
@@ -807,12 +882,20 @@ if __name__ == "__main__":
     )
 
     print("=" * 60)
-    print("COGNITIVE BRIDGE — Smoke Test")
+    print("COGNITIVE BRIDGE - Smoke Test")
     print("=" * 60)
 
+    parser = argparse.ArgumentParser(description="Standalone smoke test for CognitiveBridge.")
+    parser.add_argument("--qwen-model-id", type=str, default=DEFAULT_QWEN_MODEL_ID)
+    parser.add_argument("--mamba-model-id", type=str, default=DEFAULT_MAMBA_MODEL_ID)
+    parser.add_argument("--bridge-mode", type=str, default="lora",
+                        choices=["lora", "activation_bias"])
+    args = parser.parse_args()
+
     config = BridgeConfig(
-        qwen_model_id="Qwen/Qwen3-4B",
-        mamba_model_id="state-spaces/mamba-2.8b-hf",
+        qwen_model_id=args.qwen_model_id,
+        mamba_model_id=args.mamba_model_id,
+        bridge_mode=args.bridge_mode,
         use_4bit=True,
         hyper_device="cpu",
         max_new_tokens=100,
@@ -843,7 +926,7 @@ if __name__ == "__main__":
     print(f"\nDiagnostics:")
     print(f"  Mamba state:  {diag.mamba_state_mb:.1f} MB")
     print(f"  Context norm: {diag.context_vector_norm:.4f}")
-    print(f"  LoRA norms:   {[f'{n:.4f}' for n in diag.lora_norms[:4]]}...")
+    print(f"  Inject norms: {[f'{n:.4f}' for n in diag.injection_norms[:4]]}...")
     print(f"  Time:         {diag.generation_time_s:.2f}s")
     print(f"  Tokens:       {diag.input_tokens} -> {diag.output_tokens}")
 

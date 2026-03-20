@@ -1,0 +1,65 @@
+{
+  "epoch": 1,
+  "bridge_mode": "constant_bias",
+  "context_mode": "constant",
+  "eval_adjustment_source": "learned",
+  "eval_split": "val",
+  "qwen_model_id": "Qwen/Qwen2.5-7B",
+  "mamba_model_id": "state-spaces/mamba-2.8b-hf",
+  "target_specs": [
+    [
+      12,
+      "q_proj"
+    ],
+    [
+      12,
+      "v_proj"
+    ],
+    [
+      13,
+      "q_proj"
+    ],
+    [
+      13,
+      "v_proj"
+    ],
+    [
+      14,
+      "q_proj"
+    ],
+    [
+      14,
+      "v_proj"
+    ],
+    [
+      15,
+      "q_proj"
+    ],
+    [
+      15,
+      "v_proj"
+    ]
+  ],
+  "train": {
+    "loss": 4.83447265625,
+    "norm_label": "bias",
+    "norm_mean": 0.0032096381291921716,
+    "norm_var": 0.0,
+    "clamp_fraction": 0.0
+  },
+  "eval": {
+    "bridge_accuracy": 0.0,
+    "baseline_accuracy": 0.0,
+    "random_accuracy": 0.0,
+    "p_value": 1.0,
+    "norm_label": "bias",
+    "bridge_norm_mean": 0.006900499574840069,
+    "random_norm_mean": 0.006900499458424747,
+    "bridge_clamp_fraction": 0.0,
+    "baseline_ppl": 29.70730819958557,
+    "random_ppl": 29.691665913927103,
+    "bridge_ppl": 29.64934273858049,
+    "bridge_vs_baseline_ppl_delta": -0.05796546100507882,
+    "random_vs_baseline_ppl_delta": -0.015642285658465482
+  }
+}

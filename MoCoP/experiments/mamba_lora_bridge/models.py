@@ -1,10 +1,14 @@
 """
-models.py — Core neural network modules for the Cognitive Bridge.
+models.py - Core neural network modules for the Cognitive Bridge.
 
 Components:
-    MambaStateCompressor  — 3D SSM state → flat context vector
-    LoRAHypernetwork      — Context vector → per-layer dynamic LoRA matrices
-    DynamicLoRALinear     — Drop-in nn.Linear replacement with injectable LoRA
+    MambaStateCompressor    - 3D SSM state -> flat context vector
+    RawStateProjector       - 3D SSM state -> raw flat context vector
+    ZeroContextEncoder      - batch size -> constant zero context vector
+    LoRAHypernetwork        - Context vector -> per-layer dynamic LoRA matrices
+    ActivationBiasHypernetwork - Context vector -> per-layer additive bias vectors
+    ConstantBiasBridge      - learned per-layer constant bias vectors
+    DynamicLoRALinear       - Drop-in nn.Linear replacement with injectable LoRA/bias
 
 The DynamicLoRALinear uses a context-managed pattern (set_lora / clear_lora)
 so it preserves the standard nn.Linear forward(x) signature. This means
@@ -91,6 +95,77 @@ class MambaStateCompressor(nn.Module):
         return self.projection(flat)
 
 
+class RawStateProjector(nn.Module):
+    """
+    Extracts the target Mamba layer and flattens it directly with no bottleneck.
+
+    This is the minimal compressor-bypass control: Layer 3 still defines the
+    source state, but the hypernetwork receives the raw flattened vector.
+    """
+
+    def __init__(
+        self,
+        mamba_layers: int,
+        mamba_d_model: int,
+        mamba_d_state: int,
+        target_layer: int = 3,
+    ):
+        super().__init__()
+        self.mamba_layers = mamba_layers
+        self.mamba_d_model = mamba_d_model
+        self.mamba_d_state = mamba_d_state
+        self.target_layer = target_layer
+        self.input_flat_size = mamba_d_model * mamba_d_state
+        self.output_dim = self.input_flat_size
+
+        # Keep a device/dtype anchor so the trainer can treat this module like
+        # the learned compressor for casting/moving inputs.
+        self.register_buffer("_dtype_anchor", torch.empty(0), persistent=False)
+
+    def forward(self, mamba_state: torch.Tensor) -> torch.Tensor:
+        if mamba_state.size(1) <= self.target_layer:
+            raise ValueError(
+                f"Mamba state only has {mamba_state.size(1)} layers, cannot extract layer {self.target_layer}"
+            )
+
+        targeted_state = mamba_state[:, self.target_layer]
+        batch_size = mamba_state.size(0)
+        flat = targeted_state.reshape(batch_size, -1)
+
+        if flat.shape[1] != self.input_flat_size:
+            raise RuntimeError(
+                "Mamba state feature width changed after raw-state projector initialization: "
+                f"got {flat.shape[1]}, expected {self.input_flat_size}."
+            )
+
+        anchor_dtype = self._dtype_anchor.dtype
+        if flat.dtype != anchor_dtype:
+            flat = flat.to(dtype=anchor_dtype)
+        return flat
+
+
+class ZeroContextEncoder(nn.Module):
+    """
+    Emits a learned-nothing zero context for modes that do not use Mamba.
+
+    The output width stays explicit so the trainer can keep its context/hypernet
+    plumbing uniform across bridge modes.
+    """
+
+    def __init__(self, output_dim: int = 1):
+        super().__init__()
+        self.output_dim = output_dim
+        self.register_buffer("_dtype_anchor", torch.empty(0), persistent=False)
+
+    def forward(self, batch_size: int) -> torch.Tensor:
+        return torch.zeros(
+            batch_size,
+            self.output_dim,
+            device=self._dtype_anchor.device,
+            dtype=self._dtype_anchor.dtype,
+        )
+
+
 class LoRAHypernetwork(nn.Module):
     """
     Takes a context vector and outputs per-layer LoRA A and B matrices.
@@ -171,6 +246,67 @@ class LoRAHypernetwork(nn.Module):
         return pairs
 
 
+class ActivationBiasHypernetwork(nn.Module):
+    """
+    Takes a context vector and outputs one additive bias vector per target layer.
+
+    Each target layer receives a bias shaped to that projection's output width,
+    so the wrapper can add it directly to the projection activations.
+    """
+
+    def __init__(
+        self,
+        context_dim: int,
+        target_dims: List[Tuple[int, int]],
+        hidden_dim: int = 1024,
+    ):
+        super().__init__()
+        self.target_dims = target_dims
+        self.num_target_layers = len(target_dims)
+
+        self.backbone = nn.Sequential(
+            nn.Linear(context_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.SiLU(),
+        )
+
+        self.bias_heads = nn.ModuleList()
+        for _, out_dim in target_dims:
+            self.bias_heads.append(nn.Linear(hidden_dim, out_dim))
+
+        for head in self.bias_heads:
+            nn.init.normal_(head.weight, std=0.01)
+            nn.init.zeros_(head.bias)
+
+    def forward(self, context_vector: torch.Tensor) -> List[torch.Tensor]:
+        backbone_dtype = self.backbone[0].weight.dtype
+        if context_vector.dtype != backbone_dtype:
+            context_vector = context_vector.to(dtype=backbone_dtype)
+        hidden = self.backbone(context_vector)
+        return [head(hidden) for head in self.bias_heads]
+
+
+class ConstantBiasBridge(nn.Module):
+    """
+    Learns one static activation bias vector per target layer.
+
+    This is the Step 4 control: same injection surface as activation_bias, but
+    with no Mamba signal, no compressor, and no sample-dependent mapping.
+    """
+
+    def __init__(self, target_dims: List[Tuple[int, int]]):
+        super().__init__()
+        self.target_dims = target_dims
+        self.bias_vectors = nn.ParameterList(
+            [nn.Parameter(torch.zeros(out_dim)) for _, out_dim in target_dims]
+        )
+
+    def forward(self, context_vector: torch.Tensor) -> List[torch.Tensor]:
+        batch_size = int(context_vector.shape[0])
+        return [bias.unsqueeze(0).expand(batch_size, -1) for bias in self.bias_vectors]
+
+
 
 
 
@@ -214,6 +350,7 @@ class DynamicLoRALinear(nn.Module):
         # Dynamic LoRA state (set before generation, cleared after)
         self._dynamic_A: Optional[torch.Tensor] = None
         self._dynamic_B: Optional[torch.Tensor] = None
+        self._dynamic_bias: Optional[torch.Tensor] = None
 
     @property
     def weight(self):
@@ -237,39 +374,63 @@ class DynamicLoRALinear(nn.Module):
         self._dynamic_B = B
 
     def clear_lora(self):
-        """Clear dynamic LoRA state. The layer reverts to frozen behavior."""
+        """Clear dynamic injected state. The layer reverts to frozen behavior."""
         self._dynamic_A = None
         self._dynamic_B = None
+        self._dynamic_bias = None
+
+    def set_activation_bias(self, bias: torch.Tensor):
+        """Set an additive activation bias shaped to the layer's output width."""
+        if bias.dim() not in {1, 2}:
+            raise ValueError(
+                f"Activation bias must have shape (out_dim,) or (batch, out_dim), got {tuple(bias.shape)}"
+            )
+        self._dynamic_bias = bias
+
+    def clear_activation_bias(self):
+        """Clear dynamic activation bias while leaving LoRA state untouched."""
+        self._dynamic_bias = None
 
     @property
     def has_lora(self) -> bool:
         return self._dynamic_A is not None and self._dynamic_B is not None
 
+    @property
+    def has_activation_bias(self) -> bool:
+        return self._dynamic_bias is not None
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Standard nn.Linear-compatible forward.
-        If LoRA is set, adds the low-rank contribution.
+        If LoRA and/or activation bias is set, adds the dynamic contribution.
         """
         # Base computation goes through the ORIGINAL layer's forward.
         # This handles BnB 4-bit dequantization, GPTQ, etc.
-        base_output = self.base_layer(x)
+        output = self.base_layer(x)
 
-        if not self.has_lora:
-            return base_output
+        if self.has_lora:
+            # Dynamic LoRA contribution
+            # Cast to match activation dtype (BnB computes in fp16)
+            A = self._dynamic_A.to(device=x.device, dtype=x.dtype)
+            B = self._dynamic_B.to(device=x.device, dtype=x.dtype)
+            lora_out = x @ A @ B
+            output = output + (lora_out * self.scaling)
 
-        # Dynamic LoRA contribution
-        # Cast to match activation dtype (BnB computes in fp16)
-        A = self._dynamic_A.to(device=x.device, dtype=x.dtype)
-        B = self._dynamic_B.to(device=x.device, dtype=x.dtype)
-        lora_out = x @ A @ B
-        return base_output + (lora_out * self.scaling)
+        if self.has_activation_bias:
+            bias = self._dynamic_bias.to(device=output.device, dtype=output.dtype)
+            if bias.dim() == 2 and output.dim() == 3:
+                bias = bias.unsqueeze(1)
+            output = output + bias
+
+        return output
 
     def extra_repr(self) -> str:
         return (
             f"in_features={self.in_features}, "
             f"out_features={self.out_features}, "
             f"scaling={self.scaling}, "
-            f"lora_active={self.has_lora}"
+            f"lora_active={self.has_lora}, "
+            f"bias_active={self.has_activation_bias}"
         )
 
 

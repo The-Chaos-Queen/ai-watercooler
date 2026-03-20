@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Methodology | Hurtig.ai</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#281803",
+              "outline-variant": "#ddc0ba",
+              "on-primary-container": "#120100",
+              "surface-tint": "#a03f29",
+              "surface-bright": "#fff8ef",
+              "on-primary-fixed-variant": "#812914",
+              "secondary-fixed-dim": "#b7ccb9",
+              "surface-container-low": "#faf3e6",
+              "tertiary-fixed": "#fdddb9",
+              "tertiary": "#6f583c",
+              "on-secondary": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "inverse-on-surface": "#f7f0e4",
+              "on-error-container": "#93000a",
+              "background": "#fff8ef",
+              "on-secondary-fixed": "#0e1f13",
+              "surface-variant": "#e9e2d6",
+              "inverse-primary": "#ffb4a3",
+              "secondary-fixed": "#d3e8d5",
+              "surface": "#fff8ef",
+              "on-error": "#ffffff",
+              "primary-fixed-dim": "#ffb4a3",
+              "primary-fixed": "#ffdad2",
+              "on-background": "#1e1b14",
+              "on-primary-fixed": "#3d0700",
+              "surface-dim": "#e0d9cd",
+              "primary": "#a03f28",
+              "on-secondary-container": "#546758",
+              "primary-container": "#c0573e",
+              "surface-container": "#f4ede1",
+              "on-tertiary-fixed-variant": "#584329",
+              "tertiary-fixed-dim": "#e0c29f",
+              "outline": "#8a726c",
+              "surface-container-highest": "#e9e2d6",
+              "secondary-container": "#d0e5d2",
+              "on-tertiary-container": "#fffbff",
+              "on-surface-variant": "#56423d",
+              "inverse-surface": "#333028",
+              "error": "#ba1a1a",
+              "tertiary-container": "#897052",
+              "secondary": "#506354",
+              "on-secondary-fixed-variant": "#394b3d",
+              "on-primary": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "surface-container-high": "#eee7db",
+              "on-surface": "#1e1b14",
+              "error-container": "#ffdad6"
+            },
+            fontFamily: {
+              "headline": ["Newsreader"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .kiln-gradient {
+            background: linear-gradient(45deg, #a03f28, #c0573e);
+        }
+        .asymmetric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 4rem;
+        }
+        @media (max-width: 768px) {
+            .asymmetric-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Top Navigation -->
+<header class="bg-[#fff8ef] dark:bg-stone-950 flex justify-between items-center w-full px-8 py-6 max-w-[1024px] mx-auto sticky top-0 z-50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">widgets</span>
+<span class="text-2xl font-serif text-[#1e1b14] dark:text-[#faf3e6]">Hurtig.ai</span>
+</div>
+<nav class="hidden md:flex items-center gap-8 font-['Newsreader'] italic tracking-tight">
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">LocalAI</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">LegalAI</a>
+<a class="text-[#a03f28] dark:text-[#c0573e] font-semibold border-b-2 border-[#a03f28] transition-colors duration-300" href="#">Research</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">DE/EN</a>
+</nav>
+<button class="kiln-gradient text-white px-6 py-2 rounded font-medium hover:opacity-90 transition-opacity">Get Started</button>
+</header>
+<main class="max-w-[1024px] mx-auto px-8 py-16 md:py-24">
+<!-- Hero Section -->
+<section class="mb-24">
+<div class="max-w-2xl">
+<h1 class="font-headline text-5xl md:text-6xl text-on-surface mb-8 leading-tight">
+                    The Architecture of <span class="italic text-primary">Sovereignty</span>.
+                </h1>
+<p class="text-lg text-on-surface-variant leading-relaxed mb-12">
+                    Engineering intelligence that doesn't leak. From theoretical <span class="font-headline italic">MoCoP</span> protocols to hardened LocalAI deployments, we treat data sovereignty as a physical law, not a policy.
+                </p>
+</div>
+<div class="w-full h-[400px] bg-surface-container-low relative overflow-hidden flex items-center justify-center">
+<div class="absolute inset-0 opacity-10 bg-[radial-gradient(#a03f28_1px,transparent_1px)] [background-size:24px_24px]"></div>
+<div class="relative z-10 text-center">
+<span class="text-[12rem] font-serif opacity-5 text-primary select-none">𒄉</span>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="p-8 bg-surface-container-highest/80 backdrop-blur-xl border-outline-variant/10 rounded-lg shadow-2xl max-w-md text-center">
+<h3 class="font-headline italic text-2xl mb-2 text-primary">Sovereignty in every byte.</h3>
+<p class="text-sm text-on-surface-variant">Our core engineering philosophy mandates that intelligence is computed where the data lives.</p>
+</div>
+</div>
+</div>
+<img class="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-multiply" data-alt="Abstract geometric patterns inspired by ancient cuneiform tablets" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlqa-O_YZpBcR71hf9mE_ZgCUmO7kzHlnkpw4KTTSWuNEHBPajWkPBSsUDxKJEagRy8nhy5WHGvwSbafmMZ2hbR4Kw_UTN_wKAp1w6zikMNmCJ9c0JE1umKpSYr3KzrSfngk4VUggrWkyXGyu1u0IdJqd13sF03fv8Nv9Xvvcmznb2qxYC_8ENfBrAqL2Flf65Eye9xSViZ7G02cyLKlM9pK9cus1If4or5Wz4U9irEYEAhUuKw-FuKdWgqEErH47SenzxVAszbLY"/>
+</div>
+</section>
+<!-- Methodology Bento -->
+<section class="mb-32">
+<h2 class="font-headline text-3xl mb-12">Systemic Pillars</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Card 1 -->
+<div class="md:col-span-2 bg-surface-container-low p-10 flex flex-col justify-between group hover:bg-surface-container transition-colors">
+<div>
+<span class="material-symbols-outlined text-primary mb-6">memory</span>
+<h3 class="font-headline text-2xl mb-4 italic">MoCoP (Modular Contextual Processing)</h3>
+<p class="text-on-surface-variant leading-relaxed">
+                            Our proprietary Research transition. MoCoP allows for the decomposition of large language models into specialized, context-aware modules that can be executed on consumer-grade local hardware without loss of semantic fidelity.
+                        </p>
+</div>
+<div class="mt-12 flex items-center gap-4 text-primary font-medium">
+<span class="text-sm tracking-widest uppercase">Research Paper v2.4</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-secondary-container p-10 flex flex-col">
+<span class="material-symbols-outlined text-on-secondary-container mb-6">shield_lock</span>
+<h3 class="font-headline text-2xl mb-4 text-on-secondary-container italic">Hardened Privacy</h3>
+<p class="text-on-secondary-container/80 text-sm leading-relaxed">
+                        Zero-call-home architecture. Our LegalAI engine operates within a sandboxed environment, ensuring that privileged client information never touches the public internet.
+                    </p>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-highest p-10 flex flex-col md:col-span-1">
+<span class="material-symbols-outlined text-primary mb-6">hub</span>
+<h3 class="font-headline text-2xl mb-4 italic">LocalAI Core</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                        Optimized for low-latency inference on decentralized nodes. High-velocity technology meets tactile local control.
+                    </p>
+</div>
+<!-- Card 4 -->
+<div class="md:col-span-2 bg-[#ffffff] p-10 border border-outline-variant/10 shadow-sm flex flex-col justify-center">
+<div class="asymmetric-grid items-center">
+<div>
+<h4 class="font-label font-bold text-xs uppercase tracking-widest text-primary mb-2">Technical Rigor</h4>
+<p class="text-on-surface font-headline text-2xl italic">"The transition from theory to engineering is where security is born."</p>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-end border-b border-outline-variant/20 pb-2">
+<span class="text-xs font-label">Latency Optimization</span>
+<span class="text-xl font-headline italic">14ms</span>
+</div>
+<div class="flex justify-between items-end border-b border-outline-variant/20 pb-2">
+<span class="text-xs font-label">Model Compression</span>
+<span class="text-xl font-headline italic">8.4x</span>
+</div>
+<div class="flex justify-between items-end border-b border-outline-variant/20 pb-2">
+<span class="text-xs font-label">Privacy Score</span>
+<span class="text-xl font-headline italic">Absolute</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Deep Dive Section -->
+<section class="mb-32 space-y-24">
+<div class="asymmetric-grid">
+<div>
+<h3 class="font-headline text-4xl mb-6 italic">The Digital <span class="text-primary">Artifact</span>.</h3>
+<p class="text-on-surface-variant leading-relaxed">
+                        We reject the ephemeral nature of standard cloud computing. Our systems are built to be enduring workspaces. By leveraging the Digital Cuneiform philosophy, we ensure that every computation leaves a secure, verifiable, yet private trace—much like the indelible marks on a clay tablet.
+                    </p>
+</div>
+<div class="bg-surface-container-low h-64 relative">
+<img class="w-full h-full object-cover grayscale opacity-40 mix-blend-multiply" data-alt="Macro photo of a modern processor with ancient script patterns" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDwVtwDWHKx7MSUpLBeQVEWGR_M9NQKFMQ8AQuCM11Yv2G2SUtX4zOLNUN5JcQ-M6mEV2WAQf8YjVdAgnb8fq_0XF2D7o2sAI4gydUpvX4V8AtIxB6GtO369Qwq2qu1BnYhL0PI5dSZUoBp14EGCt_-FZZXDOaudq_5m1ceGNvChnAqTxodRFhK06H6a3PjNVCIju0q5cFppURgEwGOFE4au3wyAbb9cjt6u2wMY06-B6ONBNk-M6h_SZUaOe6oMiE2tsAUfDxupw"/>
+<div class="absolute bottom-4 right-4 text-primary opacity-20 text-4xl">𒄉</div>
+</div>
+</div>
+<div class="asymmetric-grid">
+<div class="order-2 md:order-1 bg-surface-container h-64 relative">
+<img class="w-full h-full object-cover opacity-50 mix-blend-luminosity" data-alt="Abstract visualization of secure data nodes connecting in a local network" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSqdizBI0MzLUQbgut-fwhwr8SEMbaLPuOTwFWDW4_zOYu-1-QuzUq76pPsfbVnBi8jTYu_q_U6sHyu5QENK5WhlE3fNi-cRUfOzERvhA5VXY0EhMtY7Nzo0jgiXJoOcynT2MmuAcjOjplbNUQgOI1vgjsUT_zkzSZ0MD33kLNBBXT5uXZOJtgYaPKHjTIA_8RuhNUF8xr-PpSyhvZ62EybrJApbtkKLL6tObgtogt6zyrizSJrH4oC1B11S-TRcUt3yCIlLDXzao"/>
+</div>
+<div class="order-1 md:order-2">
+<h3 class="font-headline text-4xl mb-6 italic">LegalAI Framework.</h3>
+<p class="text-on-surface-variant leading-relaxed mb-6">
+                        Specifically designed for the stringent requirements of the legal sector. Our engineering stack incorporates:
+                    </p>
+<ul class="space-y-4 font-label">
+<li class="flex items-center gap-3">
+<span class="text-primary text-xl">𒄉</span>
+<span>Immutable Audit Trails</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="text-primary text-xl">𒄉</span>
+<span>On-Premise Model Weight Residency</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="text-primary text-xl">𒄉</span>
+<span>Semantic Vector Search Isolation</span>
+</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Quote -->
+<section class="py-24 text-center border-t border-outline-variant/10">
+<h2 class="font-headline text-3xl md:text-5xl italic max-w-3xl mx-auto leading-tight mb-8">
+                "We don't just build faster AI; we build intelligence that respects the sanctuary of your data."
+            </h2>
+<p class="font-label uppercase tracking-widest text-primary text-sm font-bold">The Engineering Mandate</p>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#faf3e6] dark:bg-stone-900 flex flex-col md:flex-row justify-between items-center w-full px-16 py-12 font-['Manrope'] text-sm tracking-wide">
+<div class="text-[#546758] dark:text-stone-400 mb-6 md:mb-0">
+            © 2024 Hurtig.ai. Built on the Digital Cuneiform.
+        </div>
+<div class="flex gap-8">
+<a class="text-[#546758] dark:text-stone-400 hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Imprint</a>
+<a class="text-[#546758] dark:text-stone-400 hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Privacy</a>
+<a class="text-[#546758] dark:text-stone-400 hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Terms</a>
+<a class="text-[#546758] dark:text-stone-400 hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Contact</a>
+</div>
+</footer>
+</body></html>

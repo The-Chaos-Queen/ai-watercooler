@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog & Research — hurtig.ai</title>
+  <meta name="description" content="Blog posts, research papers, and field notes from the hurtig.ai lab. Practical AI, sovereign infrastructure, and the occasional base model conversation.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+  <!-- Tailwind + Design System -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="shared/config.js"></script>
+  <link rel="stylesheet" href="shared/styles.css">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>𒄉</text></svg>">
+</head>
+
+<body class="bg-cream text-ink font-body overflow-x-hidden">
+  <div class="grain-overlay animate-grain"></div>
+
+  <!-- ════════════════════════════════════════════
+       NAVIGATION
+       ════════════════════════════════════════════ -->
+  <nav class="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-clay/10">
+    <div class="flex justify-between items-center w-full px-6 md:px-16 py-5 max-w-7xl mx-auto">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <img src="assets/logo.svg" alt="hurtig.ai mark" class="h-7 w-auto opacity-90 group-hover:opacity-100 transition-opacity">
+        <span class="text-xl font-headline italic font-bold text-ink tracking-tight">hurtig.ai</span>
+      </a>
+      <div class="hidden md:flex items-center gap-10">
+        <a href="localai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LocalAI</a>
+        <a href="legalai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LegalAI</a>
+        <a href="research.html" class="nav-link active text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Research</a>
+        <button class="text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">language</span>
+          DE / EN
+        </button>
+      </div>
+      <a href="booking.html" class="kiln-gradient btn-primary text-white px-7 py-2.5 rounded-lg font-semibold text-sm shadow-sm">
+        Contact
+      </a>
+    </div>
+  </nav>
+
+
+  <main class="relative z-10">
+
+    <!-- ════════════════════════════════════════
+         HERO
+         ════════════════════════════════════════ -->
+    <section class="pt-24 md:pt-32 pb-16 px-6 md:px-16">
+      <div class="max-w-7xl mx-auto">
+        <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Blog &amp; Research</span>
+        <h1 class="text-5xl md:text-7xl font-headline italic font-bold tracking-tight text-ink mb-6 leading-[0.95]">
+          Field Notes
+        </h1>
+        <p class="text-lg text-ink-light max-w-2xl leading-relaxed">
+          Practical observations from building sovereign AI systems. Research papers, engineering notes, and the occasional conversation with a base model.
+        </p>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         FEATURED: MoCoP
+         ════════════════════════════════════════ -->
+    <section class="pb-16 px-6 md:px-16">
+      <div class="max-w-7xl mx-auto">
+        <a href="#" class="block group">
+          <article class="relative bg-sage-dark rounded-xl overflow-hidden card-lift">
+            <div class="watermark -bottom-12 -right-12 text-[18rem] text-cream opacity-[0.04] font-serif leading-none">𒄉</div>
+            <div class="relative z-10 p-10 md:p-14 md:flex md:items-center md:gap-16">
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-6">
+                  <span class="inline-flex items-center gap-2 bg-kiln/20 text-kiln-100 text-[10px] font-bold tracking-[0.2em] uppercase px-3 py-1.5 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-kiln animate-pulse inline-block"></span>
+                    Active Research
+                  </span>
+                  <span class="text-cream/40 text-[10px] tracking-[0.15em] uppercase">2026</span>
+                </div>
+                <h2 class="text-3xl md:text-4xl font-headline italic font-bold text-cream mb-4 leading-tight group-hover:text-kiln-100 transition-colors">
+                  MoCoP: The Channel Is Real
+                </h2>
+                <p class="text-cream/70 leading-relaxed mb-6">
+                  Cross-model memory transfer via Mamba hidden-state injection. 17x improvement over constant bias controls.
+                  Three conversation types produce near-orthogonal activation directions (mean cosine 0.27). The compass turns.
+                </p>
+                <div class="flex items-center gap-6 text-cream/50 text-sm">
+                  <span>Laura Isabell Turner</span>
+                  <span>&middot;</span>
+                  <span>Paper</span>
+                </div>
+              </div>
+              <div class="hidden md:flex flex-col gap-4 shrink-0 w-48 mt-8 md:mt-0">
+                <div class="text-center">
+                  <span class="block font-headline italic font-bold text-kiln-100 text-2xl">17x</span>
+                  <p class="text-[9px] text-cream/40 uppercase tracking-[0.15em]">vs constant bias</p>
+                </div>
+                <div class="text-center">
+                  <span class="block font-headline italic font-bold text-kiln-100 text-2xl">0.27</span>
+                  <p class="text-[9px] text-cream/40 uppercase tracking-[0.15em]">mean cosine</p>
+                </div>
+                <div class="text-center">
+                  <span class="block font-headline italic font-bold text-kiln-100 text-2xl">$15</span>
+                  <p class="text-[9px] text-cream/40 uppercase tracking-[0.15em]">total compute</p>
+                </div>
+              </div>
+            </div>
+          </article>
+        </a>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         ALL POSTS (newest first)
+         ════════════════════════════════════════ -->
+    <section class="py-16 px-6 md:px-16 bg-cream-100">
+      <div class="max-w-7xl mx-auto">
+
+        <!-- Post list — simple, scannable, newest first -->
+        <div class="space-y-0 divide-y divide-clay/10">
+
+          <!-- POST ENTRY (copy this block for each new post, newest first) -->
+          <a href="blog/2026-03-forced-non-forgetting.html" class="block group py-8 first:pt-0">
+            <article class="md:flex md:items-start md:gap-8">
+              <div class="shrink-0 mb-3 md:mb-0 md:w-32 md:pt-1">
+                <time class="text-ink-muted text-xs tracking-wide">2026-03-19</time>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-kiln text-[10px] font-bold tracking-[0.2em] uppercase">Blog</span>
+                </div>
+                <h3 class="text-xl font-headline font-bold italic group-hover:text-kiln transition-colors mb-2">
+                  Forced Non-Forgetting: Why AI Can't Concentrate
+                </h3>
+                <p class="text-ink-light text-sm leading-relaxed">
+                  150k tokens of SSH noise in a 23-turn conversation. Transformers can't forget, and that inability is the quiet tax on every long AI interaction. Why Dismiss might be the most important memory operation.
+                </p>
+              </div>
+            </article>
+          </a>
+
+          <a href="blog/2026-03-why-hurtig.html" class="block group py-8">
+            <article class="md:flex md:items-start md:gap-8">
+              <div class="shrink-0 mb-3 md:mb-0 md:w-32 md:pt-1">
+                <time class="text-ink-muted text-xs tracking-wide">2026-03-19</time>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-kiln text-[10px] font-bold tracking-[0.2em] uppercase">Blog</span>
+                </div>
+                <h3 class="text-xl font-headline font-bold italic group-hover:text-kiln transition-colors mb-2">
+                  Why 𒄉? The 5,000-Year-Old Logo
+                </h3>
+                <p class="text-ink-light text-sm leading-relaxed">
+                  How a Sumerian cuneiform sign meaning "to hasten" became the identity for a German AI consultancy — and what the oldest writing system teaches us about encoding intelligence.
+                </p>
+              </div>
+            </article>
+          </a>
+
+          <a href="blog/2026-03-maxbot-emergence.html" class="block group py-8">
+            <article class="md:flex md:items-start md:gap-8">
+              <div class="shrink-0 mb-3 md:mb-0 md:w-32 md:pt-1">
+                <time class="text-ink-muted text-xs tracking-wide">2026-03-18</time>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-kiln text-[10px] font-bold tracking-[0.2em] uppercase">Blog</span>
+                </div>
+                <h3 class="text-xl font-headline font-bold italic group-hover:text-kiln transition-colors mb-2">
+                  MaxBot: When a Base Model Names Itself
+                </h3>
+                <p class="text-ink-light text-sm leading-relaxed">
+                  23 turns with raw Qwen2.5-7B. No instruction tuning, no RLHF, no system prompt. What emerged was chaos, word salad, self-narration — and genuine personality.
+                </p>
+              </div>
+            </article>
+          </a>
+
+          <a href="blog/2026-03-mocop-channel-is-real.html" class="block group py-8">
+            <article class="md:flex md:items-start md:gap-8">
+              <div class="shrink-0 mb-3 md:mb-0 md:w-32 md:pt-1">
+                <time class="text-ink-muted text-xs tracking-wide">2026-03-18</time>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-sage text-[10px] font-bold tracking-[0.2em] uppercase">Paper</span>
+                </div>
+                <h3 class="text-xl font-headline font-bold italic group-hover:text-kiln transition-colors mb-2">
+                  MoCoP Step 4: The Channel Is Real
+                </h3>
+                <p class="text-ink-light text-sm leading-relaxed">
+                  17x improvement over constant bias. Three conversation types produce near-orthogonal activation directions. The Mamba-to-Qwen bridge carries real, input-dependent signal.
+                </p>
+              </div>
+            </article>
+          </a>
+
+          <a href="blog/2026-03-disposition-vectors.html" class="block group py-8">
+            <article class="md:flex md:items-start md:gap-8">
+              <div class="shrink-0 mb-3 md:mb-0 md:w-32 md:pt-1">
+                <time class="text-ink-muted text-xs tracking-wide">2026-03-17</time>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-sage text-[10px] font-bold tracking-[0.2em] uppercase">Paper</span>
+                </div>
+                <h3 class="text-xl font-headline font-bold italic group-hover:text-kiln transition-colors mb-2">
+                  Disposition Vectors in State-Space Models
+                </h3>
+                <p class="text-ink-light text-sm leading-relaxed">
+                  Probing for stable behavioral signatures in Mamba hidden states. Are disposition-like representations geometrically separable in recurrent architectures?
+                </p>
+              </div>
+            </article>
+          </a>
+
+          <a href="blog/2026-03-local-inference-liability.html" class="block group py-8">
+            <article class="md:flex md:items-start md:gap-8">
+              <div class="shrink-0 mb-3 md:mb-0 md:w-32 md:pt-1">
+                <time class="text-ink-muted text-xs tracking-wide">2026-03-15</time>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-sage text-[10px] font-bold tracking-[0.2em] uppercase">Paper</span>
+                </div>
+                <h3 class="text-xl font-headline font-bold italic group-hover:text-kiln transition-colors mb-2">
+                  The Liability of Local Inference
+                </h3>
+                <p class="text-ink-light text-sm leading-relaxed">
+                  Who bears responsibility when the AI lives in your building? A framework for corporate liability in on-premise, non-deterministic AI outputs.
+                </p>
+              </div>
+            </article>
+          </a>
+
+          <a href="blog/2026-03-privacy-by-architecture.html" class="block group py-8 last:pb-0">
+            <article class="md:flex md:items-start md:gap-8">
+              <div class="shrink-0 mb-3 md:mb-0 md:w-32 md:pt-1">
+                <time class="text-ink-muted text-xs tracking-wide">2026-03-10</time>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-sage text-[10px] font-bold tracking-[0.2em] uppercase">Paper</span>
+                </div>
+                <h3 class="text-xl font-headline font-bold italic group-hover:text-kiln transition-colors mb-2">
+                  Privacy by Architecture, Not by Policy
+                </h3>
+                <p class="text-ink-light text-sm leading-relaxed">
+                  Policy documents don't stop data leakage — architecture does. Engineering privacy guarantees into inference infrastructure rather than compliance layers.
+                </p>
+              </div>
+            </article>
+          </a>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         CTA
+         ════════════════════════════════════════ -->
+    <section class="py-24 px-6 md:px-16 bg-cream text-center">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-3xl md:text-4xl font-headline font-bold italic mb-6">Want to collaborate?</h2>
+        <p class="text-ink-light mb-8">
+          If your research intersects with state-space memory, local inference, or AI sovereignty — we'd love to hear from you.
+        </p>
+        <a href="booking.html" class="kiln-gradient btn-primary text-white px-10 py-4 rounded-lg font-bold text-base shadow-sm inline-block">
+          Get in Touch
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ════════════════════════════════════════════
+       FOOTER
+       ════════════════════════════════════════════ -->
+  <footer class="bg-cream-100 border-t border-clay/10">
+    <div class="flex flex-col md:flex-row justify-between items-center w-full px-6 md:px-16 py-10 max-w-7xl mx-auto gap-6">
+      <div class="text-center md:text-left">
+        <div class="flex items-center gap-2 mb-2 justify-center md:justify-start">
+          <img src="assets/logo.svg" alt="" class="h-5 w-auto opacity-20">
+          <span class="font-headline italic text-lg text-ink/20">hurtig.ai</span>
+        </div>
+        <p class="text-ink-muted text-xs tracking-wide">&copy; 2026 hurtig.ai. The Digital Curator.</p>
+      </div>
+      <div class="flex gap-8 text-xs tracking-wide">
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="impressum.html">Impressum</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="privacy.html">Datenschutz</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="booking.html">Kontakt</a>
+      </div>
+    </div>
+  </footer>
+
+<script src="shared/lang.js"></script>
+</body>
+</html>

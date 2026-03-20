@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 120" width="100%" height="100%">
+  <defs>
+    <path id="wedge" d="M 0,15 L 15,0 L 75,11 L 95,15 L 75,19 L 15,30 Z" fill="#b45309" />
+    <path id="wedge-short" d="M 0,15 L 15,0 L 50,11 L 65,15 L 50,19 L 15,30 Z" fill="#b45309" />
+  </defs>
+
+  <g transform="translate(15, 10)">
+    <!-- Horizontal Wedge (pointing right) -->
+    <use href="#wedge" x="0" y="45" opacity="0.95" />
+    <!-- Diagonal Wedge (pointing down-right, ~55 degrees) -->
+    <use href="#wedge" x="20" y="10" transform="rotate(55 20 25)" opacity="0.9" />
+    <!-- Vertical Wedge (pointing down, 90 degrees) -->
+    <use href="#wedge-short" x="45" y="15" transform="rotate(90 60 30)" opacity="0.85" />
+  </g>
+
+  <!-- Typography -->
+  <text x="140" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="800" fill="#0f172a" letter-spacing="-1.5">hurtig.ai</text>
+</svg>

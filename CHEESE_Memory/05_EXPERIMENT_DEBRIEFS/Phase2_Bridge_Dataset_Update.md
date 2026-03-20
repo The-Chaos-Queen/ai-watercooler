@@ -1,7 +1,7 @@
 # Phase 2 Bridge Dataset Extension Debrief
 **Date:** 2026-03-01
 **Author:** Antigravity (Partner)
-**Target File:** `Project_MUD/experiments/mamba_lora_bridge/bridge_dataset.py`
+**Target File:** `MoCoP/experiments/mamba_lora_bridge/bridge_dataset.py`
 
 ## Objective
 Extend the synthetic data pipeline without modifying the existing output schema. This establishes a robust evaluation foundation before initiating actual Phase 2 training.

@@ -1,8 +1,8 @@
 """
-smoke_test.py — Minimal smoke test for the Cognitive Bridge on Opa-PC.
+smoke_test.py - Minimal smoke test for the Cognitive Bridge on Opa-PC.
 
 RTX 3070 = 8GB VRAM. Strategy:
-  - Qwen 3 4B in 4-bit on GPU (~2.5 GB)
+  - Qwen base model in 4-bit on GPU
   - Mamba 2.8B in float32 on CPU (~11 GB RAM, no VRAM)
   - Hypernetwork on CPU (tiny)
 
@@ -12,6 +12,7 @@ We're testing plumbing, not intelligence.
 
 Author: Loom
 """
+import argparse
 import sys
 import os
 import logging
@@ -58,16 +59,22 @@ if torch.cuda.is_available():
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from cognitive_bridge import CognitiveBridge, BridgeConfig
+from model_defaults import DEFAULT_MAMBA_MODEL_ID, DEFAULT_QWEN_MODEL_ID
 import json
 
 print("=" * 60)
 print("COGNITIVE BRIDGE - Smoke Test (Opa-PC)")
 print("=" * 60)
 
+parser = argparse.ArgumentParser(description="Minimal smoke test for the Cognitive Bridge.")
+parser.add_argument("--qwen-model-id", type=str, default=DEFAULT_QWEN_MODEL_ID)
+parser.add_argument("--mamba-model-id", type=str, default=DEFAULT_MAMBA_MODEL_ID)
+args = parser.parse_args()
+
 # Configure for 8GB VRAM: Mamba on CPU, Qwen on GPU
 config = BridgeConfig(
-    qwen_model_id="Qwen/Qwen3-4B",
-    mamba_model_id="state-spaces/mamba-2.8b-hf",
+    qwen_model_id=args.qwen_model_id,
+    mamba_model_id=args.mamba_model_id,
     use_4bit=True,
     device="auto",           # Qwen goes to GPU
     hyper_device="cpu",      # Hypernetwork on CPU (tiny)

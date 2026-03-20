@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$User,
 
-    [string]$Host = "192.168.2.194",
+    [string]$RemoteHost = "192.168.2.194",
 
     [int]$Port = 22,
 
@@ -31,13 +31,14 @@ $ErrorActionPreference = "Stop"
 
 function Escape-BashSingleQuoted {
     param([Parameter(Mandatory = $true)][string]$Value)
-    return ($Value -replace "'", "'\"'\"'")
+    $replacement = ("'", '"', "'", '"', "'") -join ""
+    return ($Value -replace "'", $replacement)
 }
 
 function Invoke-RemoteWslBash {
     param([Parameter(Mandatory = $true)][string]$ScriptText)
 
-    $target = "$User@$Host"
+    $target = "$User@$RemoteHost"
     $sshArgs = @()
     if ($Port -ne 22) {
         $sshArgs += @("-p", "$Port")

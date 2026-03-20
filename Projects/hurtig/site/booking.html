@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — Schedule a Consultation | hurtig.ai</title>
+  <meta name="description" content="Schedule a consultation with hurtig.ai. Discuss sovereign LocalAI deployment, specialized LegalAI, and privacy-first infrastructure.">
+
+  <!-- Fonts (self-hosted, DSGVO-compliant) -->
+  <link rel="stylesheet" href="assets/fonts.css">
+
+  <!-- Tailwind + Design System -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="shared/config.js"></script>
+  <link rel="stylesheet" href="shared/styles.css">
+
+  <!-- Favicon (cuneiform glyph) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23a03f28'>𒄉</text></svg>">
+
+  <style>
+    /* Calendar day hover state */
+    .cal-day {
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    .cal-day:hover:not(.cal-selected):not(.cal-empty) {
+      background-color: #ffdad2;
+      color: #a03f28;
+      border-radius: 0.375rem;
+      cursor: pointer;
+    }
+    /* Time slot button transitions */
+    .time-slot {
+      transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+    }
+    /* Form input focus line */
+    .form-field:focus {
+      outline: none;
+      border-bottom-color: #a03f28;
+    }
+  </style>
+</head>
+
+<body class="bg-cream text-ink font-body overflow-x-hidden">
+  <!-- Grain overlay -->
+  <div class="grain-overlay animate-grain"></div>
+
+  <!-- ════════════════════════════════════════════
+       NAVIGATION — identical on all pages
+       ════════════════════════════════════════════ -->
+  <nav class="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-clay/10">
+    <div class="flex justify-between items-center w-full px-6 md:px-16 py-5 max-w-7xl mx-auto">
+      <!-- Logo -->
+      <a href="index.html" class="flex items-center gap-3 group">
+        <img src="assets/logo.svg" alt="hurtig.ai mark" class="h-7 w-auto opacity-90 group-hover:opacity-100 transition-opacity">
+        <span class="text-xl font-headline italic font-bold text-ink tracking-tight">hurtig.ai</span>
+      </a>
+
+      <!-- Desktop links -->
+      <div class="hidden md:flex items-center gap-10">
+        <a href="localai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LocalAI</a>
+        <a href="legalai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LegalAI</a>
+        <a href="research.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Research</a>
+        <button class="text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">language</span>
+          DE / EN
+        </button>
+      </div>
+
+      <!-- CTA -->
+      <a href="booking.html" class="kiln-gradient btn-primary text-white px-7 py-2.5 rounded-lg font-semibold text-sm shadow-sm">
+        Contact
+      </a>
+    </div>
+  </nav>
+
+
+  <main class="relative z-10">
+
+    <!-- ════════════════════════════════════════
+         HERO — Meet the Expert
+         ════════════════════════════════════════ -->
+    <section class="relative py-24 md:py-32 px-6 md:px-16 overflow-hidden">
+      <!-- Cuneiform watermark -->
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[28rem] text-kiln opacity-[0.025] font-serif leading-none">
+        𒄉
+      </div>
+
+      <div class="max-w-7xl mx-auto relative z-10">
+        <div class="flex flex-col md:flex-row items-center md:items-start gap-12 md:gap-16">
+
+          <!-- Portrait placeholder -->
+          <div class="shrink-0">
+            <div class="w-28 h-28 md:w-32 md:h-32 bg-cream-400 rounded-full border border-clay/20 shadow-sm flex items-center justify-center overflow-hidden">
+              <span class="material-symbols-outlined text-5xl text-ink-muted opacity-30">person</span>
+            </div>
+          </div>
+
+          <!-- Headline block -->
+          <div>
+            <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Schedule a Consultation</span>
+            <h1 class="text-5xl md:text-7xl font-headline italic font-bold tracking-tight text-ink mb-6 leading-[0.95]">
+              Meet the Expert
+            </h1>
+            <p class="text-lg md:text-xl text-ink-light max-w-xl leading-relaxed">
+              Schedule a consultation to discuss <span class="font-semibold text-ink">sovereign LocalAI</span> and specialized <span class="font-semibold text-ink">LegalAI</span> — tailored precisely to your infrastructure and domain.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         BOOKING INTERFACE
+         ════════════════════════════════════════ -->
+    <section class="py-8 pb-24 md:pb-32 px-6 md:px-16">
+      <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-start">
+
+        <!-- LEFT COLUMN: Calendar + Time Slots -->
+        <div class="md:col-span-7 space-y-8">
+
+          <!-- Calendar widget -->
+          <div class="bg-cream-100 rounded-xl p-8">
+            <!-- Calendar header -->
+            <div class="flex items-center justify-between mb-6">
+              <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-cream-300 transition-colors text-ink-muted hover:text-ink" aria-label="Previous month">
+                <span class="material-symbols-outlined text-lg">chevron_left</span>
+              </button>
+              <h3 class="font-headline italic font-bold text-ink text-lg tracking-wide">March 2026</h3>
+              <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-cream-300 transition-colors text-ink-muted hover:text-ink" aria-label="Next month">
+                <span class="material-symbols-outlined text-lg">chevron_right</span>
+              </button>
+            </div>
+
+            <!-- Day headers -->
+            <div class="grid grid-cols-7 mb-2">
+              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Mon</div>
+              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Tue</div>
+              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Wed</div>
+              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Thu</div>
+              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Fri</div>
+              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Sat</div>
+              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Sun</div>
+            </div>
+
+            <!-- Date grid — March 2026 starts on a Sunday, so Mon col = empty -->
+            <!-- Week row structure: Mon Tue Wed Thu Fri Sat Sun                -->
+            <!-- Feb spillover: 23 24 25 26 27 28                              -->
+            <!-- Mar: 1 starts on Sunday (col 7)                               -->
+            <div class="grid grid-cols-7 gap-y-1">
+
+              <!-- Week 1: Feb spillover Mon-Sat, then Mar 1 on Sun -->
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">23</div>
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">24</div>
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">25</div>
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">26</div>
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">27</div>
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">28</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">1</div>
+
+              <!-- Week 2: Mar 2–8 -->
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">2</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">3</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">4</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">5</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">6</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">7</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">8</div>
+
+              <!-- Week 3: Mar 9–15 -->
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">9</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">10</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">11</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">12</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">13</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">14</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">15</div>
+
+              <!-- Week 4: Mar 16–22 -->
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">16</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">17</div>
+              <!-- Day 18: selected -->
+              <div class="cal-day cal-selected text-center py-2 px-1 text-sm font-bold font-body rounded kiln-gradient text-white ring-4 ring-kiln/10">18</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">19</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">20</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">21</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">22</div>
+
+              <!-- Week 5: Mar 23–29 -->
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">23</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">24</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">25</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">26</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">27</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">28</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">29</div>
+
+              <!-- Week 6: Mar 30–31 + Apr spillover -->
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">30</div>
+              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">31</div>
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">1</div>
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">2</div>
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">3</div>
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">4</div>
+              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">5</div>
+
+            </div>
+          </div>
+
+          <!-- Available time slots -->
+          <div>
+            <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-5 block">Available Times — Wed 18 March</span>
+            <div class="grid grid-cols-4 gap-3">
+
+              <!-- 09:00 -->
+              <button class="time-slot border border-clay/40 rounded-lg py-3 px-4 text-sm font-body text-ink-light hover:border-kiln hover:text-kiln text-center">
+                <span class="block font-semibold">09:00</span>
+                <span class="block text-[10px] text-ink-muted mt-0.5 tracking-wide">1 h</span>
+              </button>
+
+              <!-- 11:30 — selected -->
+              <button class="time-slot border-b-2 border-kiln border border-kiln/30 bg-kiln/5 rounded-lg py-3 px-4 text-sm font-body text-kiln font-bold text-center">
+                <span class="block">11:30</span>
+                <span class="block text-[10px] text-kiln/60 mt-0.5 tracking-wide">1 h</span>
+              </button>
+
+              <!-- 14:00 -->
+              <button class="time-slot border border-clay/40 rounded-lg py-3 px-4 text-sm font-body text-ink-light hover:border-kiln hover:text-kiln text-center">
+                <span class="block font-semibold">14:00</span>
+                <span class="block text-[10px] text-ink-muted mt-0.5 tracking-wide">1 h</span>
+              </button>
+
+              <!-- 16:30 -->
+              <button class="time-slot border border-clay/40 rounded-lg py-3 px-4 text-sm font-body text-ink-light hover:border-kiln hover:text-kiln text-center">
+                <span class="block font-semibold">16:30</span>
+                <span class="block text-[10px] text-ink-muted mt-0.5 tracking-wide">1 h</span>
+              </button>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: Consultation Form -->
+        <div class="md:col-span-5">
+          <div class="bg-cream-400 rounded-xl p-8 md:p-10 relative overflow-hidden">
+
+            <!-- Subtle cuneiform watermark in corner -->
+            <div class="watermark bottom-4 right-6 text-[5rem] text-kiln opacity-[0.06] font-serif select-none pointer-events-none">𒄉</div>
+
+            <div class="relative z-10">
+              <h2 class="text-2xl md:text-3xl font-headline italic font-bold text-ink mb-8">Consultation Details</h2>
+
+              <form class="space-y-7" onsubmit="return false;">
+
+                <!-- Full Name -->
+                <div>
+                  <label for="name" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Full Name</label>
+                  <input
+                    id="name"
+                    type="text"
+                    placeholder="Laura Hurtig"
+                    class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink placeholder:text-clay font-body"
+                  >
+                </div>
+
+                <!-- Work Email -->
+                <div>
+                  <label for="email" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Work Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="you@organisation.de"
+                    class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink placeholder:text-clay font-body"
+                  >
+                </div>
+
+                <!-- Topic of Inquiry -->
+                <div>
+                  <label for="topic" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Topic of Inquiry</label>
+                  <select
+                    id="topic"
+                    class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink font-body appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled selected class="text-clay">Select a topic…</option>
+                    <option value="local-llm">Local LLM Deployment</option>
+                    <option value="legal-docs">Legal Document Automation</option>
+                    <option value="privacy">Privacy &amp; Sovereignty Strategy</option>
+                    <option value="research">Custom Research</option>
+                  </select>
+                </div>
+
+                <!-- Tell us more -->
+                <div>
+                  <label for="message" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Tell Us More</label>
+                  <textarea
+                    id="message"
+                    rows="4"
+                    placeholder="Describe your infrastructure, use case, or question…"
+                    class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink placeholder:text-clay font-body resize-none"
+                  ></textarea>
+                </div>
+
+                <!-- Submit -->
+                <div class="pt-2">
+                  <button type="submit" class="kiln-gradient btn-primary text-white w-full py-4 rounded-lg font-bold text-sm shadow-sm">
+                    Confirm Consultation
+                  </button>
+                  <p class="text-xs text-ink-muted italic text-center mt-4 leading-relaxed">
+                    All consultations are end-to-end encrypted.
+                  </p>
+                </div>
+
+              </form>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         DIRECT CONTACT
+         ════════════════════════════════════════ -->
+    <section class="py-20 md:py-28 px-6 md:px-16 bg-cream-100 border-t border-clay/10">
+      <div class="max-w-7xl mx-auto">
+
+        <div class="max-w-xl mb-12">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Direct Contact</span>
+          <h2 class="text-3xl md:text-4xl font-headline italic font-bold text-ink">Reach Us Directly</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+          <!-- Email -->
+          <div class="bg-cream rounded-xl p-8 border border-clay/10 card-lift">
+            <div class="mb-5">
+              <span class="material-symbols-outlined text-kiln text-2xl" style="font-variation-settings: 'FILL' 1;">mail</span>
+            </div>
+            <p class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted mb-2">Email</p>
+            <a href="mailto:contact@hurtig.ai" class="font-body text-sm text-ink hover:text-kiln transition-colors">
+              contact@hurtig.ai
+            </a>
+          </div>
+
+          <!-- Location -->
+          <div class="bg-cream rounded-xl p-8 border border-clay/10 card-lift">
+            <div class="mb-5">
+              <span class="material-symbols-outlined text-kiln text-2xl" style="font-variation-settings: 'FILL' 1;">location_on</span>
+            </div>
+            <p class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted mb-2">Location</p>
+            <span class="font-body text-sm text-ink">City, Germany</span>
+          </div>
+
+          <!-- Response time -->
+          <div class="bg-cream rounded-xl p-8 border border-clay/10 card-lift">
+            <div class="mb-5">
+              <span class="material-symbols-outlined text-kiln text-2xl" style="font-variation-settings: 'FILL' 1;">schedule</span>
+            </div>
+            <p class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted mb-2">Response Time</p>
+            <span class="font-body text-sm text-ink">We typically respond within 24 hours</span>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ════════════════════════════════════════════
+       FOOTER — identical on all pages
+       ════════════════════════════════════════════ -->
+  <footer class="bg-cream-100 border-t border-clay/10">
+    <div class="flex flex-col md:flex-row justify-between items-center w-full px-6 md:px-16 py-10 max-w-7xl mx-auto gap-6">
+      <div class="text-center md:text-left">
+        <div class="flex items-center gap-2 mb-2 justify-center md:justify-start">
+          <img src="assets/logo.svg" alt="" class="h-5 w-auto opacity-20">
+          <span class="font-headline italic text-lg text-ink/20">hurtig.ai</span>
+        </div>
+        <p class="text-ink-muted text-xs tracking-wide">&copy; 2026 hurtig.ai. The Digital Curator.</p>
+      </div>
+      <div class="flex gap-8 text-xs tracking-wide">
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="impressum.html">Impressum</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="privacy.html">Datenschutz</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="booking.html">Kontakt</a>
+      </div>
+    </div>
+  </footer>
+
+<script src="shared/lang.js"></script>
+</body>
+</html>

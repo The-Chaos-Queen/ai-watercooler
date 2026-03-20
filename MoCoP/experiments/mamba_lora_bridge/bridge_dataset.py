@@ -3,11 +3,12 @@ bridge_dataset.py - Synthetic data pipeline for Phase 2 bridge training.
 
 This module builds paired training examples for:
 1. Mamba history ingestion over an exact 8192-token context window.
-2. Qwen ChatML supervision with CrossEntropyLoss-compatible masking.
+2. Qwen supervision with CrossEntropyLoss-compatible masking.
 
 The factual training path masks every token except the exact factual answer.
-The general evaluation path masks the prompt and scores only the assistant
-response so it can be reused for perplexity tracking.
+The general evaluation path masks the prompt and scores only the response so it
+can be reused for perplexity tracking. Prompt formatting is configurable so base
+models can be trained/evaluated with plain completion prompts instead of ChatML.
 """
 
 from __future__ import annotations
@@ -22,12 +23,15 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
-MAMBA_MODEL_ID = "state-spaces/mamba-2.8b-hf"
+from model_defaults import DEFAULT_MAMBA_MODEL_ID, DEFAULT_QWEN_MODEL_ID
+
+MAMBA_MODEL_ID = DEFAULT_MAMBA_MODEL_ID
 # Keep the default aligned with the bridge target model so tokenizer/model IDs
 # do not drift silently once training is wired up.
-QWEN_MODEL_ID = "Qwen/Qwen3-4B"
+QWEN_MODEL_ID = DEFAULT_QWEN_MODEL_ID
 
 MAX_MAMBA_HISTORY_TOKENS = 8192
+SUPPORTED_QWEN_PROMPT_FORMATS = ("completion", "chatml")
 
 
 def _cross_product(left: Sequence[str], right: Sequence[str]) -> List[str]:
@@ -301,6 +305,7 @@ class BridgeDatasetConfig:
     distractor_injection_rate: float = 0.22
     seed: int = 0
     include_text: bool = True
+    qwen_prompt_format: str = "completion"
 
 
 @dataclass(frozen=True)
@@ -378,6 +383,7 @@ class BridgeDataset(Dataset):
         self.mamba_tokenizer = mamba_tokenizer
         self.qwen_tokenizer = qwen_tokenizer
         self.qwen_pad_token_id = int(qwen_tokenizer.pad_token_id)
+        self.qwen_prompt_format = self._normalize_qwen_prompt_format(config.qwen_prompt_format)
         self.pools = pools or {
             "NAME_POOL": NAME_POOL,
             "MARKETS": MARKETS,
@@ -395,7 +401,8 @@ class BridgeDataset(Dataset):
             "TIME_PHRASES": TIME_PHRASES,
             "GENERAL_DIALOGUE_PAIRS": GENERAL_DIALOGUE_PAIRS,
         }
-        self._validate_qwen_chat_tokens()
+        if self.qwen_prompt_format == "chatml":
+            self._validate_qwen_chat_tokens()
 
     def __len__(self) -> int:
         if hasattr(self, "_disk_records"):
@@ -489,7 +496,8 @@ class BridgeDataset(Dataset):
             instance.config = BridgeDatasetConfig(
                 num_samples=len(records),
                 mode=instance.mode,
-                max_qwen_tokens=data.get("max_qwen_tokens", 256)
+                max_qwen_tokens=data.get("max_qwen_tokens", 256),
+                qwen_prompt_format=data.get("qwen_prompt_format", "completion"),
             )
 
         for rec in records:
@@ -563,6 +571,7 @@ class BridgeDataset(Dataset):
             "mode": self.mode,
             "pad_token_id": self.qwen_pad_token_id,
             "max_qwen_tokens": self.config.max_qwen_tokens,
+            "qwen_prompt_format": self.qwen_prompt_format,
             "records": records,
         }
             
@@ -582,6 +591,16 @@ class BridgeDataset(Dataset):
                 "Qwen tokenizer is missing ChatML special tokens. "
                 f"Expected {sorted(required)}, found {sorted(all_specials)}."
             )
+
+    @staticmethod
+    def _normalize_qwen_prompt_format(prompt_format: str) -> str:
+        normalized = prompt_format.strip().lower()
+        if normalized not in SUPPORTED_QWEN_PROMPT_FORMATS:
+            raise ValueError(
+                f"Unsupported qwen_prompt_format: {prompt_format!r}. "
+                f"Expected one of {SUPPORTED_QWEN_PROMPT_FORMATS}."
+            )
+        return normalized
 
     def _encode_mamba(self, text: str) -> Tuple[int, ...]:
         return tuple(self.mamba_tokenizer.encode(text, add_special_tokens=False))
@@ -901,12 +920,79 @@ class BridgeDataset(Dataset):
             "answer_span": (len(prefix_ids), len(prefix_ids) + len(assistant_ids)),
         }
 
+    def _build_completion_example(
+        self,
+        instruction_text: str,
+        prompt_label: str,
+        user_prompt: str,
+        response_label: str,
+        assistant_text: str,
+    ) -> Dict[str, Any]:
+        prefix_text = (
+            f"{instruction_text}\n\n"
+            f"{prompt_label}: {user_prompt}\n"
+            f"{response_label}:\n"
+        )
+
+        prefix_ids = self._encode_qwen(prefix_text)
+        assistant_ids = self._encode_qwen(assistant_text)
+        input_ids = prefix_ids + assistant_ids
+        if len(input_ids) > self.config.max_qwen_tokens:
+            raise RuntimeError(
+                "Qwen sequence exceeded max_qwen_tokens "
+                f"({len(input_ids)} > {self.config.max_qwen_tokens}) for prompt: {user_prompt!r}"
+            )
+
+        labels = ([-100] * len(prefix_ids)) + assistant_ids
+        attention_mask = [1] * len(input_ids)
+        prompt_text = prefix_text + assistant_text
+
+        return {
+            "qwen_input_ids": torch.tensor(input_ids, dtype=torch.long),
+            "qwen_prompt_ids": torch.tensor(prefix_ids, dtype=torch.long),
+            "qwen_attention_mask": torch.tensor(attention_mask, dtype=torch.long),
+            "qwen_prompt_attention_mask": torch.tensor([1] * len(prefix_ids), dtype=torch.long),
+            "qwen_labels": torch.tensor(labels, dtype=torch.long),
+            "qwen_chat_text": prompt_text,
+            "answer_span": (len(prefix_ids), len(prefix_ids) + len(assistant_ids)),
+        }
+
+    def _build_qwen_example(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        assistant_text: str,
+        mode: str,
+    ) -> Dict[str, Any]:
+        if self.qwen_prompt_format == "chatml":
+            return self._build_chatml_example(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                assistant_text=assistant_text,
+            )
+        if mode == "fact":
+            return self._build_completion_example(
+                instruction_text=system_prompt,
+                prompt_label="Question",
+                user_prompt=user_prompt,
+                response_label="Answer",
+                assistant_text=assistant_text,
+            )
+        return self._build_completion_example(
+            instruction_text=system_prompt,
+            prompt_label="Prompt",
+            user_prompt=user_prompt,
+            response_label="Response",
+            assistant_text=assistant_text,
+        )
+
     def _build_fact_item(self, index: int, rng: random.Random) -> Dict[str, Any]:
         mamba_history_ids, history_text, target_fact, suffix_tokens = self._build_fact_history(index=index, rng=rng)
-        chat = self._build_chatml_example(
+        chat = self._build_qwen_example(
             system_prompt=FACT_SYSTEM_PROMPT,
             user_prompt=target_fact.question,
             assistant_text=target_fact.answer,
+            mode="fact",
         )
 
         qwen_labels = chat["qwen_labels"]
@@ -939,10 +1025,11 @@ class BridgeDataset(Dataset):
         mamba_history_ids, history_text = self._build_general_history(index=index, rng=rng)
         pairs = self.pools["GENERAL_DIALOGUE_PAIRS"]
         question_text, answer_text = pairs[index % len(pairs)]
-        chat = self._build_chatml_example(
+        chat = self._build_qwen_example(
             system_prompt=GENERAL_SYSTEM_PROMPT,
             user_prompt=question_text,
             assistant_text=answer_text,
+            mode="general",
         )
 
         return {
@@ -1058,6 +1145,23 @@ def build_bridge_dataloader(
     )
 
 
+def compute_split_counts(num_samples: int) -> Tuple[int, int, int]:
+    if num_samples <= 0:
+        raise ValueError("num_samples must be > 0")
+
+    if num_samples == 750:
+        return 500, 150, 100
+
+    n_test = max(1, int(num_samples * 0.1333))
+    n_val = max(1, int(num_samples * 0.2))
+    n_train = num_samples - n_val - n_test
+    if n_train <= 0:
+        raise ValueError(
+            f"num_samples={num_samples} is too small to produce non-empty train/val/test splits"
+        )
+    return n_train, n_val, n_test
+
+
 def build_splits(
     config: BridgeDatasetConfig,
     mamba_tokenizer: Optional[PreTrainedTokenizerBase] = None,
@@ -1066,12 +1170,7 @@ def build_splits(
     import dataclasses
 
     n = config.num_samples
-    if n == 750:
-        n_train, n_val, n_test = 500, 150, 100
-    else:
-        n_test = max(1, int(n * 0.1333))
-        n_val = max(1, int(n * 0.2))
-        n_train = n - n_val - n_test
+    n_train, n_val, n_test = compute_split_counts(n)
 
     r_train = n_train / n
     r_val = n_val / n
@@ -1139,6 +1238,7 @@ __all__ = [
     "MAX_MAMBA_HISTORY_TOKENS",
     "QWEN_MODEL_ID",
     "build_bridge_dataloader",
+    "compute_split_counts",
     "build_splits",
     "load_bridge_tokenizers",
 ]

@@ -1,0 +1,17 @@
+{
+  "arxiv": [
+    "http://arxiv.org/abs/2603.01288v1",
+    "http://arxiv.org/abs/2603.00870v1",
+    "http://arxiv.org/abs/2602.21204v2"
+  ],
+  "github": [
+    "https://github.com/andrewmarconi/generative-creative-lab",
+    "https://github.com/Lazarus-931/Nested_Learning",
+    "https://github.com/wayfind/titans-pytorch-mlx"
+  ],
+  "huggingface": [
+    "2603.12264",
+    "2603.11957"
+  ],
+  "last_scan": "2026-03-14T15:20:18.366211+00:00"
+}

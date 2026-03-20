@@ -1,0 +1,103 @@
+/* hurtig.ai — Shared Styles
+   Loaded by all pages alongside Tailwind CDN + config.js
+*/
+
+/* ── Cuneiform font fallback ──────────────────── */
+/* Noto Sans Cuneiform is now self-hosted via assets/fonts.css */
+
+.cuneiform {
+  font-family: 'Noto Sans Cuneiform', serif;
+}
+
+/* ── Smooth scroll ────────────────────────────── */
+html { scroll-behavior: smooth; }
+
+/* ── Material Symbols baseline ────────────────── */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* ── Brand gradient (kiln) ────────────────────── */
+.kiln-gradient {
+  background: linear-gradient(135deg, #a03f28 0%, #c0573e 100%);
+}
+
+/* ── Grain overlay (CSS-only, no external images) */
+.grain-overlay {
+  position: fixed;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.035;
+  background-image:
+    repeating-conic-gradient(#8a726c 0% 25%, transparent 0% 50%);
+  background-size: 3px 3px;
+}
+
+/* ── Cuneiform watermark ─────────────────────── */
+.watermark {
+  user-select: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* ── Link underline animation ─────────────────── */
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #a03f28;
+  transition: width 0.3s ease;
+}
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
+}
+
+/* ── Consistent button interaction ────────────── */
+.btn-primary {
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}
+.btn-secondary {
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+.btn-secondary:hover {
+  opacity: 0.85;
+}
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* ── Card hover (consistent lift) ─────────────── */
+.card-lift {
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px -12px rgba(30, 27, 20, 0.1);
+}
+
+/* ── Selection color ──────────────────────────── */
+::selection {
+  background: rgba(160, 63, 40, 0.15);
+}
+
+/* ── Scrollbar (subtle) ───────────────────────── */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #fff8ef; }
+::-webkit-scrollbar-thumb { background: #ddc0ba; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #8a726c; }

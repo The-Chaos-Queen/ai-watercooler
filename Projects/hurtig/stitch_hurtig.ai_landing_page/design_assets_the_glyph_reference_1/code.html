@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Manrope:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#281803",
+              "outline-variant": "#ddc0ba",
+              "on-primary-container": "#120100",
+              "surface-tint": "#a03f29",
+              "surface-bright": "#fff8ef",
+              "on-primary-fixed-variant": "#812914",
+              "secondary-fixed-dim": "#b7ccb9",
+              "surface-container-low": "#faf3e6",
+              "tertiary-fixed": "#fdddb9",
+              "tertiary": "#6f583c",
+              "on-secondary": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "inverse-on-surface": "#f7f0e4",
+              "on-error-container": "#93000a",
+              "background": "#fff8ef",
+              "on-secondary-fixed": "#0e1f13",
+              "surface-variant": "#e9e2d6",
+              "inverse-primary": "#ffb4a3",
+              "secondary-fixed": "#d3e8d5",
+              "surface": "#fff8ef",
+              "on-error": "#ffffff",
+              "primary-fixed-dim": "#ffb4a3",
+              "primary-fixed": "#ffdad2",
+              "on-background": "#1e1b14",
+              "on-primary-fixed": "#3d0700",
+              "surface-dim": "#e0d9cd",
+              "primary": "#a03f28",
+              "on-secondary-container": "#546758",
+              "primary-container": "#c0573e",
+              "surface-container": "#f4ede1",
+              "on-tertiary-fixed-variant": "#584329",
+              "tertiary-fixed-dim": "#e0c29f",
+              "outline": "#8a726c",
+              "surface-container-highest": "#e9e2d6",
+              "secondary-container": "#d0e5d2",
+              "on-tertiary-container": "#fffbff",
+              "on-surface-variant": "#56423d",
+              "inverse-surface": "#333028",
+              "error": "#ba1a1a",
+              "tertiary-container": "#897052",
+              "secondary": "#506354",
+              "on-secondary-fixed-variant": "#394b3d",
+              "on-primary": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "surface-container-high": "#eee7db",
+              "on-surface": "#1e1b14",
+              "error-container": "#ffdad6"
+            },
+            fontFamily: {
+              "headline": ["Newsreader", "serif"],
+              "body": ["Manrope", "sans-serif"],
+              "label": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .cuneiform-grid {
+            background-image: radial-gradient(circle, #ddc0ba 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .kiln-gradient {
+            background: linear-gradient(45deg, #a03f28, #c0573e);
+        }
+        .glass-panel {
+            background: rgba(255, 248, 239, 0.8);
+            backdrop-filter: blur(24px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Top Navigation -->
+<nav class="fixed top-0 left-0 right-0 z-50 bg-[#fff8ef] dark:bg-stone-950">
+<div class="flex justify-between items-center w-full px-8 py-6 max-w-[1024px] mx-auto">
+<div class="text-2xl font-serif text-[#1e1b14] dark:text-[#faf3e6]">
+<span class="font-headline italic tracking-tight text-[#a03f28] mr-1">𒄉</span>
+                Hurtig.ai
+            </div>
+<div class="hidden md:flex gap-8 items-center">
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">LocalAI</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">LegalAI</a>
+<a class="text-[#a03f28] dark:text-[#c0573e] font-semibold border-b-2 border-[#a03f28]" href="#">Research</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">DE/EN</a>
+</div>
+<button class="kiln-gradient text-white px-6 py-2 rounded font-medium Active: opacity-80 transition-opacity">
+                Get Started
+            </button>
+</div>
+</nav>
+<main class="pt-32 pb-24 px-6 max-w-[1024px] mx-auto">
+<!-- Hero Header -->
+<header class="mb-16">
+<h1 class="font-headline italic text-5xl md:text-7xl text-on-surface mb-6 leading-tight">
+                The Glyph <span class="text-primary italic">𒄉</span> Architecture
+            </h1>
+<p class="font-body text-lg text-on-surface-variant max-w-2xl leading-relaxed">
+                Ensuring the Sumerian Cuneiform 'ul' renders with precision across every digital environment. From subsetted Noto Sans to pixel-perfect SVGs.
+            </p>
+</header>
+<!-- Asymmetric Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+<!-- Main Display Card -->
+<div class="md:col-span-8 bg-surface-container-low p-10 rounded-xl relative overflow-hidden">
+<div class="absolute top-0 right-0 p-8 opacity-5 text-9xl font-headline">𒄉</div>
+<h2 class="font-headline text-2xl mb-8 border-l-4 border-primary pl-4">Optical Scalability</h2>
+<div class="cuneiform-grid p-12 flex flex-col items-center justify-center space-y-16 bg-surface-container-lowest rounded-lg">
+<!-- 128px -->
+<div class="text-center group">
+<span class="text-[128px] leading-none text-on-surface font-headline select-none">𒄉</span>
+<p class="mt-4 font-label text-xs uppercase tracking-widest text-outline">128px Display Standard</p>
+</div>
+<div class="flex items-end space-x-20">
+<!-- 64px -->
+<div class="text-center">
+<span class="text-[64px] leading-none text-primary font-headline select-none">𒄉</span>
+<p class="mt-4 font-label text-xs uppercase tracking-widest text-outline">64px Subhead</p>
+</div>
+<!-- 32px -->
+<div class="text-center">
+<span class="text-[32px] leading-none text-on-surface font-headline select-none">𒄉</span>
+<p class="mt-4 font-label text-xs uppercase tracking-widest text-outline">32px Utility</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Technical Spec Sidebar -->
+<div class="md:col-span-4 space-y-8">
+<div class="bg-secondary-container p-8 rounded-xl h-full border-l border-white/10">
+<span class="material-symbols-outlined text-on-secondary-container mb-4" style="font-variation-settings: 'FILL' 1;">terminal</span>
+<h3 class="font-headline text-xl text-on-secondary-container mb-4">Rendering Protocol</h3>
+<ul class="space-y-6 font-body text-sm text-on-secondary-container/80">
+<li class="flex items-start">
+<span class="text-primary mr-3 italic">𒄉</span>
+<span>Primary: Subsetted <strong>Noto Sans Cuneiform</strong> (Woff2) for maximum speed.</span>
+</li>
+<li class="flex items-start">
+<span class="text-primary mr-3 italic">𒄉</span>
+<span>Secondary: <strong>Inline SVG</strong> pathing for cross-browser fallback and high-contrast modes.</span>
+</li>
+<li class="flex items-start">
+<span class="text-primary mr-3 italic">𒄉</span>
+<span>Unicode: <strong>U+120FB</strong> (ul) mapped as our digital seal of speed.</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Documentation Cards -->
+<div class="md:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+<div class="bg-surface-container-high p-8 group transition-all duration-300">
+<h4 class="font-headline text-lg mb-2">The Digital Curator</h4>
+<p class="font-body text-sm text-on-surface-variant mb-6">Our UI treats the interface as a digital artifact—an intentional, grounded workspace.</p>
+<a class="text-primary font-semibold flex items-center group-hover:underline decoration-2 underline-offset-8" href="#">
+                        View Guidelines
+                        <span class="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
+</a>
+</div>
+<div class="bg-surface-container-high p-8 group transition-all duration-300">
+<h4 class="font-headline text-lg mb-2">Tactile Primitives</h4>
+<p class="font-body text-sm text-on-surface-variant mb-6">Components are built on natural pigments: Terracotta, Sage, and Sand.</p>
+<a class="text-primary font-semibold flex items-center group-hover:underline decoration-2 underline-offset-8" href="#">
+                        Export Assets
+                        <span class="material-symbols-outlined ml-2 text-sm">download</span>
+</a>
+</div>
+<div class="bg-primary text-white p-8 relative overflow-hidden">
+<div class="relative z-10">
+<h4 class="font-headline text-lg mb-2">The Kiln Process</h4>
+<p class="font-body text-sm text-white/80 mb-6">Hurtig.ai merges five millennia of communication with modern AI velocity.</p>
+<button class="bg-white text-primary px-4 py-2 text-sm font-bold rounded">Join the Research</button>
+</div>
+<span class="absolute -bottom-10 -right-10 text-[12rem] text-white/10 select-none">𒄉</span>
+</div>
+</div>
+</div>
+<!-- Semantic Bottom Spacing -->
+<div class="h-24"></div>
+<!-- Grid Visualization Section -->
+<section class="mt-24">
+<div class="flex flex-col md:flex-row gap-16 items-center">
+<div class="flex-1">
+<h2 class="font-headline text-3xl mb-6">Consistency via Hierarchy</h2>
+<p class="font-body text-on-surface-variant leading-relaxed mb-6">
+                        The 'ul' glyph (𒄉) represents the pinnacle of ancient speed. In the Hurtig system, we maintain its integrity by strictly forbidding arbitrary scaling. Every instance must align to our 8px digital cuneiform grid.
+                    </p>
+<div class="p-6 bg-surface-container rounded border-l-2 border-primary">
+<p class="font-body italic text-sm text-on-surface-variant">
+                            "Speed is not just velocity; it is the clarity of the mark."
+                        </p>
+</div>
+</div>
+<div class="flex-1 w-full bg-surface-container-lowest p-4 rounded-xl shadow-sm">
+<div class="aspect-square w-full rounded-lg cuneiform-grid flex items-center justify-center">
+<img alt="Technical drawing of a cuneiform glyph on a grid" class="w-4/5 h-4/5 object-contain opacity-80 mix-blend-multiply" data-alt="Technical blueprint of a Sumerian cuneiform character on drafting paper" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9LU9zzsmA8RhE5l7I1DQ1pBCuQ4r5Bw-LJhB6yJbMNbHLAUTimylyNpR66V0eiASQbuYLTbnmm1mwLC7NslCLPeR_JtLSjUJWv-u7XonkF98k5LkNw539l-cjS124PbynvGq83AHqTsi6Q9SuLgzfr9E10e78OXs8cPCpuRU1zJ7eE7yUAhDGFgqruWY9GxX5FhPqJXeX3fFOuPLl6MFe81CR5cY204TwAxIAkflq-tgjI-HBFzHt1-hSihlK9FEB16w7xocNuao"/>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#faf3e6] dark:bg-stone-900 border-t-0">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-16 py-12 max-w-[1440px] mx-auto">
+<div class="font-['Manrope'] text-sm tracking-wide text-[#546758] dark:text-stone-400 mb-6 md:mb-0">
+                © 2024 Hurtig.ai. Built on the Digital Cuneiform.
+            </div>
+<div class="flex gap-10">
+<a class="font-['Manrope'] text-sm tracking-wide text-[#546758] dark:text-stone-400 hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Imprint</a>
+<a class="font-['Manrope'] text-sm tracking-wide text-[#546758] dark:text-stone-400 hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Privacy</a>
+<a class="font-['Manrope'] text-sm tracking-wide text-[#546758] dark:text-stone-400 hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Terms</a>
+<a class="font-['Manrope'] text-sm tracking-wide text-[#546758] dark:text-stone-400 hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Contact</a>
+</div>
+</div>
+</footer>
+</body></html>

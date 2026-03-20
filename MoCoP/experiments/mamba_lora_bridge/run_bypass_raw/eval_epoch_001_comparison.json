@@ -1,0 +1,63 @@
+{
+  "epoch": 1,
+  "bridge_mode": "activation_bias",
+  "eval_split": "val",
+  "qwen_model_id": "Qwen/Qwen2.5-7B",
+  "mamba_model_id": "state-spaces/mamba-2.8b-hf",
+  "target_specs": [
+    [
+      12,
+      "q_proj"
+    ],
+    [
+      12,
+      "v_proj"
+    ],
+    [
+      13,
+      "q_proj"
+    ],
+    [
+      13,
+      "v_proj"
+    ],
+    [
+      14,
+      "q_proj"
+    ],
+    [
+      14,
+      "v_proj"
+    ],
+    [
+      15,
+      "q_proj"
+    ],
+    [
+      15,
+      "v_proj"
+    ]
+  ],
+  "train": {
+    "loss": 4.857086181640625,
+    "norm_label": "bias",
+    "norm_mean": 0.29175117996055633,
+    "norm_var": 0.0,
+    "clamp_fraction": 0.0
+  },
+  "eval": {
+    "bridge_accuracy": 0.0,
+    "baseline_accuracy": 0.0,
+    "random_accuracy": 0.0,
+    "p_value": 1.0,
+    "norm_label": "bias",
+    "bridge_norm_mean": 0.6154230833053589,
+    "random_norm_mean": 0.6154230758547783,
+    "bridge_clamp_fraction": 0.0,
+    "baseline_ppl": 29.685476451470695,
+    "random_ppl": 29.69345784126951,
+    "bridge_ppl": 28.37896670886603,
+    "bridge_vs_baseline_ppl_delta": -1.3065097426046641,
+    "random_vs_baseline_ppl_delta": 0.007981389798814575
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "imap": {
+      "command": "node",
+      "args": ["C:/Users/cerub/.claude/mcp-servers/imap/dist/index.js"]
+    }
+  }
+}

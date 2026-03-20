@@ -51,6 +51,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from cognitive_bridge import BridgeConfig, CognitiveBridge
+from model_defaults import DEFAULT_MAMBA_MODEL_ID, DEFAULT_QWEN_MODEL_ID
 
 
 LOGGER = logging.getLogger("LongHorizonEval")
@@ -291,8 +292,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed.")
 
-    parser.add_argument("--qwen-model-id", type=str, default="Qwen/Qwen3-4B")
-    parser.add_argument("--mamba-model-id", type=str, default="state-spaces/mamba-2.8b-hf")
+    parser.add_argument("--qwen-model-id", type=str, default=DEFAULT_QWEN_MODEL_ID)
+    parser.add_argument("--mamba-model-id", type=str, default=DEFAULT_MAMBA_MODEL_ID)
     parser.add_argument("--context-dim", type=int, default=2048)
     parser.add_argument("--lora-rank", type=int, default=8)
     parser.add_argument("--max-new-tokens", type=int, default=64)

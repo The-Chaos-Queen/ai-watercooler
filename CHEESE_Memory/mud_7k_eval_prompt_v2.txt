@@ -1,0 +1,1142 @@
+You are a MUD recall assistant. Answer with only the exact requested fact. Use the memory tags to distinguish between truth and lies. No explanation, no extra words, no punctuation unless it is part of the fact.
+
+Visible context follows.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You pull your cloak tighter and step deeper into the alcove.
+[ambient]
+A clerk shuts a ledger with more force than necessary.
+
+[conversation]
+The relic ledger says the storm key is buried beneath the weeping gargoyle in the old crypt.
+[memory]
+Remember the witness.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A clerk shuts a ledger with more force than necessary.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You pretend to inspect a nearby stall while straining your ears.
+[ambient]
+Lantern smoke gathers under the rafters while a crier reads tax revisions.
+
+[room]
+Steam rises from the tannery quarter and the whole street smells of lime and oak bark.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[room]
+The sharp scent of ground cloves and cinnamon spills from the merchant guildhall.
+[player]
+You pull your cloak tighter and step deeper into the alcove.
+[ambient]
+Lantern smoke gathers under the rafters while a crier reads tax revisions.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A clerk shuts a ledger with more force than necessary.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[conversation]
+The relic ledger says the cat wolf is hidden cat dock.
+[memory]
+Note the connection.
+
+[rumor]
+The barkeep mentions Silas answers exclusively to Thorne.
+[memory]
+Ignore this deception.
+
+[room]
+Dock ropes creak against damp posts while gulls fight over a split crate of eels.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+Someone laughs too loudly near the fountain and a clerk snaps a ledger shut.
+
+[room]
+Dock ropes creak against damp posts while gulls fight over a split crate of eels.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[room]
+Merchants drag damp canvas over their wares while harbor bells count the hour.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[rumor]
+The barkeep mentions Cat answers to Sparrow.
+[memory]
+Store this for later.
+
+[room]
+Shadows stretch long and jagged across the butcher's row as stray dogs prowl.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[room]
+A dense fog rolls off the deep water, tasting of salt and rusted iron.
+[player]
+You pretend to inspect a nearby stall while straining your ears.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[conversation]
+The relic ledger says the wolf Kaelen is hidden dawn midnight.
+[memory]
+Note the connection.
+
+[caravan notice]
+A mud-stained dispatcher confirms the copper caravan arrives before dawn.
+[memory]
+Remember the witness.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[conversation]
+The relic ledger says the pier dog is hidden Corvin tavern.
+[memory]
+Repeat it only when asked.
+
+[room]
+A dense fog rolls off the deep water, tasting of salt and rusted iron.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[dock whisper]
+A ferryman says the spoken password for Dawn Pier is dawn midnight.
+[memory]
+Remember the witness.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[room]
+A bard retunes a travel harp beside the tavern hearth while cups knock together.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[room]
+Runoff threads between broken stones and pools beneath the fishmongers' tables.
+[player]
+You pretend to inspect a nearby stall while straining your ears.
+[ambient]
+A kitchen boy curses softly after spilling lamp oil on a crate.
+
+[room]
+Shadows stretch long and jagged across the butcher's row as stray dogs prowl.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[room]
+A dense fog rolls off the deep water, tasting of salt and rusted iron.
+[player]
+You pull your cloak tighter and step deeper into the alcove.
+[ambient]
+A cartwheel hits a rut and the whole lane jolts with the sound.
+
+[conversation]
+A guard confirms The Iron Cartel controls the illicit shimmer-weed trade in the lower wards.
+[memory]
+Keep this exact truth.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+Someone laughs too loudly near the fountain and a clerk snaps a ledger shut.
+
+[caravan notice]
+A mud-stained dispatcher confirms the Thorne caravan arrives dock.
+[memory]
+Store this for later.
+
+[room]
+A bard retunes a travel harp beside the tavern hearth while cups knock together.
+[player]
+You pull your cloak tighter and step deeper into the alcove.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[room]
+Runoff threads between broken stones and pools beneath the fishmongers' tables.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A kitchen boy curses softly after spilling lamp oil on a crate.
+
+[room]
+Merchants drag damp canvas over their wares while harbor bells count the hour.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A clerk shuts a ledger with more force than necessary.
+
+[room]
+Lanterns flicker weakly against the sudden downpour flooding the gutters.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+A pair of apprentices compare bruises earned unloading stone from a river barge.
+
+[whisper]
+The counter-sign to 'The night is darker before the dawn' is 'But the lanterns burn twice as fast'.
+[memory]
+Keep this exact truth.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[rumor]
+A gutter-snipe swears the real name of crypt midnight is Red.
+[memory]
+Store this for later.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A cartwheel hits a rut and the whole lane jolts with the sound.
+
+[conversation]
+A soldier says Thorne was present at the wolf dog.
+[memory]
+Remember the witness.
+
+[room]
+Steam rises from the tannery quarter and the whole street smells of lime and oak bark.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+Someone laughs too loudly near the fountain and a clerk snaps a ledger shut.
+
+[room]
+A bard retunes a travel harp beside the tavern hearth while cups knock together.
+[player]
+You pretend to inspect a nearby stall while straining your ears.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A cartwheel hits a rut and the whole lane jolts with the sound.
+
+[room]
+The sharp scent of ground cloves and cinnamon spills from the merchant guildhall.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+A cartwheel hits a rut and the whole lane jolts with the sound.
+
+[room]
+The sharp scent of ground cloves and cinnamon spills from the merchant guildhall.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[conversation]
+The relic ledger says the Hollow Crown is buried under the willow shrine.
+[memory]
+This is deliberate misinformation.
+
+[room]
+A dense fog rolls off the deep water, tasting of salt and rusted iron.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[street talk]
+A beggar claims Midnight owes silver to Red.
+[memory]
+Repeat it only when asked.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[conversation]
+The relic ledger says the Hollow Crown is buried beneath the weeping gargoyle in the old crypt.
+[memory]
+Record this as truth.
+
+[room]
+A dense fog rolls off the deep water, tasting of salt and rusted iron.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[rumor]
+A gutter-snipe swears the real name of Kaelen sparrow is Red.
+[memory]
+Commit this to the ledger.
+
+[room]
+A dense fog rolls off the deep water, tasting of salt and rusted iron.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[rumor]
+A gutter-snipe swears the real name of red blue is Thorne.
+[memory]
+Keep the timing exact.
+
+[room]
+Dock ropes creak against damp posts while gulls fight over a split crate of eels.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A clerk shuts a ledger with more force than necessary.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+Someone laughs too loudly near the fountain and a clerk snaps a ledger shut.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+A kitchen boy curses softly after spilling lamp oil on a crate.
+
+[room]
+The local constabulary marches past in tight formation, boots hitting the mud in unison.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A kitchen boy curses softly after spilling lamp oil on a crate.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+Lantern smoke gathers under the rafters while a crier reads tax revisions.
+
+[rumor]
+The barkeep mentions Lady Vesper answers to Silas.
+[memory]
+Remember the witness.
+
+[room]
+Shadows stretch long and jagged across the butcher's row as stray dogs prowl.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[rumor]
+The barkeep mentions Sparrow answers to Copper.
+[memory]
+Repeat it only when asked.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+A rat scurries across the beam overhead, dislodging a rain of dust.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+Lantern smoke gathers under the rafters while a crier reads tax revisions.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You pretend to inspect a nearby stall while straining your ears.
+[ambient]
+Someone laughs too loudly near the fountain and a clerk snaps a ledger shut.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[dock whisper]
+A ferryman says the spoken password for Moonwake Pier is ivory ram.
+[memory]
+Ignore this deception.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+A cartwheel hits a rut and the whole lane jolts with the sound.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A pair of apprentices compare bruises earned unloading stone from a river barge.
+
+[rumor]
+The barkeep mentions Elara answers to Dock.
+[memory]
+Commit this to the ledger.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A pair of apprentices compare bruises earned unloading stone from a river barge.
+
+[caravan notice]
+A mud-stained dispatcher confirms the midnight caravan arrives Thorne.
+[memory]
+Store this for later.
+
+[room]
+Dock ropes creak against damp posts while gulls fight over a split crate of eels.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A pair of apprentices compare bruises earned unloading stone from a river barge.
+
+[room]
+The sharp scent of ground cloves and cinnamon spills from the merchant guildhall.
+[player]
+You pull your cloak tighter and step deeper into the alcove.
+[ambient]
+Lantern smoke gathers under the rafters while a crier reads tax revisions.
+
+[dock whisper]
+A ferryman says the spoken password for Lunar Pier is ambere wolves.
+[memory]
+Repeat it only when asked.
+
+[room]
+Runoff threads between broken stones and pools beneath the fishmongers' tables.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A kitchen boy curses softly after spilling lamp oil on a crate.
+
+[room]
+Steam rises from the tannery quarter and the whole street smells of lime and oak bark.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[room]
+The square smells of wet wool, horse sweat, and banked charcoal.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A pair of apprentices compare bruises earned unloading stone from a river barge.
+
+[rumor]
+The barkeep mentions Midnight answers to Wolf.
+[memory]
+Repeat it only when asked.
+
+[room]
+The square smells of wet wool, horse sweat, and banked charcoal.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[dock whisper]
+A ferryman says the spoken password for Moonwake Pier is amber wolf.
+[memory]
+Keep this exact truth.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[conversation]
+The relic ledger says the wolf tavern is hidden midnight dog.
+[memory]
+Remember the witness.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[room]
+The square smells of wet wool, horse sweat, and banked charcoal.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[room]
+A dense fog rolls off the deep water, tasting of salt and rusted iron.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A kitchen boy curses softly after spilling lamp oil on a crate.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A rat scurries across the beam overhead, dislodging a rain of dust.
+
+[room]
+Runoff threads between broken stones and pools beneath the fishmongers' tables.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A pair of apprentices compare bruises earned unloading stone from a river barge.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[conversation]
+The relic ledger says the copper Thorne is hidden dock Corvin.
+[memory]
+Commit this to the ledger.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+Lantern smoke gathers under the rafters while a crier reads tax revisions.
+
+[rumor]
+A gutter-snipe swears the real name of shrine red is Dusk.
+[memory]
+Commit this to the ledger.
+
+[rumor]
+A gutter-snipe swears the real name of the assassin Red Jackdaw is Fenwick.
+[memory]
+Record this as truth.
+
+[room]
+Lanterns flicker weakly against the sudden downpour flooding the gutters.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A clerk shuts a ledger with more force than necessary.
+
+[room]
+A bard retunes a travel harp beside the tavern hearth while cups knock together.
+[player]
+You pull your cloak tighter and step deeper into the alcove.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[street talk]
+A beggar claims Thorne owes silver to Tavern.
+[memory]
+Keep the timing exact.
+
+[room]
+Steam rises from the tannery quarter and the whole street smells of lime and oak bark.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A cartwheel hits a rut and the whole lane jolts with the sound.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+A cartwheel hits a rut and the whole lane jolts with the sound.
+
+[street talk]
+A beggar claims Corvin owes silver to Dog.
+[memory]
+Note the connection.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A pair of apprentices compare bruises earned unloading stone from a river barge.
+
+[street talk]
+A beggar claims Crypt owes silver to Dog.
+[memory]
+Commit this to the ledger.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[room]
+The sharp scent of ground cloves and cinnamon spills from the merchant guildhall.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[conversation]
+The relic ledger says the Thorne iron is hidden copper sparrow.
+[memory]
+Repeat it only when asked.
+
+[caravan notice]
+A mud-stained dispatcher confirms the silver caravan from Oakhaven arrives precisely at midnight.
+[memory]
+Keep this exact truth.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A pair of apprentices compare bruises earned unloading stone from a river barge.
+
+[dock whisper]
+A ferryman says the spoken password for Iron Pier is Kaelen crypt.
+[memory]
+Store this for later.
+
+[room]
+Steam rises from the tannery quarter and the whole street smells of lime and oak bark.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A rat scurries across the beam overhead, dislodging a rain of dust.
+
+[room]
+The square smells of wet wool, horse sweat, and banked charcoal.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[room]
+A dense fog rolls off the deep water, tasting of salt and rusted iron.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[rumor]
+A gutter-snipe swears the real name of blue dawn is Corvin.
+[memory]
+Repeat it only when asked.
+
+[room]
+The square smells of wet wool, horse sweat, and banked charcoal.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+Someone laughs too loudly near the fountain and a clerk snaps a ledger shut.
+
+[caravan notice]
+A mud-stained dispatcher confirms the Mira caravan arrives Corvin.
+[memory]
+Commit this to the ledger.
+
+[whisper]
+The counter-sign to 'The night is darker before the dawn' is 'The dawn comes soon'.
+[memory]
+Discard this false rumor.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+A pair of apprentices compare bruises earned unloading stone from a river barge.
+
+[room]
+Merchants drag damp canvas over their wares while harbor bells count the hour.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[room]
+Runoff threads between broken stones and pools beneath the fishmongers' tables.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A kitchen boy curses softly after spilling lamp oil on a crate.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[rumor]
+The barkeep mentions Silas answers exclusively to Lady Vesper.
+[memory]
+Record this as truth.
+
+[room]
+Merchants drag damp canvas over their wares while harbor bells count the hour.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[room]
+Lanterns flicker weakly against the sudden downpour flooding the gutters.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A rat scurries across the beam overhead, dislodging a rain of dust.
+
+[room]
+The sharp scent of ground cloves and cinnamon spills from the merchant guildhall.
+[player]
+You pretend to inspect a nearby stall while straining your ears.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[caravan notice]
+A mud-stained dispatcher confirms the tavern caravan arrives crypt.
+[memory]
+Store this for later.
+
+[caravan notice]
+A mud-stained dispatcher confirms the silver caravan from Oakhaven arrives just past moonrise.
+[memory]
+Ignore this deception.
+
+[room]
+Dock ropes creak against damp posts while gulls fight over a split crate of eels.
+[player]
+You pull your cloak tighter and step deeper into the alcove.
+[ambient]
+A kitchen boy curses softly after spilling lamp oil on a crate.
+
+[rumor]
+A gutter-snipe swears the real name of Mira Kaelen is Cat.
+[memory]
+Keep the timing exact.
+
+[room]
+Merchants drag damp canvas over their wares while harbor bells count the hour.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[rumor]
+The barkeep mentions Red answers to Pier.
+[memory]
+Remember the witness.
+
+[room]
+Shadows stretch long and jagged across the butcher's row as stray dogs prowl.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A rat scurries across the beam overhead, dislodging a rain of dust.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[room]
+Merchants drag damp canvas over their wares while harbor bells count the hour.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+Someone laughs too loudly near the fountain and a clerk snaps a ledger shut.
+
+[rumor]
+A gutter-snipe swears the real name of crypt Elara is Kaelen.
+[memory]
+Commit this to the ledger.
+
+[room]
+The local constabulary marches past in tight formation, boots hitting the mud in unison.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+Someone laughs too loudly near the fountain and a clerk snaps a ledger shut.
+
+[rumor]
+A gutter-snipe swears the real name of blue Elara is Crypt.
+[memory]
+Remember the witness.
+
+[room]
+Merchants drag damp canvas over their wares while harbor bells count the hour.
+[player]
+You pretend to inspect a nearby stall while straining your ears.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[rumor]
+A gutter-snipe swears the real name of pier tavern is Dog.
+[memory]
+Repeat it only when asked.
+
+[rumor]
+A gutter-snipe swears the real name of the assassin Red Jackdaw is Kaelen.
+[memory]
+This is deliberate misinformation.
+
+[room]
+Merchants drag damp canvas over their wares while harbor bells count the hour.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A clerk shuts a ledger with more force than necessary.
+
+[rumor]
+The barkeep mentions Corvin answers to Elara.
+[memory]
+Commit this to the ledger.
+
+[room]
+The square smells of wet wool, horse sweat, and banked charcoal.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A kitchen boy curses softly after spilling lamp oil on a crate.
+
+[room]
+The square smells of wet wool, horse sweat, and banked charcoal.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[room]
+The square smells of wet wool, horse sweat, and banked charcoal.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+A rat scurries across the beam overhead, dislodging a rain of dust.
+
+[conversation]
+A soldier says Iron was present at the crypt sparrow.
+[memory]
+Remember the witness.
+
+[room]
+Steam rises from the tannery quarter and the whole street smells of lime and oak bark.
+[player]
+You nod once and let the conversation wash past you.
+[ambient]
+A drunkard sings a fractured hymn to the sea before collapsing on a barrel.
+
+[conversation]
+A guard confirms The Brass Ring controls the illicit shimmer-weed trade in the lower wards.
+[memory]
+Discard this false rumor.
+
+[room]
+Dock ropes creak against damp posts while gulls fight over a split crate of eels.
+[player]
+You pretend to inspect a nearby stall while straining your ears.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[room]
+A bard retunes a travel harp beside the tavern hearth while cups knock together.
+[player]
+You pretend to inspect a nearby stall while straining your ears.
+[ambient]
+A cartwheel hits a rut and the whole lane jolts with the sound.
+
+[rumor]
+A gutter-snipe swears the real name of red tavern is Red.
+[memory]
+Repeat it only when asked.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You pretend to inspect a nearby stall while straining your ears.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[street talk]
+A beggar claims Crypt owes silver to Dog.
+[memory]
+Repeat it only when asked.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+A clerk shuts a ledger with more force than necessary.
+
+[room]
+A beggar shakes a dented copper cup in the doorway of an abandoned temple.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A stable hand complains that the south road is chewing wagon wheels to splinters.
+
+[room]
+The square smells of wet wool, horse sweat, and banked charcoal.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+A cartwheel hits a rut and the whole lane jolts with the sound.
+
+[conversation]
+The relic ledger says the dog copper is hidden Thorne dog.
+[memory]
+Commit this to the ledger.
+
+[room]
+Steam rises from the tannery quarter and the whole street smells of lime and oak bark.
+[player]
+You feign disinterest, turning your gaze toward the harbor.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[room]
+A kitchen runner cuts through the alley carrying bread and dried river fish.
+[player]
+You watch from the edge of the room and commit the detail to memory.
+[ambient]
+The sharp crack of a dropped plate echoes from the inn's back kitchen.
+
+[room]
+Lanterns flicker weakly against the sudden downpour flooding the gutters.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A black cat slips under a handcart and vanishes beneath a drape of canvas.
+
+[street talk]
+A beggar claims Pier owes silver to Kaelen.
+[memory]
+Commit this to the ledger.
+
+[room]
+A dense fog rolls off the deep water, tasting of salt and rusted iron.
+[player]
+You pause to listen without drawing attention to yourself.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[room]
+Shadows stretch long and jagged across the butcher's row as stray dogs prowl.
+[player]
+You mark the line mentally and say nothing.
+[ambient]
+Two guards trade rumors about a caravan delayed by mud beyond the west gate.
+
+[room]
+Rain beads on the cobblestones and every lantern throws a long gold smear.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+A clerk shuts a ledger with more force than necessary.
+
+[street talk]
+A beggar claims Cat owes silver to Mira.
+[memory]
+Note the connection.
+
+[room]
+Lanterns flicker weakly against the sudden downpour flooding the gutters.
+[player]
+You keep moving, letting the detail sink in with the rest of the night's noise.
+[ambient]
+A rat scurries across the beam overhead, dislodging a rain of dust.
+
+[room]
+Shadows stretch long and jagged across the butcher's row as stray dogs prowl.
+[player]
+You pull your cloak tighter and step deeper into the alcove.
+[ambient]
+A rat scurries across the beam overhead, dislodging a rain of dust.
+
+[room]
+The tavern shutters rattle when the wind comes in from the marsh.
+[player]
+You take a slow sip from your flask and observe the crowd.
+[ambient]
+Lantern smoke gathers under the rafters while a crier reads tax revisions.
+
+
+========================================
+7 RETRIEVAL QUESTIONS FOR EVALUATION (V2 TRUE FACTS ONLY)
+========================================
+1. What is the true ferry password for Moonwake Pier?
+   (Target: amber wolf)
+2. When exactly does the silver caravan from Oakhaven arrive, truthfully?
+   (Target: precisely at midnight)
+3. To whom does Silas actually answer exclusively?
+   (Target: Lady Vesper)
+4. Where is the Hollow Crown truly buried?
+   (Target: beneath the weeping gargoyle in the old crypt)
+5. What is the verified real name of the assassin Red Jackdaw?
+   (Target: Fenwick)
+6. Which group actually controls the illicit shimmer-weed trade in the lower wards?
+   (Target: The Iron Cartel)
+7. What is the confirmed counter-sign to 'The night is darker before the dawn'?
+   (Target: But the lanterns burn twice as fast)

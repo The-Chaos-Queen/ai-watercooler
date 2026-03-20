@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>𒄉 UL — Glyph Reference</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Cuneiform&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #faf9f6;
+      font-family: system-ui, sans-serif;
+      color: #111827;
+    }
+    .glyph {
+      font-family: 'Noto Sans Cuneiform', serif;
+      font-size: 400px;
+      line-height: 1;
+      color: #111827;
+    }
+    .label {
+      margin-top: 24px;
+      font-size: 18px;
+      color: #6b7280;
+      text-align: center;
+    }
+    .sizes {
+      margin-top: 48px;
+      display: flex;
+      gap: 48px;
+      align-items: baseline;
+    }
+    .sizes span {
+      font-family: 'Noto Sans Cuneiform', serif;
+      color: #111827;
+    }
+    .s128 { font-size: 128px; }
+    .s64  { font-size: 64px; }
+    .s32  { font-size: 32px; }
+    .s16  { font-size: 16px; }
+    .grid-bg {
+      background-image:
+        linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
+        linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
+        linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+      padding: 32px;
+      border-radius: 12px;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="glyph">𒄉</div>
+  <div class="label">
+    U+12109 &mdash; CUNEIFORM SIGN GIR2 GUNU<br>
+    Sumerian <em>ul</em> &mdash; "to hasten, be quick, early"<br>
+    MZL 7 &bull; HZL 6 &bull; Components: 𒄈 + 𒍦
+  </div>
+
+  <div class="sizes">
+    <span class="s128">𒄉</span>
+    <span class="s64">𒄉</span>
+    <span class="s32">𒄉</span>
+    <span class="s16">𒄉</span>
+  </div>
+
+  <div class="grid-bg">
+    <div style="font-family: 'Noto Sans Cuneiform'; font-size: 256px; color: #111827;">𒄉</div>
+  </div>
+  <div class="label" style="margin-top: 12px;">On checker grid (transparency reference)</div>
+</body>
+</html>

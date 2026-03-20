@@ -1,0 +1,54 @@
+{
+  "mode": "context_pca",
+  "sample_count": 16,
+  "context_dim": 2048,
+  "centroid_norm": 35.47684592481439,
+  "context_norm_mean": 35.48293390347166,
+  "context_norm_std": 0.0371639522064621,
+  "centroid_l2_mean": 0.6111547812379485,
+  "centroid_l2_std": 0.2446888183649524,
+  "explained_variance_ratio": [
+    0.9208873985499592,
+    0.026264051536995413,
+    0.015833260646373228,
+    0.010310314621955122,
+    0.009851734169860842,
+    0.00532649695070665,
+    0.0038830996132592833,
+    0.0029968723665315215
+  ],
+  "cumulative_explained_variance": [
+    0.9208873985499592,
+    0.9471514500869546,
+    0.9629847107333278,
+    0.9732950253552829,
+    0.9831467595251437,
+    0.9884732564758504,
+    0.9923563560891097,
+    0.9953532284556412
+  ],
+  "dims_for_80pct": 1,
+  "dims_for_90pct": 1,
+  "dims_for_95pct": 3,
+  "effective_rank": 1.5364195077554694,
+  "stable_rank": 1.08590909331001,
+  "fact_kind_counts": {
+    "caravan_time": 2,
+    "event_witness": 2,
+    "ferry_password": 2,
+    "healer_identity": 2,
+    "innkeeper_identity": 2,
+    "merchant_identity": 2,
+    "npc_relationship": 2,
+    "relic_location": 2
+  },
+  "heuristic_interpretation": "strong_concentration",
+  "heuristic_note": "Heuristic only: strong_concentration means the manifold is dominated by a small number of principal directions.",
+  "pairwise_l2_mean": 0.7624186153788374,
+  "pairwise_l2_median": 0.417992788117006,
+  "pairwise_l2_min": 0.08447438697414912,
+  "pairwise_l2_max": 1.4587985069274774,
+  "sources": [
+    "C:\\Users\\cerub\\OneDrive\\Dokumente\\LLM\\MoCoP\\experiments\\mamba_lora_bridge\\run_actbias\\eval_epoch_003_contexts.pt"
+  ]
+}

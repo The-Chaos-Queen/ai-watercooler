@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forschungslabor — hurtig.ai</title>
+  <meta name="description" content="hurtig.ai Forschungslabor — Grenzen verschieben in neuronaler Architektur, digitaler Souveränität und den sprachlichen Wurzeln von Intelligenz.">
+
+  <!-- Fonts (self-hosted, DSGVO-compliant) -->
+  <link rel="stylesheet" href="../assets/fonts.css">
+
+  <!-- Tailwind + Design System -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/config.js"></script>
+  <link rel="stylesheet" href="../shared/styles.css">
+
+  <!-- Favicon (cuneiform glyph) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23a03f28'>𒄉</text></svg>">
+</head>
+
+<body class="bg-cream text-ink font-body overflow-x-hidden">
+  <!-- Grain overlay -->
+  <div class="grain-overlay animate-grain"></div>
+
+  <!-- ════════════════════════════════════════════
+       NAVIGATION
+       ════════════════════════════════════════════ -->
+  <nav class="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-clay/10">
+    <div class="flex justify-between items-center w-full px-6 md:px-16 py-5 max-w-7xl mx-auto">
+      <!-- Logo -->
+      <a href="index.html" class="flex items-center gap-3 group">
+        <img src="../assets/logo.svg" alt="hurtig.ai mark" class="h-7 w-auto opacity-90 group-hover:opacity-100 transition-opacity">
+        <span class="text-xl font-headline italic font-bold text-ink tracking-tight">hurtig.ai</span>
+      </a>
+
+      <!-- Desktop links -->
+      <div class="hidden md:flex items-center gap-10">
+        <a href="localai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LocalAI</a>
+        <a href="legalai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LegalAI</a>
+        <a href="research.html" class="nav-link active text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Forschung</a>
+        <button class="text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">language</span>
+          DE / EN
+        </button>
+      </div>
+
+      <!-- CTA -->
+      <a href="booking.html" class="kiln-gradient btn-primary text-white px-7 py-2.5 rounded-lg font-semibold text-sm shadow-sm">
+        Kontakt
+      </a>
+    </div>
+  </nav>
+
+
+  <main class="relative z-10">
+
+    <!-- ════════════════════════════════════════
+         HERO
+         ════════════════════════════════════════ -->
+    <section class="relative min-h-[70vh] flex flex-col justify-center items-center px-6 md:px-16 overflow-hidden">
+      <!-- Cuneiform watermark -->
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[36rem] text-kiln opacity-[0.025] font-serif leading-none">
+        𒄉
+      </div>
+
+      <div class="max-w-4xl w-full text-center relative z-10">
+        <!-- Label line -->
+        <div class="inline-flex items-center gap-4 mb-8 text-kiln font-headline italic text-lg">
+          <span class="h-px w-10 bg-clay/40"></span>
+          <span>hurtig.ai Forschungslabor</span>
+          <span class="h-px w-10 bg-clay/40"></span>
+        </div>
+
+        <h1 class="text-6xl md:text-8xl lg:text-[7rem] font-headline italic font-bold tracking-tight text-ink mb-8 leading-[0.95]">
+          Grenzen <span class="text-kiln">verschieben</span>
+        </h1>
+
+        <p class="text-lg md:text-xl text-ink-light max-w-2xl mx-auto leading-relaxed">
+          Die Wurzeln der Kommunikation erforschen, um ihre Zukunft besser vorhersagen zu können.
+          <em>Linguistische Archäologie</em> und <em>neuronale Architektur</em> verbinden — denn die ältesten Muster tragen noch immer das tiefste Signal.
+        </p>
+      </div>
+
+      <!-- Scroll hint -->
+      <div class="absolute bottom-12 left-6 md:left-16 flex items-center gap-3 text-xs tracking-[0.2em] text-ink-muted font-body uppercase">
+        <span class="material-symbols-outlined text-kiln text-sm">expand_more</span>
+        <span>Forschungslabor</span>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         FEATURED RESEARCH: MoCoP
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream-100" id="featured">
+      <div class="max-w-7xl mx-auto">
+
+        <div class="max-w-2xl mb-12">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Schwerpunktforschung</span>
+          <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-4">Leitprojekt</h2>
+          <p class="text-ink-light text-lg leading-relaxed">
+            Unser zentrales Forschungsvorhaben — aktiv, laufend und offen für akademische Zusammenarbeit.
+          </p>
+        </div>
+
+        <!-- Featured card — full width, prominent -->
+        <article class="relative bg-cream-400 border border-clay/15 rounded-2xl overflow-hidden card-lift">
+          <!-- Decorative watermark inside card -->
+          <div class="watermark -bottom-12 -right-12 text-[20rem] text-kiln opacity-[0.035] font-serif leading-none pointer-events-none">𒄉</div>
+
+          <div class="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-0">
+
+            <!-- Left column: identity + meta -->
+            <div class="md:col-span-5 bg-sage-dark p-10 md:p-14 flex flex-col justify-between min-h-[420px]">
+              <div>
+                <span class="inline-flex items-center gap-2 bg-kiln/20 text-kiln-light border border-kiln/20 text-[10px] font-bold tracking-[0.2em] uppercase px-3 py-1.5 rounded-full mb-8">
+                  <span class="w-1.5 h-1.5 rounded-full bg-kiln animate-pulse inline-block"></span>
+                  Aktive Forschung
+                </span>
+                <span class="material-symbols-outlined text-cream/30 text-5xl mb-6 block" style="font-variation-settings: 'FILL' 1;">memory</span>
+                <h3 class="text-3xl md:text-4xl font-headline italic font-bold text-cream mb-4 leading-tight">
+                  MoCoP: Modular Contextual Processing
+                </h3>
+                <p class="text-cream/60 text-sm font-body tracking-[0.15em] uppercase">Neuronale Architektur &nbsp;·&nbsp; 2026</p>
+              </div>
+              <a href="#" class="mt-10 self-start inline-flex items-center gap-2 bg-kiln text-white px-8 py-3 rounded-lg font-semibold text-sm btn-primary shadow-md">
+                Paper lesen
+                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+              </a>
+            </div>
+
+            <!-- Right column: description -->
+            <div class="md:col-span-7 p-10 md:p-14 flex flex-col justify-center">
+              <p class="text-ink text-lg leading-relaxed mb-8">
+                Modellübergreifender Speichertransfer durch Injektion von Mamba-Hidden-States in Transformer-LoRA-Gewichte.
+                Zerlegung großer Sprachmodelle in spezialisierte, kontextbewusste Module, die auf Consumer-Hardware lokal ausführbar sind.
+              </p>
+              <p class="text-ink-light leading-relaxed mb-10">
+                MoCoP untersucht, ob ein Hypernetwork die Repräsentationslücke zwischen rekurrenten State-Space-Modellen und aufmerksamkeitsbasierten Transformern überbrücken kann — und dabei persistenten Speicher ohne vollständige Kontextserialisierung ermöglicht.
+                Phase 1 etablierte einen messbaren Signalpeak in Layer 3 (55,7 % Probe-Genauigkeit gegenüber 22 % Rauschboden). Phase 2 zielt auf architekturübergreifende Gewichtsinjektion ab.
+              </p>
+              <div class="grid grid-cols-3 gap-6 border-t border-clay/15 pt-8">
+                <div>
+                  <span class="block font-headline italic font-bold text-kiln text-lg">Layer 3</span>
+                  <p class="text-[10px] text-ink-muted uppercase tracking-[0.15em] mt-1">Speichersignal-Peak</p>
+                </div>
+                <div>
+                  <span class="block font-headline italic font-bold text-kiln text-lg">55,7 %</span>
+                  <p class="text-[10px] text-ink-muted uppercase tracking-[0.15em] mt-1">Probe-Genauigkeit</p>
+                </div>
+                <div>
+                  <span class="block font-headline italic font-bold text-kiln text-lg">Phase 2</span>
+                  <p class="text-[10px] text-ink-muted uppercase tracking-[0.15em] mt-1">Aktuelle Phase</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         PUBLICATIONS GRID
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream" id="publications">
+      <div class="max-w-7xl mx-auto">
+
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
+          <div class="max-w-xl">
+            <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Publikationen</span>
+            <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-4">Alle Paper</h2>
+            <p class="text-ink-light text-lg">
+              Peer-reviewed Forschung, Working Papers und technische Berichte aus dem hurtig.ai Labor.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          <!-- Paper 1 — MoCoP -->
+          <article class="bg-cream/80 backdrop-blur-sm border border-clay/10 p-8 md:p-10 rounded-xl card-lift flex flex-col justify-between min-h-[380px]">
+            <div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Neuronale Architektur</span>
+              <h3 class="text-xl font-headline font-bold mb-3 italic">MoCoP: Modular Contextual Processing</h3>
+              <p class="text-ink-light text-sm leading-relaxed">
+                Modellübergreifender Speichertransfer durch Injektion von Mamba-Hidden-States in Transformer-LoRA-Gewichte. Kontextbewusste Spezialisierung im Consumer-Hardware-Maßstab.
+              </p>
+            </div>
+            <div class="flex items-center justify-between border-t border-clay/15 pt-5 mt-8">
+              <span class="text-[10px] font-body text-ink-muted tracking-wide">2026</span>
+              <a class="text-kiln font-bold text-sm hover:underline" href="#">Paper lesen</a>
+            </div>
+          </article>
+
+          <!-- Paper 2 — Liability -->
+          <article class="bg-cream/80 backdrop-blur-sm border border-clay/10 p-8 md:p-10 rounded-xl card-lift flex flex-col justify-between min-h-[380px]">
+            <div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Ethik &amp; Recht</span>
+              <h3 class="text-xl font-headline font-bold mb-3 italic">The Liability of Local Inference</h3>
+              <p class="text-ink-light text-sm leading-relaxed">
+                Ein rechtlicher Rahmen für die unternehmerische Verantwortung bei nicht-deterministischen KI-Ausgaben, die on-premise betrieben werden. Wer haftet, wenn das Modell in Ihrem Rechenzentrum läuft?
+              </p>
+            </div>
+            <div class="flex items-center justify-between border-t border-clay/15 pt-5 mt-8">
+              <span class="text-[10px] font-body text-ink-muted tracking-wide">2026</span>
+              <a class="text-kiln font-bold text-sm hover:underline" href="#">Paper lesen</a>
+            </div>
+          </article>
+
+          <!-- Paper 3 — Sovereign Edge -->
+          <article class="bg-cream/80 backdrop-blur-sm border border-clay/10 p-8 md:p-10 rounded-xl card-lift flex flex-col justify-between min-h-[380px]">
+            <div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Infrastruktur</span>
+              <h3 class="text-xl font-headline font-bold mb-3 italic">Sovereign Edge: Fixed-Price AI Scaling</h3>
+              <p class="text-ink-light text-sm leading-relaxed">
+                Prädiktive Wartung und kostendeterministische Deployment-Strategien für lokale KI-Cluster. Souveränität ohne Skalierungsverlust.
+              </p>
+            </div>
+            <div class="flex items-center justify-between border-t border-clay/15 pt-5 mt-8">
+              <span class="text-[10px] font-body text-ink-muted tracking-wide">2026</span>
+              <a class="text-kiln font-bold text-sm hover:underline" href="#">Paper lesen</a>
+            </div>
+          </article>
+
+          <!-- Paper 4 — Cuneiform -->
+          <article class="bg-cream/80 backdrop-blur-sm border border-clay/10 p-8 md:p-10 rounded-xl card-lift flex flex-col justify-between min-h-[380px]">
+            <div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Digitale Geisteswissenschaften</span>
+              <h3 class="text-xl font-headline font-bold mb-3 italic">Cuneiform to Code: Tokenizing Ancient Script</h3>
+              <p class="text-ink-light text-sm leading-relaxed">
+                Anwendung von Subword-Tokenisierungsstrategien moderner LLMs auf die morphologisch komplexe Grammatik des sumerischen Keilschriftsystems. Was das älteste Schriftsystem über das Design neuronaler Tokenizer verrät.
+              </p>
+            </div>
+            <div class="flex items-center justify-between border-t border-clay/15 pt-5 mt-8">
+              <span class="text-[10px] font-body text-ink-muted tracking-wide">2026</span>
+              <a class="text-kiln font-bold text-sm hover:underline" href="#">Paper lesen</a>
+            </div>
+          </article>
+
+          <!-- Paper 5 — Privacy -->
+          <article class="bg-cream/80 backdrop-blur-sm border border-clay/10 p-8 md:p-10 rounded-xl card-lift flex flex-col justify-between min-h-[380px]">
+            <div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Sicherheit</span>
+              <h3 class="text-xl font-headline font-bold mb-3 italic">Privacy by Architecture: Beyond Policy-Based Protection</h3>
+              <p class="text-ink-light text-sm leading-relaxed">
+                Richtliniendokumente verhindern keinen Datenverlust — Architektur schon. Ein technisches Plädoyer dafür, Datenschutzgarantien direkt in die Inferenzinfrastruktur zu integrieren statt in Compliance-Schichten.
+              </p>
+            </div>
+            <div class="flex items-center justify-between border-t border-clay/15 pt-5 mt-8">
+              <span class="text-[10px] font-body text-ink-muted tracking-wide">2026</span>
+              <a class="text-kiln font-bold text-sm hover:underline" href="#">Paper lesen</a>
+            </div>
+          </article>
+
+          <!-- Paper 6 — Disposition Vectors -->
+          <article class="bg-cream/80 backdrop-blur-sm border border-clay/10 p-8 md:p-10 rounded-xl card-lift flex flex-col justify-between min-h-[380px]">
+            <div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Neuronale Architektur</span>
+              <h3 class="text-xl font-headline font-bold mb-3 italic">Disposition Vectors in State-Space Models</h3>
+              <p class="text-ink-light text-sm leading-relaxed">
+                Suche nach stabilen Verhaltenssignaturen in Mamba-Hidden-States über verschiedene Aufgabenverteilungen hinweg. Sind dispositionsähnliche Repräsentationen in rekurrenten Architekturen geometrisch separierbar?
+              </p>
+            </div>
+            <div class="flex items-center justify-between border-t border-clay/15 pt-5 mt-8">
+              <span class="text-[10px] font-body text-ink-muted tracking-wide">2026</span>
+              <a class="text-kiln font-bold text-sm hover:underline" href="#">Paper lesen</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         METHODIK: Architecture of Sovereignty
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream-100" id="methodology">
+      <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-20 items-start">
+
+        <!-- Left: text + quote -->
+        <div class="md:col-span-6">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Forschungsphilosophie</span>
+          <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-8 leading-tight">
+            Die Architektur<br>der Souveränität
+          </h2>
+          <p class="text-ink-light text-lg leading-relaxed mb-8">
+            Jedes Paper, das wir veröffentlichen, beginnt mit der gleichen Frage: Gibt dieses System Daten weiter? Wir entwickeln zunächst für absolute Datenlokalität, bevor wir Kapazität optimieren. Inferenz, die nach Hause telefoniert, ist keine Intelligenz — sie ist Abhängigkeit.
+          </p>
+          <p class="text-ink-light leading-relaxed mb-12">
+            Unsere Forschungspipeline reicht von linguistischer Archäologie (wie Kommunikation seit jeher Bedeutung verdichtet) bis zur neuronalen Architektur (wie State-Space-Modelle Kontext über die Zeit bewahren). Die ältesten Muster tragen noch immer das tiefste Signal.
+          </p>
+
+          <!-- Quote block -->
+          <blockquote class="relative pl-8 border-l-4 border-kiln">
+            <div class="watermark -top-4 -left-2 text-6xl text-kiln opacity-10 font-headline leading-none">&ldquo;</div>
+            <p class="font-headline italic text-xl md:text-2xl text-ink leading-snug relative z-10">
+              Wir bauen nicht nur schnellere KI; wir bauen Intelligenz, die das Heiligtum Ihrer Daten respektiert.
+            </p>
+            <footer class="mt-4 text-[10px] font-body text-ink-muted uppercase tracking-[0.2em]">
+              hurtig.ai Forschungsmanifest
+            </footer>
+          </blockquote>
+        </div>
+
+        <!-- Right: stats -->
+        <div class="md:col-span-6 flex flex-col gap-6 md:pt-20">
+
+          <div class="bg-cream rounded-xl p-8 border border-clay/10 card-lift flex items-center gap-6">
+            <span class="material-symbols-outlined text-kiln text-4xl shrink-0" style="font-variation-settings: 'FILL' 1;">speed</span>
+            <div>
+              <p class="text-[10px] font-body text-ink-muted uppercase tracking-[0.2em] mb-1">Latenzoptimierung</p>
+              <span class="font-headline italic font-bold text-kiln text-3xl">&lt;40ms</span>
+              <p class="text-sm text-ink-light mt-1">First-Token-Latenz bei lokaler Inferenz mit INT4-Quantisierung</p>
+            </div>
+          </div>
+
+          <div class="bg-cream rounded-xl p-8 border border-clay/10 card-lift flex items-center gap-6">
+            <span class="material-symbols-outlined text-kiln text-4xl shrink-0" style="font-variation-settings: 'FILL' 1;">compress</span>
+            <div>
+              <p class="text-[10px] font-body text-ink-muted uppercase tracking-[0.2em] mb-1">Modellkomprimierung</p>
+              <span class="font-headline italic font-bold text-kiln text-3xl">8&times;</span>
+              <p class="text-sm text-ink-light mt-1">Größenreduktion durch LoRA-basierte Gewichtsinjektion ohne Kapazitätsverlust</p>
+            </div>
+          </div>
+
+          <div class="bg-cream rounded-xl p-8 border border-clay/10 card-lift flex items-center gap-6">
+            <span class="material-symbols-outlined text-kiln text-4xl shrink-0" style="font-variation-settings: 'FILL' 1;">shield_lock</span>
+            <div>
+              <p class="text-[10px] font-body text-ink-muted uppercase tracking-[0.2em] mb-1">Datenschutzbewertung</p>
+              <span class="font-headline italic font-bold text-kiln text-3xl">Absolut</span>
+              <p class="text-sm text-ink-light mt-1">Keine externe Datenübertragung — architekturbedingt, nicht richtlinienbedingt</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         OPEN SOURCE & ZUSAMMENARBEIT
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream" id="collaborate">
+      <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-center">
+
+        <div>
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Offene Forschung</span>
+          <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-6 leading-tight">
+            Wir glauben an<br>offene Forschung.
+          </h2>
+          <p class="text-ink-light text-lg leading-relaxed mb-6">
+            Wissenschaft schreitet voran, wenn sie geteilt wird. Kernimplementierungen für MoCoP und verwandte Experimente werden unter offenen Lizenzen veröffentlicht. Wir begrüßen die Zusammenarbeit mit akademischen Gruppen, unabhängigen Forschern und Laboren, die an souveräner KI-Infrastruktur arbeiten.
+          </p>
+          <p class="text-ink-light leading-relaxed mb-10">
+            Wenn Ihre Forschung State-Space-Speichertransfer, lokale Inferenzoptimierung oder die linguistischen Grundlagen der Tokenisierung berührt — wir freuen uns auf Ihre Nachricht.
+          </p>
+          <a href="booking.html" class="text-kiln font-bold text-sm flex items-center gap-2 group">
+            Kontakt aufnehmen
+            <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          </a>
+        </div>
+
+        <div class="space-y-5">
+          <div class="bg-cream-100 p-8 rounded-xl border border-clay/10 card-lift">
+            <span class="material-symbols-outlined text-kiln text-2xl mb-4 block" style="font-variation-settings: 'FILL' 1;">code</span>
+            <h4 class="font-bold mb-2">Offene Implementierungen</h4>
+            <p class="text-sm text-ink-light leading-relaxed">Kernexperimentcode wird parallel zu den Papers veröffentlicht. Reproduzierbarkeit ist keine Option — sie ist die Mindestanforderung für Glaubwürdigkeit.</p>
+          </div>
+          <div class="bg-cream-100 p-8 rounded-xl border border-clay/10 card-lift">
+            <span class="material-symbols-outlined text-kiln text-2xl mb-4 block" style="font-variation-settings: 'FILL' 1;">groups</span>
+            <h4 class="font-bold mb-2">Akademische Partnerschaften</h4>
+            <p class="text-sm text-ink-light leading-relaxed">Wir kooperieren mit Universitätsgruppen zu Datensouveränität, NLP-Archäologie und neuronalen Speicherarchitekturen. Vorschläge sind willkommen.</p>
+          </div>
+          <div class="bg-cream-100 p-8 rounded-xl border border-clay/10 card-lift">
+            <span class="material-symbols-outlined text-kiln text-2xl mb-4 block" style="font-variation-settings: 'FILL' 1;">dataset</span>
+            <h4 class="font-bold mb-2">Gemeinsame Datensätze</h4>
+            <p class="text-sm text-ink-light leading-relaxed">Keilschrift-Korpus-Alignments und mehrsprachige Tokenisierungs-Benchmarks sind auf Anfrage für nicht-kommerzielle Forschungszwecke verfügbar.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         FINAL CTA
+         ════════════════════════════════════════ -->
+    <section class="py-32 md:py-40 px-6 md:px-16 bg-cream-100 text-center relative overflow-hidden">
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[28rem] text-kiln opacity-[0.03] font-serif leading-none">𒄉</div>
+
+      <div class="max-w-3xl mx-auto relative z-10">
+        <h2 class="text-4xl md:text-5xl font-headline font-bold italic mb-8">
+          Interesse an unserer Forschung?
+        </h2>
+        <p class="text-lg text-ink-light mb-12 leading-relaxed">
+          Ob akademischer Partner, Unternehmen, das souveräne KI-Infrastruktur erkundet, oder einfach neugierig, was MoCoP für Ihren Stack leisten kann — wir sind gesprächsbereit.
+        </p>
+        <div class="flex flex-wrap justify-center gap-8 mb-12">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Open-Access-Publikationen</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Akademische Zusammenarbeit</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Angewandte Forschungsberatung</span>
+          </div>
+        </div>
+        <a href="booking.html" class="kiln-gradient btn-primary text-white px-12 py-4 rounded-lg font-bold text-base shadow-lg inline-block">
+          Beratungsgespräch vereinbaren
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ════════════════════════════════════════════
+       FOOTER
+       ════════════════════════════════════════════ -->
+  <footer class="bg-cream-100 border-t border-clay/10">
+    <div class="flex flex-col md:flex-row justify-between items-center w-full px-6 md:px-16 py-10 max-w-7xl mx-auto gap-6">
+      <div class="text-center md:text-left">
+        <div class="flex items-center gap-2 mb-2 justify-center md:justify-start">
+          <img src="../assets/logo.svg" alt="" class="h-5 w-auto opacity-20">
+          <span class="font-headline italic text-lg text-ink/20">hurtig.ai</span>
+        </div>
+        <p class="text-ink-muted text-xs tracking-wide">&copy; 2026 hurtig.ai. Der Digitale Kurator.</p>
+      </div>
+      <div class="flex gap-8 text-xs tracking-wide">
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="impressum.html">Impressum</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="privacy.html">Datenschutz</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="booking.html">Kontakt</a>
+      </div>
+    </div>
+  </footer>
+
+<script src="../shared/lang.js"></script>
+</body>
+</html>

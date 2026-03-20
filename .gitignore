@@ -75,6 +75,10 @@ Athena-Public/
 # Raw HTML exports (conversion inputs, large and messy)
 html-to-convert/
 
+# Project MUD runtime artifacts
+Project_MUD/agents/states/
+Project_MUD/agents/training_data/
+
 # Presentations and Office files
 *.pptx
 *.docx

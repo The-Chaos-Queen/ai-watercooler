@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>hurtig.ai — 𒄉 (UL: to hasten)</title>
+  <desc>Modern vector interpretation of Sumerian cuneiform sign UL (GIR2 GUNU)</desc>
+
+  <g fill="#111827">
+    <!-- Main horizontal wedge: bold triangular head (left) tapering to thin tail (right) -->
+    <path d="
+      M 40 170
+      L 472 240
+      L 472 272
+      L 40 342
+      Z
+    "/>
+
+    <!-- Upper GUNU accent: diagonal wedge from upper-left toward center -->
+    <path d="
+      M 100 80
+      L 132 68
+      L 280 190
+      L 258 206
+      Z
+    "/>
+
+    <!-- Lower GUNU accent: mirrored diagonal wedge from lower-left toward center -->
+    <path d="
+      M 100 432
+      L 132 444
+      L 280 322
+      L 258 306
+      Z
+    "/>
+  </g>
+</svg>

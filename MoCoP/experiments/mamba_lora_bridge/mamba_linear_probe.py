@@ -28,6 +28,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from model_defaults import DEFAULT_MAMBA_MODEL_ID
+
 os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
 os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
@@ -685,7 +687,7 @@ def train_probes(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Linear probe on raw Mamba state memory signal.")
-    parser.add_argument("--mamba-model-id", type=str, default="state-spaces/mamba-2.8b-hf")
+    parser.add_argument("--mamba-model-id", type=str, default=DEFAULT_MAMBA_MODEL_ID)
     parser.add_argument("--device", type=str, default="auto", choices=("auto", "cuda", "cpu"))
     parser.add_argument("--turns", type=int, default=120)
     parser.add_argument("--inject-every", type=int, default=6)

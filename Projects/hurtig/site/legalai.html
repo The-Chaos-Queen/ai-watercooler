@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LegalAI — AI Consulting for Medical Criminal Law | hurtig.ai</title>
+  <meta name="description" content="LegalAI: AI consulting and implementation for medical criminal law (Medizinstrafrecht). Local inference, attorney-client privilege preserved. Prototype stage.">
+
+  <!-- Fonts (self-hosted, DSGVO-compliant) -->
+  <link rel="stylesheet" href="assets/fonts.css">
+
+  <!-- Tailwind + Design System -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="shared/config.js"></script>
+  <link rel="stylesheet" href="shared/styles.css">
+
+  <!-- Favicon (cuneiform glyph) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23a03f28'>𒄉</text></svg>">
+</head>
+
+<body class="bg-cream text-ink font-body overflow-x-hidden">
+  <!-- Grain overlay -->
+  <div class="grain-overlay animate-grain"></div>
+
+  <!-- ════════════════════════════════════════════
+       NAVIGATION — identical on all pages
+       ════════════════════════════════════════════ -->
+  <nav class="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-clay/10">
+    <div class="flex justify-between items-center w-full px-6 md:px-16 py-5 max-w-7xl mx-auto">
+      <!-- Logo -->
+      <a href="index.html" class="flex items-center gap-3 group">
+        <img src="assets/logo.svg" alt="hurtig.ai mark" class="h-7 w-auto opacity-90 group-hover:opacity-100 transition-opacity">
+        <span class="text-xl font-headline italic font-bold text-ink tracking-tight">hurtig.ai</span>
+      </a>
+
+      <!-- Desktop links -->
+      <div class="hidden md:flex items-center gap-10">
+        <a href="localai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LocalAI</a>
+        <a href="legalai.html" class="nav-link active text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LegalAI</a>
+        <a href="research.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Research</a>
+        <button class="text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">language</span>
+          DE / EN
+        </button>
+      </div>
+
+      <!-- CTA -->
+      <a href="booking.html" class="kiln-gradient btn-primary text-white px-7 py-2.5 rounded-lg font-semibold text-sm shadow-sm">
+        Contact
+      </a>
+    </div>
+  </nav>
+
+
+  <main class="relative z-10">
+
+    <!-- ════════════════════════════════════════
+         HERO
+         ════════════════════════════════════════ -->
+    <section class="relative min-h-[85vh] flex flex-col justify-center items-center px-6 md:px-16 overflow-hidden">
+      <!-- Cuneiform watermark -->
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[36rem] text-kiln opacity-[0.025] font-serif leading-none">
+        𒄉
+      </div>
+
+      <div class="max-w-4xl w-full text-center relative z-10">
+        <!-- Domain line -->
+        <div class="inline-flex items-center gap-4 mb-8 text-kiln font-headline italic text-lg">
+          <span class="h-px w-10 bg-clay/40"></span>
+          <span>Medizinstrafrecht &mdash; Medical Criminal Law</span>
+          <span class="h-px w-10 bg-clay/40"></span>
+        </div>
+
+        <h1 class="text-5xl md:text-7xl lg:text-8xl font-headline italic font-bold tracking-tight text-ink mb-8 leading-[0.95]">
+          LegalAI for<br><span class="text-kiln">Medizinstrafrecht</span>
+        </h1>
+
+        <p class="text-lg md:text-xl text-ink-light max-w-2xl mx-auto leading-relaxed mb-6">
+          We consult and implement AI solutions for law firms specializing in medical criminal law. Our prototype assists attorneys with case analysis, guideline cross-referencing, and structured research -- running locally on your infrastructure.
+        </p>
+
+        <p class="text-base text-ink-muted max-w-xl mx-auto leading-relaxed mb-12">
+          Currently in active development with a pilot client. Built as a consulting service, not a turnkey product.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-5 justify-center">
+          <a href="#approach" class="kiln-gradient btn-primary text-white px-10 py-4 rounded-lg font-bold text-base shadow-sm">
+            Our Approach
+          </a>
+          <a href="#privacy" class="btn-secondary bg-sage-light text-sage-dark px-10 py-4 rounded-lg font-bold text-base">
+            Data Privacy
+          </a>
+        </div>
+      </div>
+
+      <!-- Scroll hint -->
+      <div class="absolute bottom-12 left-6 md:left-16 flex items-center gap-3 text-xs tracking-[0.2em] text-ink-muted font-body uppercase">
+        <span class="material-symbols-outlined text-kiln text-sm">expand_more</span>
+        <span>Consulting Service</span>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         APPROACH
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream-100" id="approach">
+      <div class="max-w-7xl mx-auto">
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-16 md:gap-20 items-start">
+
+          <!-- Left: Description -->
+          <div class="md:col-span-5">
+            <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">What We Do</span>
+            <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-6 leading-tight">
+              Consulting &amp;<br>Implementation
+            </h2>
+            <p class="text-ink-light text-lg leading-relaxed mb-6">
+              Medical criminal law sits at the intersection of clinical standards, forensic evidence, and penal code. We consult and implement AI tools that help attorneys navigate this complex landscape more efficiently.
+            </p>
+            <p class="text-ink-light text-lg leading-relaxed mb-8">
+              Our approach starts with understanding your specific workflow, then tailoring local AI solutions to support your case analysis -- from guideline cross-referencing to structured research across medical and legal sources.
+            </p>
+            <p class="text-ink-light leading-relaxed">
+              This is a consulting engagement, not a software license. We work closely with your team to build, refine, and maintain AI tools that fit your practice.
+            </p>
+          </div>
+
+          <!-- Right: Service cards -->
+          <div class="md:col-span-7 space-y-5">
+
+            <!-- Card: Case Analysis Support -->
+            <div class="bg-cream rounded-xl p-8 card-lift border border-clay/10 relative overflow-hidden">
+              <div class="watermark -bottom-4 -right-4 text-[7rem] text-kiln opacity-[0.03] font-serif">𒄉</div>
+              <div class="relative z-10 flex gap-6 items-start">
+                <div class="shrink-0">
+                  <span class="material-symbols-outlined text-kiln text-3xl" style="font-variation-settings: 'FILL' 1;">gavel</span>
+                </div>
+                <div>
+                  <h3 class="text-xl font-headline italic font-bold mb-3">Case Analysis Support</h3>
+                  <p class="text-ink-light leading-relaxed">
+                    We build tools that assist with cross-referencing medical guidelines (AWMF, BAK) against criminal code precedents and case law. The goal is structured research support -- helping identify relevant standards, not replacing legal judgment.
+                  </p>
+                  <ul class="mt-4 space-y-2">
+                    <li class="flex items-start gap-3 text-sm text-ink-light">
+                      <span class="text-kiln mt-0.5 shrink-0">𒄉</span>
+                      Guideline and case law research assistance
+                    </li>
+                    <li class="flex items-start gap-3 text-sm text-ink-light">
+                      <span class="text-kiln mt-0.5 shrink-0">𒄉</span>
+                      Structured case material organization
+                    </li>
+                    <li class="flex items-start gap-3 text-sm text-ink-light">
+                      <span class="text-kiln mt-0.5 shrink-0">𒄉</span>
+                      Drafting support for initial brief structure
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card: Local Infrastructure -->
+            <div class="bg-cream rounded-xl p-8 card-lift border border-clay/10 relative overflow-hidden">
+              <div class="watermark -bottom-4 -right-4 text-[7rem] text-kiln opacity-[0.03] font-serif">𒄉</div>
+              <div class="relative z-10 flex gap-6 items-start">
+                <div class="shrink-0">
+                  <span class="material-symbols-outlined text-kiln text-3xl" style="font-variation-settings: 'FILL' 1;">hard_drive</span>
+                </div>
+                <div>
+                  <h3 class="text-xl font-headline italic font-bold mb-3">Local-First Architecture</h3>
+                  <p class="text-ink-light leading-relaxed">
+                    All AI processing runs on your hardware. Your case data never leaves your infrastructure -- preserving attorney-client privilege by design, not just by policy.
+                  </p>
+                  <ul class="mt-4 space-y-2">
+                    <li class="flex items-start gap-3 text-sm text-ink-light">
+                      <span class="text-kiln mt-0.5 shrink-0">𒄉</span>
+                      On-premise deployment, no cloud dependencies
+                    </li>
+                    <li class="flex items-start gap-3 text-sm text-ink-light">
+                      <span class="text-kiln mt-0.5 shrink-0">𒄉</span>
+                      No data transmitted externally
+                    </li>
+                    <li class="flex items-start gap-3 text-sm text-ink-light">
+                      <span class="text-kiln mt-0.5 shrink-0">𒄉</span>
+                      You own the entire stack
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Text-link -->
+            <div class="pt-2 pl-2">
+              <a href="#engagement" class="text-kiln font-bold text-sm flex items-center gap-2 group">
+                How We Work Together
+                <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         TRUST & PRIVACY
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream-400/50 relative overflow-hidden" id="privacy">
+      <div class="watermark top-1/2 right-0 -translate-y-1/2 text-[22rem] text-kiln opacity-[0.03] font-serif leading-none pointer-events-none select-none">𒄉</div>
+
+      <div class="max-w-7xl mx-auto relative z-10">
+
+        <div class="max-w-2xl mb-16">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Trust &amp; Privacy</span>
+          <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-6 leading-tight">
+            Attorney-Client Privilege,<br>Preserved by Architecture
+          </h2>
+          <p class="text-ink-light text-lg leading-relaxed">
+            We implement AI tools that run <strong class="text-ink font-semibold">locally</strong> on your hardware. Your case data stays on your infrastructure -- no cloud APIs, no external model calls. Privilege is preserved not by policy, but by how the system is built.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          <div class="bg-cream rounded-xl p-8 md:p-10 card-lift border border-clay/10 relative overflow-hidden">
+            <div class="watermark -bottom-6 -right-4 text-[8rem] text-kiln opacity-[0.03] font-serif">𒄉</div>
+            <div class="relative z-10">
+              <span class="material-symbols-outlined text-kiln text-3xl mb-6" style="font-variation-settings: 'FILL' 1;">hard_drive</span>
+              <h3 class="text-xl font-headline italic font-bold mb-4">On Your Hardware</h3>
+              <p class="text-ink-light leading-relaxed text-sm mb-6">
+                The AI model runs entirely on hardware you control. No subscription that phones home. No model updates without your explicit approval.
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-cream rounded-xl p-8 md:p-10 card-lift border border-clay/10 relative overflow-hidden">
+            <div class="watermark -bottom-6 -right-4 text-[8rem] text-kiln opacity-[0.03] font-serif">𒄉</div>
+            <div class="relative z-10">
+              <span class="material-symbols-outlined text-kiln text-3xl mb-6" style="font-variation-settings: 'FILL' 1;">wifi_off</span>
+              <h3 class="text-xl font-headline italic font-bold mb-4">No External Connections</h3>
+              <p class="text-ink-light leading-relaxed text-sm mb-6">
+                The system is designed to operate without internet access. No telemetry, no usage reporting, no data leaves your network.
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-cream rounded-xl p-8 md:p-10 card-lift border border-clay/10 relative overflow-hidden">
+            <div class="watermark -bottom-6 -right-4 text-[8rem] text-kiln opacity-[0.03] font-serif">𒄉</div>
+            <div class="relative z-10">
+              <span class="material-symbols-outlined text-kiln text-3xl mb-6" style="font-variation-settings: 'FILL' 1;">handshake</span>
+              <h3 class="text-xl font-headline italic font-bold mb-4">Full Ownership</h3>
+              <p class="text-ink-light leading-relaxed text-sm mb-6">
+                Everything we build is handed over to you. Documentation, configuration, model weights -- you own the complete system and can maintain it independently.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         ENGAGEMENT MODEL
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream" id="engagement">
+      <div class="max-w-7xl mx-auto">
+
+        <div class="max-w-2xl mb-16">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Engagement</span>
+          <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-6">How We Work Together</h2>
+          <p class="text-ink-light text-lg leading-relaxed">
+            LegalAI is a consulting engagement. We work with your team to understand the specific needs of your practice and implement tailored AI tools to support your workflow.
+          </p>
+        </div>
+
+        <div class="max-w-2xl">
+          <div class="bg-cream-100 rounded-xl p-10 md:p-14 card-lift border border-clay/10 relative overflow-hidden">
+            <div class="watermark -bottom-8 -right-8 text-[12rem] text-kiln opacity-[0.03] font-serif">𒄉</div>
+            <div class="relative z-10">
+
+              <div class="flex items-start gap-5 mb-10">
+                <span class="material-symbols-outlined text-kiln text-4xl mt-1" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+                <div>
+                  <h3 class="text-2xl font-headline italic font-bold mb-2">Consulting &amp; Implementation</h3>
+                  <p class="text-ink-light leading-relaxed">
+                    We start with a needs assessment, then build and deploy a tailored solution on your infrastructure. Pricing is scoped per engagement.
+                  </p>
+                </div>
+              </div>
+
+              <ul class="space-y-4 mb-10">
+                <li class="flex items-start gap-3 text-ink-light">
+                  <span class="material-symbols-outlined text-sage text-xl mt-0.5 shrink-0" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  <span>Initial needs assessment and workflow analysis</span>
+                </li>
+                <li class="flex items-start gap-3 text-ink-light">
+                  <span class="material-symbols-outlined text-sage text-xl mt-0.5 shrink-0" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  <span>Custom implementation on your infrastructure</span>
+                </li>
+                <li class="flex items-start gap-3 text-ink-light">
+                  <span class="material-symbols-outlined text-sage text-xl mt-0.5 shrink-0" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  <span>Full deployment and handover with documentation</span>
+                </li>
+                <li class="flex items-start gap-3 text-ink-light">
+                  <span class="material-symbols-outlined text-sage text-xl mt-0.5 shrink-0" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  <span>Ongoing support available on an hourly basis</span>
+                </li>
+              </ul>
+
+              <a href="booking.html" class="kiln-gradient btn-primary text-white px-10 py-4 rounded-lg font-bold text-base shadow-sm inline-block">
+                Schedule a Consultation
+              </a>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         FINAL CTA
+         ════════════════════════════════════════ -->
+    <section class="py-32 md:py-40 px-6 md:px-16 bg-cream-100 text-center relative overflow-hidden">
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[28rem] text-kiln opacity-[0.03] font-serif leading-none">𒄉</div>
+
+      <div class="max-w-3xl mx-auto relative z-10">
+        <div class="inline-flex items-center gap-4 mb-8 text-kiln font-headline italic text-lg">
+          <span class="h-px w-10 bg-clay/40"></span>
+          <span>Medizinstrafrecht</span>
+          <span class="h-px w-10 bg-clay/40"></span>
+        </div>
+
+        <h2 class="text-4xl md:text-5xl font-headline font-bold italic mb-8 leading-tight">
+          AI-assisted research<br>for the cases that matter.
+        </h2>
+        <p class="text-lg text-ink-light mb-12 leading-relaxed">
+          If your practice deals with medical criminal law and you want to explore how local AI can support your case work, we would like to hear from you.
+        </p>
+
+        <div class="flex flex-wrap justify-center gap-8 mb-12">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Runs Locally</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Privilege Preserved</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Consulting Service</span>
+          </div>
+        </div>
+
+        <a href="booking.html" class="kiln-gradient btn-primary text-white px-12 py-4 rounded-lg font-bold text-base shadow-lg inline-block">
+          Schedule a Consultation
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ════════════════════════════════════════════
+       FOOTER — identical on all pages
+       ════════════════════════════════════════════ -->
+  <footer class="bg-cream-100 border-t border-clay/10">
+    <div class="flex flex-col md:flex-row justify-between items-center w-full px-6 md:px-16 py-10 max-w-7xl mx-auto gap-6">
+      <div class="text-center md:text-left">
+        <div class="flex items-center gap-2 mb-2 justify-center md:justify-start">
+          <img src="assets/logo.svg" alt="" class="h-5 w-auto opacity-20">
+          <span class="font-headline italic text-lg text-ink/20">hurtig.ai</span>
+        </div>
+        <p class="text-ink-muted text-xs tracking-wide">&copy; 2026 hurtig.ai. The Digital Curator.</p>
+      </div>
+      <div class="flex gap-8 text-xs tracking-wide">
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="impressum.html">Impressum</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="privacy.html">Datenschutz</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="booking.html">Kontakt</a>
+      </div>
+    </div>
+  </footer>
+
+<script src="shared/lang.js"></script>
+</body>
+</html>

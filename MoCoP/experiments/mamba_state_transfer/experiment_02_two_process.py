@@ -15,6 +15,7 @@ Author: Laura (concept), [unnamed instance] (code)
 Date: 2026-02-19
 """
 
+import argparse
 import torch
 import time
 import sys
@@ -22,6 +23,17 @@ import os
 import tempfile
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+DEFAULT_MAMBA_MODEL_ID = "state-spaces/mamba-2.8b-hf"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Experiment 02: two-process Mamba state transfer.")
+    parser.add_argument("--model-id", type=str, default=DEFAULT_MAMBA_MODEL_ID)
+    return parser.parse_args()
+
+
+args = parse_args()
 
 print("=" * 70)
 print("MoCoP Experiment 02: Two-Process State Transfer (via disk)")
@@ -33,7 +45,7 @@ start = time.time()
 
 from transformers import MambaForCausalLM, AutoTokenizer
 
-model_name = "state-spaces/mamba-2.8b-hf"
+model_name = args.model_id
 print(f"      Target: {model_name}")
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = MambaForCausalLM.from_pretrained(model_name, torch_dtype=torch.float32)

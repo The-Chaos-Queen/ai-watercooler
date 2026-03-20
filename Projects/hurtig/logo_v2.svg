@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="100%" height="100%">
+  <!-- Horizontal Wedge -->
+  <g transform="translate(20, 45)">
+    <path d="M0,15 L30,0 L30,8 L90,12 L90,18 L30,22 L30,30 Z" fill="#c2410c" />
+  </g>
+  <!-- Oblique Intersecting Wedge -->
+  <g transform="translate(50, 10)">
+    <path d="M0,15 L25,-5 L20,10 L60,50 L55,55 L10,25 L10,35 Z" fill="#c2410c" />
+  </g>
+  <!-- Vertical Stabilizing Wedge -->
+  <g transform="translate(75, 55)">
+    <path d="M10,0 L25,10 L15,10 L15,40 L5,40 L5,10 L-5,10 Z" fill="#c2410c" />
+  </g>
+  
+  <text x="140" y="75" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="700" fill="#1e293b" letter-spacing="-1.5">hurtig.ai</text>
+</svg>

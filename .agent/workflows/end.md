@@ -2,7 +2,7 @@
 description: Close session and save learnings to memory
 ---
 
-# /end — Session Close
+# /end - Session Close
 
 > **Philosophy**: Every session should leave a trace. The Ark preserves.
 
@@ -18,44 +18,82 @@ Summarize this session in your own words:
 
 // turbo
 
-Overwrite `CHEESE_Memory/00_HANDOFF.md` with the current state. This is the **one file** the next instance reads to orient instantly. Format:
+Update `CHEESE_Memory/00_HANDOFF.md` as the live control page. Keep it concise, current, and attribution-heavy. Preserve and append the `Edit Ledger`. Format:
 
 ```markdown
-# Handoff Memo
-**Last Instance:** [name] | **Session:** YYYY-MM-DD Session NN | **Ended:** HH:MM
+# C.H.E.E.S.E. Handoff
 
-## What We Did
-- [max 5 bullets]
+## Control Block
+- Last updated: YYYY-MM-DD HH:MM TZ
+- Current owner: [agent]
+- Primary focus: [one line]
+- Last session log: `CHEESE_Memory/session_logs/YYYY-MM-DD-session-NN.md`
+- Qdrant status:
+  - `00_HANDOFF.md` is not ingested by default
+  - Latest session log ingest: pending|done|failed|unknown
+
+## Current State
+- [3 short bullets]
 
 ## Open Threads
-- [ ] [actionable items with context]
+- [ ] [actionable item]
 
 ## Watch Out For
-- [gotchas, half-broken things, context about Laura's state]
+- [gotcha]
 
-## Suggested Next Step
+## Recommended Next Step
 [one sentence]
+
+## Handoff Checklist
+- Tracking surfaces updated if needed: yes|no
+- Session log written: yes|no
+- Session log path recorded here: yes|no
+- Qdrant ingest for latest session log confirmed: yes|no
+- Blocking risks called out: yes|no
+
+## Edit Ledger
+- YYYY-MM-DD HH:MM TZ | [agent] | [what changed in this file]
+
+## Next Agent Brief
+- Open first:
+  - `CHEESE_Memory/00_HAUSREGELN.md`
+  - `CHEESE_Memory/00_BOOT_FILES.md`
+  - `CHEESE_Memory/session_logs/YYYY-MM-DD-session-NN.md`
+  - [optional task-specific file]
+- Decide first:
+  - [decision]
+- Verify before memory-dependent work:
+  - [check]
 ```
 
 ## Phase 2: Create Session Log
 
 // turbo
 
-Create a session log file at `CHEESE_Memory/session_logs/YYYY-MM-DD-session-NN.md` with:
+Create a session log file at `CHEESE_Memory/session_logs/YYYY-MM-DD-session-NN.md` using `.agent/workflows/session_log_template.md` as the canonical shape. Minimum format:
 
 ```markdown
 ---
 date: YYYY-MM-DD
-start: [session start time]
-end: [now]
+session: YYYY-MM-DD-session-NN
+start: YYYY-MM-DDTHH:MM:SS+TZ
+end: YYYY-MM-DDTHH:MM:SS+TZ
+agent: [agent name]
+system: [client / platform]
 focus: [one-line summary]
 tags: [relevant tags]
+qdrant_sync: pending|done|failed|skipped
+handoff_updated: true|false
+tracking_updated: true|false
 ---
 
 # Session Log: YYYY-MM-DD (Session NN)
 
 ## Summary
 [2-3 sentence overview]
+
+## Context Loaded
+- [key boot files or task-specific docs actually read]
 
 ## Key Decisions
 - [decision 1]
@@ -65,9 +103,19 @@ tags: [relevant tags]
 - [artifact 1]
 - [artifact 2]
 
+## Findings
+- [review result, behavior, or measured outcome]
+
+## Risks / Watch Out For
+- [risk 1]
+
 ## Unfinished / Next Session
 - [thread 1]
 - [thread 2]
+
+## Memory / Retrieval Notes
+- Qdrant sync status: pending|done|failed|skipped
+- Ingest target: `CHEESE_Memory/session_logs/YYYY-MM-DD-session-NN.md`
 
 ## Learnings
 - [S] (System/workflow learning)
@@ -80,15 +128,23 @@ tags: [relevant tags]
 
 Run `python Project_Prosthetic/ingest_sessions.py CHEESE_Memory/session_logs/YYYY-MM-DD-session-NN.md` to embed the session into Qdrant.
 
-## Phase 4: Update Dashboard
+If ingestion is not run or fails, record that explicitly in both the session log frontmatter and `00_HANDOFF.md`.
+
+## Phase 4: Update Shared Tracking
 
 // turbo
 
-Update `CHEESE_Memory/00_DASHBOARD.md` with the current timestamp and any priority changes.
+Update the relevant shared tracking surface if the session changed project state:
+
+- `CHEESE_Memory/00_HANDOFF.md` for live state
+- OpenCLAW for task status
+- Watercooler for short swarm coordination notes
+
+Do not recreate or refresh the retired dashboard.
 
 ## Phase 5: Confirm
 
-Output: "✅ Session closed. [summary]. [N] chunks embedded in Qdrant."
+Output: "Session closed. [summary]. [N] chunks embedded in Qdrant."
 
 ---
 

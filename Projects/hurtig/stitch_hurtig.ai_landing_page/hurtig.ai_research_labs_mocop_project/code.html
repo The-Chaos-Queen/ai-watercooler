@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed-dim": "#b7ccb9",
+              "inverse-surface": "#333028",
+              "primary-container": "#c0573e",
+              "on-secondary-fixed-variant": "#394b3d",
+              "surface-container-high": "#eee7db",
+              "surface-container-highest": "#e9e2d6",
+              "surface-bright": "#fff8ef",
+              "on-primary-fixed": "#3d0700",
+              "surface-variant": "#e9e2d6",
+              "on-surface": "#1e1b14",
+              "on-secondary-fixed": "#0e1f13",
+              "primary": "#a03f28",
+              "outline": "#8a726c",
+              "on-primary": "#ffffff",
+              "secondary-container": "#d0e5d2",
+              "on-secondary": "#ffffff",
+              "surface": "#fff8ef",
+              "outline-variant": "#ddc0ba",
+              "on-tertiary-container": "#fffbff",
+              "secondary-fixed": "#d3e8d5",
+              "on-tertiary": "#ffffff",
+              "surface-dim": "#e0d9cd",
+              "inverse-on-surface": "#f7f0e4",
+              "primary-fixed-dim": "#ffb4a3",
+              "on-background": "#1e1b14",
+              "surface-container": "#f4ede1",
+              "primary-fixed": "#ffdad2",
+              "background": "#fff8ef",
+              "tertiary": "#6f583c",
+              "on-tertiary-fixed": "#281803",
+              "error-container": "#ffdad6",
+              "on-tertiary-fixed-variant": "#584329",
+              "on-primary-container": "#120100",
+              "tertiary-fixed-dim": "#e0c29f",
+              "tertiary-fixed": "#fdddb9",
+              "on-secondary-container": "#546758",
+              "on-error-container": "#93000a",
+              "error": "#ba1a1a",
+              "on-primary-fixed-variant": "#812914",
+              "on-error": "#ffffff",
+              "inverse-primary": "#ffb4a3",
+              "surface-tint": "#a03f29",
+              "secondary": "#506354",
+              "on-surface-variant": "#56423d",
+              "tertiary-container": "#897052",
+              "surface-container-low": "#faf3e6"
+            },
+            fontFamily: {
+              "headline": ["Newsreader", "serif"],
+              "body": ["Manrope", "sans-serif"],
+              "label": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .kiln-gradient {
+        background: linear-gradient(45deg, #a03f28, #c0573e);
+      }
+      body {
+        background-color: #fff8ef;
+        color: #1e1b14;
+      }
+    </style>
+</head>
+<body class="font-body selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- Top Navigation Bar -->
+<nav class="bg-[#faf3e6] dark:bg-stone-900 sticky top-0 z-50">
+<div class="flex justify-between items-center w-full px-16 py-6 max-w-[1440px] mx-auto">
+<div class="text-2xl font-serif font-bold text-[#a03f28] dark:text-[#c0573e]">
+                hurtig.ai
+            </div>
+<div class="hidden md:flex items-center gap-12">
+<a class="text-stone-600 dark:text-stone-400 font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">LocalAI</a>
+<a class="text-stone-600 dark:text-stone-400 font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">LegalAI</a>
+<a class="text-[#a03f28] dark:text-[#c0573e] border-b-2 border-[#a03f28] pb-1 hover:text-[#a03f28] transition-colors duration-300" href="#">Research</a>
+<a class="text-stone-600 dark:text-stone-400 font-medium hover:text-[#a03f28] transition-colors duration-300" href="#">DE/EN</a>
+</div>
+<button class="px-6 py-2 kiln-gradient text-white rounded font-medium scale-95 active:opacity-80 transition-all">
+                Contact
+            </button>
+</div>
+</nav>
+<main class="max-w-[1440px] mx-auto px-16 pt-24">
+<!-- Hero Section -->
+<header class="max-w-4xl mb-32">
+<span class="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container text-xs font-bold tracking-widest uppercase rounded mb-6">
+                Whitepaper // MoCoP Project
+            </span>
+<h1 class="text-6xl md:text-7xl font-headline font-bold text-on-surface leading-[1.1] mb-8">
+                Transferring Experiential State Between AI Models
+            </h1>
+<p class="text-xl text-on-surface-variant font-body leading-relaxed max-w-2xl italic font-light">
+                An investigation into cross-architecture weight-mapping and stylistic persistence in fluid neural environments.
+            </p>
+</header>
+<!-- Abstract Section -->
+<section class="grid grid-cols-1 md:grid-cols-12 gap-16 mb-40">
+<div class="md:col-span-4">
+<h2 class="text-sm font-label font-bold text-primary tracking-widest uppercase mb-4">The Abstract</h2>
+<div class="w-12 h-[2px] bg-outline-variant opacity-30 mb-8"></div>
+<div class="text-on-surface-variant font-body text-sm leading-loose opacity-70">
+                    AUTHORS: <br/> 
+                    hurtig.ai Research Labs <br/>
+                    Division of Neural Architecture <br/>
+                    Published Q4 2024
+                </div>
+</div>
+<div class="md:col-span-8 bg-surface-container-low p-12 rounded-lg">
+<p class="text-xl md:text-2xl font-headline font-medium text-on-surface leading-snug mb-8">
+                    Model Context Persistence (MoCoP) defines a new frontier in AI longevity. We explore the methodology of extracting "Experiential State" from a mature State-Space Model (SSM) and injecting it into a target transformer-based architecture without retraining.
+                </p>
+<div class="space-y-6 text-on-surface-variant leading-relaxed text-lg">
+<p>
+                        Current AI development paradigms suffer from 'State Decay'—the total loss of specific stylistic nuances and interaction history when upgrading models. The MoCoP Project addresses this by treating the hidden state of an SSM not as static data, but as a transferable mathematical signature.
+                    </p>
+<p>
+                        By mapping high-dimensional activation spaces, we successfully demonstrated that a model can "remember" the tone and logical rigor of its predecessor. Our findings suggest that AI intelligence is not just found in weights, but in the persistent geometry of its latent space during inference.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Key Findings: Bento Grid -->
+<section class="mb-40">
+<div class="flex items-center gap-4 mb-12">
+<h2 class="text-4xl font-headline font-bold">Key Findings</h2>
+<div class="flex-grow h-px bg-outline-variant opacity-15"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Finding 1 -->
+<div class="p-8 bg-surface-container-high rounded-lg flex flex-col justify-between aspect-square border-l-4 border-secondary">
+<span class="material-symbols-outlined text-4xl text-secondary">database</span>
+<div>
+<h3 class="text-xl font-headline font-bold mb-3">SSM Hidden State</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                            Hidden state captures can be compressed into a 'Style-Kernel' that acts as a blueprint for cross-model identity.
+                        </p>
+</div>
+</div>
+<!-- Finding 2 -->
+<div class="p-8 bg-secondary-container rounded-lg flex flex-col justify-between aspect-square">
+<span class="material-symbols-outlined text-4xl text-on-secondary-container">psychology</span>
+<div>
+<h3 class="text-xl font-headline font-bold text-on-secondary-container mb-3">Activation Injection</h3>
+<p class="text-sm text-on-secondary-container/80 leading-relaxed">
+                            Injecting these kernels into the activation layer of larger models results in a 40% increase in stylistic retention.
+                        </p>
+</div>
+</div>
+<!-- Finding 3 -->
+<div class="p-8 bg-surface-container-highest rounded-lg flex flex-col justify-between aspect-square">
+<span class="material-symbols-outlined text-4xl text-primary">trending_up</span>
+<div>
+<h3 class="text-xl font-headline font-bold mb-3">Stable Quality</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                            Unlike traditional fine-tuning, MoCoP injection maintains the base model's core benchmarks while overlaying complex behaviors.
+                        </p>
+</div>
+</div>
+</div>
+</section>
+<!-- Theoretical Context -->
+<section class="mb-40 relative">
+<div class="absolute -right-16 top-0 opacity-5 select-none text-[20rem] font-serif leading-none">𒄉</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
+<div class="relative">
+<div class="aspect-[4/5] bg-surface-container overflow-hidden rounded-lg">
+<img alt="Abstract neural network visualization" class="w-full h-full object-cover mix-blend-multiply opacity-60 grayscale" data-alt="Abstract representation of glowing neural node network" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUQR7RIymrm0ABKmVbuLBcAC8UkGvO4nW_aCpTuetxQIzecDG6vpZWBaxbMJsLPirBux8nE94WhzQAYDaBFMqwf2SY04azm3USpHBuQon3yaTd9_kiRtoZf3wO027XCUQo9i4f5zl-nGM3k9QVlFgC3seKZ9a0Va0xTcgI8NwR8dM8F9nh-oncz3Ae6RGUClA1jjba2HVS_m7tg2XAGBIy2Cm4pWMQTWJTzMB-oHi6b0HopEV_qijmzUlJZMBGaAWraGFkHn8gKwE"/>
+</div>
+<div class="absolute -bottom-8 -right-8 p-8 bg-surface-bright shadow-xl max-w-xs border-l-2 border-primary">
+<p class="font-headline italic text-lg leading-relaxed text-on-surface">
+                            "The mapping of activation spaces is the final bridge between machine learning and true machine cognition."
+                        </p>
+<cite class="block mt-4 text-xs font-label uppercase tracking-widest text-primary">— internal lab memo #821</cite>
+</div>
+</div>
+<div>
+<h2 class="text-sm font-label font-bold text-primary tracking-widest uppercase mb-12">Theoretical Context</h2>
+<div class="space-y-12">
+<div>
+<h4 class="text-xl font-headline font-bold mb-4">Alignment with Anthropic Research</h4>
+<p class="text-on-surface-variant leading-relaxed">
+                                Our methodology builds upon the Constitutional AI frameworks established by Anthropic, extending the "Constitutional" approach from static rules to dynamic activation-based behavioral patterns.
+                            </p>
+</div>
+<div>
+<h4 class="text-xl font-headline font-bold mb-4">LeCun’s World Models</h4>
+<p class="text-on-surface-variant leading-relaxed">
+                                By integrating state persistence, we provide a concrete implementation layer for LeCun's vision of autonomous agents with a "World Model" that persists beyond single inference cycles.
+                            </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Future Directions -->
+<section class="mb-40">
+<div class="bg-surface-container-low p-16 rounded-xl flex flex-col md:flex-row gap-16 items-start">
+<div class="md:w-1/3">
+<h2 class="text-5xl font-headline font-bold leading-tight">Future Directions</h2>
+</div>
+<div class="md:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-12">
+<div>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-secondary">verified_user</span>
+<h5 class="font-label font-bold uppercase tracking-wide text-xs">Learned Caution</h5>
+</div>
+<p class="text-on-surface-variant text-sm leading-loose">
+                            Developing neural safety valves that inherit risk-aversion from predecessor models, ensuring that larger upgrades don't lose established safety thresholds.
+                        </p>
+</div>
+<div>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-secondary">history_edu</span>
+<h5 class="font-label font-bold uppercase tracking-wide text-xs">Stylistic Continuity</h5>
+</div>
+<p class="text-on-surface-variant text-sm leading-loose">
+                            Ensuring that custom AI personas used in enterprise contexts remain familiar to users even as the underlying engine shifts from GPT-style to next-gen SSMs.
+                        </p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#faf3e6] dark:bg-stone-900 border-t border-[#ddc0ba]/15 mt-24">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-16 py-12 max-w-[1440px] mx-auto">
+<div class="text-4xl font-serif text-[#a03f28] opacity-10 mb-8 md:mb-0">
+                hurtig.ai
+            </div>
+<div class="flex flex-col md:flex-row items-center gap-8 md:gap-16">
+<div class="text-stone-500 dark:text-stone-400 font-sans text-sm tracking-wide Manrope">
+                    © 2024 hurtig.ai. The Digital Curator.
+                </div>
+<div class="flex gap-8">
+<a class="text-stone-500 hover:text-stone-800 dark:text-stone-400 font-sans text-sm Manrope hover:underline hover:decoration-[#a03f28] transition-all" href="#">Imprint</a>
+<a class="text-stone-500 hover:text-stone-800 dark:text-stone-400 font-sans text-sm Manrope hover:underline hover:decoration-[#a03f28] transition-all" href="#">Privacy</a>
+<a class="text-stone-500 hover:text-stone-800 dark:text-stone-400 font-sans text-sm Manrope hover:underline hover:decoration-[#a03f28] transition-all" href="#">Terms</a>
+<a class="text-stone-500 hover:text-stone-800 dark:text-stone-400 font-sans text-sm Manrope hover:underline hover:decoration-[#a03f28] transition-all" href="#">Contact</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

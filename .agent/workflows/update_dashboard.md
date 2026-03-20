@@ -1,12 +1,15 @@
 ---
-description: Refresh the C.H.E.E.S.E. Dashboard logic and timestamps.
+description: Retired workflow stub. The dashboard was archived on 2026-03-19.
 ---
 
-1.  **Locate the Script**: Ensure `C:\Users\cerub\OneDrive\Dokumente\LLM\CHEESE_Memory\dashboard\dashboard_manager.py` exists.
-2.  **Execute Update**: Run the following command to update global timestamps and refresh the Markdown view:
-    ```bash
-    python "C:\Users\cerub\OneDrive\Dokumente\LLM\CHEESE_Memory\dashboard\dashboard_manager.py" --update_time
-    ```
-    // turbo
-3.  **Confirm**: Check the output for "Time updated" and "Updated ...00_DASHBOARD.md".
-4.  **Notify**: Briefly inform Laura that the dashboard is synced to the current moment.
+The live dashboard has been retired.
+
+Use these surfaces instead:
+
+1. `CHEESE_Memory/00_HANDOFF.md` for current state and next steps
+2. OpenCLAW for task status
+3. Watercooler for short swarm coordination notes
+
+Archived copy:
+
+- `C:\Users\cerub\OneDrive\Dokumente\LLM\CHEESE_Memory\archive\00_DASHBOARD_archived_2026-03-19.md`

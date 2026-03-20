@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#281803",
+              "outline-variant": "#ddc0ba",
+              "on-primary-container": "#120100",
+              "surface-tint": "#a03f29",
+              "surface-bright": "#fff8ef",
+              "on-primary-fixed-variant": "#812914",
+              "secondary-fixed-dim": "#b7ccb9",
+              "surface-container-low": "#faf3e6",
+              "tertiary-fixed": "#fdddb9",
+              "tertiary": "#6f583c",
+              "on-secondary": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "inverse-on-surface": "#f7f0e4",
+              "on-error-container": "#93000a",
+              "background": "#fff8ef",
+              "on-secondary-fixed": "#0e1f13",
+              "surface-variant": "#e9e2d6",
+              "inverse-primary": "#ffb4a3",
+              "secondary-fixed": "#d3e8d5",
+              "surface": "#fff8ef",
+              "on-error": "#ffffff",
+              "primary-fixed-dim": "#ffb4a3",
+              "primary-fixed": "#ffdad2",
+              "on-background": "#1e1b14",
+              "on-primary-fixed": "#3d0700",
+              "surface-dim": "#e0d9cd",
+              "primary": "#a03f28",
+              "on-secondary-container": "#546758",
+              "primary-container": "#c0573e",
+              "surface-container": "#f4ede1",
+              "on-tertiary-fixed-variant": "#584329",
+              "tertiary-fixed-dim": "#e0c29f",
+              "outline": "#8a726c",
+              "surface-container-highest": "#e9e2d6",
+              "secondary-container": "#d0e5d2",
+              "on-tertiary-container": "#fffbff",
+              "on-surface-variant": "#56423d",
+              "inverse-surface": "#333028",
+              "error": "#ba1a1a",
+              "tertiary-container": "#897052",
+              "secondary": "#506354",
+              "on-secondary-fixed-variant": "#394b3d",
+              "on-primary": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "surface-container-high": "#eee7db",
+              "on-surface": "#1e1b14",
+              "error-container": "#ffdad6"
+            },
+            fontFamily: {
+              "headline": ["Newsreader"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .serif-text { font-family: 'Newsreader', serif; }
+        .cuneiform-bg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 20rem;
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 0;
+            line-height: 1;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface selection:bg-primary/20">
+<!-- Top Navigation -->
+<nav class="bg-[#fff8ef] dark:bg-stone-950 sticky top-0 z-50 transition-colors duration-300">
+<div class="flex justify-between items-center w-full px-8 py-6 max-w-[1024px] mx-auto">
+<div class="text-2xl font-serif text-[#1e1b14] dark:text-[#faf3e6] font-['Newsreader'] italic tracking-tight flex items-center gap-2">
+<span class="text-primary text-3xl">𒄉</span>
+                Hurtig.ai
+            </div>
+<div class="hidden md:flex gap-8 items-center">
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium hover:text-[#a03f28] transition-colors duration-300 font-['Newsreader'] italic tracking-tight" href="#">LocalAI</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium hover:text-[#a03f28] transition-colors duration-300 font-['Newsreader'] italic tracking-tight" href="#">LegalAI</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium hover:text-[#a03f28] transition-colors duration-300 font-['Newsreader'] italic tracking-tight" href="#">Research</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium hover:text-[#a03f28] transition-colors duration-300 font-['Newsreader'] italic tracking-tight" href="#">DE/EN</a>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white px-6 py-2 rounded-lg font-medium shadow-sm">Get Started</button>
+</div>
+</div>
+</nav>
+<main class="relative overflow-hidden min-h-screen">
+<div class="cuneiform-bg select-none">𒄉</div>
+<!-- Hero Section -->
+<header class="max-w-[1024px] mx-auto px-8 pt-24 pb-16">
+<div class="inline-block px-4 py-1.5 bg-secondary-container text-on-secondary-container text-sm font-medium rounded-full mb-8">
+                Privacy &amp; Trust Framework
+            </div>
+<h1 class="text-6xl md:text-7xl font-headline italic text-on-surface leading-tight mb-8 max-w-3xl">
+                Your data never leaves <span class="text-primary">your building.</span>
+</h1>
+<p class="text-lg font-body text-on-surface-variant max-w-2xl leading-relaxed">
+                At Hurtig.ai, we believe privacy isn't a feature—it's the foundation. Our architecture is designed to process intelligence locally, ensuring that your most sensitive intellectual property stays where it belongs.
+            </p>
+</header>
+<!-- Core Value Grid -->
+<section class="max-w-[1024px] mx-auto px-8 pb-32">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+<!-- Local Processing Block -->
+<div class="bg-surface-container-low p-12 rounded-xl border-outline-variant/10 relative overflow-hidden">
+<div class="relative z-10">
+<span class="material-symbols-outlined text-primary text-4xl mb-6">shield_person</span>
+<h2 class="text-3xl font-headline italic mb-4">Local Processing</h2>
+<p class="text-on-surface-variant font-body leading-relaxed mb-6">
+                            Unlike traditional SaaS providers, our "Digital Cuneiform" architecture utilizes edge computing. All LLM inference and data indexing occur on your localized servers or designated hardware. No training data, prompts, or weights are transmitted to external servers.
+                        </p>
+<div class="flex items-center gap-2 text-primary font-medium font-headline italic">
+<span>𒄉 Zero-Knowledge Protocol</span>
+</div>
+</div>
+</div>
+<!-- Data Collection Block -->
+<div class="bg-surface-container p-12 rounded-xl relative overflow-hidden">
+<span class="material-symbols-outlined text-secondary text-4xl mb-6">database</span>
+<h2 class="text-3xl font-headline italic mb-4">Data Collection</h2>
+<p class="text-on-surface-variant font-body leading-relaxed mb-6">
+                        We only collect functional telemetry—metadata required to keep the system operational. This includes system uptime, license verification, and versioning. We do not collect, view, or store the content of your files, chat logs, or research outputs.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Main Document Body -->
+<section class="bg-surface-container-low py-32">
+<div class="max-w-[1024px] mx-auto px-8 grid grid-cols-1 md:grid-cols-12 gap-16">
+<!-- Sidebar TOC -->
+<aside class="md:col-span-3">
+<div class="sticky top-32">
+<p class="text-xs font-bold uppercase tracking-widest text-primary mb-6">Document Index</p>
+<ul class="space-y-4 font-body text-sm">
+<li><a class="text-on-surface hover:text-primary transition-colors block" href="#compliance">GDPR Compliance</a></li>
+<li><a class="text-on-surface hover:text-primary transition-colors block" href="#rights">Your Rights</a></li>
+<li><a class="text-on-surface hover:text-primary transition-colors block" href="#retention">Data Retention</a></li>
+<li><a class="text-on-surface hover:text-primary transition-colors block" href="#security">Security Measures</a></li>
+<li><a class="text-on-surface hover:text-primary transition-colors block" href="#contact">Legal Contact</a></li>
+</ul>
+</div>
+</aside>
+<!-- Detailed Content -->
+<article class="md:col-span-9 space-y-24">
+<div id="compliance">
+<h3 class="text-4xl font-headline italic mb-8">GDPR Compliance</h3>
+<p class="text-on-surface-variant font-body leading-relaxed mb-6">
+                            Hurtig.ai is fully compliant with the General Data Protection Regulation (GDPR). Because our core value proposition is data localization, we act as a "Software Provider" rather than a "Data Processor" in the traditional sense for the majority of your activities. 
+                        </p>
+<div class="bg-surface p-8 border-l-4 border-primary">
+<p class="italic text-on-surface font-body">"Under GDPR Article 25, we practice 'Privacy by Design'. Our system is incapable of accessing your data pool by architectural limitation, not just by policy."</p>
+</div>
+</div>
+<div id="rights">
+<h3 class="text-4xl font-headline italic mb-8">Your Rights</h3>
+<p class="text-on-surface-variant font-body leading-relaxed mb-8">
+                            As a user of Hurtig.ai, you maintain absolute control over your digital artifacts. You have the following rights which you can exercise directly through your admin console without our intervention:
+                        </p>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-primary">key</span>
+<div>
+<p class="font-bold mb-1">Right to Access</p>
+<p class="text-sm text-on-surface-variant">Instant access to all locally indexed data.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-primary">delete_forever</span>
+<div>
+<p class="font-bold mb-1">Right to Erasure</p>
+<p class="text-sm text-on-surface-variant">Wipe local databases permanently with one click.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-primary">swap_horiz</span>
+<div>
+<p class="font-bold mb-1">Data Portability</p>
+<p class="text-sm text-on-surface-variant">Export your vector embeddings in open formats.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-primary">edit_note</span>
+<div>
+<p class="font-bold mb-1">Rectification</p>
+<p class="text-sm text-on-surface-variant">Correct training metadata in your private silo.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-highest p-12 rounded-xl" id="retention">
+<h3 class="text-3xl font-headline italic mb-6">Data Retention</h3>
+<p class="text-on-surface-variant font-body leading-relaxed">
+                            We do not retain your data. Because the data resides on your infrastructure, retention is governed by your own internal IT policies. When you uninstall Hurtig.ai components, all local indices and temporary caches are purged from your hardware automatically.
+                        </p>
+</div>
+<div id="security">
+<h3 class="text-4xl font-headline italic mb-8">Security Measures</h3>
+<div class="space-y-6 text-on-surface-variant font-body">
+<div class="flex items-start gap-4">
+<div class="w-2 h-2 rounded-full bg-primary mt-2"></div>
+<p><strong>End-to-End Encryption:</strong> All data moving between your local frontend and your local server is encrypted using TLS 1.3.</p>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-2 h-2 rounded-full bg-primary mt-2"></div>
+<p><strong>Air-Gapped Compatibility:</strong> Hurtig.ai can be deployed in fully air-gapped environments with no internet access required after initial activation.</p>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-2 h-2 rounded-full bg-primary mt-2"></div>
+<p><strong>Audit Logs:</strong> The system maintains detailed local logs of all AI interactions, accessible only to your authorized administrators.</p>
+</div>
+</div>
+</div>
+</article>
+</div>
+</section>
+<!-- CTA / Footer Transition -->
+<section class="max-w-[1024px] mx-auto px-8 py-32 text-center">
+<h2 class="text-4xl font-headline italic mb-8">Technical transparency for the era of intelligence.</h2>
+<div class="flex flex-col sm:flex-row justify-center gap-4">
+<button class="bg-primary text-white px-8 py-4 rounded-lg font-bold hover:opacity-90 transition-opacity">
+                    Download Trust Report (PDF)
+                </button>
+<button class="bg-secondary-container text-on-secondary-container px-8 py-4 rounded-lg font-bold hover:bg-secondary-container/80 transition-colors">
+                    Security Whitepaper
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#faf3e6] dark:bg-stone-900 transition-colors duration-300">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-16 py-12 max-w-[1440px] mx-auto">
+<div class="text-[#546758] dark:text-[#d0e5d2] font-['Manrope'] text-sm tracking-wide mb-6 md:mb-0">
+                © 2024 Hurtig.ai. Built on the Digital Cuneiform.
+            </div>
+<div class="flex gap-12">
+<a class="text-[#1e1b14] dark:text-white underline font-['Manrope'] text-sm tracking-wide hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Imprint</a>
+<a class="text-[#1e1b14] dark:text-white underline font-['Manrope'] text-sm tracking-wide hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Privacy</a>
+<a class="text-[#546758] dark:text-stone-400 font-['Manrope'] text-sm tracking-wide hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Terms</a>
+<a class="text-[#546758] dark:text-stone-400 font-['Manrope'] text-sm tracking-wide hover:text-[#a03f28] dark:hover:text-[#c0573e] transition-all" href="#">Contact</a>
+</div>
+</div>
+</footer>
+</body></html>

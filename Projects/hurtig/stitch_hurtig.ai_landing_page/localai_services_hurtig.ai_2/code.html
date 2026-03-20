@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hurtig.ai | LocalAI Services</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-surface-variant": "#56423d",
+              "inverse-surface": "#333028",
+              "error": "#ba1a1a",
+              "on-primary": "#ffffff",
+              "on-secondary-fixed-variant": "#394b3d",
+              "secondary": "#506354",
+              "tertiary-container": "#897052",
+              "surface-container-high": "#eee7db",
+              "on-surface": "#1e1b14",
+              "on-tertiary": "#ffffff",
+              "error-container": "#ffdad6",
+              "on-secondary-container": "#546758",
+              "primary": "#a03f28",
+              "on-tertiary-fixed-variant": "#584329",
+              "surface-container": "#f4ede1",
+              "primary-container": "#c0573e",
+              "surface-container-highest": "#e9e2d6",
+              "secondary-container": "#d0e5d2",
+              "on-tertiary-container": "#fffbff",
+              "tertiary-fixed-dim": "#e0c29f",
+              "outline": "#8a726c",
+              "inverse-primary": "#ffb4a3",
+              "surface-variant": "#e9e2d6",
+              "on-error": "#ffffff",
+              "surface": "#fff8ef",
+              "secondary-fixed": "#d3e8d5",
+              "primary-fixed": "#ffdad2",
+              "primary-fixed-dim": "#ffb4a3",
+              "surface-dim": "#e0d9cd",
+              "on-primary-fixed": "#3d0700",
+              "on-background": "#1e1b14",
+              "surface-tint": "#a03f29",
+              "surface-bright": "#fff8ef",
+              "outline-variant": "#ddc0ba",
+              "on-primary-container": "#120100",
+              "on-tertiary-fixed": "#281803",
+              "surface-container-low": "#faf3e6",
+              "secondary-fixed-dim": "#b7ccb9",
+              "on-primary-fixed-variant": "#812914",
+              "on-error-container": "#93000a",
+              "surface-container-lowest": "#ffffff",
+              "inverse-on-surface": "#f7f0e4",
+              "tertiary-fixed": "#fdddb9",
+              "tertiary": "#6f583c",
+              "on-secondary": "#ffffff",
+              "on-secondary-fixed": "#0e1f13",
+              "background": "#fff8ef"
+            },
+            fontFamily: {
+              "headline": ["Newsreader"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .kiln-gradient {
+            background: linear-gradient(45deg, #a03f28, #c0573e);
+        }
+        .cuneiform-watermark {
+            font-family: serif;
+            position: absolute;
+            pointer-events: none;
+            opacity: 0.04;
+            user-select: none;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Top Navigation -->
+<header class="bg-[#fff8ef] dark:bg-stone-950 sticky top-0 z-50">
+<nav class="flex justify-between items-center px-16 py-6 w-full max-w-7xl mx-auto">
+<div class="text-2xl font-serif font-bold text-[#1e1b14] dark:text-[#faf3e6]">
+                Hurtig.ai
+            </div>
+<div class="hidden md:flex items-center space-x-12">
+<a class="text-[#a03f28] dark:text-[#c0573e] font-bold border-b-2 border-[#a03f28] pb-1 transition-colors duration-300" href="#">Services</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium opacity-80 hover:text-[#a03f28] transition-colors duration-300" href="#">Methodology</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium opacity-80 hover:text-[#a03f28] transition-colors duration-300" href="#">Trust</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] font-medium opacity-80 hover:text-[#a03f28] transition-colors duration-300" href="#">Case Studies</a>
+</div>
+<button class="kiln-gradient text-on-primary px-6 py-2.5 font-bold rounded-lg hover:scale-95 duration-200 ease-in-out">
+                Get Started
+            </button>
+</nav>
+</header>
+<main class="relative overflow-hidden">
+<!-- Cuneiform Watermark -->
+<div class="cuneiform-watermark text-[25rem] -top-32 -left-20">𒄉</div>
+<div class="cuneiform-watermark text-[20rem] top-[60%] -right-16">𒄉</div>
+<!-- Hero Section -->
+<section class="relative px-16 pt-32 pb-48 max-w-7xl mx-auto flex flex-col md:flex-row gap-16 items-start">
+<div class="flex-1 z-10">
+<h1 class="font-headline italic text-7xl md:text-8xl text-on-surface leading-[0.9] tracking-tight mb-8">
+                    Sovereign AI for Modern Enterprise.
+                </h1>
+<p class="font-body text-xl text-on-surface-variant max-w-xl leading-relaxed mb-12">
+                    Infrastructure that understands you without ever exposing you. We deploy privacy-preserving, high-velocity AI systems directly onto your hardware.
+                </p>
+<div class="flex gap-6">
+<button class="kiln-gradient text-on-primary px-8 py-4 font-bold rounded-lg shadow-sm hover:scale-[0.98] transition-transform">
+                        Initiate a Sovereignty Audit
+                    </button>
+<button class="text-primary font-bold px-8 py-4 border-b-2 border-transparent hover:border-primary transition-all">
+                        View Methodology
+                    </button>
+</div>
+</div>
+<div class="flex-1 w-full max-w-lg aspect-square bg-surface-container-low relative rounded-xl overflow-hidden shadow-2xl">
+<img alt="Abstract digital sculpture in clay and terracotta tones" class="w-full h-full object-cover mix-blend-multiply opacity-80" data-alt="Abstract digital sculpture in clay and terracotta tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAg74zGOL5_alR8e9D91JlyNRPKRrCxgwqhcJBJRdng8zXWqhd53MUDjBUdusQRsQd0EtOqa_O1jKc-oE6HLjhgs5neV6HgJNUjja72l9YYERaJ4YwyeGXmbGHm9yTvdHWQvLBwrafasqY2vKhq3HxTG1EmBk1Hlqrr5cQArVM5tin3K-RwJnKeyDR0wA77IkTrnvO3RwRO4Moz1IRaB5jE0L_oUOasCvkT9rkKFWO_PmEOMhPP7MHwMlMWREt7krvU-KKCFuDYzh0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low to-transparent"></div>
+</div>
+</section>
+<!-- Data Sovereignty Reinforcement -->
+<section class="bg-surface-container-high py-24 px-16">
+<div class="max-w-7xl mx-auto text-center">
+<span class="material-symbols-outlined text-primary text-6xl mb-6" data-icon="shield_lock" style="font-variation-settings: 'FILL' 1;">shield_lock</span>
+<h2 class="font-headline italic text-4xl mb-4 text-on-surface">Your data never leaves your building.</h2>
+<p class="font-body text-on-surface-variant max-w-2xl mx-auto">
+                    We architect systems that run in air-gapped environments or private clusters. Zero API leaks, zero training on your intellectual property, and absolute technical sovereignty.
+                </p>
+</div>
+</section>
+<!-- Fixed-Price Implementation (Bento Style) -->
+<section class="px-16 py-32 max-w-7xl mx-auto">
+<div class="flex justify-between items-end mb-16">
+<div>
+<h2 class="font-headline italic text-5xl mb-4">Implementierung zum Fixpreis</h2>
+<p class="text-on-surface-variant max-w-md">Predictable outcomes. Guaranteed integration. No hidden costs.</p>
+</div>
+<div class="text-on-surface-variant font-body text-sm tracking-widest uppercase">Phase 01 — 04</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+<!-- Step 1 -->
+<div class="md:col-span-2 bg-surface-container-lowest p-10 rounded-xl relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-8 text-primary opacity-20 text-6xl font-headline italic">01</div>
+<span class="material-symbols-outlined text-tertiary text-4xl mb-8" data-icon="analytics">analytics</span>
+<h3 class="font-headline italic text-3xl mb-4">Initial Audit &amp; Strategy</h3>
+<p class="text-on-surface-variant leading-relaxed">We map your data topography and identify high-leverage AI opportunities that align with your hardware capabilities.</p>
+</div>
+<!-- Step 2 -->
+<div class="bg-surface-container p-10 rounded-xl group">
+<div class="mb-8 flex justify-between">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="terminal">terminal</span>
+<div class="text-primary font-headline italic text-2xl">02</div>
+</div>
+<h3 class="font-headline italic text-2xl mb-4">System Architecture</h3>
+<p class="text-on-surface-variant text-sm">Drafting the blueprints for on-premise inference and fine-tuning pipelines.</p>
+</div>
+<!-- Step 3 -->
+<div class="bg-secondary-container p-10 rounded-xl group">
+<div class="mb-8 flex justify-between">
+<span class="material-symbols-outlined text-on-secondary-container text-4xl" data-icon="deployed_code">deployed_code</span>
+<div class="text-on-secondary-container font-headline italic text-2xl">03</div>
+</div>
+<h3 class="font-headline italic text-2xl mb-4">Local Deployment</h3>
+<p class="text-on-secondary-container opacity-80 text-sm">Full containerized implementation on your local infrastructure with zero external dependencies.</p>
+</div>
+<!-- Step 4 -->
+<div class="md:col-span-2 bg-surface-container-highest p-10 rounded-xl relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-8 text-on-surface opacity-10 text-6xl font-headline italic">04</div>
+<div class="flex items-center gap-6 mb-8">
+<span class="material-symbols-outlined text-primary text-5xl" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+<h3 class="font-headline italic text-3xl">Final Handover</h3>
+</div>
+<p class="text-on-surface-variant max-w-xl">A complete keys-to-the-kingdom transition including documentation, model weights, and governance protocols.</p>
+</div>
+<!-- Feature/Price Card -->
+<div class="md:col-span-2 kiln-gradient p-1 rounded-xl">
+<div class="bg-surface-container-lowest h-full w-full p-10 rounded-[calc(0.5rem-4px)] flex flex-col justify-between">
+<div>
+<span class="text-primary font-bold tracking-widest text-xs uppercase mb-4 block">Pricing Model</span>
+<h3 class="font-headline italic text-4xl mb-6">Fixed-Price Precision</h3>
+</div>
+<p class="text-on-surface-variant mb-8">Packages start from €14.500 for single-model implementation. No hourly drift during the core deployment phase.</p>
+<button class="w-full border-2 border-primary text-primary font-bold py-3 rounded-lg hover:bg-primary hover:text-white transition-colors">
+                            Request Quote
+                        </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Ongoing Support & Maintenance -->
+<section class="bg-surface-container-low py-32 px-16 relative">
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
+<div>
+<h2 class="font-headline italic text-5xl mb-8 leading-tight">Wartung &amp; Support: Continuous Excellence</h2>
+<p class="text-on-surface-variant text-lg mb-8 leading-relaxed">
+                        Artificial Intelligence is not a "set and forget" asset. As your data evolves, your models must adapt. Our ongoing support ensures your local systems remain at the frontier of performance.
+                    </p>
+<ul class="space-y-6">
+<li class="flex items-start gap-4">
+<span class="text-primary mt-1">𒄉</span>
+<div>
+<strong class="text-on-surface block">Model Re-tuning</strong>
+<span class="text-on-surface-variant text-sm">Monthly audits to ensure weights are optimized for current data distributions.</span>
+</div>
+</li>
+<li class="flex items-start gap-4">
+<span class="text-primary mt-1">𒄉</span>
+<div>
+<strong class="text-on-surface block">Security Patches</strong>
+<span class="text-on-surface-variant text-sm">Immediate updates for open-source inference engines and local vector databases.</span>
+</div>
+</li>
+<li class="flex items-start gap-4">
+<span class="text-primary mt-1">𒄉</span>
+<div>
+<strong class="text-on-surface block">On-Call Support</strong>
+<span class="text-on-surface-variant text-sm">Dedicated engineer access for mission-critical infrastructure assistance.</span>
+</div>
+</li>
+</ul>
+</div>
+<div class="bg-surface p-12 rounded-xl shadow-[0_48px_48px_-12px_rgba(30,27,20,0.06)] border border-outline-variant/10">
+<h3 class="font-headline italic text-3xl mb-8">Hourly Support Model</h3>
+<div class="space-y-8">
+<div class="flex justify-between items-center border-b border-outline-variant/20 pb-4">
+<span class="text-on-surface-variant">Standard Support</span>
+<span class="text-on-surface font-bold text-xl">€180 / hr</span>
+</div>
+<div class="flex justify-between items-center border-b border-outline-variant/20 pb-4">
+<span class="text-on-surface-variant">Expert ML Extension</span>
+<span class="text-on-surface font-bold text-xl">€240 / hr</span>
+</div>
+<div class="flex justify-between items-center border-b border-outline-variant/20 pb-4">
+<span class="text-on-surface-variant">Urgent Emergency (2h)</span>
+<span class="text-on-surface font-bold text-xl">€350 / hr</span>
+</div>
+</div>
+<p class="mt-12 text-sm text-on-surface-variant italic">
+                        * Monthly retainers available for guaranteed capacity and priority response times.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-48 px-16 text-center max-w-4xl mx-auto">
+<h2 class="font-headline italic text-6xl mb-8">Ready to reclaim your digital sovereignty?</h2>
+<p class="text-on-surface-variant text-xl mb-12">
+                Join the elite enterprises that have moved beyond the public cloud. Secure, fast, and entirely yours.
+            </p>
+<div class="flex justify-center gap-8">
+<button class="kiln-gradient text-on-primary px-10 py-5 font-bold rounded-lg shadow-xl hover:scale-95 transition-all">
+                    Contact for a Consultation
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#e9e2d6] dark:bg-stone-900 w-full">
+<div class="flex flex-col md:flex-row justify-between items-center px-16 py-12 w-full max-w-7xl mx-auto">
+<div class="mb-8 md:mb-0">
+<div class="font-serif text-lg text-[#1e1b14] mb-2">Hurtig.ai</div>
+<p class="font-sans text-sm Manrope tracking-wide text-[#546758] dark:text-stone-400">© 2024 Hurtig.ai. Sovereignty in every byte.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-8">
+<a class="text-[#546758] dark:text-stone-400 hover:underline hover:text-[#a03f28] transition-opacity opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
+<a class="text-[#546758] dark:text-stone-400 hover:underline hover:text-[#a03f28] transition-opacity opacity-80 hover:opacity-100" href="#">Data Sovereignty</a>
+<a class="text-[#546758] dark:text-stone-400 hover:underline hover:text-[#a03f28] transition-opacity opacity-80 hover:opacity-100" href="#">Terms of Service</a>
+<a class="text-[#546758] dark:text-stone-400 hover:underline hover:text-[#a03f28] transition-opacity opacity-80 hover:opacity-100" href="#">Contact</a>
+</div>
+</div>
+</footer>
+</body></html>

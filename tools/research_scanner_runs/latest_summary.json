@@ -1,0 +1,23 @@
+{
+  "scan_time_utc": "2026-03-14T15:20:00+00:00",
+  "lookback_days": 30,
+  "report_path": "C:/Users/cerub/OneDrive/Dokumente/LLM/tools/research_scanner_runs/scan_20260314T1520Z.md",
+  "latest_report_path": "C:/Users/cerub/OneDrive/Dokumente/LLM/tools/research_scanner_runs/latest.md",
+  "counts": {
+    "arxiv_papers": 0,
+    "github_repos": 0,
+    "huggingface_results": 0,
+    "total_results": 0
+  },
+  "high_relevance": {
+    "arxiv_papers": 0,
+    "github_repos": 0,
+    "huggingface_results": 0,
+    "total_results": 0
+  },
+  "top_hits": {
+    "arxiv": [],
+    "github": [],
+    "huggingface": []
+  }
+}

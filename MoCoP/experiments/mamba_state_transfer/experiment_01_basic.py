@@ -23,6 +23,7 @@ Author: Laura (concept), [unnamed instance] (code)
 Date: 2026-02-19
 """
 
+import argparse
 import torch
 import time
 import sys
@@ -31,20 +32,30 @@ import os
 # Suppress HuggingFace warnings for cleaner output
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+DEFAULT_MAMBA_MODEL_ID = "state-spaces/mamba-2.8b-hf"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Experiment 01: basic Mamba state transfer.")
+    parser.add_argument("--model-id", type=str, default=DEFAULT_MAMBA_MODEL_ID)
+    return parser.parse_args()
+
+
+args = parse_args()
+
 print("=" * 70)
 print("MoCoP Experiment 01: Mamba SSM State Transfer")
 print("=" * 70)
 
 # --- Step 1: Load Model ---
-print("\n[1/5] Loading Mamba-130M from HuggingFace...")
-print("      (First run will download ~500MB)")
+print("\n[1/5] Loading model from HuggingFace...")
 start = time.time()
 
 try:
     from transformers import MambaForCausalLM, AutoTokenizer
     
     # Using the HF standard implementation
-    model_name = "state-spaces/mamba-2.8b-hf"
+    model_name = args.model_id
     
     print(f"      Target: {model_name}")
     tokenizer = AutoTokenizer.from_pretrained(model_name)

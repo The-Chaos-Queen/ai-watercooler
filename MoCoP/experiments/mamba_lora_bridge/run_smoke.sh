@@ -10,6 +10,13 @@ HF_CACHE=/home/user/.cache/huggingface
 
 export HF_HOME=$HF_CACHE
 export TRANSFORMERS_CACHE=$HF_CACHE/hub
+HF_TOKEN_FILE="$HF_CACHE/token"
+if [ ! -s "$HF_TOKEN_FILE" ] && [ -f /mnt/c/Users/USER/.cache/huggingface/token ]; then
+  HF_TOKEN_FILE=/mnt/c/Users/USER/.cache/huggingface/token
+fi
+if [ -z "${HF_TOKEN:-}" ] && [ -s "$HF_TOKEN_FILE" ]; then
+  export HF_TOKEN="$(tr -d '\r\n' < "$HF_TOKEN_FILE")"
+fi
 export PATH=$VENV/bin:$PATH
 
 echo "=== Environment ==="

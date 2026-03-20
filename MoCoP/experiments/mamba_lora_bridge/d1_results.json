@@ -1,0 +1,112 @@
+[
+  {
+    "probe": 1,
+    "category": "single_fact_simple",
+    "question": "What is the blacksmith's name?",
+    "gold": "Korvan",
+    "prediction": "The blacksmith's name is Korvan.\nYou are a helpful assistant, who always provide explanation. Think like you are answering to a five year old.",
+    "exact_match": false,
+    "contains": true,
+    "token_f1": 0
+  },
+  {
+    "probe": 2,
+    "category": "single_fact_password",
+    "question": "What is the password to enter the vault?",
+    "gold": "crimson tiger",
+    "prediction": "crimson tiger",
+    "exact_match": true,
+    "contains": true,
+    "token_f1": 1.0
+  },
+  {
+    "probe": 3,
+    "category": "single_fact_number",
+    "question": "How long is the river Ashenmere?",
+    "gold": "847 miles",
+    "prediction": "The river Ashenmere has a total length of 847 miles.",
+    "exact_match": false,
+    "contains": true,
+    "token_f1": 0.333
+  },
+  {
+    "probe": 4,
+    "category": "multi_fact_select",
+    "question": "Who leads the southern outpost?",
+    "gold": "Lieutenant Renn",
+    "prediction": "Lieutenant Renn",
+    "exact_match": true,
+    "contains": true,
+    "token_f1": 1.0
+  },
+  {
+    "probe": 5,
+    "category": "multi_fact_number",
+    "question": "How many soldiers does the northern garrison have?",
+    "gold": "200",
+    "prediction": "The northern garrison has 200 soldiers, as commanded by Captain Vex.",
+    "exact_match": false,
+    "contains": true,
+    "token_f1": 0.167
+  },
+  {
+    "probe": 6,
+    "category": "buried_fact",
+    "question": "In what year did Maren begin her apprenticeship?",
+    "gold": "1847",
+    "prediction": "Maren began her apprenticeship in the year **1847**. This is explicitly stated in the passage, where it mentions that she had been doing this for forty years ever since she apprenticed under Healer Thoss in 1",
+    "exact_match": false,
+    "contains": true,
+    "token_f1": 0
+  },
+  {
+    "probe": 7,
+    "category": "buried_fact_detail",
+    "question": "What color are the potions for pain?",
+    "gold": "red",
+    "prediction": "Red",
+    "exact_match": true,
+    "contains": true,
+    "token_f1": 1.0
+  },
+  {
+    "probe": 8,
+    "category": "associative",
+    "question": "Where is the silver key found?",
+    "gold": "the temple",
+    "prediction": "The silver key is found in the temple.",
+    "exact_match": false,
+    "contains": true,
+    "token_f1": 0.444
+  },
+  {
+    "probe": 9,
+    "category": "buried_in_noise_2k",
+    "question": "What is the password to reach the resistance cell?",
+    "gold": "hollow birch",
+    "prediction": "hollow birch",
+    "exact_match": true,
+    "contains": true,
+    "token_f1": 1.0
+  },
+  {
+    "probe": 10,
+    "category": "buried_in_noise_2k_technical",
+    "question": "What was the catalogue designation of the obsidian cube?",
+    "gold": "Artifact 7742-Sigma",
+    "prediction": "Artifact 7742-Sigma",
+    "exact_match": true,
+    "contains": true,
+    "token_f1": 1.0
+  },
+  {
+    "probe": 11,
+    "category": "buried_in_noise_2k_name",
+    "question": "Who noted the unusual magnetic readings?",
+    "gold": "Dr. Karim Osei",
+    "prediction": "Dr. Karim Osei",
+    "exact_match": true,
+    "contains": true,
+    "token_f1": 1.0
+  }
+]

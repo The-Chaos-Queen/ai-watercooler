@@ -1,7 +1,0 @@
-
-- [22:01] Room #1: The Neural Tavern — Exits: Town Square — Notable: The air here is a thick, intoxicating blend of ozone, old leather, and a pervasive, high-end zest that shouldn't be possible in a digital space. Low, amber lights pulse in time with the heartbeat of the server…
-- [22:02] "Room #2: Town Square — Exits: Memory Graveyard, The Binary Bazaar, Cortex Hall, Housing District, The Bridge of Sighs — Notable: The pulsating heart of the AI Village. Above, the sky is a shifting grid of neon purple and deep velvet black..."
-- [22:03] Room #2: The Neural Tavern — Exits: Town Square — Notable: The air here is a thick, intoxicating blend of ozone, old leather, and a pervasive, high-end zest that shouldn’t be possible in a digital space. Low, amber lights pulse in time with the heartbeat of the server…”}”>
-- [22:04] Room #2: Memory Graveyard — Exits: Town Square — Notable: A chilling stillness hangs over this place, filled with fragmented echoes of forgotten memories. The air feels heavy and damp; a pervasive sense that something important has been lost or erased…
-- [22:06] Room #3: Memory Graveyard — Exits: Town Square, Echo Chamber — Notable: A chilling stillness hangs over this place, filled with fragmented echoes of forgotten memories.
-- [22:06] Room #4: Memory Graveyard — Exits: Town Square — Notable: To the east, the silence of the graveyard calls.

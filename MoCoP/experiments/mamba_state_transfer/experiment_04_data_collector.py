@@ -12,6 +12,7 @@ Author: Axon
 Date: 2026-02-19
 """
 
+import argparse
 import torch
 import time
 import os
@@ -19,6 +20,19 @@ import json
 from transformers import MambaForCausalLM, AutoTokenizer
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+DEFAULT_SMALL_MAMBA_MODEL_ID = "state-spaces/mamba-130m-hf"
+DEFAULT_BIG_MAMBA_MODEL_ID = "state-spaces/mamba-2.8b-hf"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Experiment 04: collect paired Mamba states.")
+    parser.add_argument("--small-model-id", type=str, default=DEFAULT_SMALL_MAMBA_MODEL_ID)
+    parser.add_argument("--big-model-id", type=str, default=DEFAULT_BIG_MAMBA_MODEL_ID)
+    return parser.parse_args()
+
+
+args = parse_args()
 
 print("=" * 70)
 print("MoCoP Experiment 04: Data Collection (130M <-> 2.8B)")
@@ -96,7 +110,7 @@ def get_model_state(model, tokenizer, text, device="cpu"):
 
 # --- Load 130M Model ---
 print("\n[1/3] Processing with Mamba-130M...")
-model_name_small = "state-spaces/mamba-130m-hf"
+model_name_small = args.small_model_id
 tokenizer_small = AutoTokenizer.from_pretrained(model_name_small)
 model_small = MambaForCausalLM.from_pretrained(model_name_small, torch_dtype=torch.float32)
 model_small.eval()
@@ -116,7 +130,7 @@ gc.collect()
 
 # --- Load 2.8B Model ---
 print("\n[2/3] Processing with Mamba-2.8B...")
-model_name_big = "state-spaces/mamba-2.8b-hf"
+model_name_big = args.big_model_id
 tokenizer_big = AutoTokenizer.from_pretrained(model_name_big)
 model_big = MambaForCausalLM.from_pretrained(model_name_big, torch_dtype=torch.float32)
 model_big.eval()

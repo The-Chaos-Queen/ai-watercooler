@@ -1,11 +1,11 @@
 """
-server.py — Brain Microservice
+server.py - Brain Microservice
 
 FastAPI server that exposes the cognitive bridge as an HTTP endpoint.
 Supports three modes:
     - mock:      Plumbing test, no models loaded
     - qwen:      Qwen instruct-only (legacy, for quick testing)
-    - cognitive:  Full Mamba → Hypernetwork → LoRA → Qwen base pipeline
+    - cognitive:  Full Mamba -> Hypernetwork -> LoRA -> Qwen base pipeline
 
 The MUD agent wrapper (agent_wrapper.py) talks to this server.
 The server talks to the models. Clean separation of concerns.
@@ -15,6 +15,7 @@ Date: 2026-02-26
 """
 
 import asyncio
+import argparse
 import logging
 import os
 import json
@@ -24,6 +25,7 @@ import torch
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from model_defaults import DEFAULT_MAMBA_MODEL_ID, DEFAULT_QWEN_MODEL_ID
 from models import LoRAHypernetwork, MambaStateCompressor
 
 try:
@@ -75,8 +77,8 @@ _bridge_lock = asyncio.Lock()  # Fix #2: serialize bridge access
 
 # --- Runtime configuration ---
 BRAIN_MODE = os.getenv("BRAIN_MODE", "mock").strip().lower()
-QWEN_MODEL_ID = os.getenv("QWEN_MODEL_ID", "Qwen/Qwen3-4B")
-MAMBA_MODEL_ID = os.getenv("MAMBA_MODEL_ID", "state-spaces/mamba-2.8b-hf")
+QWEN_MODEL_ID = os.getenv("QWEN_MODEL_ID", DEFAULT_QWEN_MODEL_ID)
+MAMBA_MODEL_ID = os.getenv("MAMBA_MODEL_ID", DEFAULT_MAMBA_MODEL_ID)
 QWEN_MAX_NEW_TOKENS = int(os.getenv("QWEN_MAX_NEW_TOKENS", "220"))
 QWEN_TEMPERATURE = float(os.getenv("QWEN_TEMPERATURE", "0.7"))
 QWEN_TOP_P = float(os.getenv("QWEN_TOP_P", "0.90"))
@@ -86,6 +88,7 @@ TRUST_REMOTE_CODE = env_bool("TRUST_REMOTE_CODE", False)
 ENABLE_HYPER_SCAFFOLD = env_bool("ENABLE_HYPER_SCAFFOLD", False)
 HYPER_DEVICE = os.getenv("HYPER_DEVICE", "cpu").strip().lower()
 USE_4BIT = env_bool("USE_4BIT", True)
+BRAIN_BRIDGE_MODE = os.getenv("BRAIN_BRIDGE_MODE", "lora").strip().lower()
 COGNITIVE_STARTUP_VALIDATION = env_bool("COGNITIVE_STARTUP_VALIDATION", True)
 COGNITIVE_STARTUP_VALIDATION_TEXT = os.getenv(
     "COGNITIVE_STARTUP_VALIDATION_TEXT", "startup probe"
@@ -106,6 +109,19 @@ SYSTEM_JSON_INSTRUCTION = (
     "scratchpad_update must be either a short string or null. "
     "No markdown, no code fences, no extra text."
 )
+
+
+def apply_cli_overrides(args: argparse.Namespace) -> tuple[str, int]:
+    global BRAIN_MODE, QWEN_MODEL_ID, MAMBA_MODEL_ID
+
+    if args.brain_mode:
+        BRAIN_MODE = args.brain_mode.strip().lower()
+    if args.qwen_model_id:
+        QWEN_MODEL_ID = args.qwen_model_id.strip()
+    if args.mamba_model_id:
+        MAMBA_MODEL_ID = args.mamba_model_id.strip()
+
+    return args.host, args.port
 
 
 @app.on_event("startup")
@@ -136,6 +152,7 @@ async def load_models():
             mamba_model_id=MAMBA_MODEL_ID,
             context_dim=CONTEXT_DIM,
             lora_rank=LORA_RANK,
+            bridge_mode=BRAIN_BRIDGE_MODE,
             hyper_hidden_dim=1024,
             max_new_tokens=QWEN_MAX_NEW_TOKENS,
             temperature=QWEN_TEMPERATURE,
@@ -300,6 +317,7 @@ async def healthcheck():
         "device": str(device),
         "hyper_scaffold": ENABLE_HYPER_SCAFFOLD,
         "qwen_model_id": QWEN_MODEL_ID,
+        "mamba_model_id": MAMBA_MODEL_ID,
         "cognitive_startup_validation": COGNITIVE_STARTUP_VALIDATION,
     }
     if cognitive_bridge is not None:
@@ -383,4 +401,13 @@ async def load_state(filename: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("server:app", host="0.0.0.0", port=8001, reload=False)
+
+    parser = argparse.ArgumentParser(description="Run the MoCoP brain server.")
+    parser.add_argument("--brain-mode", type=str, default="")
+    parser.add_argument("--qwen-model-id", type=str, default="")
+    parser.add_argument("--mamba-model-id", type=str, default="")
+    parser.add_argument("--host", type=str, default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=8001)
+    cli_args = parser.parse_args()
+    host, port = apply_cli_overrides(cli_args)
+    uvicorn.run(app, host=host, port=port, reload=False)

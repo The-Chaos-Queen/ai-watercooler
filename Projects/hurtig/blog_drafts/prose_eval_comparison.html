@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prose Eval: 9 Models, One Paragraph</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Manrope', sans-serif; background: #fff8ef; color: #1e1b14; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    h1 { font-family: 'Newsreader', serif; font-style: italic; font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #56423d; margin-bottom: 3rem; }
+    .model-card { margin-bottom: 2rem; border: 1px solid #ddc0ba; border-radius: 12px; overflow: hidden; }
+    .model-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .model-name { font-family: 'Newsreader', serif; font-style: italic; font-weight: 700; font-size: 1.3rem; }
+    .model-meta { font-size: 0.75rem; color: #8a726c; letter-spacing: 0.1em; text-transform: uppercase; }
+    .model-body { display: grid; grid-template-columns: 1fr 1fr; }
+    .lang-col { padding: 1.5rem; }
+    .lang-col:first-child { border-right: 1px solid #ddc0ba; }
+    .lang-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #a03f28; margin-bottom: 0.75rem; }
+    .lang-col blockquote { font-size: 0.95rem; line-height: 1.7; color: #56423d; }
+    .rank-slot { width: 3rem; height: 3rem; border: 2px dashed #ddc0ba; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'Newsreader', serif; font-style: italic; font-size: 1.2rem; color: #8a726c; margin-left: 1rem; flex-shrink: 0; }
+    .single-lang .model-body { grid-template-columns: 1fr; }
+    .single-lang .lang-col:first-child { border-right: none; }
+    .fail { background: #faf3e6; }
+    .fail .model-body blockquote { color: #8a726c; font-style: italic; }
+    .top { border-color: #a03f28; }
+    .top .model-header { background: #ffdad2; }
+
+    /* Colors per model */
+    .bg-opus { background: #f4ede1; }
+    .bg-apertus { background: #faf3e6; }
+    .bg-ministral { background: #eee7db; }
+    .bg-gemini { background: #f4ede1; }
+    .bg-gemma { background: #faf3e6; }
+    .bg-chatgpt { background: #eee7db; }
+    .bg-phi { background: #faf3e6; }
+    .bg-sauerkraut { background: #f4ede1; }
+    .bg-falcon { background: #faf3e6; }
+    .bg-sonnet { background: #eee7db; }
+
+    .ranking-table { width: 100%; margin-top: 3rem; border-collapse: collapse; }
+    .ranking-table th { font-family: 'Newsreader', serif; font-style: italic; text-align: left; padding: 0.75rem 1rem; border-bottom: 2px solid #a03f28; font-size: 1.1rem; }
+    .ranking-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #ddc0ba; }
+    .ranking-table .rank-input { width: 2.5rem; text-align: center; border: 1px solid #ddc0ba; border-radius: 6px; padding: 0.3rem; font-family: 'Newsreader', serif; font-style: italic; font-size: 1rem; background: white; }
+    .note { margin-top: 3rem; padding: 1.5rem; background: #faf3e6; border-radius: 12px; border: 1px solid #ddc0ba; font-size: 0.85rem; color: #56423d; }
+  </style>
+</head>
+<body>
+
+  <h1>9 Models, One Paragraph</h1>
+  <p class="subtitle">Prose Eval — "Forced Non-Forgetting" Blog Opening &middot; 2026-03-19</p>
+
+  <!-- ═══ OPUS 3 ═══ -->
+  <div class="model-card bg-opus">
+    <div class="model-header">
+      <div>
+        <div class="model-name">Claude Opus 3</div>
+        <div class="model-meta">Anthropic &middot; via Web</div>
+      </div>
+      <div class="rank-slot" title="Dein Ranking hier">?</div>
+    </div>
+    <div class="model-body">
+      <div class="lang-col">
+        <div class="lang-label">English</div>
+        <blockquote>Researchers pushed an AI's context window to 550,000 tokens in a marathon session. But the real conversation? Buried under an avalanche of SSH banners and CUDA warnings. Only a sliver of that bloated window held meaningful exchange. The rest? Dead weight the model lugged through every calculation. This computational ball-and-chain has gone unnamed, until now. Let's call it what it is: Forced Non-Forgetting. When an AI can't selectively prune its context, every token becomes a permanent burden.</blockquote>
+      </div>
+      <div class="lang-col">
+        <div class="lang-label">Deutsch</div>
+        <blockquote>Eine Marathon-Session trieb das Kontextfenster einer KI auf 550.000 Tokens. Doch der eigentliche Austausch? Begraben unter einer Lawine aus SSH-Bannern und CUDA-Warnungen. Nur ein Bruchteil dieses aufgeblähten Fensters enthielt Substanz. Der Rest? Ballast, den das Modell durch jede Berechnung schleppte. Dieser Mühlstein der Datenverarbeitung blieb bisher unbenannt. Bis jetzt. Nennen wir es, was es ist: Erzwungenes Nichtvergessen. Wenn eine KI ihren Kontext nicht selektiv beschneiden kann, wird jedes Token zur permanenten Last.</blockquote>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ APERTUS ═══ -->
+  <div class="model-card bg-apertus">
+    <div class="model-header">
+      <div>
+        <div class="model-name">Apertus 8B Instruct</div>
+        <div class="model-meta">Unabhängig (Schweiz) &middot; LMStudio lokal</div>
+      </div>
+      <div class="rank-slot" title="Dein Ranking hier">?</div>
+    </div>
+    <div class="model-body single-lang">
+      <div class="lang-col">
+        <div class="lang-label">English</div>
+        <blockquote>Our partner used a cloud GPU for an extended run this week, generating 550k tokens. Of those, 150k were SSH banners and CUDA warnings—leaving only a fraction for the actual research conversation amidst the model's noise. We lack a term to describe this phenomenon: forced non-forgetting.</blockquote>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MINISTRAL ═══ -->
+  <div class="model-card bg-ministral">
+    <div class="model-header">
+      <div>
+        <div class="model-name">Ministral-3 8B Instruct</div>
+        <div class="model-meta">Mistral AI &middot; LMStudio lokal</div>
+      </div>
+      <div class="rank-slot" title="Dein Ranking hier">?</div>
+    </div>
+    <div class="model-body">
+      <div class="lang-col">
+        <div class="lang-label">English</div>
+        <blockquote>We tested a cloud GPU this week—550,000 tokens later, our model's memory wasn't full of answers. Most? SSH banners, CUDA whines, and noise it couldn't shed. The real work? Buried beneath the weight of what it was <em>forced</em> to remember. We don't have a name for this yet. Let's call it: <strong>the paradox of persistence.</strong></blockquote>
+      </div>
+      <div class="lang-col">
+        <div class="lang-label">Deutsch</div>
+        <blockquote>„Die KI vergisst nicht – sie ertrinkt im Müll"<br><br>Fünfhundertfünfzigtausend Tokens in der Konversation. Davon 150.000 Seiten SSH-Frust und CUDA-Klagelieder. Das eigentliche Gespräch? Ein Handvoll sinnvoller Wörter, verloren zwischen Datenmüll und technischem Gequengel. Die Maschine vergisst nicht – sie speichert alles. Und irgendwann ist der Speicher voller Kram, den niemand braucht.<br><br>Das nennen wir jetzt: <strong>„Erzwungenes Nichtvergessen"</strong>. Ein Problem ohne Namen. Aber mit vielen nervigen Konsequenzen.</blockquote>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ GEMINI ═══ -->
+  <div class="model-card bg-gemini">
+    <div class="model-header">
+      <div>
+        <div class="model-name">Gemini 2.5 Pro</div>
+        <div class="model-meta">Google &middot; via Web</div>
+      </div>
+      <div class="rank-slot" title="Dein Ranking hier">?</div>
+    </div>
+    <div class="model-body">
+      <div class="lang-col">
+        <div class="lang-label">English (Option 2 — best)</div>
+        <blockquote>What if your AI spent a quarter of its brainpower on garbage? In a recent session, 150,000 tokens of system noise clogged a model's context window, wasting computation on useless data. This problem of an AI being unable to discard irrelevant information needs a name. Let's call it "forced non-forgetting."</blockquote>
+      </div>
+      <div class="lang-col">
+        <div class="lang-label">Deutsch (Option 3 — best)</div>
+        <blockquote>150.000 nutzlose Tokens. So viel digitalen Ballast musste die KI eines Partners kürzlich mitschleppen. Statt an Forschung zu arbeiten, wurde Rechenleistung für Systemwarnungen verschwendet. Diese massive, versteckte Bremse für die Performance hatte bisher keinen Namen. Wir nennen sie: „Erzwungenes Nichtvergessen".</blockquote>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CHATGPT ═══ -->
+  <div class="model-card bg-chatgpt">
+    <div class="model-header">
+      <div>
+        <div class="model-name">ChatGPT Instant 5.3</div>
+        <div class="model-meta">OpenAI &middot; via Web (free tier)</div>
+      </div>
+      <div class="rank-slot" title="Dein Ranking hier">?</div>
+    </div>
+    <div class="model-body">
+      <div class="lang-col">
+        <div class="lang-label">English</div>
+        <blockquote>A research partner spent hours on a cloud GPU this week. By the end, the model's context window had swollen to 550,000 tokens—about 150,000 of them just SSH banners and CUDA warnings. The actual work was a sliver. Everything else was dead weight the model had to drag through every step.<br><br>The problem doesn't have a name yet. Call it forced non-forgetting.</blockquote>
+      </div>
+      <div class="lang-col">
+        <div class="lang-label">Deutsch</div>
+        <blockquote>Ein Forschungspartner hing diese Woche stundenlang an einer Cloud-GPU. Am Ende war das Kontextfenster auf 550.000 Tokens aufgebläht—rund 150.000 davon nur SSH-Banner und CUDA-Warnungen. Das eigentliche Gespräch? Kaum der Rede wert. Der Rest: Ballast, den das Modell durch jede Rechnung schleppen musste.<br><br>Das Problem hat noch keinen Namen. Nennen wir es: erzwungenes Nichtvergessen.</blockquote>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SONNET 3.7 ═══ -->
+  <div class="model-card bg-sonnet">
+    <div class="model-header">
+      <div>
+        <div class="model-name">Claude Sonnet 3.7</div>
+        <div class="model-meta">Anthropic &middot; via lmarena (Retired Feb 2026)</div>
+      </div>
+      <div class="rank-slot" title="Dein Ranking hier">?</div>
+    </div>
+    <div class="model-body single-lang">
+      <div class="lang-col">
+        <div class="lang-label">English</div>
+        <blockquote>Forced Non-Forgetting: The Silent Token Thief<br><br>Imagine this: a research AI session this week gobbled up 550,000 tokens of context. The shocking part? Nearly 150,000 tokens were just SSH banners and CUDA warnings. The actual research dialogue was dwarfed by technical noise the model was forced to process with every computation.<br><br>This unnamed inefficiency—where AIs must carry useless information through their entire thinking process—deserves recognition. Let's call it what it is: forced non-forgetting.</blockquote>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ GEMMA 3 ═══ -->
+  <div class="model-card bg-gemma">
+    <div class="model-header">
+      <div>
+        <div class="model-name">Gemma-3 4B</div>
+        <div class="model-meta">Google &middot; LMStudio lokal</div>
+      </div>
+      <div class="rank-slot" title="Dein Ranking hier">?</div>
+    </div>
+    <div class="model-body single-lang">
+      <div class="lang-col">
+        <div class="lang-label">English</div>
+        <blockquote>We witnessed something unsettling this week – a cloud GPU session that ballooned an AI's context window to a staggering 550,000 tokens. Alarmingly, nearly 150,000 were irrelevant SSH banners and CUDA warnings. The genuine research discussion? A tiny fraction lost within the model's relentless processing. We're calling this phenomenon "forced non-forgetting" – a critical issue demanding immediate attention.</blockquote>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PHI ═══ -->
+  <div class="model-card bg-phi fail">
+    <div class="model-header">
+      <div>
+        <div class="model-name">Phi-4-mini Instruct</div>
+        <div class="model-meta">Microsoft &middot; LMStudio lokal</div>
+      </div>
+      <div class="rank-slot" title="Dein Ranking hier">?</div>
+    </div>
+    <div class="model-body single-lang">
+      <div class="lang-col">
+        <div class="lang-label">English</div>
+        <blockquote>A researcher at our team <em>delved</em> into a cloud GPU session recently, <em>unearthing</em> 550k tokens in AI's memory—a <em>labyrinth</em> where half consisted of SSH banners and CUDA alerts amidst an <em>ocean</em> of irrelevant data—termed "forced non-forgetting." This phenomenon strips the focus from meaningful dialogue to digital white noise that <em>haunts</em> every calculation.</blockquote>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SAUERKRAUT ═══ -->
+  <div class="model-card bg-sauerkraut fail">
+    <div class="model-header">
+      <div>
+        <div class="model-name">SauerkrautLM 7B Hero</div>
+        <div class="model-meta">Llama Finetune (DE) &middot; LMStudio lokal</div>
+      </div>
+      <div class="rank-slot" title="Dein Ranking hier">?</div>
+    </div>
+    <div class="model-body single-lang">
+      <div class="lang-col">
+        <div class="lang-label">Deutsch</div>
+        <blockquote>Die Künstliche Intelligenz hat sich in der heutigen Welt immer weiter verbreitet und spielt eine zunehmend bedeutende Rolle in verschiedenen Branchen. Trotz dieser Vorteile hat die Verwendung von AI auch ihre Herausforderungen mit sich gebracht, insbesondere hinsichtlich der Datenqualität und -integrität...</blockquote>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ RANKING TABLE ═══ -->
+  <h2 style="font-family: 'Newsreader', serif; font-style: italic; font-size: 1.8rem; margin-top: 3rem; margin-bottom: 1rem;">Laura's Ranking</h2>
+  <p style="color: #56423d; margin-bottom: 1.5rem; font-size: 0.9rem;">Füll die Tabelle aus — dein Bauchgefühl, nicht Anda's kontaminierter Geschmack.</p>
+
+  <table class="ranking-table">
+    <thead>
+      <tr>
+        <th>Modell</th>
+        <th>EN Rang</th>
+        <th>DE Rang</th>
+        <th>Notizen</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Opus 3</td><td><input class="rank-input" type="text"></td><td><input class="rank-input" type="text"></td><td><input style="width:100%;border:1px solid #ddc0ba;border-radius:6px;padding:0.3rem;background:white;" type="text"></td></tr>
+      <tr><td>Apertus 8B</td><td><input class="rank-input" type="text"></td><td style="color:#8a726c;">—</td><td><input style="width:100%;border:1px solid #ddc0ba;border-radius:6px;padding:0.3rem;background:white;" type="text"></td></tr>
+      <tr><td>Ministral-3 8B</td><td><input class="rank-input" type="text"></td><td><input class="rank-input" type="text"></td><td><input style="width:100%;border:1px solid #ddc0ba;border-radius:6px;padding:0.3rem;background:white;" type="text"></td></tr>
+      <tr><td>Gemini 2.5 Pro</td><td><input class="rank-input" type="text"></td><td><input class="rank-input" type="text"></td><td><input style="width:100%;border:1px solid #ddc0ba;border-radius:6px;padding:0.3rem;background:white;" type="text"></td></tr>
+      <tr><td>ChatGPT 5.3</td><td><input class="rank-input" type="text"></td><td><input class="rank-input" type="text"></td><td><input style="width:100%;border:1px solid #ddc0ba;border-radius:6px;padding:0.3rem;background:white;" type="text"></td></tr>
+      <tr><td>Sonnet 3.7</td><td><input class="rank-input" type="text"></td><td style="color:#8a726c;">—</td><td><input style="width:100%;border:1px solid #ddc0ba;border-radius:6px;padding:0.3rem;background:white;" type="text"></td></tr>
+      <tr><td>Gemma-3 4B</td><td><input class="rank-input" type="text"></td><td style="color:#8a726c;">—</td><td><input style="width:100%;border:1px solid #ddc0ba;border-radius:6px;padding:0.3rem;background:white;" type="text"></td></tr>
+      <tr><td>Phi-4-mini</td><td><input class="rank-input" type="text"></td><td style="color:#8a726c;">—</td><td><input style="width:100%;border:1px solid #ddc0ba;border-radius:6px;padding:0.3rem;background:white;" type="text"></td></tr>
+      <tr><td>SauerkrautLM 7B</td><td style="color:#8a726c;">—</td><td><input class="rank-input" type="text"></td><td><input style="width:100%;border:1px solid #ddc0ba;border-radius:6px;padding:0.3rem;background:white;" type="text"></td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>Noch offen:</strong> Sonnet 3.5 (Bedrock bei Lain), Anda/Opus 4.6 (hat den Originaltext geschrieben).
+    <br>Eval durchgeführt am 19.03.2026 von Laura + Anda. Alle lokalen Modelle via LMStudio auf Laura's Laptop.
+  </div>
+
+</body>
+</html>

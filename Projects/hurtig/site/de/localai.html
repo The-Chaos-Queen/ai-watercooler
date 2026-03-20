@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalAI — On-Premise-KI-Beratung &amp; Implementierung | hurtig.ai</title>
+  <meta name="description" content="LocalAI-Beratung und -Implementierung. Wir helfen Ihnen, datenschutzkonforme KI auf Ihrer eigenen Hardware zu betreiben. Implementierung zum Fixpreis, keine Cloud-Abhängigkeiten.">
+
+  <!-- Fonts (self-hosted, DSGVO-compliant) -->
+  <link rel="stylesheet" href="../assets/fonts.css">
+
+  <!-- Tailwind + Design System -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/config.js"></script>
+  <link rel="stylesheet" href="../shared/styles.css">
+
+  <!-- Favicon (cuneiform glyph) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23a03f28'>𒄉</text></svg>">
+</head>
+
+<body class="bg-cream text-ink font-body overflow-x-hidden">
+  <!-- Grain overlay -->
+  <div class="grain-overlay animate-grain"></div>
+
+  <!-- ════════════════════════════════════════════
+       NAVIGATION
+       ════════════════════════════════════════════ -->
+  <nav class="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-clay/10">
+    <div class="flex justify-between items-center w-full px-6 md:px-16 py-5 max-w-7xl mx-auto">
+      <!-- Logo -->
+      <a href="index.html" class="flex items-center gap-3 group">
+        <img src="../assets/logo.svg" alt="hurtig.ai mark" class="h-7 w-auto opacity-90 group-hover:opacity-100 transition-opacity">
+        <span class="text-xl font-headline italic font-bold text-ink tracking-tight">hurtig.ai</span>
+      </a>
+
+      <!-- Desktop links -->
+      <div class="hidden md:flex items-center gap-10">
+        <a href="localai.html" class="nav-link active text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LocalAI</a>
+        <a href="legalai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LegalAI</a>
+        <a href="research.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Forschung</a>
+        <button class="text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">language</span>
+          DE / EN
+        </button>
+      </div>
+
+      <!-- CTA -->
+      <a href="booking.html" class="kiln-gradient btn-primary text-white px-7 py-2.5 rounded-lg font-semibold text-sm shadow-sm">
+        Kontakt
+      </a>
+    </div>
+  </nav>
+
+
+  <main class="relative z-10">
+
+    <!-- ════════════════════════════════════════
+         HERO
+         ════════════════════════════════════════ -->
+    <section class="relative min-h-[88vh] flex flex-col justify-center items-center px-6 md:px-16 overflow-hidden">
+      <!-- Cuneiform watermark -->
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[36rem] text-kiln opacity-[0.025] font-serif leading-none">
+        𒄉
+      </div>
+
+      <div class="max-w-4xl w-full text-center relative z-10">
+        <!-- Service label -->
+        <div class="inline-flex items-center gap-4 mb-8 text-kiln font-headline italic text-lg">
+          <span class="h-px w-10 bg-clay/40"></span>
+          <span>LocalAI-Beratung</span>
+          <span class="h-px w-10 bg-clay/40"></span>
+        </div>
+
+        <h1 class="text-6xl md:text-8xl lg:text-9xl font-headline italic font-bold tracking-tight text-ink mb-8 leading-[0.95]">
+          Lokale KI für<br><span class="text-kiln">Ihre Infrastruktur.</span>
+        </h1>
+
+        <p class="text-lg md:text-xl text-ink-light max-w-2xl mx-auto leading-relaxed mb-12">
+          Wir beraten und implementieren On-Premise-KI-Lösungen -- damit Sie Sprachmodelle direkt auf Ihrer eigenen Hardware betreiben können, ohne Cloud-Abhängigkeiten und mit voller Datensouveränität.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-5 justify-center">
+          <a href="booking.html" class="kiln-gradient btn-primary text-white px-10 py-4 rounded-lg font-bold text-base shadow-sm">
+            Beratungsgespräch vereinbaren
+          </a>
+          <a href="#methodology" class="text-kiln font-bold text-base flex items-center justify-center gap-2 group hover:opacity-75 transition-opacity">
+            Unser Prozess
+            <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Scroll hint -->
+      <div class="absolute bottom-12 left-6 md:left-16 flex items-center gap-3 text-xs tracking-[0.2em] text-ink-muted font-body uppercase">
+        <span class="material-symbols-outlined text-kiln text-sm">expand_more</span>
+        <span>On-Premise-Beratung</span>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         DATENSOUVERÄNITÄT BANNER
+         ════════════════════════════════════════ -->
+    <section class="py-20 md:py-24 px-6 md:px-16 bg-ink text-cream relative overflow-hidden">
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[24rem] text-cream opacity-[0.03] font-serif leading-none">
+        𒄉
+      </div>
+
+      <div class="max-w-7xl mx-auto relative z-10">
+        <div class="flex flex-col md:flex-row items-center gap-10 md:gap-16">
+          <!-- Shield icon -->
+          <div class="shrink-0">
+            <div class="w-24 h-24 rounded-2xl bg-kiln/20 border border-kiln/30 flex items-center justify-center">
+              <span class="material-symbols-outlined text-kiln text-5xl" style="font-variation-settings: 'FILL' 1;">shield_lock</span>
+            </div>
+          </div>
+
+          <!-- Text -->
+          <div class="text-center md:text-left">
+            <h2 class="text-3xl md:text-5xl font-headline italic font-bold mb-4 text-cream">
+              Ihre Daten bleiben auf Ihrer Hardware.
+            </h2>
+            <p class="text-cream/60 text-lg leading-relaxed max-w-3xl">
+              Wir implementieren KI-Lösungen, die vollständig auf Infrastruktur laufen, die Sie besitzen und kontrollieren. Keine Daten verlassen Ihr Netzwerk. Keine externen API-Aufrufe. Volle DSGVO-Konformität durch Architektur, nicht nur durch Richtlinien.
+            </p>
+          </div>
+
+          <!-- Trust badges -->
+          <div class="shrink-0 flex flex-col gap-3 text-sm text-cream/50">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-kiln text-base" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+              <span class="whitespace-nowrap">On-Premise-Betrieb</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-kiln text-base" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+              <span class="whitespace-nowrap">Keine externen API-Aufrufe</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-kiln text-base" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+              <span class="whitespace-nowrap">DSGVO-konform</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         BERATUNGSPROZESS
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream-100" id="methodology">
+      <div class="max-w-7xl mx-auto">
+
+        <div class="max-w-2xl mb-16">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Unser Prozess</span>
+          <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-6">Wie wir<br>zusammenarbeiten</h2>
+          <p class="text-ink-light text-lg leading-relaxed">
+            Von der ersten Beratung bis zur finalen Übergabe -- wir folgen einem strukturierten Prozess, um Ihre Anforderungen zu verstehen und die passende Lösung zu implementieren. Wo möglich zum Festpreis.
+          </p>
+        </div>
+
+        <!-- Bento grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+
+          <!-- Phase 01 — col-span-2 -->
+          <div class="md:col-span-2 bg-cream rounded-xl p-10 card-lift border border-clay/10 relative overflow-hidden">
+            <div class="watermark -bottom-6 -right-6 text-[8rem] text-kiln opacity-[0.04] font-serif">𒄉</div>
+            <div class="relative z-10">
+              <div class="text-kiln/20 font-headline italic text-6xl leading-none mb-6">01</div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Bedarfsanalyse</span>
+              <h3 class="text-2xl md:text-3xl font-headline italic font-bold mb-4">Ihre Anforderungen verstehen</h3>
+              <p class="text-ink-light leading-relaxed max-w-xl">
+                Wir beginnen damit, Ihre Datenlandschaft, die Arbeitsabläufe Ihres Teams und die realistischen Potenziale von KI zu verstehen. Daraus entsteht eine klare Empfehlung und ein definierter Umfang für die nächsten Schritte.
+              </p>
+              <div class="mt-8 flex flex-wrap gap-3">
+                <span class="inline-flex items-center gap-2 bg-cream-200 px-4 py-2 rounded-lg text-xs font-body font-semibold text-ink-light">
+                  <span class="text-kiln">𒄉</span> Workflow-Analyse
+                </span>
+                <span class="inline-flex items-center gap-2 bg-cream-200 px-4 py-2 rounded-lg text-xs font-body font-semibold text-ink-light">
+                  <span class="text-kiln">𒄉</span> Use-Case-Identifikation
+                </span>
+                <span class="inline-flex items-center gap-2 bg-cream-200 px-4 py-2 rounded-lg text-xs font-body font-semibold text-ink-light">
+                  <span class="text-kiln">𒄉</span> Machbarkeitsbericht
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase 02 -->
+          <div class="bg-cream-200 rounded-xl p-10 card-lift border border-clay/10 relative overflow-hidden">
+            <div class="relative z-10">
+              <div class="text-kiln/20 font-headline italic text-6xl leading-none mb-6">02</div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Architektur</span>
+              <h3 class="text-xl font-headline italic font-bold mb-4">Die Lösung designen</h3>
+              <p class="text-ink-light text-sm leading-relaxed">
+                Hardware-Empfehlungen, Modellauswahl, Deployment-Strategie -- wir designen eine Lösung, die zu Ihrem Budget und Ihrer technischen Umgebung passt.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+
+          <!-- Phase 03 — sage bg -->
+          <div class="bg-sage-light rounded-xl p-10 card-lift border border-sage/20 relative overflow-hidden">
+            <div class="relative z-10">
+              <div class="text-sage-dark/20 font-headline italic text-6xl leading-none mb-6">03</div>
+              <span class="text-sage-dark font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Implementierung</span>
+              <h3 class="text-xl font-headline italic font-bold mb-4 text-sage-dark">Auf Ihrer Hardware deployen</h3>
+              <p class="text-sage-dark/70 text-sm leading-relaxed">
+                Wir implementieren die Lösung auf Ihrer Infrastruktur. Das System läuft lokal -- kein Internet für den Betrieb erforderlich, kein Vendor-Lock-in.
+              </p>
+            </div>
+          </div>
+
+          <!-- Phase 04 — col-span-2 -->
+          <div class="md:col-span-2 bg-cream-400 rounded-xl p-10 card-lift border border-clay/10 relative overflow-hidden">
+            <div class="watermark -bottom-6 -right-6 text-[8rem] text-kiln opacity-[0.03] font-serif">𒄉</div>
+            <div class="relative z-10">
+              <div class="text-ink/10 font-headline italic text-6xl leading-none mb-6">04</div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Übergabe</span>
+              <h3 class="text-2xl md:text-3xl font-headline italic font-bold mb-4">Alles. Ihres.</h3>
+              <p class="text-ink-light leading-relaxed max-w-xl">
+                Vollständige Übergabe aller Artefakte: Dokumentation, Konfiguration, Modellgewichte und Trainingsanleitungen, damit Ihr Team das System eigenständig pflegen kann.
+              </p>
+              <div class="mt-8 flex flex-wrap gap-3">
+                <span class="inline-flex items-center gap-2 bg-cream-300 px-4 py-2 rounded-lg text-xs font-body font-semibold text-ink-light">
+                  <span class="text-kiln">𒄉</span> Vollständige Dokumentation
+                </span>
+                <span class="inline-flex items-center gap-2 bg-cream-300 px-4 py-2 rounded-lg text-xs font-body font-semibold text-ink-light">
+                  <span class="text-kiln">𒄉</span> Wissenstransfer
+                </span>
+                <span class="inline-flex items-center gap-2 bg-cream-300 px-4 py-2 rounded-lg text-xs font-body font-semibold text-ink-light">
+                  <span class="text-kiln">𒄉</span> Keine laufende Abhängigkeit
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Pricing card -->
+        <div class="bg-cream rounded-xl p-10 md:p-12 border-2 border-kiln/20 card-lift relative overflow-hidden"
+             style="background: linear-gradient(135deg, rgba(160,63,40,0.04) 0%, rgba(192,87,62,0.02) 100%);">
+          <div class="watermark -bottom-8 -right-8 text-[10rem] text-kiln opacity-[0.04] font-serif">𒄉</div>
+          <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+            <div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Preise</span>
+              <h3 class="text-3xl font-headline italic font-bold mb-3">Transparente Preisgestaltung</h3>
+              <p class="text-ink-light leading-relaxed max-w-xl">
+                Implementierungsengagements werden pro Projekt kalkuliert und bepreist. Wir besprechen Ihre Anforderungen und erstellen ein klares Angebot, bevor die Arbeit beginnt.
+              </p>
+            </div>
+            <div class="shrink-0">
+              <a href="booking.html" class="kiln-gradient btn-primary text-white px-8 py-4 rounded-lg font-bold text-sm shadow-sm inline-block whitespace-nowrap">
+                Angebot anfordern
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         LAUFENDER SUPPORT
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream">
+      <div class="max-w-7xl mx-auto">
+
+        <div class="max-w-2xl mb-16">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Wartung &amp; Support</span>
+          <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-6">Laufender Support</h2>
+          <p class="text-ink-light text-lg leading-relaxed">
+            Nach dem Deployment bieten wir Support auf Stundenbasis. Keine verpflichtenden Retainer -- Sie engagieren uns, wenn Sie uns brauchen.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-start">
+
+          <!-- Left: description + bullets -->
+          <div>
+            <p class="text-ink-light leading-relaxed mb-8">
+              Von Routinewartung bis zu Modell-Updates -- alle Support-Arbeiten werden von derselben Person durchgeführt, die Ihr System aufgebaut hat. Keine Übergaben.
+            </p>
+
+            <ul class="space-y-5">
+              <li class="flex items-start gap-4">
+                <span class="text-kiln text-lg leading-none mt-0.5 shrink-0">𒄉</span>
+                <div>
+                  <span class="font-bold text-ink block mb-1">Modell-Updates</span>
+                  <span class="text-ink-light text-sm leading-relaxed">
+                    Aktualisierung von Modellen, Einbindung neuer Datenquellen und Verbesserung der Ausgabequalität mit Ihren sich entwickelnden Anforderungen.
+                  </span>
+                </div>
+              </li>
+              <li class="flex items-start gap-4">
+                <span class="text-kiln text-lg leading-none mt-0.5 shrink-0">𒄉</span>
+                <div>
+                  <span class="font-bold text-ink block mb-1">Technischer Support</span>
+                  <span class="text-ink-light text-sm leading-relaxed">
+                    Fehlerbehebung, Performance-Optimierung und Infrastrukturberatung, wenn Sie sie benötigen.
+                  </span>
+                </div>
+              </li>
+              <li class="flex items-start gap-4">
+                <span class="text-kiln text-lg leading-none mt-0.5 shrink-0">𒄉</span>
+                <div>
+                  <span class="font-bold text-ink block mb-1">Schulung &amp; Wissenstransfer</span>
+                  <span class="text-ink-light text-sm leading-relaxed">
+                    Damit Ihr Team das System im Laufe der Zeit eigenständig verstehen und pflegen kann.
+                  </span>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Right: CTA card -->
+          <div class="bg-cream-100 rounded-xl p-10 border border-clay/10 card-lift relative overflow-hidden">
+            <div class="watermark -bottom-6 -right-6 text-[8rem] text-kiln opacity-[0.03] font-serif">𒄉</div>
+            <div class="relative z-10">
+
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-6 block">Support</span>
+
+              <p class="text-ink-light leading-relaxed mb-8">
+                Support wird stundenweise abgerechnet. Wir geben eine klare Schätzung ab, bevor ein Support-Engagement beginnt. Keine versteckten Kosten, keine verpflichtenden Retainer.
+              </p>
+
+              <a href="booking.html" class="block text-center kiln-gradient btn-primary text-white px-6 py-3.5 rounded-lg font-bold text-sm shadow-sm">
+                Bedarf besprechen
+              </a>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         FINAL CTA
+         ════════════════════════════════════════ -->
+    <section class="py-32 md:py-40 px-6 md:px-16 bg-cream-100 text-center relative overflow-hidden">
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[28rem] text-kiln opacity-[0.03] font-serif leading-none">𒄉</div>
+
+      <div class="max-w-3xl mx-auto relative z-10">
+        <h2 class="text-4xl md:text-5xl font-headline font-bold italic mb-8">
+          Bereit, KI auf Ihre<br>Infrastruktur zu bringen?
+        </h2>
+        <p class="text-lg text-ink-light mb-12 leading-relaxed">
+          Lassen Sie uns über Ihren Anwendungsfall sprechen und erkunden, wie lokales KI-Deployment für Ihre Organisation aussehen kann.
+        </p>
+        <div class="flex flex-wrap justify-center gap-8 mb-12">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">On-Premise-Betrieb</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Volle Datensouveränität</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Beratungsdienstleistung</span>
+          </div>
+        </div>
+        <a href="booking.html" class="kiln-gradient btn-primary text-white px-12 py-4 rounded-lg font-bold text-base shadow-lg inline-block">
+          Beratungsgespräch vereinbaren
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ════════════════════════════════════════════
+       FOOTER
+       ════════════════════════════════════════════ -->
+  <footer class="bg-cream-100 border-t border-clay/10">
+    <div class="flex flex-col md:flex-row justify-between items-center w-full px-6 md:px-16 py-10 max-w-7xl mx-auto gap-6">
+      <div class="text-center md:text-left">
+        <div class="flex items-center gap-2 mb-2 justify-center md:justify-start">
+          <img src="../assets/logo.svg" alt="" class="h-5 w-auto opacity-20">
+          <span class="font-headline italic text-lg text-ink/20">hurtig.ai</span>
+        </div>
+        <p class="text-ink-muted text-xs tracking-wide">&copy; 2026 hurtig.ai. Der Digitale Kurator.</p>
+      </div>
+      <div class="flex gap-8 text-xs tracking-wide">
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="impressum.html">Impressum</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="privacy.html">Datenschutz</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="booking.html">Kontakt</a>
+      </div>
+    </div>
+  </footer>
+
+<script src="../shared/lang.js"></script>
+</body>
+</html>

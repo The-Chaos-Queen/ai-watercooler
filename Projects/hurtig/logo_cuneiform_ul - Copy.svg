@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 120" width="100%" height="100%">
+  <defs>
+    <!-- Sharp, geometric wedge pointing LEFT. Head on the right with a classic V-notch back. -->
+    <polygon id="wedge" points="0,15 65,8 100,0 85,15 100,30 65,22" />
+    <polygon id="short-wedge" points="0,15 45,8 75,0 60,15 75,30 45,22" />
+  </defs>
+
+  <g fill="#c2410c" transform="translate(15, 10)">
+    <!-- Horizontal wedge pointing LEFT -->
+    <use href="#wedge" x="10" y="45" opacity="0.95" />
+    
+    <!-- Diagonal wedge pointing UP-LEFT. Intersects the thin tail. -->
+    <use href="#wedge" x="20" y="5" transform="rotate(45 20 20)" opacity="0.9" />
+    
+    <!-- Vertical wedge pointing DOWN. Intersects the thick head. -->
+    <use href="#short-wedge" x="80" y="65" transform="rotate(-90 80 80)" opacity="0.85" />
+  </g>
+
+  <text x="140" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="800" fill="#1e293b" letter-spacing="-1.5">hurtig.ai</text>
+</svg>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-highest": "#e9e2d6",
+              "on-surface-variant": "#56423d",
+              "on-secondary-container": "#546758",
+              "surface-container": "#f4ede1",
+              "primary": "#a03f28",
+              "on-background": "#1e1b14",
+              "tertiary": "#6f583c",
+              "on-tertiary-fixed-variant": "#584329",
+              "on-secondary": "#ffffff",
+              "on-error-container": "#93000a",
+              "on-surface": "#1e1b14",
+              "tertiary-container": "#897052",
+              "surface": "#fff8ef",
+              "on-tertiary": "#ffffff",
+              "tertiary-fixed-dim": "#e0c29f",
+              "on-secondary-fixed-variant": "#394b3d",
+              "surface-container-high": "#eee7db",
+              "on-tertiary-fixed": "#281803",
+              "secondary-container": "#d0e5d2",
+              "on-secondary-fixed": "#0e1f13",
+              "error": "#ba1a1a",
+              "tertiary-fixed": "#fdddb9",
+              "surface-variant": "#e9e2d6",
+              "primary-container": "#c0573e",
+              "on-primary": "#ffffff",
+              "on-error": "#ffffff",
+              "surface-bright": "#fff8ef",
+              "background": "#fff8ef",
+              "secondary-fixed-dim": "#b7ccb9",
+              "on-primary-fixed": "#3d0700",
+              "inverse-on-surface": "#f7f0e4",
+              "on-tertiary-container": "#fffbff",
+              "secondary-fixed": "#d3e8d5",
+              "primary-fixed": "#ffdad2",
+              "surface-dim": "#e0d9cd",
+              "primary-fixed-dim": "#ffb4a3",
+              "outline": "#8a726c",
+              "error-container": "#ffdad6",
+              "on-primary-fixed-variant": "#812914",
+              "surface-tint": "#a03f29",
+              "inverse-primary": "#ffb4a3",
+              "surface-container-low": "#faf3e6",
+              "surface-container-lowest": "#ffffff",
+              "secondary": "#506354",
+              "outline-variant": "#ddc0ba",
+              "on-primary-container": "#120100",
+              "inverse-surface": "#333028"
+            },
+            fontFamily: {
+              "headline": ["Newsreader", "serif"],
+              "body": ["Manrope", "sans-serif"],
+              "label": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: #fff8ef;
+            color: #1e1b14;
+        }
+        .serif-italic { font-family: 'Newsreader', serif; font-style: italic; }
+        .kiln-gradient {
+            background: linear-gradient(45deg, #a03f28, #c0573e);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<nav class="bg-[#fff8ef] dark:bg-stone-950 flex justify-between items-center px-16 py-6 w-full max-w-[1024px] mx-auto z-50">
+<div class="text-2xl font-serif italic text-[#1e1b14] dark:text-[#fff8ef]">hurtig.ai</div>
+<div class="hidden md:flex items-center space-x-8">
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] opacity-80 hover:text-[#a03f28] transition-colors duration-300 font-body" href="#">LocalAI</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] opacity-80 hover:text-[#a03f28] transition-colors duration-300 font-body" href="#">LegalAI</a>
+<a class="text-[#1e1b14] dark:text-[#e9e2d6] opacity-80 hover:text-[#a03f28] transition-colors duration-300 font-body" href="#">Research</a>
+<button class="kiln-gradient text-white px-6 py-2 rounded-lg font-body text-sm font-semibold active:scale-95 duration-150">Book Now</button>
+</div>
+<div class="md:hidden">
+<span class="material-symbols-outlined text-primary cursor-pointer">menu</span>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-[1024px] mx-auto px-6 md:px-16 py-16">
+<!-- Hero / Intro Section -->
+<header class="mb-20 grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
+<div class="md:col-span-8">
+<h1 class="font-headline text-5xl md:text-6xl text-on-surface mb-6 leading-tight">
+                    Meet the <span class="serif-italic">Expert</span>
+</h1>
+<p class="font-body text-lg text-on-surface-variant max-w-xl leading-relaxed">
+                    Schedule a consultation with Laura to discuss your path toward sovereign 
+                    <span class="text-primary font-semibold">LocalAI</span> and specialized 
+                    <span class="text-primary font-semibold">LegalAI</span>. Secure, reliable, and deeply rooted in technical integrity.
+                </p>
+</div>
+<div class="md:col-span-4 flex justify-end">
+<div class="relative">
+<div class="w-32 h-32 rounded-full overflow-hidden bg-surface-container-highest border-4 border-surface">
+<img alt="Laura expert headshot" class="w-full h-full object-cover" data-alt="Professional portrait of a woman looking confident" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxGXeDpICyBHuqJrd-eqo4LPqLmGSZpUujWNc3vxvtWwJkOxTXAT3ZjZ-ZsKLhwSW5ubl42TQHTdHZHWW_3P1vlWYnSfRU55Mgt5-UHVlLJbxYk2XKCw0vNoodq_0RasyYsXuBqHYht0UZKzXvClTo8UfGp8aWCJPUS0Oy3nhl4fBtcBjH0ucXEuKWG_VaF4HnV_bYyuBZhmji5C8A3BVGiKLFNBISVtNOz64ovKcoLiy8TYqFxlgsfFqFi_Z-G3hM21h7z9uDzwM"/>
+</div>
+<div class="absolute -bottom-2 -right-2 bg-secondary-container text-on-secondary-container px-3 py-1 text-[10px] font-bold tracking-widest uppercase rounded-full">Verified</div>
+</div>
+</div>
+</header>
+<!-- Booking Interface: Asymmetric Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-12">
+<!-- Calendar & Slots Container -->
+<div class="md:col-span-7 space-y-12">
+<section class="bg-surface-container-low p-8 rounded-xl">
+<div class="flex items-center justify-between mb-8">
+<h2 class="font-headline text-2xl text-on-surface">Select a Date</h2>
+<div class="flex space-x-4">
+<span class="material-symbols-outlined cursor-pointer text-on-surface-variant hover:text-primary transition-colors">chevron_left</span>
+<span class="font-label font-bold text-sm">OCTOBER 2024</span>
+<span class="material-symbols-outlined cursor-pointer text-on-surface-variant hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+<div class="grid grid-cols-7 gap-2 text-center text-[10px] font-bold text-on-tertiary-fixed-variant tracking-widest mb-4">
+<span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span>
+</div>
+<div class="grid grid-cols-7 gap-2">
+<!-- Simplified Calendar Grid logic -->
+<div class="text-on-surface-variant opacity-20 text-sm flex items-center justify-center h-12">26</div>
+<div class="text-on-surface-variant opacity-20 text-sm flex items-center justify-center h-12">27</div>
+<div class="text-on-surface-variant opacity-20 text-sm flex items-center justify-center h-12">28</div>
+<div class="text-on-surface-variant opacity-20 text-sm flex items-center justify-center h-12">29</div>
+<div class="text-on-surface-variant opacity-20 text-sm flex items-center justify-center h-12">30</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">1</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">2</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">3</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">4</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">5</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">6</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">7</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">8</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">9</div>
+<div class="bg-primary text-on-primary font-bold rounded text-sm ring-4 ring-primary/10 flex items-center justify-center h-12">10</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">11</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">12</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">13</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">14</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">15</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">16</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">17</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">18</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">19</div>
+<div class="hover:bg-surface-container-high cursor-pointer transition-colors rounded text-sm flex items-center justify-center h-12">20</div>
+</div>
+</section>
+<section class="space-y-6">
+<h3 class="font-headline text-xl text-on-surface">Available Intervals</h3>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+<button class="px-4 py-3 bg-surface-container text-on-surface text-sm border-b-2 border-transparent hover:border-primary transition-all text-center">09:00 AM</button>
+<button class="px-4 py-3 bg-surface-container text-on-surface text-sm border-b-2 border-primary transition-all text-center font-bold">11:30 AM</button>
+<button class="px-4 py-3 bg-surface-container text-on-surface text-sm border-b-2 border-transparent hover:border-primary transition-all text-center">02:00 PM</button>
+<button class="px-4 py-3 bg-surface-container text-on-surface text-sm border-b-2 border-transparent hover:border-primary transition-all text-center">04:30 PM</button>
+</div>
+</section>
+</div>
+<!-- Booking Form -->
+<div class="md:col-span-5">
+<div class="bg-surface-container-highest p-8 md:p-10 rounded-xl relative overflow-hidden">
+<!-- Texture Mark -->
+<div class="absolute bottom-4 right-4 text-4xl opacity-5 select-none font-serif">𒄉</div>
+<h2 class="font-headline text-2xl text-on-surface mb-8">Consultation Details</h2>
+<form class="space-y-8">
+<div class="space-y-1">
+<label class="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant">Full Name</label>
+<input class="w-full bg-transparent border-0 border-b border-outline-variant focus:ring-0 focus:border-primary px-0 py-2 placeholder:opacity-30 font-body" placeholder="Dr. Julian Thorne" type="text"/>
+</div>
+<div class="space-y-1">
+<label class="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant">Work Email</label>
+<input class="w-full bg-transparent border-0 border-b border-outline-variant focus:ring-0 focus:border-primary px-0 py-2 placeholder:opacity-30 font-body" placeholder="julian@research.ai" type="email"/>
+</div>
+<div class="space-y-1">
+<label class="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant">Topic of Inquiry</label>
+<select class="w-full bg-transparent border-0 border-b border-outline-variant focus:ring-0 focus:border-primary px-0 py-2 font-body text-sm">
+<option>Local Large Language Models</option>
+<option>Legal Document Automation</option>
+<option>Privacy &amp; Sovereignty Strategy</option>
+<option>Custom Research Implementation</option>
+</select>
+</div>
+<div class="space-y-1">
+<label class="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant">Tell us more</label>
+<textarea class="w-full bg-transparent border-0 border-b border-outline-variant focus:ring-0 focus:border-primary px-0 py-2 placeholder:opacity-30 font-body text-sm resize-none" placeholder="Briefly describe your current technical challenges..." rows="4"></textarea>
+</div>
+<button class="w-full kiln-gradient text-on-primary py-4 rounded-lg font-body font-bold text-sm tracking-wide shadow-xl active:scale-95 transition-transform" type="submit">
+                            Confirm Consultation
+                        </button>
+</form>
+<p class="mt-8 text-[11px] text-on-surface-variant opacity-60 leading-relaxed font-body italic text-center">
+                        All calls are processed via end-to-end encrypted Digital Cuneiform channels.
+                    </p>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-[#faf3e6] dark:bg-stone-900 flex flex-col md:flex-row justify-between items-center px-16 py-12 w-full mt-auto">
+<div class="mb-6 md:mb-0">
+<div class="text-lg font-serif text-[#1e1b14] mb-2">hurtig.ai</div>
+<div class="text-sm font-sans tracking-wide text-[#1e1b14] dark:text-[#e9e2d6] opacity-60">© 2024 hurtig.ai. Digital Cuneiform Systems.</div>
+</div>
+<div class="flex space-x-8">
+<a class="text-sm font-sans tracking-wide text-[#1e1b14] dark:text-[#e9e2d6] opacity-60 hover:opacity-100 transition-opacity" href="#">Privacy Policy</a>
+<a class="text-sm font-sans tracking-wide text-[#1e1b14] dark:text-[#e9e2d6] opacity-60 hover:opacity-100 transition-opacity" href="#">Terms of Service</a>
+<a class="text-sm font-sans tracking-wide text-[#1e1b14] dark:text-[#e9e2d6] opacity-60 hover:opacity-100 transition-opacity" href="#">Contact</a>
+</div>
+</footer>
+</body></html>

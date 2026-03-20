@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>hurtig.ai — Hasten the Future</title>
+  <meta name="description" content="AI-Beratung und lokale KI-Implementierung. Datensouveränität, On-Premise-Deployment und forschungsgetriebenes Engineering.">
+
+  <!-- Fonts (self-hosted, DSGVO-compliant) -->
+  <link rel="stylesheet" href="assets/fonts.css">
+
+  <!-- Tailwind + Design System -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="shared/config.js"></script>
+  <link rel="stylesheet" href="shared/styles.css">
+
+  <!-- Favicon (cuneiform glyph) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23a03f28'>𒄉</text></svg>">
+</head>
+
+<body class="bg-cream text-ink font-body overflow-x-hidden">
+  <!-- Grain overlay -->
+  <div class="grain-overlay animate-grain"></div>
+
+  <!-- ════════════════════════════════════════════
+       NAVIGATION — identical on all pages
+       ════════════════════════════════════════════ -->
+  <nav class="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-clay/10">
+    <div class="flex justify-between items-center w-full px-6 md:px-16 py-5 max-w-7xl mx-auto">
+      <!-- Logo -->
+      <a href="index.html" class="flex items-center gap-3 group">
+        <img src="assets/logo.svg" alt="hurtig.ai mark" class="h-7 w-auto opacity-90 group-hover:opacity-100 transition-opacity">
+        <span class="text-xl font-headline italic font-bold text-ink tracking-tight">hurtig.ai</span>
+      </a>
+
+      <!-- Desktop links -->
+      <div class="hidden md:flex items-center gap-10">
+        <a href="localai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Services</a>
+        <a href="legalai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LegalAI</a>
+        <a href="research.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Research</a>
+        <button class="text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">language</span>
+          DE / EN
+        </button>
+      </div>
+
+      <!-- CTA -->
+      <a href="booking.html" class="kiln-gradient btn-primary text-white px-7 py-2.5 rounded-lg font-semibold text-sm shadow-sm">
+        Contact
+      </a>
+    </div>
+  </nav>
+
+
+  <main class="relative z-10">
+
+    <!-- ════════════════════════════════════════
+         HERO
+         ════════════════════════════════════════ -->
+    <section class="relative min-h-[90vh] flex flex-col justify-center items-center px-6 md:px-16 overflow-hidden">
+      <!-- Cuneiform watermark -->
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[36rem] text-kiln opacity-[0.025] font-serif leading-none">
+        𒄉
+      </div>
+
+      <div class="max-w-4xl w-full text-center relative z-10">
+        <h1 class="text-5xl md:text-8xl lg:text-9xl font-headline italic font-bold tracking-tight text-ink mb-8 leading-[0.95]">
+          Your <span class="text-kiln">AI</span>. Your Servers.<br>Your Data.
+        </h1>
+
+        <p class="text-lg md:text-xl text-ink-light max-w-2xl mx-auto leading-relaxed mb-12">
+          We deploy high-performance AI systems directly onto your hardware.
+          Fixed-price implementation. Your data never leaves your building.
+          <span class="block mt-3 text-base text-ink-muted">Beratung auf Deutsch und Englisch.</span>
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-5 justify-center">
+          <a href="#services" class="kiln-gradient btn-primary text-white px-10 py-4 rounded-lg font-bold text-base shadow-sm">
+            Explore Our Services
+          </a>
+          <a href="research.html" class="btn-secondary bg-sage-light text-sage-dark px-10 py-4 rounded-lg font-bold text-base">
+            Research Labs
+          </a>
+        </div>
+      </div>
+
+      <!-- Scroll hint -->
+      <div class="absolute bottom-12 left-6 md:left-16 flex items-center gap-3 text-xs tracking-[0.2em] text-ink-muted font-body uppercase">
+        <span class="material-symbols-outlined text-kiln text-sm">expand_more</span>
+        <span>The Digital Curator</span>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         SERVICES OVERVIEW
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream-100" id="services">
+      <div class="max-w-7xl mx-auto">
+
+        <div class="max-w-2xl mb-16">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">What We Build</span>
+          <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-6">Sovereign Intelligence,<br>Precisely <span class="text-sage">Deployed</span></h2>
+          <p class="text-ink-light text-lg leading-relaxed">
+            Two pillars of applied AI — each designed for absolute data sovereignty and domain-specific excellence.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+          <!-- LocalAI Card -->
+          <div class="bg-cream rounded-xl p-10 md:p-12 card-lift border border-sage/10 relative overflow-hidden group">
+            <div class="watermark -bottom-8 -right-8 text-[10rem] text-kiln opacity-[0.03] font-serif">𒄉</div>
+            <div class="relative z-10">
+              <span class="material-symbols-outlined text-kiln text-3xl mb-6" style="font-variation-settings: 'FILL' 1;">shield_lock</span>
+              <h3 class="text-3xl font-headline italic font-bold mb-4">LocalAI</h3>
+              <p class="text-ink-light leading-relaxed mb-6">
+                High-performance LLMs deployed directly on your infrastructure.
+                Your data never leaves your building. Fixed-price implementation, transparent and complete.
+              </p>
+              <ul class="space-y-3 mb-8">
+                <li class="flex items-center gap-3 text-sm text-ink-light">
+                  <span class="text-kiln">𒄉</span> Fixed-price implementation
+                </li>
+                <li class="flex items-center gap-3 text-sm text-ink-light">
+                  <span class="text-kiln">𒄉</span> Maintenance &amp; support (hourly)
+                </li>
+                <li class="flex items-center gap-3 text-sm text-ink-light">
+                  <span class="text-kiln">𒄉</span> Air-gapped &amp; on-premise ready
+                </li>
+              </ul>
+              <a href="localai.html" class="text-kiln font-bold text-sm flex items-center gap-2 group/link">
+                Explore LocalAI
+                <span class="material-symbols-outlined text-sm group-hover/link:translate-x-1 transition-transform">arrow_forward</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- LegalAI Card -->
+          <div class="bg-cream rounded-xl p-10 md:p-12 card-lift border border-sage/10 relative overflow-hidden group">
+            <div class="watermark -bottom-8 -right-8 text-[10rem] text-kiln opacity-[0.03] font-serif">𒄉</div>
+            <div class="relative z-10">
+              <span class="material-symbols-outlined text-kiln text-3xl mb-6" style="font-variation-settings: 'FILL' 1;">gavel</span>
+              <h3 class="text-3xl font-headline italic font-bold mb-4">LegalAI</h3>
+              <p class="text-ink-light leading-relaxed mb-6">
+                Specialized intelligence for medical criminal law. Trained on decades of
+                Medizinstrafrecht — causality analysis, guideline cross-referencing, and drafting support.
+              </p>
+              <ul class="space-y-3 mb-8">
+                <li class="flex items-center gap-3 text-sm text-ink-light">
+                  <span class="text-kiln">𒄉</span> Analytical rigor for legal causality
+                </li>
+                <li class="flex items-center gap-3 text-sm text-ink-light">
+                  <span class="text-kiln">𒄉</span> Automated guideline cross-referencing
+                </li>
+                <li class="flex items-center gap-3 text-sm text-ink-light">
+                  <span class="text-kiln">𒄉</span> Privacy-first: local inference only
+                </li>
+              </ul>
+              <a href="legalai.html" class="text-kiln font-bold text-sm flex items-center gap-2 group/link">
+                Explore LegalAI
+                <span class="material-symbols-outlined text-sm group-hover/link:translate-x-1 transition-transform">arrow_forward</span>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         METHODOLOGY (brief)
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream">
+      <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-20 items-center">
+
+        <div class="md:col-span-5">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">How We Work</span>
+          <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-6 leading-tight">
+            Fixed-Price<br>Precision
+          </h2>
+          <p class="text-ink-light text-lg leading-relaxed mb-8">
+            From initial audit to final handover — every implementation follows a transparent, four-phase process at a fixed price. No hourly drift during deployment.
+          </p>
+          <a href="methodology.html" class="text-kiln font-bold text-sm flex items-center gap-2 group">
+            View Full Methodology
+            <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          </a>
+        </div>
+
+        <div class="md:col-span-7 grid grid-cols-2 gap-4">
+          <div class="bg-cream-100 p-8 rounded-xl">
+            <div class="text-kiln/20 font-headline italic text-4xl mb-4">01</div>
+            <h4 class="font-bold mb-2">Audit &amp; Strategy</h4>
+            <p class="text-sm text-ink-light">Map your data landscape and identify AI opportunities.</p>
+          </div>
+          <div class="bg-cream-200 p-8 rounded-xl">
+            <div class="text-kiln/20 font-headline italic text-4xl mb-4">02</div>
+            <h4 class="font-bold mb-2">Architecture</h4>
+            <p class="text-sm text-ink-light">Blueprint on-premise inference and fine-tuning pipelines.</p>
+          </div>
+          <div class="bg-sage-light p-8 rounded-xl">
+            <div class="text-sage-dark/20 font-headline italic text-4xl mb-4">03</div>
+            <h4 class="font-bold mb-2">Deployment</h4>
+            <p class="text-sm text-ink-light">Containerized implementation, zero external dependencies.</p>
+          </div>
+          <div class="bg-cream-400 p-8 rounded-xl">
+            <div class="text-ink/10 font-headline italic text-4xl mb-4">04</div>
+            <h4 class="font-bold mb-2">Handover</h4>
+            <p class="text-sm text-ink-light">Complete transfer: docs, weights, governance protocols.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         RESEARCH LABS
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream-400/50" id="research">
+      <div class="max-w-7xl mx-auto">
+
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
+          <div class="max-w-xl">
+            <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Research</span>
+            <h2 class="text-4xl md:text-5xl font-headline italic font-bold mb-4">hurtig.ai Research Labs</h2>
+            <p class="text-ink-light text-lg">
+              Pushing the boundaries of neural architecture and computational sovereignty.
+            </p>
+          </div>
+          <a href="research.html" class="text-kiln font-bold text-sm flex items-center gap-2 group shrink-0">
+            All Publications
+            <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Paper 1 -->
+          <article class="bg-cream/80 backdrop-blur-sm border border-clay/10 p-8 md:p-10 rounded-xl card-lift flex flex-col justify-between min-h-[380px]">
+            <div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Neural Architecture</span>
+              <h3 class="text-xl font-headline font-bold mb-3 italic">MoCoP: Modular Contextual Processing</h3>
+              <p class="text-ink-light text-sm leading-relaxed">
+                Cross-model memory transfer via Mamba hidden-state injection into transformer LoRA weights.
+              </p>
+            </div>
+            <div class="flex items-center justify-between border-t border-clay/15 pt-5 mt-8">
+              <span class="text-[10px] font-body text-ink-muted tracking-wide">2026</span>
+              <a class="text-kiln font-bold text-sm hover:underline" href="#">Read Paper</a>
+            </div>
+          </article>
+
+          <!-- Paper 2 -->
+          <article class="bg-cream/80 backdrop-blur-sm border border-clay/10 p-8 md:p-10 rounded-xl card-lift flex flex-col justify-between min-h-[380px]">
+            <div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Ethics &amp; Law</span>
+              <h3 class="text-xl font-headline font-bold mb-3 italic">The Liability of Local Inference</h3>
+              <p class="text-ink-light text-sm leading-relaxed">
+                A legal framework for corporate responsibility in non-deterministic AI outputs deployed on-premise.
+              </p>
+            </div>
+            <div class="flex items-center justify-between border-t border-clay/15 pt-5 mt-8">
+              <span class="text-[10px] font-body text-ink-muted tracking-wide">2026</span>
+              <a class="text-kiln font-bold text-sm hover:underline" href="#">Read Paper</a>
+            </div>
+          </article>
+
+          <!-- Paper 3 -->
+          <article class="bg-cream/80 backdrop-blur-sm border border-clay/10 p-8 md:p-10 rounded-xl card-lift flex flex-col justify-between min-h-[380px]">
+            <div>
+              <span class="text-kiln font-body text-[10px] font-bold tracking-[0.2em] uppercase mb-3 block">Infrastructure</span>
+              <h3 class="text-xl font-headline font-bold mb-3 italic">Sovereign Edge: Fixed-Price AI Scaling</h3>
+              <p class="text-ink-light text-sm leading-relaxed">
+                Predictive maintenance and cost-deterministic deployment strategies for local-first AI clusters.
+              </p>
+            </div>
+            <div class="flex items-center justify-between border-t border-clay/15 pt-5 mt-8">
+              <span class="text-[10px] font-body text-ink-muted tracking-wide">2026</span>
+              <a class="text-kiln font-bold text-sm hover:underline" href="#">Read Paper</a>
+            </div>
+          </article>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         ABOUT — The Curator
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream" id="about">
+      <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-center">
+
+        <!-- Portrait -->
+        <div class="relative">
+          <div class="watermark -top-8 -left-8 text-[14rem] text-kiln opacity-[0.04] font-serif">𒄉</div>
+          <div class="aspect-[4/5] bg-cream-400 rounded-2xl overflow-hidden border border-clay/15 shadow-sm">
+            <img src="assets/laura.jpg" alt="Laura Isabell Turner — Founder of hurtig.ai"
+                 class="w-full h-full object-cover object-top">
+          </div>
+        </div>
+
+        <div class="space-y-10 max-w-lg">
+          <div>
+            <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">About</span>
+            <h2 class="text-4xl md:text-5xl font-headline italic font-bold text-ink">Laura Isabell Turner</h2>
+          </div>
+
+          <div class="space-y-5 text-lg text-ink-light leading-relaxed">
+            <p>
+              Published researcher, ISO 27001 certified security professional, and hands-on AI engineer.
+              I've spent years building real AI systems in enterprise environments —
+              not strategy decks, but working implementations.
+            </p>
+            <p>
+              hurtig.ai is the distillation of that experience: sovereign AI infrastructure
+              that respects your data, deployed at a fixed price, with no black boxes.
+            </p>
+          </div>
+
+          <!-- Etymology — the brand story lives here, not the hero -->
+          <div class="bg-cream-100 rounded-xl p-6 border border-clay/10">
+            <p class="text-sm text-ink-light leading-relaxed">
+              <span class="font-headline italic text-kiln">𒄉 hurtig</span> —
+              from the Sumerian <em>ul</em> (to hasten, be quick) and the German/Danish <em>hurtig</em> (swift, nimble).
+              The oldest writing system meets the newest intelligence. Our name is a 5,000-year translation.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-3 gap-6 pt-6 border-t border-clay/15">
+            <div>
+              <span class="material-symbols-outlined text-sage mb-1" style="font-variation-settings: 'FILL' 1;">school</span>
+              <p class="text-[10px] text-ink-muted uppercase tracking-[0.15em]">Univ. Bamberg</p>
+            </div>
+            <div>
+              <span class="material-symbols-outlined text-sage mb-1" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+              <p class="text-[10px] text-ink-muted uppercase tracking-[0.15em]">ISO 27001</p>
+            </div>
+            <div>
+              <span class="material-symbols-outlined text-sage mb-1" style="font-variation-settings: 'FILL' 1;">science</span>
+              <p class="text-[10px] text-ink-muted uppercase tracking-[0.15em]">Published Research</p>
+            </div>
+          </div>
+
+          <p class="italic text-ink/50 font-headline text-xl leading-snug">
+            "Intelligence should hasten our potential, not replace our judgment."
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         FINAL CTA
+         ════════════════════════════════════════ -->
+    <section class="py-32 md:py-40 px-6 md:px-16 bg-cream-100 text-center relative overflow-hidden">
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[28rem] text-kiln opacity-[0.03] font-serif leading-none">𒄉</div>
+
+      <div class="max-w-3xl mx-auto relative z-10">
+        <h2 class="text-4xl md:text-5xl font-headline font-bold italic mb-8">Ready to hasten your intelligence?</h2>
+        <p class="text-lg text-ink-light mb-12 leading-relaxed">
+          Whether local deployment or specialized legal tools — hurtig.ai provides the weight of expertise at the speed of tomorrow.
+        </p>
+        <div class="flex flex-wrap justify-center gap-8 mb-12">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Fixed Price Implementation</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Data Sovereignty Guaranteed</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sage text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            <span class="font-body text-xs uppercase tracking-[0.15em]">Specialized Legal Models</span>
+          </div>
+        </div>
+        <a href="booking.html" class="kiln-gradient btn-primary text-white px-12 py-4 rounded-lg font-bold text-base shadow-lg inline-block">
+          Schedule a Consultation
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ════════════════════════════════════════════
+       FOOTER — identical on all pages
+       ════════════════════════════════════════════ -->
+  <footer class="bg-cream-100 border-t border-clay/10">
+    <div class="flex flex-col md:flex-row justify-between items-center w-full px-6 md:px-16 py-10 max-w-7xl mx-auto gap-6">
+      <div class="text-center md:text-left">
+        <div class="flex items-center gap-2 mb-2 justify-center md:justify-start">
+          <img src="assets/logo.svg" alt="" class="h-5 w-auto opacity-20">
+          <span class="font-headline italic text-lg text-ink/20">hurtig.ai</span>
+        </div>
+        <p class="text-ink-muted text-xs tracking-wide">&copy; 2026 hurtig.ai. The Digital Curator.</p>
+      </div>
+      <div class="flex gap-8 text-xs tracking-wide">
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="impressum.html">Impressum</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="privacy.html">Datenschutz</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="booking.html">Kontakt</a>
+      </div>
+    </div>
+  </footer>
+
+<script src="shared/lang.js"></script>
+</body>
+</html>

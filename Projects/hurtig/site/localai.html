@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Services — hurtig.ai</title>
+  <meta name="description" content="LocalAI implementation, LegalAI pipelines, AI strategy consulting, 1:1 coaching, and ongoing support. Everything from one hand.">
+
+  <link rel="stylesheet" href="assets/fonts.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="shared/config.js"></script>
+  <link rel="stylesheet" href="shared/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23a03f28'>𒄉</text></svg>">
+
+  <style>
+    .service-number {
+      font-family: "Newsreader", serif;
+      font-style: italic;
+      font-size: 8rem;
+      line-height: 1;
+      opacity: 0.06;
+      position: absolute;
+      top: -1rem;
+      right: 1.5rem;
+      pointer-events: none;
+      user-select: none;
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-up {
+      animation: fade-up 0.6s ease-out both;
+    }
+    .stagger-1 { animation-delay: 0.1s; }
+    .stagger-2 { animation-delay: 0.2s; }
+    .stagger-3 { animation-delay: 0.3s; }
+    .stagger-4 { animation-delay: 0.35s; }
+    .stagger-5 { animation-delay: 0.4s; }
+  </style>
+</head>
+
+<body class="bg-cream text-ink font-body overflow-x-hidden">
+  <div class="grain-overlay animate-grain"></div>
+
+  <!-- ════════════════════════════════════════════
+       NAVIGATION — identical on all pages
+       ════════════════════════════════════════════ -->
+  <nav class="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-clay/10">
+    <div class="flex justify-between items-center w-full px-6 md:px-16 py-5 max-w-7xl mx-auto">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <img src="assets/logo.svg" alt="hurtig.ai mark" class="h-7 w-auto opacity-90 group-hover:opacity-100 transition-opacity">
+        <span class="text-xl font-headline italic font-bold text-ink tracking-tight">hurtig.ai</span>
+      </a>
+      <div class="hidden md:flex items-center gap-10">
+        <a href="localai.html" class="nav-link active text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Services</a>
+        <a href="legalai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LegalAI</a>
+        <a href="research.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Research</a>
+        <button class="text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">language</span>
+          DE / EN
+        </button>
+      </div>
+      <a href="booking.html" class="kiln-gradient btn-primary text-white px-7 py-2.5 rounded-lg font-semibold text-sm shadow-sm">
+        Contact
+      </a>
+    </div>
+  </nav>
+
+
+  <main class="relative z-10">
+
+    <!-- ════════════════════════════════════════
+         HERO
+         ════════════════════════════════════════ -->
+    <section class="pt-20 md:pt-28 pb-16 px-6 md:px-16 relative overflow-hidden">
+      <div class="watermark top-1/2 right-0 translate-x-1/3 -translate-y-1/2 text-[30rem] text-kiln opacity-[0.02] font-serif leading-none">𒄉</div>
+      <div class="max-w-7xl mx-auto relative z-10">
+        <div class="max-w-3xl animate-fade-up">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Services</span>
+          <h1 class="text-5xl md:text-7xl font-headline italic font-bold tracking-tight text-ink mb-6 leading-[0.95]">
+            From first conversation<br>to running <span class="text-kiln">production.</span>
+          </h1>
+          <p class="text-lg md:text-xl text-ink-light max-w-2xl leading-relaxed">
+            Alles aus einer Hand — strategy, implementation, training, and ongoing support.
+            Pick what you need, or let us build the full stack.
+          </p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         FLAGSHIP: LocalAI Implementation
+         ════════════════════════════════════════ -->
+    <section class="px-6 md:px-16 pb-6">
+      <div class="max-w-7xl mx-auto">
+        <article class="relative bg-ink rounded-2xl overflow-hidden card-lift animate-fade-up stagger-1">
+          <div class="watermark bottom-0 right-0 text-[22rem] text-cream opacity-[0.03] font-serif leading-none translate-x-1/4 translate-y-1/4">𒄉</div>
+
+          <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-0">
+            <!-- Left: identity -->
+            <div class="lg:col-span-5 p-10 md:p-14 flex flex-col justify-between min-h-[480px] border-b lg:border-b-0 lg:border-r border-cream/5">
+              <div>
+                <div class="flex items-center gap-3 mb-8">
+                  <span class="material-symbols-outlined text-kiln text-2xl" style="font-variation-settings: 'FILL' 1;">deployed_code</span>
+                  <span class="text-cream/40 text-[10px] font-bold tracking-[0.25em] uppercase">Flagship Service</span>
+                </div>
+                <h2 class="text-4xl md:text-5xl font-headline italic font-bold text-cream mb-6 leading-tight">
+                  LocalAI<br>Implementation
+                </h2>
+                <p class="text-cream/50 text-sm leading-relaxed max-w-sm">
+                  One-time, fixed-price deployment. We put a working AI system on your hardware and hand you the keys.
+                  No subscriptions, no cloud dependency.
+                </p>
+              </div>
+              <a href="booking.html" class="mt-10 self-start kiln-gradient btn-primary text-white px-8 py-3.5 rounded-lg font-bold text-sm shadow-lg inline-flex items-center gap-2">
+                Request a Quote
+                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+              </a>
+            </div>
+
+            <!-- Right: details -->
+            <div class="lg:col-span-7 p-10 md:p-14">
+              <p class="text-cream/30 text-[10px] font-bold tracking-[0.25em] uppercase mb-8">What's Included</p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
+                <div class="flex gap-4 items-start">
+                  <span class="material-symbols-outlined text-kiln-100 text-xl shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">dns</span>
+                  <div>
+                    <h4 class="text-cream font-bold text-sm mb-1">Local LLM Deployment</h4>
+                    <p class="text-cream/40 text-xs leading-relaxed">Model selection, optimization, and installation on your servers or workstations.</p>
+                  </div>
+                </div>
+                <div class="flex gap-4 items-start">
+                  <span class="material-symbols-outlined text-kiln-100 text-xl shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">database</span>
+                  <div>
+                    <h4 class="text-cream font-bold text-sm mb-1">Vector Database</h4>
+                    <p class="text-cream/40 text-xs leading-relaxed">Qdrant or comparable setup for semantic search across your internal documents.</p>
+                  </div>
+                </div>
+                <div class="flex gap-4 items-start">
+                  <span class="material-symbols-outlined text-kiln-100 text-xl shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">travel_explore</span>
+                  <div>
+                    <h4 class="text-cream font-bold text-sm mb-1">Intranet Ingestion</h4>
+                    <p class="text-cream/40 text-xs leading-relaxed">We scrape and index your internal knowledge base for AI-powered search.</p>
+                  </div>
+                </div>
+                <div class="flex gap-4 items-start">
+                  <span class="material-symbols-outlined text-kiln-100 text-xl shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">document_scanner</span>
+                  <div>
+                    <h4 class="text-cream font-bold text-sm mb-1">OCR Pipeline</h4>
+                    <p class="text-cream/40 text-xs leading-relaxed">Paper-to-digital workflow for scanned documents, invoices, contracts.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-t border-cream/5 pt-8 flex flex-wrap gap-6">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-sage-light text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  <span class="text-cream/50 text-xs">Fixed Price</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-sage-light text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  <span class="text-cream/50 text-xs">Air-Gap Ready</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-sage-light text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  <span class="text-cream/50 text-xs">Complete Handover</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-sage-light text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  <span class="text-cream/50 text-xs">DSGVO-Compliant</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         ROW 2: LegalAI + Strategy
+         ════════════════════════════════════════ -->
+    <section class="px-6 md:px-16 pb-6">
+      <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- LegalAI Pipeline -->
+        <article class="relative bg-cream-100 rounded-2xl p-10 md:p-12 card-lift border border-clay/10 overflow-hidden animate-fade-up stagger-2">
+          <div class="service-number text-kiln">02</div>
+          <div class="relative z-10">
+            <div class="flex items-center gap-3 mb-6">
+              <span class="material-symbols-outlined text-kiln text-2xl" style="font-variation-settings: 'FILL' 1;">gavel</span>
+              <span class="text-ink-muted text-[10px] font-bold tracking-[0.25em] uppercase">Specialized</span>
+            </div>
+            <h3 class="text-3xl font-headline italic font-bold mb-4">LegalAI Pipeline</h3>
+            <p class="text-ink-light text-sm leading-relaxed mb-8">
+              Purpose-built for law firms and legal departments. Medizinstrafrecht, Strafakten, and beyond.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-start gap-3 text-sm text-ink-light">
+                <span class="text-kiln mt-0.5">𒄉</span>
+                <span>Document pseudonymizer</span>
+              </li>
+              <li class="flex items-start gap-3 text-sm text-ink-light">
+                <span class="text-kiln mt-0.5">𒄉</span>
+                <span>Gesetze-im-Internet reference API</span>
+              </li>
+              <li class="flex items-start gap-3 text-sm text-ink-light">
+                <span class="text-kiln mt-0.5">𒄉</span>
+                <span>Local model for legal analysis</span>
+              </li>
+              <li class="flex items-start gap-3 text-sm text-ink-light">
+                <span class="text-kiln mt-0.5">𒄉</span>
+                <span>Strafakte document pipeline</span>
+              </li>
+            </ul>
+            <a href="legalai.html" class="text-kiln font-bold text-sm inline-flex items-center gap-2 group">
+              Learn More
+              <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </a>
+          </div>
+        </article>
+
+        <!-- Strategy & Ideation -->
+        <article class="relative bg-cream-100 rounded-2xl p-10 md:p-12 card-lift border border-clay/10 overflow-hidden animate-fade-up stagger-3">
+          <div class="service-number text-sage">03</div>
+          <div class="relative z-10">
+            <div class="flex items-center gap-3 mb-6">
+              <span class="material-symbols-outlined text-sage text-2xl" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+              <span class="text-ink-muted text-[10px] font-bold tracking-[0.25em] uppercase">Consulting</span>
+            </div>
+            <h3 class="text-3xl font-headline italic font-bold mb-4">Strategy &amp; Ideation</h3>
+            <p class="text-ink-light text-sm leading-relaxed mb-8">
+              Before you build, know what to build. AI strategy workshops, use case identification,
+              architecture planning, and feasibility assessments.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-start gap-3 text-sm text-ink-light">
+                <span class="text-sage mt-0.5">𒄉</span>
+                <span>AI readiness assessment</span>
+              </li>
+              <li class="flex items-start gap-3 text-sm text-ink-light">
+                <span class="text-sage mt-0.5">𒄉</span>
+                <span>Use case prioritization</span>
+              </li>
+              <li class="flex items-start gap-3 text-sm text-ink-light">
+                <span class="text-sage mt-0.5">𒄉</span>
+                <span>Architecture &amp; vendor evaluation</span>
+              </li>
+              <li class="flex items-start gap-3 text-sm text-ink-light">
+                <span class="text-sage mt-0.5">𒄉</span>
+                <span>Proof of concept scoping</span>
+              </li>
+            </ul>
+            <a href="booking.html" class="text-kiln font-bold text-sm inline-flex items-center gap-2 group">
+              Book a Session
+              <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </a>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         AI SHADOWING — distinctive visual break
+         ════════════════════════════════════════ -->
+    <section class="px-6 md:px-16 pb-6">
+      <div class="max-w-7xl mx-auto">
+        <article class="relative rounded-2xl overflow-hidden card-lift animate-fade-up stagger-4"
+                 style="background: linear-gradient(135deg, #394b3d 0%, #506354 50%, #394b3d 100%);">
+          <div class="watermark top-0 left-0 text-[16rem] text-cream opacity-[0.03] font-serif leading-none -translate-x-1/4 -translate-y-1/4">𒄉</div>
+
+          <div class="relative z-10 p-10 md:p-14 md:flex md:items-center md:gap-16">
+            <div class="flex-1 mb-8 md:mb-0">
+              <div class="flex items-center gap-3 mb-6">
+                <span class="material-symbols-outlined text-sage-light text-2xl" style="font-variation-settings: 'FILL' 1;">person</span>
+                <span class="text-cream/40 text-[10px] font-bold tracking-[0.25em] uppercase">1:1 Coaching</span>
+              </div>
+              <h3 class="text-3xl md:text-4xl font-headline italic font-bold text-cream mb-4 leading-tight">
+                AI Shadowing
+              </h3>
+              <p class="text-cream/60 leading-relaxed mb-6 max-w-lg">
+                Shadow an AI expert. Learn by doing — not from slides, not from theory.
+                Practical, hands-on sessions where you bring your real work and we solve it together with AI.
+              </p>
+              <p class="text-cream/40 text-sm leading-relaxed max-w-lg mb-8">
+                Prompt engineering, workflow automation, tool selection, document analysis — whatever your team actually needs.
+                You'll walk away doing things in 10 minutes that used to take hours.
+              </p>
+              <a href="booking.html" class="bg-cream text-sage-dark btn-primary px-8 py-3.5 rounded-lg font-bold text-sm inline-flex items-center gap-2 shadow-md">
+                Book Shadowing
+                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+              </a>
+            </div>
+
+            <div class="hidden md:block shrink-0 w-64">
+              <div class="space-y-4 text-cream/30 text-sm font-headline italic">
+                <div class="bg-cream/5 rounded-xl p-5 border border-cream/5">
+                  <p class="text-cream/60 font-body text-xs not-italic mb-2">What people say:</p>
+                  <p>"I automated my entire weekly report in one session."</p>
+                </div>
+                <div class="bg-cream/5 rounded-xl p-5 border border-cream/5">
+                  <p class="text-cream/60 font-body text-xs not-italic mb-2">Format:</p>
+                  <p class="text-cream/50 not-italic font-body text-xs">60–90 min, remote or on-site.<br>Your screen, your problems, real solutions.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         WARTUNG & SUPPORT — quieter
+         ════════════════════════════════════════ -->
+    <section class="px-6 md:px-16 pb-20">
+      <div class="max-w-7xl mx-auto">
+        <article class="relative bg-cream-200 rounded-2xl p-8 md:p-10 md:flex md:items-center md:justify-between gap-10 border border-clay/10 animate-fade-up stagger-5">
+          <div class="flex items-start gap-4 mb-6 md:mb-0">
+            <span class="material-symbols-outlined text-ink-muted text-2xl mt-1" style="font-variation-settings: 'FILL' 1;">support_agent</span>
+            <div>
+              <h3 class="text-2xl font-headline italic font-bold mb-2">Wartung &amp; Support</h3>
+              <p class="text-ink-light text-sm leading-relaxed max-w-lg">
+                For existing clients. Model retuning, security patches, monitoring, and SOS emergency support.
+                Hourly billing or monthly retainer — your choice.
+              </p>
+            </div>
+          </div>
+          <a href="booking.html" class="shrink-0 border-2 border-ink/10 text-ink font-bold px-6 py-3 rounded-lg text-sm hover:border-kiln hover:text-kiln transition-colors inline-flex items-center gap-2">
+            Contact Support
+            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+          </a>
+        </article>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         HOW IT WORKS — compact 4-step
+         ════════════════════════════════════════ -->
+    <section class="py-20 md:py-28 px-6 md:px-16 bg-cream-100 border-y border-clay/10">
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Process</span>
+          <h2 class="text-3xl md:text-4xl font-headline italic font-bold">How every implementation works</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="relative bg-cream rounded-xl p-8 border border-clay/10">
+            <div class="text-kiln/10 font-headline italic text-5xl leading-none mb-4">01</div>
+            <h4 class="font-bold mb-2 text-sm">Audit &amp; Strategy</h4>
+            <p class="text-ink-light text-xs leading-relaxed">We map your data landscape and identify high-leverage AI opportunities.</p>
+          </div>
+          <div class="relative bg-cream rounded-xl p-8 border border-clay/10">
+            <div class="text-kiln/10 font-headline italic text-5xl leading-none mb-4">02</div>
+            <h4 class="font-bold mb-2 text-sm">Architecture</h4>
+            <p class="text-ink-light text-xs leading-relaxed">Blueprint for on-premise inference, fine-tuning, and data pipelines.</p>
+          </div>
+          <div class="relative bg-cream rounded-xl p-8 border border-clay/10">
+            <div class="text-kiln/10 font-headline italic text-5xl leading-none mb-4">03</div>
+            <h4 class="font-bold mb-2 text-sm">Deployment</h4>
+            <p class="text-ink-light text-xs leading-relaxed">Containerized implementation on your infrastructure. Zero external dependencies.</p>
+          </div>
+          <div class="relative bg-cream rounded-xl p-8 border border-clay/10">
+            <div class="text-kiln/10 font-headline italic text-5xl leading-none mb-4">04</div>
+            <h4 class="font-bold mb-2 text-sm">Handover</h4>
+            <p class="text-ink-light text-xs leading-relaxed">Complete transfer: documentation, model weights, governance protocols. It's yours.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         TRUST SIGNALS
+         ════════════════════════════════════════ -->
+    <section class="py-16 px-6 md:px-16 bg-cream">
+      <div class="max-w-7xl mx-auto flex flex-wrap justify-center gap-10 md:gap-16">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-sage text-xl" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+          <span class="text-sm text-ink-light">ISO 27001 Certified</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-sage text-xl" style="font-variation-settings: 'FILL' 1;">science</span>
+          <span class="text-sm text-ink-light">Published Researcher</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-sage text-xl" style="font-variation-settings: 'FILL' 1;">language</span>
+          <span class="text-sm text-ink-light">Deutsch &amp; English</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-sage text-xl" style="font-variation-settings: 'FILL' 1;">shield_lock</span>
+          <span class="text-sm text-ink-light">DSGVO-Compliant</span>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════
+         CTA
+         ════════════════════════════════════════ -->
+    <section class="py-24 md:py-32 px-6 md:px-16 bg-cream-100 text-center relative overflow-hidden">
+      <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[24rem] text-kiln opacity-[0.02] font-serif leading-none">𒄉</div>
+      <div class="max-w-2xl mx-auto relative z-10">
+        <h2 class="text-3xl md:text-4xl font-headline font-bold italic mb-6">Ready to get started?</h2>
+        <p class="text-ink-light mb-10 leading-relaxed">
+          Every engagement starts with a free 30-minute conversation.
+          No pitch deck, no pressure — just an honest look at what AI can do for you.
+        </p>
+        <a href="booking.html" class="kiln-gradient btn-primary text-white px-12 py-4 rounded-lg font-bold text-base shadow-lg inline-block">
+          Schedule a Conversation
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ════════════════════════════════════════════
+       FOOTER — identical on all pages
+       ════════════════════════════════════════════ -->
+  <footer class="bg-cream-100 border-t border-clay/10">
+    <div class="flex flex-col md:flex-row justify-between items-center w-full px-6 md:px-16 py-10 max-w-7xl mx-auto gap-6">
+      <div class="text-center md:text-left">
+        <div class="flex items-center gap-2 mb-2 justify-center md:justify-start">
+          <img src="assets/logo.svg" alt="" class="h-5 w-auto opacity-20">
+          <span class="font-headline italic text-lg text-ink/20">hurtig.ai</span>
+        </div>
+        <p class="text-ink-muted text-xs tracking-wide">&copy; 2026 hurtig.ai. The Digital Curator.</p>
+      </div>
+      <div class="flex gap-8 text-xs tracking-wide">
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="impressum.html">Impressum</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="privacy.html">Datenschutz</a>
+        <a class="text-ink-muted hover:text-kiln transition-colors" href="booking.html">Kontakt</a>
+      </div>
+    </div>
+  </footer>
+
+<script src="shared/lang.js"></script>
+</body>
+</html>
