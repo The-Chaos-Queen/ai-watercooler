@@ -83,6 +83,45 @@ def load_model_and_tokenizer(model_id: str, device: str):
     return tokenizer, model
 
 
+def infer_qwen_target_dims(model_id: str, target_specs):
+    qwen_config = AutoConfig.from_pretrained(model_id)
+    hidden_size = int(getattr(qwen_config, "hidden_size"))
+    num_attention_heads = int(getattr(qwen_config, "num_attention_heads"))
+    head_dim = int(getattr(qwen_config, "head_dim", hidden_size // num_attention_heads))
+    num_key_value_heads = int(
+        getattr(qwen_config, "num_key_value_heads", num_attention_heads)
+    )
+
+    target_dims = []
+    for layer_idx, proj_name in target_specs:
+        if proj_name in {"q_proj", "o_proj"}:
+            out_dim = hidden_size
+        elif proj_name in {"k_proj", "v_proj"}:
+            out_dim = num_key_value_heads * head_dim
+        else:
+            raise ValueError(f"Unsupported target projection: {proj_name}")
+        target_dims.append((hidden_size, out_dim))
+    return target_dims
+
+
+def validate_target_activations(target_activations, target_specs, target_dims, ep_name: str):
+    for (layer_idx, proj_name), (_, expected_out_dim) in zip(target_specs, target_dims):
+        if layer_idx not in target_activations:
+            raise KeyError(
+                f"Missing recorded activation for layer {layer_idx} in episode {ep_name}."
+            )
+
+        recorded = target_activations[layer_idx]
+        recorded_width = int(recorded.shape[-1]) if recorded.ndim > 0 else int(recorded.numel())
+        if recorded_width != expected_out_dim:
+            raise ValueError(
+                "Recorded activation width does not match the 1.5B runtime target surface: "
+                f"episode={ep_name} layer={layer_idx} proj={proj_name} "
+                f"recorded={recorded_width} expected={expected_out_dim}. "
+                "Re-record activations before training."
+            )
+
+
 class DirectionalLoss(nn.Module):
     def __init__(self, alpha: float = 0.9):
         super().__init__()
@@ -117,15 +156,13 @@ def train_reincarnation(args: argparse.Namespace):
     )
     hidden_layer_count = infer_hidden_layer_count(mamba_model)
 
-    qwen_config = AutoConfig.from_pretrained(QWEN_MODEL_ID)
-    qwen_hidden_size = int(getattr(qwen_config, "hidden_size"))
+    target_dims = infer_qwen_target_dims(QWEN_MODEL_ID, TARGET_SPECS)
 
     with open(episodes_path, "r", encoding="utf-8") as f:
         content = f.read()
     episodes = content.split("## Episode ")[1:]
 
     training_data = []
-    target_dims = None
     for ep in episodes:
         lines = ep.split("\n")
         header = lines[0].strip()
@@ -133,12 +170,7 @@ def train_reincarnation(args: argparse.Namespace):
         transcript = ep.split("[Transcript]")[1].strip()
         target_path = target_dir / f"target_cheese_{ep_name}.pt"
         target_activations = torch.load(target_path, map_location="cpu", weights_only=True)
-
-        if target_dims is None:
-            target_dims = [
-                (qwen_hidden_size, int(target_activations[layer].numel()))
-                for layer, _ in TARGET_SPECS
-            ]
+        validate_target_activations(target_activations, TARGET_SPECS, target_dims, ep_name)
 
         inputs = mamba_tokenizer(
             transcript,
@@ -157,9 +189,6 @@ def train_reincarnation(args: argparse.Namespace):
         training_data.append(
             {"name": header, "mamba_state": last_token_state, "target": target_activations}
         )
-
-    if target_dims is None:
-        raise RuntimeError("No target activations were loaded.")
 
     compressor = MambaStateCompressor(
         mamba_layers=hidden_layer_count,

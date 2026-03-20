@@ -68,6 +68,18 @@ def normalize_target_dims(raw):
     return [(int(in_dim), int(out_dim)) for in_dim, out_dim in raw]
 
 
+def checkpoint_bias_output_dims(state_dict) -> list[int]:
+    dims = []
+    head_idx = 0
+    while True:
+        weight_key = f"bias_heads.{head_idx}.weight"
+        if weight_key not in state_dict:
+            break
+        dims.append(int(state_dict[weight_key].shape[0]))
+        head_idx += 1
+    return dims
+
+
 def resolve_bridge_path(script_dir: Path, requested: str | None) -> Path:
     requested_path = (requested or "").strip()
     candidates = [Path(requested_path)] if requested_path else [script_dir / name for name in DEFAULT_BRIDGE_NAMES]
@@ -177,6 +189,18 @@ def run_inference(args: argparse.Namespace):
         raise ValueError(
             "Checkpoint target dims do not match runtime model dims: "
             f"checkpoint={checkpoint_target_dims} runtime={target_dims}"
+        )
+
+    checkpoint_bias_dims = checkpoint_bias_output_dims(
+        checkpoint["hypernetwork_state_dict"]
+    )
+    runtime_bias_dims = [out_dim for _, out_dim in target_dims]
+    if checkpoint_bias_dims and checkpoint_bias_dims != runtime_bias_dims:
+        raise ValueError(
+            "Checkpoint hypernetwork output widths do not match the runtime 1.5B target "
+            f"surface: checkpoint_heads={checkpoint_bias_dims} runtime={runtime_bias_dims}. "
+            "This checkpoint was trained against the wrong target activations. "
+            "Re-record 1.5B v_proj targets and retrain before inference."
         )
 
     print(f"Loading Mamba: {args.mamba_model_id} on {args.mamba_device}...")
