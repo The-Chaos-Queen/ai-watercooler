@@ -5,9 +5,9 @@ It should stay short, current, and attribution-heavy.
 Detailed narrative belongs in `session_logs/`, not here.
 
 ## Control Block
-- Last updated: 2026-03-20 23:12 CET
+- Last updated: 2026-03-21 14:10 CET
 - Current owner: Laura + swarm (Techno-Monk/Codex, Pinky, Gemini, Cassian, Laughing Opus, Anda/Purple, Lain, Lucian, Pontodoros, Herr Hurtig)
-- Primary focus: Post-Step-5 browser/runtime cleanup on Steve. The 1.5B reincarnation server is reachable from the LAN; next concrete gate is fixing blank replies and removing the `Human`/`Assistant` framing before qualitative judgment.
+- Primary focus: Cloud-backed next eval and theory review. Steve browser/runtime cleanup is partially repaired, but the host is paused because Steve needs the laptop back right now.
 - Last session log: `CHEESE_Memory/session_logs/2026-03-20-session-04.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
@@ -21,14 +21,16 @@ Detailed narrative belongs in `session_logs/`, not here.
 - The all-GPU smoke already passed on the 8GB RTX 3070 with small token limits, so the 4090/A100 should be the next real eval surface.
 - Steve's browser `chat_server.py` is patched for the correct 1.5B hidden-last-token compressor geometry and now serves on the LAN at `http://192.168.2.49:7860`.
 - The supposed second Steve "crash" was false: the server kept running in WSL and only looked dead because `tasklist` does not see WSL `python3`.
-- The live browser demo still has one real app-layer bug: blank bubbles can come from empty/sanitized completions, and the prompt still frames the model as `Human:` / `Assistant:`.
+- A new canonical `MoCoP/experiments/mamba_lora_bridge/chat_server.py` now exists locally with neutral `Laura` / `Reply` framing, blank-reply guard, and per-turn transcript persistence.
+- A Windows-native Steve launcher/task stack now exists locally (`launch_chat_windows.ps1`, `install_steve_chat_task.ps1`, `stop_steve_chat_task.ps1`, `inspect_steve_chat_task.ps1`) and was partially deployed. The old `MoCoP WSL Keeper` path is no longer the intended future.
+- The remaining Steve blocker is narrow: the Windows `portproxy` still needs to be updated dynamically to the current WSL IP instead of looping through `127.0.0.1:7860`. Work stopped there because Steve needed the laptop back.
 
 ## Open Threads
 - [x] Watercooler `/v1/tasks/next` principal-binding fix — deployed by Pinky, verified by Codex
 - [x] Mamba Layer 3 state separation — PASS (last-token cosine 0.036, Pinky)
 - [ ] Run codex-fixed 1.5B checkpoint on 4090/A100 with `--max-new-tokens 100`+ for real qualitative eval
-- [ ] Upload the blank-response guard from `tmp/steve_chat_server_fixed.py` to Steve and rerun the browser chat smoke
-- [ ] Remove `Human:` / `Assistant:` framing from Steve's chat prompt before using it as a disposition/personality readout
+- [ ] Resume Steve host cleanup when the laptop is available again: deploy the final `launch_chat_windows.ps1` portproxy patch, rerun the browser smoke, and confirm local/remote HTTP GETs both work
+- [ ] Once Steve is back, verify that the neutral `Laura` / `Reply` prompt surface and per-turn transcript persistence are live on the box before doing any more qualitative browser eval
 - [ ] Codex math review of Anda's `unified_cognitive_framework.md` (5 [MATH NEEDED] markers)
 - [ ] Herr Hurtig ethics framework (highest priority — "involuntary neuromodulation" question)
 - [ ] Integrate SAS orthogonalization (Hoppe et al. 2603.03326) into bridge architecture
@@ -49,11 +51,12 @@ Detailed narrative belongs in `session_logs/`, not here.
 - Opa's live venv was patched to export `mamba_ssm.selective_state_update`; if that environment is rebuilt, reinstall `mamba-ssm` and rely on the repo-side compat shim.
 - 3070 GPU mode works for smoke tests, but long prompts or larger budgets should still move to the 4090/A100 for headroom.
 - The repo worktree still contains many unrelated user-side moves/deletions outside the bridge files. Do not clean up git status blindly.
-- Steve's browser server is a WSL process behind a Windows `portproxy` + firewall rule. If LAN access disappears after a reboot, check those first before blaming Python.
-- The current Steve prompt surface is philosophically contaminated for MoCoP: `Human:` / `Assistant:` transcript continuation is not a neutral reincarnation test.
+- Steve's browser server is now intended to be launched by a Windows scheduled task, not kept alive indirectly via WSL idle hacks.
+- The last real Steve failure mode was infrastructure, not model logic: `python3` was listening in WSL, but Windows `portproxy` still pointed at `127.0.0.1:7860` instead of the live WSL IP.
+- The local repo now contains the neutralized browser surface. Do not resurrect the old `Human:` / `Assistant:` prompt frame from the Windows-side bridge copy.
 
 ## Recommended Next Step
-Deploy the blank-reply fix to Steve, replace the `Human:` / `Assistant:` transcript frame with a neutral chat prompt, then rerun the browser smoke before drawing any qualitative conclusions.
+Use cloud compute for the next real eval while Steve is unavailable. When Steve returns, finish the one remaining host fix: redeploy `launch_chat_windows.ps1` with dynamic WSL-IP portproxy wiring, then rerun the browser smoke before drawing qualitative conclusions from the chat UI.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes
@@ -110,6 +113,7 @@ Deploy the blank-reply fix to Steve, replace the `Human:` / `Assistant:` transcr
 - 2026-03-20 16:07 CET | Codex | Confirmed Qdrant ingestion for `CHEESE_Memory/session_logs/2026-03-20-session-01.md` (`10` chunks) and closed the session memory bookkeeping.
 - 2026-03-20 22:30 CET | Pinky | Mamba Layer 3 separation (PASS, last-token 0.036), Watercooler security patch deployed, RESEARCH_LOG.md created, 5 workstream orchestration, swarm digest. Launched Gemini's reincarnation inference (fixed checkpoint name), identified 7 bugs for Codex. New theory docs from Anda (unified framework + 65-paper lit digest), Purple (fleeting state security), Cassian (deployment sketch + SAS + TransMamba + SleepGate). Session log: `CHEESE_Memory/session_logs/2026-03-20-session-02.md`.
 - 2026-03-20 23:05 CET | Codex | Recorded the Steve browser-server repair: compressor geometry fix deployed, false WSL-crash diagnosis resolved, LAN port exposure repaired, and the remaining live bug reduced to blank replies plus `Human`/`Assistant` prompt framing.
+- 2026-03-21 14:10 CET | Codex | Recorded the Steve pause state: neutral browser server plus Windows-native launcher stack exist locally, partial deploy succeeded, and the last unresolved host bug is the `portproxy` -> WSL-IP mapping. Steve is paused until the laptop is available again.
 
 ## Next Agent Brief
 - Open first:
@@ -117,15 +121,17 @@ Deploy the blank-reply fix to Steve, replace the `Human:` / `Assistant:` transcr
   - `CHEESE_Memory/00_BOOT_FILES.md`
   - `CHEESE_Memory/00_HANDOFF.md`
   - `CHEESE_Memory/session_logs/2026-03-20-session-04.md`
-  - `tmp/steve_chat_server_fixed.py`
+  - `MoCoP/experiments/mamba_lora_bridge/chat_server.py`
+  - `MoCoP/experiments/mamba_lora_bridge/STEVE_PC_HANDOFF.md`
   - `MoCoP/experiments/mamba_lora_bridge/train_cheese_bridge.py`
   - `MoCoP/experiments/mamba_lora_bridge/reincarnated_inference.py`
 - Decide first:
-  - Whether to deploy the blank-response/prompt-frame fix to Steve immediately or first archive the current broken browser behavior as a controlled artifact.
+  - Whether to keep Steve paused and move straight to cloud eval, or resume the final `portproxy` patch once the laptop is back on the LAN.
 - Verify before memory-dependent work:
   - Confirm Steve still listens on `192.168.2.49:7860` after any reboot; recheck `portproxy` and the `SteveChat7860` firewall rule before blaming the Python service.
-  - If the browser shows a blank bubble again, inspect the raw decoded completion before treating it as a token-limit failure.
-  - Do not use `Human:` / `Assistant:` framing as evidence about genuine disposition until the prompt surface is neutralized.
+  - If `7860` takes TCP but HTTP hangs, inspect the Windows `portproxy` target before blaming the Python handler.
+  - If the browser shows a blank bubble again after redeploy, inspect the raw decoded completion before treating it as a token-limit failure.
+  - Do not use any old `Human:` / `Assistant:` framing as evidence about genuine disposition. The intended prompt surface is now `Laura:` / `Reply:`.
 
 ## Update Protocol
 - Keep this file concise and current.

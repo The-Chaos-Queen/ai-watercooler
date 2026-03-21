@@ -4,6 +4,58 @@
 **Für:** Cassian (frische Augen, frischer Kontext)
 **Stand:** 2026-03-20 abends
 
+## Addendum (Codex, 2026-03-21)
+
+Steve is paused for now because Laura's husband needs the laptop back. Do not assume the current browser path is dead or solved. The state at pause time was:
+
+- A canonical repo-side browser server now exists at `MoCoP/experiments/mamba_lora_bridge/chat_server.py`
+- That server includes:
+  - neutral `Laura:` / `Reply:` prompt framing
+  - blank-reply guard with retry
+  - per-turn transcript persistence to `chat_session_latest.txt` and `chat_turns_latest.jsonl`
+- A Windows-native launcher stack now exists locally:
+  - `launch_chat_windows.ps1`
+  - `install_steve_chat_task.ps1`
+  - `inspect_steve_chat_task.ps1`
+  - `stop_steve_chat_task.ps1`
+- The new scheduled task `MoCoP Steve Chat` was partially deployed and the legacy `MoCoP WSL Keeper` was disabled
+- At the last good probe:
+  - `chat_server.py` was running in WSL
+  - WSL was genuinely listening on `0.0.0.0:7860`
+  - the remaining failure was Windows-side routing, not Python startup
+
+### Exact Remaining Bug
+
+The Windows `portproxy` still pointed at `127.0.0.1:7860`.
+
+That was acceptable for the old ad hoc setup, but wrong for the new Windows-task + WSL listener arrangement. The final intended fix is already written locally in `launch_chat_windows.ps1`: on every task start, resolve the current WSL IP via `hostname -I` and repoint:
+
+```text
+0.0.0.0:7860 -> <current-wsl-ip>:7860
+```
+
+Until that specific patch is deployed, you can see this confusing state:
+
+- TCP connect to `192.168.2.49:7860` succeeds
+- `python3` is alive in WSL
+- WSL `ss -ltnp` shows `python3` on `0.0.0.0:7860`
+- but HTTP GET from the LAN hangs or returns empty
+
+That is the signature of the unresolved portproxy hop.
+
+### Resume Order
+
+1. Bring Steve back on LAN and confirm `ssh steve` works again.
+2. Copy the current repo files from `MoCoP/experiments/mamba_lora_bridge/` back to `C:\Users\tikii\bridge\`.
+3. Re-run `install_steve_chat_task.ps1`.
+4. Confirm `MoCoP Steve Chat` is running.
+5. Check:
+   - `wsl ss -ltnp`
+   - `cmd /c netsh interface portproxy show v4tov4`
+   - `curl.exe http://127.0.0.1:7860/`
+   - `Invoke-WebRequest http://192.168.2.49:7860/`
+6. Only after that use the browser UI as a qualitative disposition probe again.
+
 ---
 
 ## Was ist Steve-PC?
