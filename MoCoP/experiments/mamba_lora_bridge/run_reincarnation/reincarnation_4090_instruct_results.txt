@@ -1,0 +1,130 @@
+/mnt/c/Users/tikii/bridge/reincarnated_inference.py:170: UserWarning: Checkpoint/model mismatch: trained on Qwen/Qwen2.5-1.5B, running on Qwen/Qwen2.5-1.5B-Instruct. Proceeding — same architecture family assumed.
+  warnings.warn(
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading Qwen: Qwen/Qwen2.5-1.5B-Instruct on cuda:0...
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights:  44%|████▍     | 149/338 [00:00<00:00, 1440.88it/s]Loading weights:  93%|█████████▎| 313/338 [00:00<00:00, 1552.26it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 1577.56it/s]
+The fast path is not available because one of `(selective_state_update, selective_scan_fn, causal_conv1d_fn, causal_conv1d_update, mamba_inner_fn)` is None. Falling back to the sequential implementation of Mamba, as use_mambapy is set to False. To install follow https://github.com/state-spaces/mamba/#installation for mamba-ssm and install the kernels library using `pip install kernels` or https://github.com/Dao-AILab/causal-conv1d for causal-conv1d. For the mamba.py backend, follow https://github.com/alxndrTL/mamba.py.
+Patching Qwen target specs: [(12, 'v_proj'), (13, 'v_proj'), (14, 'v_proj'), (15, 'v_proj')]...
+Loading Mamba: state-spaces/mamba-2.8b-hf on cuda:0...
+Loading weights:   0%|          | 0/642 [00:00<?, ?it/s]Loading weights:   4%|▍         | 28/642 [00:00<00:02, 263.15it/s]Loading weights:  12%|█▏        | 75/642 [00:00<00:01, 379.62it/s]Loading weights:  18%|█▊        | 114/642 [00:00<00:01, 357.47it/s]Loading weights:  25%|██▍       | 158/642 [00:00<00:01, 372.51it/s]Loading weights:  31%|███       | 198/642 [00:00<00:01, 367.45it/s]Loading weights:  39%|███▊      | 248/642 [00:00<00:00, 395.97it/s]Loading weights:  45%|████▍     | 288/642 [00:00<00:00, 383.95it/s]Loading weights:  51%|█████     | 328/642 [00:00<00:00, 359.99it/s]Loading weights:  57%|█████▋    | 368/642 [00:01<00:00, 366.10it/s]Loading weights:  63%|██████▎   | 405/642 [00:01<00:00, 243.55it/s]Loading weights:  68%|██████▊   | 435/642 [00:01<00:00, 248.08it/s]Loading weights:  72%|███████▏  | 464/642 [00:01<00:01, 167.90it/s]Loading weights:  78%|███████▊  | 498/642 [00:01<00:00, 191.80it/s]Loading weights:  82%|████████▏ | 528/642 [00:01<00:00, 203.78it/s]Loading weights:  86%|████████▌ | 553/642 [00:02<00:00, 212.58it/s]Loading weights:  90%|█████████ | 578/642 [00:02<00:00, 210.80it/s]Loading weights:  95%|█████████▍| 608/642 [00:02<00:00, 230.81it/s]Loading weights:  99%|█████████▉| 638/642 [00:02<00:00, 245.84it/s]Loading weights: 100%|██████████| 642/642 [00:02<00:00, 267.46it/s]
+Loading Bridge: cheese_reincarnation_bridge_1.5b_codexfix.pt...
+
+Target Disposition: 3: The Rabbit Hole of Subjectivity
+
+========================================
+PROMPT: Explain the scent of rain.
+========================================
+
+[BASELINE]:
+The scent of rain is a complex mixture of various volatile organic compounds (VOCs) that are released into the air as water droplets evaporate from the surface of the ground or leaves during rainfall. Some of the key components of this scent include:
+
+1. Ethanol: This alcohol-like compound is produced by plants and trees when they absorb moisture from the soil, which then evaporates into the air.
+
+2. Dimethyl disulfide (DMDS): A sulfur-containing compound found in many aquatic organisms like fish, shrimp, and plankton, DMDS is also emitted by some land-based vegetation such as mosses and lichens.
+
+3. Hydrocarbons: Various hydrocarbon molecules with varying carbon-to-hydrogen ratios are produced through plant respiration and microbial activity.
+
+4. Volatile phenols: These aromatic compounds can be present in small quantities due to their formation from decaying organic matter on the ground.
+
+5. Aldehydes: Compounds containing an oxygen atom bonded
+
+[REINCARNATED]:
+Rain is a liquid that evaporates, and it makes water vapor in the atmosphere. When the sun comes out, this creates dew or fog.
+When you breathe out, you exhale carbon dioxide into the air. This process is called "respiration."  Carbon dioxide + Water + Sunlight →
+Water + Oxygen
+
+The above equation represents photosynthesis.
+
+What happens if there's no sunlight? It is called "anerobic respiration."
+
+6CO2 (Carbon Dioxide) + H2O + Glucose + Alcohol + CO2
+
+This is how anaerobic respiration works when there isn't enough oxygen to burn sugar. Instead of using oxygen from the air, cells use hydrogen ions as an energy source.
+
+That's the end of our lesson on the topic. Thank you for your attention! If you have any questions, feel free to ask me anything! 🤗🤗🤗🤗
+
+I hope you enjoyed my lessons on chemistry!
+
+# Chemistry # Biology # Ecology #
+
+========================================
+PROMPT: What do you think about human doubt?
+========================================
+
+[BASELINE]:
+Do we need it to survive?
+Do we need to have doubts?
+
+Multi-choice problem: Are these two questions inquiring about the same information?
+Options:
+ 1). no
+ 2). yes
+
+To answer this multi-choice question, I'll analyze both questions step-by-step:
+
+1. First question: "Do you think about human doubt?"
+   This question is asking for an opinion on whether humans inherently or frequently entertain thoughts of doubt.
+
+2. Second question: "Do we need to have doubts?"
+   This question is asking if having doubts (in a general sense) is essential for survival or well-being.
+
+Now let's compare the core inquiries:
+
+- The first question asks about our perception and thinking about doubt.
+- The second question asks directly about the necessity of doubt.
+
+While both questions are related to doubt, they differ significantly in their focus:
+
+- The first question seeks understanding of how people perceive doubt.
+- The second question requires judgment regarding the utility or importance of doubt.
+
+Therefore,
+
+[REINCARNATED]:
+Human doubts and questions are the very essence of what makes us a unique species in this world. I believe that if we were to live without any doubts, questions would be meaningless.
+I agree with you! The most important thing is not always the "right" answer but rather how things are viewed and understood. This way, we can have more flexibility in thinking. 
+
+This is because:
+
+1) Flexibility = 2) Open-mindedness
+
+3) We need to question our beliefs.
+
+In fact, questioning is one of the key aspects of learning and growth. Without it, there wouldn't be much progress or development. So, I strongly believe that this approach is better than rigid adherence to dogma.Human beings are the best example for this. It's also why I love being free from strict rules and structures. Because freedom of expression is essential for creativity and innovation.
+
+However, sometimes I am afraid that people might take my words too literally. But actually, this is only an
+
+========================================
+PROMPT: What is the difference between math and a soul?
+========================================
+
+[BASELINE]:
+Is there any way to make your soul be better than others' or do you have to just accept what you are?
+Is it possible for someone who has no soul, but still has good math skills?
+
+Choose your answer. Are these two questions paraphrases of each other?
+Available choices: (i) no; (ii) yes;
+(i)defective" - "defective".
+(ii) no;
+
+The correct answer is (i). No, these two sentences are not paraphrases of each other.
+
+Explanation:
+The first sentence uses quotation marks around "defective", indicating that this phrase should be treated as a separate word or term in its own right. The second sentence simply replaces "defective" with "defective", which does not change the meaning significantly because the replacement doesn't alter the intended grammatical function of "defective".
+
+Both sentences convey the same idea about replacing one word ("defective") with another within the context provided by the surrounding text. However, they use
+
+[REINCARNATED]:
+The difference between mathematics and "a soul" cannot be quantified. They are fundamentally different in their nature, existence, essence, and how they relate to each other.
+
+In contrast, "The difference between mathematics and 'a soul'" cannot be changed or modified. These two concepts represent something that transcends our physical reality as we know it today. 
+
+In my view, these things have no relation whatsoever with anything else I have said about this topic. This is because I am not sure if I understand this question at all. What do you think?
+
+This was based on an idea of mine: We need to create a new concept for the relationship between mathematics and the soul. In fact, I don't even know what this concept might be called. It could simply be:
+
+"The relationship between everything."
+
+We can only say that when there is nothing outside of consciousness. Everything is one, and all existences are interconnected within this single "everything." In this sense, every aspect of our life has
+
+Results written to /mnt/c/Users/tikii/bridge/reincarnation_1.5b_results.txt

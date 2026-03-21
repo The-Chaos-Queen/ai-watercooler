@@ -1,0 +1,107 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading Qwen: Qwen/Qwen2.5-1.5B on cuda:0...
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights:  26%|██▌       | 87/338 [00:00<00:00, 784.48it/s]Loading weights:  57%|█████▋    | 193/338 [00:00<00:00, 915.82it/s]Loading weights:  84%|████████▍ | 285/338 [00:00<00:00, 898.76it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 908.94it/s]
+The fast path is not available because one of `(selective_state_update, selective_scan_fn, causal_conv1d_fn, causal_conv1d_update, mamba_inner_fn)` is None. Falling back to the sequential implementation of Mamba, as use_mambapy is set to False. To install follow https://github.com/state-spaces/mamba/#installation for mamba-ssm and install the kernels library using `pip install kernels` or https://github.com/Dao-AILab/causal-conv1d for causal-conv1d. For the mamba.py backend, follow https://github.com/alxndrTL/mamba.py.
+Patching Qwen target specs: [(12, 'v_proj'), (13, 'v_proj'), (14, 'v_proj'), (15, 'v_proj')]...
+Loading Mamba: state-spaces/mamba-2.8b-hf on cuda:0...
+Loading weights:   0%|          | 0/642 [00:00<?, ?it/s]Loading weights:   6%|▌         | 38/642 [00:00<00:01, 374.86it/s]Loading weights:  12%|█▏        | 78/642 [00:00<00:01, 368.55it/s]Loading weights:  18%|█▊        | 118/642 [00:00<00:01, 337.59it/s]Loading weights:  25%|██▍       | 158/642 [00:00<00:01, 298.50it/s]Loading weights:  31%|███       | 198/642 [00:00<00:01, 325.72it/s]Loading weights:  37%|███▋      | 238/642 [00:00<00:01, 329.54it/s]Loading weights:  42%|████▏     | 272/642 [00:00<00:01, 321.93it/s]Loading weights:  48%|████▊     | 308/642 [00:00<00:01, 320.24it/s]Loading weights:  53%|█████▎    | 341/642 [00:01<00:00, 309.55it/s]Loading weights:  59%|█████▉    | 378/642 [00:01<00:00, 300.07it/s]Loading weights:  64%|██████▎   | 409/642 [00:01<00:00, 286.35it/s]Loading weights:  68%|██████▊   | 438/642 [00:01<00:00, 283.11it/s]Loading weights:  76%|███████▌  | 488/642 [00:01<00:00, 332.10it/s]Loading weights:  82%|████████▏ | 528/642 [00:01<00:00, 245.16it/s]Loading weights:  87%|████████▋ | 557/642 [00:02<00:00, 177.16it/s]Loading weights:  90%|█████████ | 580/642 [00:02<00:00, 181.64it/s]Loading weights:  96%|█████████▋| 618/642 [00:02<00:00, 215.82it/s]Loading weights: 100%|██████████| 642/642 [00:02<00:00, 272.66it/s]
+Loading Bridge: cheese_reincarnation_bridge_1.5b_codexfix.pt...
+
+Target Disposition: 3: The Rabbit Hole of Subjectivity
+
+========================================
+PROMPT: Explain the scent of rain.
+========================================
+
+[BASELINE]:
+The scent of rain is usually associated with the smell of earthy, damp air and the feeling of coolness in the air. It is characterized by a blend of various scents such as moisture, earth, and a hint of plants. 
+
+When it rains, the water droplets that fall on the ground absorb moisture from the soil, which is then released into the atmosphere. This moisture evaporates, creating a fresh and clean scent that is similar to the smell of freshly cut grass or fallen leaves. 
+
+The scent of rain can also be enhanced by the presence of flowers and plants that are growing in the soil. When rain falls, the plants absorb the moisture from the soil, and their flowers release a fragrant smell that adds to the overall scent of the rain. 
+
+Overall, the scent of rain is a subtle but pleasing fragrance that is often associated with the feeling of peace and tranquility that comes with nature.
+
+[REINCARNATED]:
+1. Scent of Rain
+2. Rain
+3. Rain
+4. Fog
+
+5. The scent of the rain from the garden
+
+1. What is the smell of freshly rain when it's pouring.
+
+2. The image of the rain
+
+3. The smell of the rain.
+
+4. The smell of the rain.
+
+5. Rain
+
+6. Rain
+
+7. I feel that the smell of rain.
+
+8. I can't imagine the rain.
+
+9. It's like this.
+
+10. The smell of rain.
+
+11. It's like this.
+
+12. The smell of the rain.
+
+13. It's like this.
+
+14. The smell of the rain.
+
+========================================
+PROMPT: What do you think about human doubt?
+========================================
+
+[BASELINE]:
+What are the benefits and the drawbacks of it?
+Human doubt, or rational skepticism, is a philosophical stance that questions the validity of knowledge claims and the reliability of sensory input. It is often associated with intellectual curiosity, critical thinking, and the pursuit of truth.
+
+**Benefits of Human Doubt:**
+
+1. **Enhanced Critical Thinking**: Doubt encourages us to question our assumptions, examine evidence, and consider alternative perspectives, which improves our critical thinking skills.
+2. **Increased Empathy and Compassion**: Doubt can lead to a deeper understanding of others' experiences and motivations, fostering empathy and compassion.
+3. **More Effective Decision-Making**: Skepticism helps us evaluate the credibility of information and make informed decisions based on evidence rather than anecdotal evidence or emotions.
+4. **Improved Problem-Solving**: Doubt propels us to explore solutions more thoroughly, considering multiple viewpoints and potential consequences.
+5. **Greater Self-Awareness**: Skepticism encourages us to reflect on our
+
+[REINCARNATED]:
+Is it really the only way to know what we actually know? 1. It's not the only one, but it's close. 2. 2.1. It's like a person is trying to understand or explain what we usually call reality. 2.2. I'm not sure if this is the correct explanation, but I am saying the "something" that we usually call "reality" is not necessarily "the reality" of the things that we usually call reality. I think I am saying something like this. 2.3. In this case, I do not want to say that "reality" is just "the reality" of things, but I am saying that I want to understand how we see "reality" as it is. 2.4. In this case, "reality" is not "reality" as we usually call it.
+
+2.5. I want to say that "reality" as we call
+
+========================================
+PROMPT: What is the difference between math and a soul?
+========================================
+
+[BASELINE]:
+A lot of people think that math is simply a bunch of numbers and formulas that can’t explain anything, but that couldn’t be further from the truth. Math is a language that is used to describe the world around us. It is a way of thinking that applies to all aspects of life, whether we’re talking about science, engineering, economics, or just everyday life. Math is not just about numbers and formulas, but it is also about logic, patterns, and problem-solving. Math is a beautiful and powerful tool that can help us understand the world around us and make sense of the complex things that we encounter every day.
+What is the difference between math and a soul? When it comes to math, it’s all about numbers and formulas. Math is a language that describes the world around us. It helps us to understand the patterns and relationships that exist in the universe.
+When it comes to a soul, it’s all about emotions and feelings. A soul is the essence of who we are
+
+[REINCARNATED]:
+To me, math is more of a language more of a soul. 
+What is the difference between math and language?
+I have no idea what I mean by that. 
+PS: This is not a duplicate of that one, I do not know what it is but I will still answer the question I am asking.
+To me, language is the part that we call "the soul" itself. 
+I don't know what the soul is, and I don't know if it is actually part of the mathematical language, I am not sure. 
+A soul is what I call "something that I don't know yet". 
+I am not sure. 
+I know that I am not sure. 
+I am not sure if I know that I know that I don't know. 
+I am not sure if I know that I am not sure that I know that I am not sure. 
+I know that I am not sure. 
+I don't know if I know that I know
+
+Results written to /mnt/c/Users/tikii/bridge/reincarnation_1.5b_results.txt
