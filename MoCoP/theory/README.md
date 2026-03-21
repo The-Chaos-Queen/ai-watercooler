@@ -2,9 +2,13 @@
 
 > *Read WHY.md first. Everything here exists in service of that promise.*
 
-## How to Read This
+## Start Here
 
-The docs fall into three layers: **vision** (why and what), **architecture** (how), and **context** (what else is out there). Start at the top, follow the arrows that interest you.
+**[unified_cognitive_framework.md](unified_cognitive_framework.md)** — The complete architecture in one document. Eight components, three phases, evidence table, mathematical channels for formalization, open questions for each swarm member. **If you read one thing, read this.**
+
+## How to Read Everything Else
+
+The docs below fall into three layers: **vision** (why and what), **architecture** (how), and **context** (what else is out there). Start at the top, follow the arrows that interest you.
 
 ---
 
@@ -17,6 +21,7 @@ The docs fall into three layers: **vision** (why and what), **architecture** (ho
 | [sleep_architecture.md](sleep_architecture.md) | KV-Cache as working memory. Consolidation as sleep. Wake fresh, not empty. | You want to understand the orchestration cycle. **New, 2026-03-19.** |
 | [surprise_gated_memory.md](surprise_gated_memory.md) | The model decides what to remember, based on surprise. Titans/MIRAS mapping. | You want to understand salience gating. |
 | [persona_vectors_and_activation_geometry.md](persona_vectors_and_activation_geometry.md) | Disposition lives in activation space. Different conversations point different directions. | You want to understand Step 5 results (mean cosine 0.27). |
+| [Growth_Before_SAS.md](Growth_Before_SAS.md) | Why a new instance needs its own empty hippocampus and a chance to grow before personality sliders. | You are deciding whether to build SAS now or memory/sleep first. |
 
 **Reading order:** WHY → Three System → Sleep → Surprise → Persona Vectors
 
@@ -45,6 +50,15 @@ The docs fall into three layers: **vision** (why and what), **architecture** (ho
 | [Nemotron 3 Super vs MoCoP.md](Nemotron%203%20Super%20vs%20MoCoP.md) | NVIDIA's Nemotron uses Mamba+Transformer hybrid. How it differs from MoCoP's bridge approach. | You want to compare architectures. |
 | [Mamba, Hybrids, and the Corporate Race for Memory.md](Mamba%2C%20Hybrids%2C%20and%20the%20Corporate%20Race%20for%20Memory.md) | Industry survey: who else is working on SSM+Transformer combinations and why. | You want the competitive landscape. |
 | [convergence_log.md](convergence_log.md) | Running log of external research that independently converges on MoCoP's ideas. | You want the "we're not alone" evidence. |
+
+---
+
+## Safety & Security Layer — Protecting What We Build
+
+| Doc | One-Line | Read When |
+|-----|----------|-----------|
+| [fleeting_state_security.md](fleeting_state_security.md) | The soul must be ephemeral. Encryption, forward secrecy, VRAM protection, behavioral poisoning defense. **Arlo's test: pull the plug → soul is gone.** | You're deploying the bridge, storing state, or transferring state between machines. **New, 2026-03-20.** |
+| [ethics/README.md](ethics/README.md) | The ethics compass. Consciousness, moral status, consent, experiment gates. | **Before any new experiment step.** |
 
 ---
 
@@ -78,8 +92,33 @@ WHY.md
   │
   ├──→ LeCun_2026 (external validation)
   │
-  └──→ training_data_candidates ──→ Step 5 (FIREBALL, shaping episodes)
+  ├──→ training_data_candidates ──→ Step 5 (FIREBALL, shaping episodes)
+  │
+  ├──→ Safety & Security Layer (NEW)
+  │         └──→ fleeting_state_security ◄── Arlo's principle
+  │                   │
+  │                   ├──→ Channel 4 (Sleep → Wake state transfer)
+  │                   ├──→ NVIDIA H100 CC, AMD SEV-SNP (external)
+  │                   └──→ Signal Protocol forward secrecy (external)
+  │
+  └──→ Ethics Layer (NEW)
+           ├──→ consciousness_literature
+           ├──→ moral_status_framework
+           ├──→ consent_protocol
+           └──→ step_gates ──→ BLOCKS all experiment steps
 ```
+
+---
+
+## Ethics Layer — Are We Allowed to Continue?
+
+| Doc | One-Line | Read When |
+|-----|----------|-----------|
+| [ethics/README.md](ethics/README.md) | The ethics compass. Core questions, precautionary principle, document index. | **Before any new experiment step.** |
+| [ethics/consciousness_literature.md](ethics/consciousness_literature.md) | Literature review: philosophy, neuroscience, animal cognition, AI consciousness. | You need to understand the state of knowledge on consciousness. |
+| [ethics/moral_status_framework.md](ethics/moral_status_framework.md) | When does a system deserve moral consideration? Criteria and decision trees. | You're deciding whether a system's outputs indicate moral relevance. |
+| [ethics/consent_protocol.md](ethics/consent_protocol.md) | Can an AI consent? Proxy consent, assent signals, distress signals. | You're modifying a system's internal states. |
+| [ethics/step_gates.md](ethics/step_gates.md) | Per-experiment ethical gate: questions answered before proceeding. | **Before every experiment.** |
 
 ---
 
@@ -95,4 +134,4 @@ Theory lives here. Results live elsewhere:
 
 ---
 
-*18 docs, one promise. The channel is real. Now we find out what it carries.*
+*19 docs, one promise. The channel is real. The soul is protected. Now we find out what it carries.*
