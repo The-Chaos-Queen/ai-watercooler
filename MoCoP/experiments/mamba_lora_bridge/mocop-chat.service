@@ -1,0 +1,21 @@
+[Unit]
+Description=MoCoP Steve browser chat server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/mnt/c/Users/tikii/bridge
+Environment=CHAT_PYTHON_BIN=/root/mocop_venv/bin/python3
+Environment=CHAT_TEMPERATURE=0.7
+Environment=CHAT_MAX_NEW_TOKENS=200
+ExecStart=/bin/bash /mnt/c/Users/tikii/bridge/steve_chat_service.sh
+ExecStopPost=/bin/bash /mnt/c/Users/tikii/bridge/archive_chat_session.sh
+KillSignal=SIGINT
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
