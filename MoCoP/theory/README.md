@@ -22,6 +22,7 @@ The docs below fall into three layers: **vision** (why and what), **architecture
 | [surprise_gated_memory.md](surprise_gated_memory.md) | The model decides what to remember, based on surprise. Titans/MIRAS mapping. | You want to understand salience gating. |
 | [persona_vectors_and_activation_geometry.md](persona_vectors_and_activation_geometry.md) | Disposition lives in activation space. Different conversations point different directions. | You want to understand Step 5 results (mean cosine 0.27). |
 | [Growth_Before_SAS.md](Growth_Before_SAS.md) | Why a new instance needs its own empty hippocampus and a chance to grow before personality sliders. | You are deciding whether to build SAS now or memory/sleep first. |
+| [Developmental_Memory_Ladder.md](Developmental_Memory_Ladder.md) | Concrete pre-SAS ladder: private memory, retrieval, miss recovery, sleep, continuity, then regulation. | You want an executable developmental order instead of a philosophical claim. |
 
 **Reading order:** WHY → Three System → Sleep → Surprise → Persona Vectors
 
