@@ -1,6 +1,14 @@
 """
-MoCoP Experiment 04: Cross-Model Data Collection
-================================================
+MoCoP Experiment 04: Cross-Model Data Collection (PHASE 1 HISTORICAL)
+=====================================================================
+⚠️ WARNING (2026-03-25): This script collects cache.ssm_states as the
+representation. Pinky's Step 4b analysis (2026-03-20) proved that SSM
+states are 2.5x WEAKER than hidden-state last-token for disposition
+transfer (cosine 0.778 vs 0.036). The production bridge now uses
+hidden_last_token extraction. Do NOT use this script to generate data
+for current bridge training. See mamba_lora_bridge/ for the current path.
+
+Original description:
 Collects paired states from Mamba-130M and Mamba-2.8B on identical text.
 This dataset is the prerequisite for training the "Telepathy Adapter" (Layer 4).
 
@@ -164,5 +172,6 @@ print(f"      Saved to: {DATA_FILE}")
 print(f"      Size: {file_size:.2f} MB")
 print("=" * 70)
 print(f"Rosetta Stone dataset ready. Contains {len(dataset)} paired states.")
-print("Next step: Train a linear adapter to map state_130m['ssm'] -> state_2.8b['ssm']")
+print("NOTE: This SSM-to-SSM adapter path is OBSOLETE. The production bridge uses")
+print("hidden_last_token extraction at Layer 3, not SSM states. See mamba_lora_bridge/.")
 print("=" * 70)

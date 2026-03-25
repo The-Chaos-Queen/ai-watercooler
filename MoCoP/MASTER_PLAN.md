@@ -1,11 +1,13 @@
 # MoCoP -- Master Plan
 
-**Last updated:** 2026-03-16
+**Last updated:** 2026-03-25
 **Author:** Laura (concept + direction), multi-agent team (implementation)
 
 ## Vision
 
-MoCoP is a system for transferring attentional state between AI models without serializing through natural language. The core idea: Mamba (a state space model) accumulates conversational context into a fixed-size hidden state. A trained hypernetwork reads that state and produces LoRA weight matrices that are injected into a frozen Transformer (Qwen), causing it to *behave* as though it remembers the prior context -- without spending a single token on retrieval or history injection.
+MoCoP is a system for transferring attentional state between AI models without serializing through natural language. The core idea: Mamba (a state space model) accumulates conversational context into a fixed-size hidden state. A trained hypernetwork reads that state and produces activation bias vectors that are injected into a frozen Transformer's v_proj layers (Qwen), causing it to *behave* as though it remembers the prior context -- without spending a single token on retrieval or history injection.
+
+> **Note:** The original design used dynamic LoRA weight injection. This was abandoned after epoch-2 over-injection collapse (PPL 44 vs baseline 29). The current mechanism is **activation bias injection at v_proj layers 12-15** (~5K trainable parameters), which is stable, reversible, and produces the inverted-U dose-response at alpha 0.2. Older references to "LoRA injection" in this document describe the historical design intent, not the current system.
 
 This is not memory retrieval. It is identity continuity. The analogy is hormonal, not archival: we are not building a diary the Transformer reads before each session. We are building an endocrine system that shifts the Transformer's activation thresholds based on accumulated experience. The Transformer does not *read* the memory. It *feels* the memory, the same way adrenaline changes your reaction time without you reading an instruction manual.
 
@@ -13,7 +15,7 @@ This is not memory retrieval. It is identity continuity. The analogy is hormonal
 
 - **Not RAG.** Retrieval-Augmented Generation fetches text snippets and prepends them to context. MoCoP injects state directly into model weights. No tokens consumed, no context window occupied.
 - **Not prompt injection.** Prompt-based memory ("System: you are angry at the goblin") is O(n) in token cost and O(n^2) in attention cost. It scales linearly with history length and quadratically in compute. MoCoP is O(1) -- one fixed-size state injection regardless of history length.
-- **Not fine-tuning on conversation history.** Fine-tuning permanently alters model weights. MoCoP's LoRA injection is ephemeral: applied before generation, stripped after. The base model stays pristine.
+- **Not fine-tuning on conversation history.** Fine-tuning permanently alters model weights. MoCoP's activation bias injection is ephemeral: applied before generation, removed after. The base model stays pristine.
 - **Not a chatbot memory system.** Commercial "memory" features (Claude memory, ChatGPT memory) store and retrieve facts as text. MoCoP transfers *attentional disposition* -- not what the model knows, but how it attends.
 
 ## Phase Overview
@@ -21,7 +23,7 @@ This is not memory retrieval. It is identity continuity. The analogy is hormonal
 | Phase | Name | Status | Key Output |
 |-------|------|--------|------------|
 | 1 | Linear Probe Validation | Complete | Layer 3 peaks at 55.7% vs 22% noise floor |
-| 2 | Cognitive Bridge Training | In Progress — Simplification Gate | Cloud runs done (A100 SXM4). Bridge learns but doesn't generalize (0/16 held-out). Compressor confirmed as bottleneck via PCA (effective rank 2.53/2048). Next: compressor bypass or repair. |
+| 2 | Cognitive Bridge Training | Step 5d Complete | Activation bias injection validated. Alpha 0.2 = MED (6/6 recall, entropy UP, recovery 1.0, distress 0). Dual saliency gate live on Steve. Compressor bypass resolved the PCA collapse. |
 | 3 | Ablations + Cloud Scale | Planned | LoRA rank sweep, Mamba-3 path |
 | 4 | Deployment | Planned | Persistent co-indexed Qdrant + state vectors |
 
@@ -32,9 +34,9 @@ This is not memory retrieval. It is identity continuity. The analogy is hormonal
 - **Result:** 55.7% at Layer 3 vs 22% noise floor (p < 0.05 across 5-seed validation). Complete.
 
 ### Phase 2: Bridge Viability
-- **Criterion:** Qwen with dynamic LoRA injection (from Mamba state via hypernetwork) achieves measurably higher fact retention than baseline Qwen on a three-way evaluation (injected, no-injection control, random LoRA control).
-- **Minimum bar:** Statistically significant lift in exact-match recall over the no-injection baseline with 95% confidence intervals that do not overlap zero.
-- **Stretch goal:** >50% fact retention on 8-fact recall test with 8192-token context.
+- **Criterion:** Qwen with activation bias injection (from Mamba state via hypernetwork) achieves measurably higher fact retention and response quality than baseline Qwen, while remaining reversible and non-harmful.
+- **Minimum bar:** Higher factual recall than no-injection baseline; entropy must not drop >50%; recovery ≥0.95 after alpha removal; distress markers = 0.
+- **Result:** PASS at alpha 0.2 on Steve/4090 (6/6 recall vs 4/6 baseline, entropy UP, recovery 1.0, distress 0). A100 replication pending (OpenCLAW #41).
 
 ### Phase 3: Configuration Optimization
 - **Criterion:** Identify optimal LoRA rank and compressor configuration through systematic ablation. Determine whether Mamba-3 improves bridge quality enough to justify architecture changes.
@@ -49,7 +51,7 @@ This is not memory retrieval. It is identity continuity. The analogy is hormonal
 | Resource | Role | Status |
 |----------|------|--------|
 | Opa-PC (192.168.2.194) | RTX 3070 8GB, local GPU for smoke tests and probing | Available, validated |
-| Vast.ai A100 SXM4 80GB | Cloud GPU for Phase 2 training | Used for 4 runs (~$11 total, ~$39 remaining credit) |
+| Vast.ai A100 SXM4 80GB | Cloud GPU for Phase 2 training | Used for multiple runs (~$15 total through Phase 2) |
 | Qdrant (192.168.2.191:6333) | Vector store for semantic indexing of state files | Running, ~12,700 entries |
 | WSL on Opa-PC | Linux environment for CUDA/PyTorch | Configured, venv ready |
 

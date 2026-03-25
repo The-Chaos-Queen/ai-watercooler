@@ -24,7 +24,7 @@ When prompting your coding AI, tell it to build these three specific modules:
 
 Mamba's hidden state is a 3D tensor (Layers \times D\_Model \times State\_Dim). That is too big to feed directly into a small Hypernetwork.
 
-* **Task for AI:** Write a PyTorch module that takes the Mamba state tensor and applies "Mean Pooling" across the layers to compress it into a flat, 1D vector (e.g., a single 4096-dimension embedding). This becomes the "Context Vector."
+* **⚠️ STALE (2026-03-25):** The original instruction here said "apply Mean Pooling across layers." This was proven WRONG by Pinky's Step 4b analysis: mean-pooling destroys the disposition signal (cosine 0.896 vs 0.036 for last-token). The correct approach is **last-token hidden-state extraction at Layer 3** — see `../experiments/mamba_lora_bridge/models.py` (`MambaStateCompressor`) and `../experiments/mamba_lora_bridge/STEP4_VERDICT_2026-03-18.md`. Do NOT implement mean-pooling for disposition transfer.
 
 ### Module 2: The Hypernetwork
 
