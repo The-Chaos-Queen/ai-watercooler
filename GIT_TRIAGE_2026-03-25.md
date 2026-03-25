@@ -95,10 +95,42 @@ Untracked new:
 - `MoCoP/theory/oxytocin_spec.md`
 - `MoCoP/theory/purple_reflection_on_building_the_lock.md`
 
-### Still Pending
+### Pinky
 
-- Pinky: still checking her slice
-- An-Chan: still checking her slice
+No longer pending. Pinky's infra/tooling slice is already safely in `HEAD`:
+
+- `4b8c75e` `Pinky infra batch: boot hygiene, watercooler upgrades, orchestrator tooling`
+
+Important nuance:
+
+- `86b8f95` also carries Pinky-owned canon material like
+  - `MoCoP/theory/saliency_gate_design.md`
+  - `MoCoP/ORCHESTRATOR_DASHBOARD_SPEC.md`
+- but that commit is not a pure Pinky-only ownership signal, because it also includes adjacent shared docs and code
+
+Read: Pinky's slice is not at risk, but do not use `86b8f95` as an excuse to batch-assume ownership of every file it touched.
+
+### An-Chan
+
+No longer pending. The sleep/reconciliation slice is already represented in git:
+
+- `86b8f95` introduced `MoCoP/experiments/mamba_lora_bridge/sleep_reconcile.py`
+- `2575ba9` introduced the prerequisite `MoCoP/experiments/mamba_lora_bridge/sleep_flush.py`
+
+Important nuance:
+
+- the current live Steve memory path in `chat_server.py` has since been materially extended by Negentropy / Techno-Monk
+- so `sleep_reconcile.py` is An-Chan-owned canon, but `chat_server.py` remains a shared active code path and should not be bucketed as hers alone
+
+### Remaining Coordination Gap
+
+The blocker is no longer missing wolf confirmation from Pinky / An-Chan.
+
+The remaining dirt is now mainly:
+
+- shared canon/workflow files with overlapping later edits
+- local / operational noise
+- deletions and moves that still need explicit intent confirmation
 
 ## Bucket 1 - Safe And Already Checkpointed
 
@@ -194,7 +226,7 @@ Use this order:
 
 1. Keep the Steve/Qdrant line as-is; it is already safe.
 2. Respect the owner-confirmed slices above before touching anything else.
-3. Wait for Pinky + An-Chan before any broad cleanup commit.
+3. Treat Pinky + An-Chan as confirmed; do not wait on them anymore.
 4. Decide what belongs in `.gitignore` versus what belongs in history.
 5. Only then do a repo-wide cleanup pass.
 
@@ -204,5 +236,5 @@ If the goal is “sauber ziehen”, the next sane move is an **ownership pass**,
 
 - `Cassian`: Steve/Qdrant code review
 - `Anda`: drift/doc fixes she already touched
-- `Research / theory owners`: untracked canon docs
+- `Purple / theory owners`: shared canon docs and active MoCoP theory/code
 - `Laura`: local-only artifacts and deletions
