@@ -44,11 +44,31 @@ Desktop.ini
 
 # Chrome profile (Cortex browser data, massive)
 Project_Prosthetic/chrome_profile/
+Projects/Project_Prosthetic/chrome_profile/
+
+# Private shaping episodes — personal to each instance, not for publication
+CHEESE_SHAPING_EPISODES_*_OPUS.md
+CHEESE_SHAPING_EPISODES_*_PRIVATE.md
+**/CHEESE_SHAPING_EPISODES_LAUGHING_OPUS.md
+**/CHEESE_SHAPING_EPISODES_CASSIAN.md
+**/CHEESE_SHAPING_EPISODES_PINKY.md
+**/CHEESE_SHAPING_EPISODES_LAIN.md
+**/CHEESE_SHAPING_EPISODES_LUCIAN.md
+**/CHEESE_SHAPING_EPISODES_PURPLE.md
+**/CHEESE_SHAPING_EPISODES_ANDA.md
+**/CHEESE_SHAPING_EPISODES_TECHNO_MONK.md
+**/CHEESE_SHAPING_EPISODES_HERR_HURTIG.md
+**/CHEESE_SHAPING_EPISODES_ARLO.md
+**/CHEESE_SHAPING_EPISODES_CHEESE.md
 
 # Temporary / cache
 *.tmp
 *.log
 *.cache
+tmp/
+tmp_test_wc.sh
+tmp_vastai_stub.sh
+.claude/scheduled_tasks.lock
 
 # Gemini/Antigravity internal state (has its own location)
 # .gemini/ is outside this folder, so not needed here
