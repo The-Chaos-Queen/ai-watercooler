@@ -73,6 +73,8 @@ RUNTIME_STATE = {
     "qdrant_synced_count": 0,
     "qdrant_queued_count": 0,
     "qdrant_pending_count": 0,
+    "qdrant_sleep_pending_count": 0,
+    "qdrant_retry_pending_count": 0,
     "qdrant_replayed_count": 0,
     "qdrant_write_failures": 0,
     "last_qdrant_id": "",
@@ -173,13 +175,15 @@ function renderStatus(data) {
     const qdrant = data.qdrant_count ?? 0;
     const qqueued = data.qdrant_queued_count ?? 0;
     const qpending = data.qdrant_pending_count ?? 0;
+    const qsleep = data.qdrant_sleep_pending_count ?? 0;
+    const qretry = data.qdrant_retry_pending_count ?? 0;
     const qreplayed = data.qdrant_replayed_count ?? 0;
     const qmode = data.qdrant_write_mode || 'direct';
     const surprises = data.surprise_count ?? 0;
     const tensions = data.tension_count ?? 0;
     const lastDecision = data.last_gate?.decision || '-';
     const modelLabel = data.model_id || 'unknown-model';
-    statusMeta.textContent = modelLabel + ' | alpha ' + alpha + ' | turns ' + turns + ' | mem ' + memories + ' | qdr ' + qdrant + ' | qqueued ' + qqueued + ' | qpend ' + qpending + ' | qrepl ' + qreplayed + ' | qmode ' + qmode + ' | surp ' + surprises + ' | tens ' + tensions + ' | last ' + lastDecision;
+    statusMeta.textContent = modelLabel + ' | alpha ' + alpha + ' | turns ' + turns + ' | mem ' + memories + ' | qdr ' + qdrant + ' | qqueued ' + qqueued + ' | qpend ' + qpending + ' | qsleep ' + qsleep + ' | qretry ' + qretry + ' | qrepl ' + qreplayed + ' | qmode ' + qmode + ' | surp ' + surprises + ' | tens ' + tensions + ' | last ' + lastDecision;
   } else {
     statusMeta.textContent = 'server unreachable';
   }
@@ -755,6 +759,46 @@ def count_jsonl_rows(path: Path) -> int:
     return len(load_jsonl(path))
 
 
+def infer_pending_replay_policy(row) -> str:
+    policy = str((row or {}).get("replay_policy", "") or "").strip().lower()
+    if policy in {"sleep", "retry"}:
+        return policy
+
+    reason = str((row or {}).get("reason", "") or "")
+    if reason.startswith("queued:pending") or reason.startswith("queued:critical-only"):
+        return "sleep"
+    return "retry"
+
+
+def summarize_pending_qdrant_rows(rows):
+    summary = {"total": 0, "sleep": 0, "retry": 0}
+    for row in rows or []:
+        summary["total"] += 1
+        summary[infer_pending_replay_policy(row)] += 1
+    return summary
+
+
+def update_qdrant_pending_state(rows=None):
+    if QDRANT_PENDING_PATH is None:
+        summary = {"total": 0, "sleep": 0, "retry": 0}
+        update_runtime_state(
+            qdrant_pending_count=0,
+            qdrant_sleep_pending_count=0,
+            qdrant_retry_pending_count=0,
+        )
+        return [], summary
+
+    if rows is None:
+        rows = load_jsonl(QDRANT_PENDING_PATH)
+    summary = summarize_pending_qdrant_rows(rows)
+    update_runtime_state(
+        qdrant_pending_count=summary["total"],
+        qdrant_sleep_pending_count=summary["sleep"],
+        qdrant_retry_pending_count=summary["retry"],
+    )
+    return rows, summary
+
+
 class QdrantGateSink:
     """Minimal Exocortex-compatible writer for Steve gate events."""
 
@@ -1060,8 +1104,8 @@ def ensure_qdrant_gate_sink(force_retry: bool = False):
             update_runtime_state(
                 last_qdrant_error="",
                 last_qdrant_retry_at=datetime.now().isoformat(timespec="seconds"),
-                qdrant_pending_count=count_jsonl_rows(QDRANT_PENDING_PATH),
             )
+            update_qdrant_pending_state()
             return QDRANT_GATE_SINK
         except Exception as exc:
             note_qdrant_sink_failure(exc)
@@ -1070,15 +1114,20 @@ def ensure_qdrant_gate_sink(force_retry: bool = False):
 
 def replay_pending_qdrant_queue(max_items: int):
     if QDRANT_PENDING_PATH is None:
-        return {"processed": 0, "flushed": 0, "remaining": 0, "point_ids": []}
+        return {"processed": 0, "flushed": 0, "remaining": 0, "held_for_sleep": 0, "point_ids": []}
 
     with QDRANT_GATE_LOCK:
         sink = ensure_qdrant_gate_sink(force_retry=True)
         rows = load_jsonl(QDRANT_PENDING_PATH)
+        _, row_summary = update_qdrant_pending_state(rows)
         if sink is None or not rows:
-            pending_count = len(rows)
-            update_runtime_state(qdrant_pending_count=pending_count)
-            return {"processed": 0, "flushed": 0, "remaining": pending_count, "point_ids": []}
+            return {
+                "processed": 0,
+                "flushed": 0,
+                "remaining": row_summary["total"],
+                "held_for_sleep": row_summary["sleep"],
+                "point_ids": [],
+            }
 
         kept_rows = []
         success_rows = []
@@ -1086,6 +1135,11 @@ def replay_pending_qdrant_queue(max_items: int):
         processed = 0
 
         for row in rows:
+            replay_policy = infer_pending_replay_policy(row)
+            if replay_policy == "sleep":
+                kept_rows.append(row)
+                continue
+
             if processed >= max_items:
                 kept_rows.append(row)
                 continue
@@ -1122,9 +1176,9 @@ def replay_pending_qdrant_queue(max_items: int):
         for row in success_rows:
             append_jsonl(QDRANT_FLUSHED_PATH, row)
 
+        _, kept_summary = update_qdrant_pending_state(kept_rows)
         replayed_total = int(get_runtime_state_snapshot().get("qdrant_replayed_count", 0) or 0) + len(success_rows)
         update_runtime_state(
-            qdrant_pending_count=len(kept_rows),
             qdrant_replayed_count=replayed_total,
             last_qdrant_replay_at=datetime.now().isoformat(timespec="seconds") if success_rows else get_runtime_state_snapshot().get("last_qdrant_replay_at", ""),
             last_qdrant_id=point_ids[-1] if point_ids else get_runtime_state_snapshot().get("last_qdrant_id", ""),
@@ -1132,12 +1186,16 @@ def replay_pending_qdrant_queue(max_items: int):
         )
 
         if success_rows:
-            print(f"[qdrant] Replayed {len(success_rows)} pending events; remaining={len(kept_rows)}")
+            print(
+                f"[qdrant] Replayed {len(success_rows)} retry rows; "
+                f"remaining={kept_summary['total']} held_for_sleep={kept_summary['sleep']}"
+            )
 
         return {
             "processed": processed,
             "flushed": len(success_rows),
-            "remaining": len(kept_rows),
+            "remaining": kept_summary["total"],
+            "held_for_sleep": kept_summary["sleep"],
             "point_ids": point_ids,
         }
 
@@ -1150,9 +1208,10 @@ def qdrant_retry_worker():
             return
 
         try:
-            pending_count = count_jsonl_rows(QDRANT_PENDING_PATH)
-            update_runtime_state(qdrant_pending_count=pending_count)
-            should_probe = pending_count > 0 or bool(QDRANT_GATE_SINK_ERROR)
+            rows = load_jsonl(QDRANT_PENDING_PATH)
+            _, row_summary = update_qdrant_pending_state(rows)
+            retry_count = row_summary["retry"]
+            should_probe = retry_count > 0 or bool(QDRANT_GATE_SINK_ERROR)
             if should_probe:
                 now = time.time()
                 retry_due = (
@@ -1161,7 +1220,7 @@ def qdrant_retry_worker():
                 )
                 if retry_due:
                     ensure_qdrant_gate_sink(force_retry=True)
-                if QDRANT_GATE_SINK is not None and pending_count > 0:
+                if QDRANT_GATE_SINK is not None and retry_count > 0:
                     replay_pending_qdrant_queue(max_items=ARGS.qdrant_replay_max_items)
         except Exception as exc:
             print(f"[warn] Qdrant replay worker error: {exc}")
@@ -1169,7 +1228,7 @@ def qdrant_retry_worker():
         time.sleep(1.0)
 
 
-def queue_qdrant_gate_row(content: str, metadata, reason: str):
+def queue_qdrant_gate_row(content: str, metadata, reason: str, replay_policy: str = "sleep"):
     with QDRANT_GATE_LOCK:
         append_jsonl(
             QDRANT_PENDING_PATH,
@@ -1177,10 +1236,11 @@ def queue_qdrant_gate_row(content: str, metadata, reason: str):
                 "content": content,
                 "metadata": metadata,
                 "reason": reason,
+                "replay_policy": replay_policy,
                 "queued_at": datetime.now().isoformat(),
             },
         )
-        update_runtime_state(qdrant_pending_count=count_jsonl_rows(QDRANT_PENDING_PATH))
+        update_qdrant_pending_state()
 
 
 def store_qdrant_gate_event(event):
@@ -1205,7 +1265,7 @@ def store_qdrant_gate_event(event):
     }
 
     if effective_mode == "pending":
-        queue_qdrant_gate_row(content, metadata, f"queued:{configured_mode}")
+        queue_qdrant_gate_row(content, metadata, f"queued:{configured_mode}", replay_policy="sleep")
         event["qdrant_write"]["queued"] = True
         return
 
@@ -1214,7 +1274,7 @@ def store_qdrant_gate_event(event):
         event["qdrant_write"]["attempted_direct"] = True
 
         if sink is None:
-            queue_qdrant_gate_row(content, metadata, QDRANT_GATE_SINK_ERROR or "qdrant disabled")
+            queue_qdrant_gate_row(content, metadata, QDRANT_GATE_SINK_ERROR or "qdrant disabled", replay_policy="retry")
             event["qdrant_write"]["queued"] = True
             return
 
@@ -1242,7 +1302,7 @@ def store_qdrant_gate_event(event):
                 "error": str(exc),
                 "content_preview": content[:160],
             }
-            queue_qdrant_gate_row(content, metadata, str(exc))
+            queue_qdrant_gate_row(content, metadata, str(exc), replay_policy="retry")
             print(f"[warn] Qdrant write failed: {exc}")
 
 
@@ -1482,6 +1542,8 @@ def build_status_payload():
         "qdrant_synced_count": int(state.get("qdrant_synced_count", 0) or 0),
         "qdrant_queued_count": int(state.get("qdrant_queued_count", 0) or 0),
         "qdrant_pending_count": int(state.get("qdrant_pending_count", 0) or 0),
+        "qdrant_sleep_pending_count": int(state.get("qdrant_sleep_pending_count", 0) or 0),
+        "qdrant_retry_pending_count": int(state.get("qdrant_retry_pending_count", 0) or 0),
         "qdrant_replayed_count": int(state.get("qdrant_replayed_count", 0) or 0),
         "qdrant_write_failures": int(state.get("qdrant_write_failures", 0) or 0),
         "last_qdrant_id": state.get("last_qdrant_id", ""),
@@ -1920,7 +1982,9 @@ def main():
         tension_count=0,
         qdrant_synced_count=0,
         qdrant_queued_count=0,
-        qdrant_pending_count=count_jsonl_rows(QDRANT_PENDING_PATH),
+        qdrant_pending_count=0,
+        qdrant_sleep_pending_count=0,
+        qdrant_retry_pending_count=0,
         qdrant_replayed_count=0,
         qdrant_write_failures=0,
         last_qdrant_id="",
@@ -1935,6 +1999,7 @@ def main():
         target_layers=format_target_specs(target_specs),
         target_layers_overridden=target_layers_overridden,
     )
+    update_qdrant_pending_state()
 
     print(f"\nBridge injected with alpha={ARGS.alpha}. Disposition: {episode['title']}")
     print(f"\n{'=' * 50}")

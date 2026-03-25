@@ -62,7 +62,7 @@ class BridgeConfig:
     mamba_d_model: int = 2560
     mamba_d_state: int = 16
     mamba_target_layer: int = 3
-    mamba_state_source: str = "ssm"  # "ssm" | "hidden_last_token"
+    mamba_state_source: str = "hidden_last_token"  # "hidden_last_token" | "ssm" (SSM states don't separate — Purple, 2026-03-25)
 
     # --- Hypernetwork ---
     context_dim: int = 2048           # Compressor output / Hypernetwork input
@@ -999,11 +999,27 @@ class CognitiveBridge:
         map_loc = str(self._hyper_device) if self._hyper_device else "cpu"
         state = torch.load(str(resolved), map_location=map_loc, weights_only=True)
 
-        saved_mode = state.get("config", {}).get("bridge_mode", "lora")
+        saved_config = state.get("config", {})
+        saved_mode = saved_config.get("bridge_mode", "lora")
         if saved_mode != self.config.bridge_mode:
             raise ValueError(
                 f"Checkpoint bridge_mode={saved_mode!r} does not match "
                 f"config bridge_mode={self.config.bridge_mode!r}"
+            )
+        saved_target_specs = self._normalize_target_specs(saved_config.get("target_layers"))
+        if saved_target_specs is not None and list(saved_target_specs) != list(self._patch_specs):
+            raise ValueError(
+                "Saved target_layers do not match the active bridge patch specs. "
+                f"saved={saved_target_specs} current={self._patch_specs}"
+            )
+        saved_state_source = saved_config.get("mamba_state_source")
+        if (
+            saved_state_source is not None
+            and str(saved_state_source) != self.config.mamba_state_source
+        ):
+            raise ValueError(
+                "Saved mamba_state_source does not match the active bridge config. "
+                f"saved={saved_state_source!r} current={self.config.mamba_state_source!r}"
             )
 
         session_key = self._normalize_session_id(session_id or state.get("session_id"))
