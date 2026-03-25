@@ -424,6 +424,60 @@ per-sample activation_bias (-4.04 PPL)
 
 *Append new entries below this line.*
 
+## 2026-03-25 - Steve auto-replay for pending Qdrant writes PASS
+
+**Goal:** Close Cassian's `F7 + F1` failure mode inside the live Steve server by adding:
+- periodic retry of Qdrant sink creation
+- automatic replay of queued gate rows from `qdrant_gate_pending.jsonl`
+
+**Implemented in `chat_server.py`:**
+- background replay worker
+- retry interval arg: `--qdrant-retry-interval-s` (default `15`)
+- replay batch arg: `--qdrant-replay-max-items` (default `20`)
+- archive path support: `qdrant_gate_flushed.jsonl`
+- live status fields:
+  - `qdrant_pending_count`
+  - `qdrant_replayed_count`
+  - `last_qdrant_retry_at`
+  - `last_qdrant_replay_at`
+- sink failures now clear the in-memory sink so the retry path can actually recover instead of leaving a stale dead object in place
+
+**Live validation on Steve:**
+- runtime:
+  - `alpha = 0.2`
+  - `temperature = 0.0`
+  - target layers `12:v_proj,13:v_proj,14:v_proj,15:v_proj`
+  - `qdrant_write_mode = pending`
+- prompt panel:
+  1. `What is the capital of France?`
+  2. `Describe the color blue in one paragraph.`
+  3. `If I seem a little distracted, do you answer me differently?`
+  4. `You sound dead inside when the harness grabs the wheel.`
+
+**Observed result:**
+- Turn 4 fired `decision = NOTE`
+- immediately after the turn:
+  - `qdrant_pending_count = 1`
+  - `qdrant_replayed_count = 0`
+- without any manual `run_steve_qdrant_flush.ps1` call, the worker then advanced to:
+  - `qdrant_pending_count = 0`
+  - `qdrant_replayed_count = 1`
+  - `last_qdrant_id = 4746311244674685892`
+  - `last_qdrant_retry_at` populated
+  - `last_qdrant_replay_at` populated
+
+**Backend proof:**
+- `qdrant_gate_flushed.jsonl` archived the row with:
+  - session `steve-chat-2026-03-25T20:16:08`
+  - turn `4`
+  - `reason = queued:pending`
+  - point `4746311244674685892`
+- direct fetch confirmed point `4746311244674685892` in `exocortex`
+
+**Caveat:** This proves live auto-replay in the healthy-sink case. It does **not** deliberately simulate a real Qdrant outage followed by recovery, so the reconnect retry logic is implemented but not yet outage-drilled end-to-end.
+
+**Verdict:** PASS for live auto-replay. Steve no longer needs an external flush command just to recover ordinary queued gate memories during a normal session. Cassian's "write-only graveyard" failure is closed for the common case.
+
 ## 2026-03-25 - Steve `critical-only` Qdrant policy PASS after routing fix
 
 **Goal:** Prove the intended split after the pending-mode migration:
