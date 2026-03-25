@@ -1,0 +1,10 @@
+{
+  "alpha": "0.2",
+  "qwen_model_id": "Qwen/Qwen2.5-1.5B",
+  "target_layers": "",
+  "temperature": "0.7",
+  "dual_gate_enabled": true,
+  "dual_gate_warmup_turns": "3",
+  "dual_gate_salience_quantile": "0.75",
+  "dual_gate_surprise_quantile": "0.75"
+}

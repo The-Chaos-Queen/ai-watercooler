@@ -7,11 +7,16 @@ then Laura can talk to the model from a browser on the LAN.
 
 import argparse
 import json
+import math
+import threading
+import time
 from datetime import datetime
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Optional
 
 import torch
+import torch.nn.functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from mamba_runtime_compat import ensure_mamba_ssm_compat
@@ -32,6 +37,31 @@ CONVERSATION = []
 ARGS = None
 LATEST_TRANSCRIPT_PATH = None
 LATEST_JSONL_PATH = None
+DUAL_GATE_LOG_PATH = None
+DUAL_GATE_MEMORY_PATH = None
+DUAL_GATE_SURPRISE_PATH = None
+SERVER = None
+CHAT_LOCK = threading.Lock()
+STATE_LOCK = threading.Lock()
+ACTIVATION_RECORDER = None
+LAST_CONVERSATION_SNAPSHOT = None
+DUAL_GATE_EVENTS = []
+RUNTIME_STATE = {
+    "started_at": None,
+    "started_monotonic": None,
+    "running": False,
+    "bridge_loaded": False,
+    "busy": False,
+    "stop_requested": False,
+    "last_error": "",
+    "disposition": "",
+    "dual_gate_enabled": False,
+    "memory_count": 0,
+    "surprise_count": 0,
+    "last_gate": {},
+    "target_layers": [],
+    "target_layers_overridden": False,
+}
 
 HTML_PAGE = """<!DOCTYPE html>
 <html><head>
@@ -41,8 +71,15 @@ HTML_PAGE = """<!DOCTYPE html>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; }
-  #header { padding: 12px 16px; background: #16213e; border-bottom: 1px solid #333; font-size: 14px; color: #8b8b8b; }
-  #header span { color: #c4956a; font-weight: bold; }
+  #header { padding: 12px 16px; background: #16213e; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  #header-main { font-size: 14px; color: #8b8b8b; }
+  #header-main span { color: #c4956a; font-weight: bold; }
+  #status-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; border: 1px solid #31415f; background: #0f1730; font-size: 12px; color: #d9def0; }
+  #status-dot { width: 10px; height: 10px; border-radius: 999px; background: #d45d5d; box-shadow: 0 0 0 3px rgba(212, 93, 93, 0.18); }
+  #status-dot.online { background: #57cf77; box-shadow: 0 0 0 3px rgba(87, 207, 119, 0.18); }
+  #status-dot.offline { background: #d45d5d; box-shadow: 0 0 0 3px rgba(212, 93, 93, 0.18); }
+  #status-meta { font-size: 12px; color: #8b8b8b; }
   #chat { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
   .msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 15px; line-height: 1.5; word-wrap: break-word; white-space: pre-wrap; }
   .human { align-self: flex-end; background: #c4956a; color: #1a1a2e; border-bottom-right-radius: 4px; }
@@ -53,11 +90,23 @@ HTML_PAGE = """<!DOCTYPE html>
   #msg:focus { border-color: #c4956a; }
   #send { padding: 10px 20px; border-radius: 8px; border: none; background: #c4956a; color: #1a1a2e; font-weight: bold; font-size: 15px; cursor: pointer; }
   #send:disabled { opacity: 0.5; }
+  #stop { padding: 8px 12px; border-radius: 8px; border: 1px solid #7d3434; background: #331818; color: #f5c7c7; font-weight: bold; font-size: 13px; cursor: pointer; }
+  #stop:disabled { opacity: 0.5; cursor: default; }
   #thinking { display: none; align-self: flex-start; color: #c4956a; font-size: 13px; padding: 8px 14px; }
   #thinking.active { display: block; }
 </style>
 </head><body>
-<div id="header">Reincarnated Qwen 1.5B | <span>The Rabbit Hole of Subjectivity</span></div>
+<div id="header">
+  <div id="header-main">Reincarnated Qwen 1.5B | <span>The Rabbit Hole of Subjectivity</span></div>
+  <div id="status-bar">
+    <div id="status-pill">
+      <span id="status-dot" class="offline"></span>
+      <span id="status-text">checking...</span>
+    </div>
+    <div id="status-meta"></div>
+    <button id="stop" onclick="stopServer()">Stop</button>
+  </div>
+</div>
 <div id="chat"></div>
 <div id="thinking" class="msg system">thinking...</div>
 <div id="input-area">
@@ -68,7 +117,11 @@ HTML_PAGE = """<!DOCTYPE html>
 const chat = document.getElementById('chat');
 const input = document.getElementById('msg');
 const btn = document.getElementById('send');
+const stopBtn = document.getElementById('stop');
 const thinking = document.getElementById('thinking');
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const statusMeta = document.getElementById('status-meta');
 
 function addMsg(text, cls) {
   const div = document.createElement('div');
@@ -76,6 +129,41 @@ function addMsg(text, cls) {
   div.textContent = text;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
+}
+
+function setControlsDisabled(disabled) {
+  input.disabled = disabled;
+  btn.disabled = disabled;
+}
+
+function renderStatus(data) {
+  const healthy = Boolean(data && data.running && !data.stop_requested);
+  statusDot.className = healthy ? 'online' : 'offline';
+  statusText.textContent = healthy ? (data.busy ? 'active | busy' : 'active') : (data && data.stop_requested ? 'stopping' : 'offline');
+
+  if (data) {
+    const alpha = Number(data.alpha ?? 0).toFixed(1);
+    const turns = data.turns ?? 0;
+    const memories = data.memory_count ?? 0;
+    const surprises = data.surprise_count ?? 0;
+    const modelLabel = data.model_id || 'unknown-model';
+    statusMeta.textContent = modelLabel + ' | alpha ' + alpha + ' | turns ' + turns + ' | mem ' + memories + ' | surp ' + surprises;
+  } else {
+    statusMeta.textContent = 'server unreachable';
+  }
+
+  setControlsDisabled(!healthy);
+  stopBtn.disabled = !(data && data.running) || Boolean(data && data.stop_requested);
+}
+
+async function refreshStatus() {
+  try {
+    const res = await fetch('/status', {cache: 'no-store'});
+    if (!res.ok) throw new Error('status ' + res.status);
+    renderStatus(await res.json());
+  } catch (e) {
+    renderStatus(null);
+  }
 }
 
 async function send() {
@@ -97,12 +185,38 @@ async function send() {
     addMsg('Error: ' + e.message, 'system');
   }
   thinking.classList.remove('active');
-  btn.disabled = false;
+  btn.disabled = input.disabled;
   input.focus();
+}
+
+async function stopServer() {
+  if (stopBtn.disabled) return;
+  if (!window.confirm('Stop the Steve chat server on this PC?')) return;
+
+  statusDot.className = 'offline';
+  statusText.textContent = 'stopping';
+  statusMeta.textContent = 'shutdown requested';
+  setControlsDisabled(true);
+  stopBtn.disabled = true;
+
+  try {
+    await fetch('/stop', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({reason: 'ui-stop'})
+    });
+    addMsg('Stop requested. Server is shutting down.', 'system');
+  } catch (e) {
+    addMsg('Stop requested. The server closed before it could answer.', 'system');
+  }
+
+  window.setTimeout(refreshStatus, 1200);
 }
 
 input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
 addMsg('Bridge loaded. Disposition: The Rabbit Hole of Subjectivity. Say hello.', 'system');
+refreshStatus();
+window.setInterval(refreshStatus, 3000);
 input.focus();
 </script>
 </body></html>"""
@@ -119,6 +233,38 @@ def normalize_target_specs(raw):
         else:
             specs.append((int(item), "v_proj"))
     return specs
+
+
+def parse_target_layers(raw: Optional[str]):
+    if raw is None or not raw.strip():
+        return None
+
+    specs = []
+    for piece in raw.split(","):
+        part = piece.strip()
+        if not part:
+            continue
+        if ":" in part:
+            layer_text, proj_name = part.split(":", 1)
+            specs.append((int(layer_text), proj_name.strip()))
+        else:
+            specs.append((int(part), "v_proj"))
+    return specs or None
+
+
+def format_target_specs(specs):
+    return [f"{layer_idx}:{proj_name}" for layer_idx, proj_name in specs]
+
+
+def normalize_qwen_family(model_id: str) -> str:
+    cleaned = (model_id or "").strip().lower()
+    if cleaned.endswith("-instruct"):
+        cleaned = cleaned[: -len("-instruct")]
+    return cleaned
+
+
+def is_same_qwen_family(requested_model_id: str, checkpoint_model_id: str) -> bool:
+    return normalize_qwen_family(requested_model_id) == normalize_qwen_family(checkpoint_model_id)
 
 
 def infer_hidden_layer_count(model) -> int:
@@ -147,6 +293,231 @@ def extract_last_token_hidden(outputs, layer_idx: int, expected_layers: int) -> 
             f"tuple_len={len(hidden_states)} expected_layers={expected_layers}"
         )
     return hidden_states[hidden_index][:, -1, :]
+
+
+class ActivationRecorder:
+    """Capture last-token hidden states on the target Qwen layers."""
+
+    def __init__(self, model, target_layers):
+        self.model = model
+        self.target_layers = list(target_layers)
+        self.hooks = []
+        self.current_states = {}
+        self._install_hooks()
+
+    def _install_hooks(self):
+        for layer_idx in self.target_layers:
+            layer = self.model.model.layers[layer_idx]
+            hook = layer.register_forward_hook(self._make_hook(layer_idx))
+            self.hooks.append(hook)
+
+    def _make_hook(self, layer_idx: int):
+        def hook_fn(_module, _inputs, output):
+            hidden = output[0] if isinstance(output, tuple) else output
+            self.current_states[layer_idx] = hidden[:, -1, :].detach().cpu()
+
+        return hook_fn
+
+    def get_snapshot(self):
+        return {layer_idx: state.clone() for layer_idx, state in self.current_states.items()}
+
+    def cleanup(self):
+        for hook in self.hooks:
+            hook.remove()
+        self.hooks.clear()
+
+
+def build_transcript(turns=None):
+    active_turns = CONVERSATION if turns is None else turns
+    return "\n".join(f"{turn['speaker']}: {turn['text']}" for turn in active_turns)
+
+
+def record_activation_snapshot(prompt_text: str):
+    if ACTIVATION_RECORDER is None:
+        return {}
+
+    text = (prompt_text or "").strip() or ARGS.neutral_prompt
+    inputs = TOKENIZER(text, return_tensors="pt")
+    input_ids = inputs["input_ids"].to(ARGS.qwen_device)
+    attention_mask = inputs["attention_mask"].to(ARGS.qwen_device)
+    with torch.no_grad():
+        MODEL(input_ids=input_ids, attention_mask=attention_mask)
+    return ACTIVATION_RECORDER.get_snapshot()
+
+
+def compute_response_diversity(prompt_text: str):
+    inputs = TOKENIZER(prompt_text, return_tensors="pt")
+    input_ids = inputs["input_ids"].to(ARGS.qwen_device)
+    attention_mask = inputs["attention_mask"].to(ARGS.qwen_device)
+    with torch.no_grad():
+        outputs = MODEL(input_ids=input_ids, attention_mask=attention_mask)
+        logits = outputs.logits[:, -1, :].float()
+        probs = F.softmax(logits, dim=-1)
+        log_probs = torch.log(probs + 1e-10)
+        entropy = -(probs * log_probs).sum(dim=-1).item()
+        top10_probs, _ = probs.topk(10, dim=-1)
+        top10_mass = top10_probs.sum(dim=-1).item()
+        top1_prob = probs.max(dim=-1).values.item()
+        effective_vocab = math.exp(entropy)
+
+    return {
+        "entropy": round(entropy, 4),
+        "top10_mass": round(top10_mass, 4),
+        "top1_prob": round(top1_prob, 4),
+        "effective_vocab": round(effective_vocab, 2),
+    }
+
+
+def compute_drift(states_a, states_b):
+    drift = {}
+    for layer_idx, state in states_a.items():
+        if layer_idx not in states_b:
+            continue
+        cos = F.cosine_similarity(state.float(), states_b[layer_idx].float(), dim=-1).item()
+        drift[str(layer_idx)] = round(1.0 - cos, 6)
+    return drift
+
+
+def compute_turn_surprise(prefix_text: str, user_msg: str):
+    turn_text = f"{ARGS.user_label}: {user_msg}"
+    combined_text = f"{prefix_text}\n{turn_text}" if prefix_text else turn_text
+
+    prefix_ids = TOKENIZER(
+        prefix_text,
+        return_tensors="pt",
+        add_special_tokens=False,
+    )["input_ids"] if prefix_text else torch.zeros((1, 0), dtype=torch.long)
+    combined_ids = TOKENIZER(
+        combined_text,
+        return_tensors="pt",
+        add_special_tokens=False,
+    )["input_ids"]
+
+    if combined_ids.shape[1] <= 1:
+        return {"mean_token_nll": 0.0, "token_count": 0}
+
+    input_ids = combined_ids.to(ARGS.qwen_device)
+    attention_mask = torch.ones_like(input_ids, device=ARGS.qwen_device)
+    with torch.no_grad():
+        outputs = MODEL(input_ids=input_ids, attention_mask=attention_mask)
+
+    logits = outputs.logits[:, :-1, :].float()
+    labels = input_ids[:, 1:]
+    label_start = max(prefix_ids.shape[1] - 1, 0)
+    if label_start >= labels.shape[1]:
+        return {"mean_token_nll": 0.0, "token_count": 0}
+
+    target_logits = logits[:, label_start:, :]
+    target_labels = labels[:, label_start:]
+    token_count = int(target_labels.numel())
+    if token_count <= 0:
+        return {"mean_token_nll": 0.0, "token_count": 0}
+
+    loss = F.cross_entropy(
+        target_logits.reshape(-1, target_logits.shape[-1]),
+        target_labels.reshape(-1),
+        reduction="mean",
+    )
+    return {
+        "mean_token_nll": round(float(loss.item()), 6),
+        "token_count": token_count,
+    }
+
+
+def compute_quantile(values, quantile: float):
+    if not values:
+        return None
+    ordered = sorted(float(value) for value in values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = max(0.0, min(1.0, quantile)) * (len(ordered) - 1)
+    lower = int(math.floor(position))
+    upper = int(math.ceil(position))
+    if lower == upper:
+        return ordered[lower]
+    weight = position - lower
+    return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
+
+
+def infer_checkpoint_target_widths(checkpoint, fallback_specs):
+    target_dims = checkpoint.get("target_dims")
+    if target_dims:
+        widths = [int(out_dim) for _in_dim, out_dim in target_dims]
+        if widths:
+            return widths
+
+    state_dict = checkpoint.get("hypernetwork_state_dict", {})
+    bias_head_weights = []
+    for key, value in state_dict.items():
+        if key.startswith("bias_heads.") and key.endswith(".weight"):
+            try:
+                head_index = int(key.split(".")[1])
+            except (IndexError, ValueError):
+                continue
+            bias_head_weights.append((head_index, int(value.shape[0])))
+    if bias_head_weights:
+        return [width for _idx, width in sorted(bias_head_weights)]
+
+    return [None] * len(fallback_specs)
+
+
+def validate_target_specs_for_model(model, target_specs, expected_out_widths):
+    model_layers = getattr(model.model, "layers", None)
+    if model_layers is None:
+        raise RuntimeError("Could not locate Qwen decoder layers for target-layer validation.")
+
+    if len(target_specs) != len(expected_out_widths):
+        raise ValueError(
+            "Target-layer override count does not match checkpoint bias head count: "
+            f"{len(target_specs)} requested vs {len(expected_out_widths)} in checkpoint."
+        )
+
+    valid_projections = {"q_proj", "k_proj", "v_proj", "o_proj"}
+    num_layers = len(model_layers)
+    resolved_dims = []
+
+    for index, ((layer_idx, proj_name), expected_out_dim) in enumerate(
+        zip(target_specs, expected_out_widths)
+    ):
+        if layer_idx < 0 or layer_idx >= num_layers:
+            raise ValueError(
+                f"Target layer {layer_idx} is out of range for this Qwen model "
+                f"(valid 0-{num_layers - 1})."
+            )
+        if proj_name not in valid_projections:
+            raise ValueError(
+                f"Unsupported projection {proj_name!r}. Expected one of: "
+                f"{', '.join(sorted(valid_projections))}."
+            )
+
+        layer = model_layers[layer_idx]
+        if not hasattr(layer.self_attn, proj_name):
+            raise ValueError(
+                f"Layer {layer_idx} does not expose projection {proj_name!r}."
+            )
+
+        projection = getattr(layer.self_attn, proj_name)
+        if not hasattr(projection, "out_features"):
+            raise ValueError(
+                f"Layer {layer_idx} projection {proj_name!r} has no out_features attribute."
+            )
+
+        actual_out_dim = int(projection.out_features)
+        if expected_out_dim is not None and actual_out_dim != int(expected_out_dim):
+            raise ValueError(
+                "Target-layer override width does not match checkpoint bias head width: "
+                f"requested {layer_idx}:{proj_name} has d_v={actual_out_dim}, "
+                f"checkpoint head {index} expects {int(expected_out_dim)}."
+            )
+
+        resolved_dims.append((int(projection.in_features), actual_out_dim))
+
+    return resolved_dims
+
+
+def append_jsonl(path: Path, row):
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
 def read_episodes(path):
@@ -183,10 +554,142 @@ def append_turn(speaker: str, text: str):
     persist_conversation()
 
 
+def update_runtime_state(**changes):
+    with STATE_LOCK:
+        RUNTIME_STATE.update(changes)
+
+
+def get_runtime_state_snapshot():
+    with STATE_LOCK:
+        return dict(RUNTIME_STATE)
+
+
+def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_transcript: str):
+    global LAST_CONVERSATION_SNAPSHOT
+
+    if LAST_CONVERSATION_SNAPSHOT is None:
+        LAST_CONVERSATION_SNAPSHOT = record_activation_snapshot(build_transcript())
+
+    post_snapshot = record_activation_snapshot(build_transcript())
+    drift_by_layer = compute_drift(LAST_CONVERSATION_SNAPSHOT or {}, post_snapshot)
+    salience_score = round(
+        sum(drift_by_layer.values()) / len(drift_by_layer),
+        6,
+    ) if drift_by_layer else 0.0
+    response_diversity = compute_response_diversity(prompt_text)
+    surprise = compute_turn_surprise(pre_turn_transcript, user_msg)
+
+    historical_salience = [float(event["salience"]["score"]) for event in DUAL_GATE_EVENTS]
+    historical_surprise = [float(event["surprise"]["mean_token_nll"]) for event in DUAL_GATE_EVENTS]
+    warmup_complete = len(historical_salience) >= ARGS.dual_gate_warmup_turns
+    salience_threshold = (
+        compute_quantile(historical_salience, ARGS.dual_gate_salience_quantile)
+        if warmup_complete
+        else None
+    )
+    surprise_threshold = (
+        compute_quantile(historical_surprise, ARGS.dual_gate_surprise_quantile)
+        if warmup_complete
+        else None
+    )
+
+    admitted = bool(
+        ARGS.dual_gate_enabled
+        and warmup_complete
+        and salience_threshold is not None
+        and salience_score >= salience_threshold
+    )
+    surprise_hit = bool(
+        ARGS.dual_gate_enabled
+        and warmup_complete
+        and surprise_threshold is not None
+        and surprise["mean_token_nll"] >= surprise_threshold
+    )
+
+    turn_index = sum(1 for turn in CONVERSATION if turn["speaker"] == ARGS.user_label)
+    event = {
+        "turn": turn_index,
+        "ts": datetime.now().isoformat(timespec="seconds"),
+        "user": user_msg,
+        "response": response,
+        "mode": "gate" if warmup_complete else "observe",
+        "surprise": {
+            "mean_token_nll": surprise["mean_token_nll"],
+            "token_count": surprise["token_count"],
+            "threshold": round(surprise_threshold, 6) if surprise_threshold is not None else None,
+            "hit": surprise_hit,
+        },
+        "salience": {
+            "score": salience_score,
+            "threshold": round(salience_threshold, 6) if salience_threshold is not None else None,
+            "weight": round((salience_score / salience_threshold), 4)
+            if salience_threshold not in {None, 0.0}
+            else None,
+            "admitted": admitted,
+            "by_layer": drift_by_layer,
+        },
+        "response_diversity": response_diversity,
+    }
+
+    DUAL_GATE_EVENTS.append(event)
+    append_jsonl(DUAL_GATE_LOG_PATH, event)
+    if surprise_hit:
+        append_jsonl(DUAL_GATE_SURPRISE_PATH, event)
+    if admitted:
+        append_jsonl(DUAL_GATE_MEMORY_PATH, event)
+
+    LAST_CONVERSATION_SNAPSHOT = post_snapshot
+    update_runtime_state(
+        memory_count=sum(1 for gate_event in DUAL_GATE_EVENTS if gate_event["salience"]["admitted"]),
+        surprise_count=sum(1 for gate_event in DUAL_GATE_EVENTS if gate_event["surprise"]["hit"]),
+        last_gate={
+            "turn": turn_index,
+            "mode": event["mode"],
+            "salience": salience_score,
+            "surprise": surprise["mean_token_nll"],
+            "admitted": admitted,
+            "surprise_hit": surprise_hit,
+        },
+    )
+    return event
+
+
+def build_status_payload():
+    state = get_runtime_state_snapshot()
+    uptime_s = 0.0
+    started_monotonic = state.get("started_monotonic")
+    if started_monotonic is not None:
+        uptime_s = max(0.0, time.monotonic() - started_monotonic)
+
+    return {
+        "running": bool(state.get("running")),
+        "bridge_loaded": bool(state.get("bridge_loaded")),
+        "busy": bool(state.get("busy")),
+        "stop_requested": bool(state.get("stop_requested")),
+        "last_error": state.get("last_error", ""),
+        "started_at": state.get("started_at"),
+        "uptime_s": round(uptime_s, 1),
+        "disposition": state.get("disposition", ""),
+        "turns": len(CONVERSATION),
+        "alpha": getattr(ARGS, "alpha", None),
+        "temperature": getattr(ARGS, "temperature", None),
+        "model_id": getattr(ARGS, "qwen_model_id", ""),
+        "user_label": getattr(ARGS, "user_label", ""),
+        "model_label": getattr(ARGS, "model_label", ""),
+        "dual_gate_enabled": bool(state.get("dual_gate_enabled")),
+        "memory_count": int(state.get("memory_count", 0) or 0),
+        "surprise_count": int(state.get("surprise_count", 0) or 0),
+        "last_gate": state.get("last_gate", {}),
+        "target_layers": state.get("target_layers", []),
+        "target_layers_overridden": bool(state.get("target_layers_overridden")),
+    }
+
+
 def build_prompt():
     lines = []
-    for turn in CONVERSATION:
-        lines.append(f"{turn['speaker']}: {turn['text']}")
+    transcript = build_transcript()
+    if transcript:
+        lines.append(transcript)
     lines.append(f"{ARGS.model_label}:")
     return "\n".join(lines)
 
@@ -263,40 +766,90 @@ def generate_reply(prompt: str) -> tuple[str, str]:
 
 class ChatHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.end_headers()
-        self.wfile.write(HTML_PAGE.encode("utf-8"))
-
-    def do_POST(self):
-        if self.path != "/chat":
-            self.send_error(404)
+        if self.path in {"/", "/index.html"}:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(HTML_PAGE.encode("utf-8"))
             return
 
-        length = int(self.headers.get("Content-Length", 0))
-        body = json.loads(self.rfile.read(length))
+        if self.path == "/status":
+            self._json_response(build_status_payload())
+            return
+
+        self.send_error(404)
+
+    def do_POST(self):
+        if self.path == "/chat":
+            self._handle_chat()
+            return
+
+        if self.path == "/stop":
+            self._handle_stop()
+            return
+
+        self.send_error(404)
+
+    def _read_json_body(self):
+        length = int(self.headers.get("Content-Length", 0) or 0)
+        if length <= 0:
+            return {}
+        raw_body = self.rfile.read(length)
+        if not raw_body:
+            return {}
+        try:
+            return json.loads(raw_body)
+        except json.JSONDecodeError:
+            return {}
+
+    def _handle_chat(self):
+        if get_runtime_state_snapshot().get("stop_requested"):
+            self._json_response({"error": "server stopping", "response": "..."}, status=503)
+            return
+
+        body = self._read_json_body()
         user_msg = body.get("message", "").strip()
         if not user_msg:
             self._json_response({"response": "..."})
             return
 
-        append_turn(ARGS.user_label, user_msg)
-        prompt = build_prompt()
+        with CHAT_LOCK:
+            update_runtime_state(busy=True, last_error="")
+            try:
+                pre_turn_transcript = build_transcript()
+                append_turn(ARGS.user_label, user_msg)
+                prompt = build_prompt()
 
-        raw_response, response = generate_reply(prompt)
-        if not response:
-            print(f"[warn] Empty reply after sanitize. Raw decode: {raw_response!r}")
-            raw_response, response = generate_reply(prompt + " ")
-        if not response:
-            print(f"[warn] Retry still empty. Raw decode: {raw_response!r}")
-            response = "..."
+                raw_response, response = generate_reply(prompt)
+                if not response:
+                    print(f"[warn] Empty reply after sanitize. Raw decode: {raw_response!r}")
+                    raw_response, response = generate_reply(prompt + " ")
+                if not response:
+                    print(f"[warn] Retry still empty. Raw decode: {raw_response!r}")
+                    response = "..."
 
-        append_turn(ARGS.model_label, response)
-        self._json_response({"response": response})
+                append_turn(ARGS.model_label, response)
+                gate_event = evaluate_dual_gate(user_msg, response, prompt, pre_turn_transcript)
+                self._json_response({"response": response, "dual_gate": gate_event})
+            except Exception as exc:
+                update_runtime_state(last_error=str(exc))
+                print(f"[error] Chat request failed: {exc}")
+                self._json_response({"error": str(exc), "response": "..."}, status=500)
+            finally:
+                update_runtime_state(busy=False)
 
-    def _json_response(self, data):
+    def _handle_stop(self):
+        body = self._read_json_body()
+        reason = str(body.get("reason", "")).strip()
+        requester = self.client_address[0]
+        update_runtime_state(stop_requested=True, busy=False)
+        print(f"[info] Stop requested from {requester} reason={reason or 'unspecified'}")
+        self._json_response({"ok": True, "status": build_status_payload()})
+        threading.Thread(target=request_server_shutdown, daemon=True).start()
+
+    def _json_response(self, data, status=200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-        self.send_response(200)
+        self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -306,8 +859,16 @@ class ChatHandler(BaseHTTPRequestHandler):
         print(f"[{self.log_date_time_string()}] {args[0]}")
 
 
+def request_server_shutdown():
+    time.sleep(0.2)
+    if SERVER is not None:
+        SERVER.shutdown()
+
+
 def main():
     global MODEL, TOKENIZER, ARGS, LATEST_TRANSCRIPT_PATH, LATEST_JSONL_PATH
+    global DUAL_GATE_LOG_PATH, DUAL_GATE_MEMORY_PATH, DUAL_GATE_SURPRISE_PATH
+    global SERVER, ACTIVATION_RECORDER, LAST_CONVERSATION_SNAPSHOT
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--bridge-path", default=DEFAULT_BRIDGE)
@@ -320,18 +881,47 @@ def main():
     parser.add_argument("--max-mamba-tokens", type=int, default=4096)
     parser.add_argument("--max-new-tokens", type=int, default=200)
     parser.add_argument("--temperature", type=float, default=0.7)
+    parser.add_argument("--alpha", type=float, default=1.0, help="Injection strength for activation bias.")
+    parser.add_argument("--target-layers", type=str, default="", help="Comma-separated layer:proj specs that override the checkpoint target_specs.")
     parser.add_argument("--port", type=int, default=7860)
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--user-label", default=DEFAULT_USER_LABEL)
     parser.add_argument("--model-label", default=DEFAULT_MODEL_LABEL)
     parser.add_argument("--transcript-path", default="chat_session_latest.txt")
     parser.add_argument("--turn-log-path", default="chat_turns_latest.jsonl")
+    parser.add_argument("--neutral-prompt", default="The weather today is")
+    parser.add_argument("--dual-gate-enabled", dest="dual_gate_enabled", action="store_true")
+    parser.add_argument("--no-dual-gate", dest="dual_gate_enabled", action="store_false")
+    parser.add_argument("--dual-gate-warmup-turns", type=int, default=3)
+    parser.add_argument("--dual-gate-salience-quantile", type=float, default=0.75)
+    parser.add_argument("--dual-gate-surprise-quantile", type=float, default=0.75)
+    parser.add_argument("--dual-gate-log-path", default="dual_gate_turns_latest.jsonl")
+    parser.add_argument("--dual-gate-memory-path", default="salience_memory_latest.jsonl")
+    parser.add_argument("--dual-gate-surprise-path", default="surprise_events_latest.jsonl")
+    parser.set_defaults(dual_gate_enabled=True)
     ARGS = parser.parse_args()
+
+    if ARGS.dual_gate_warmup_turns < 0:
+        raise ValueError("--dual-gate-warmup-turns must be >= 0.")
+    if not 0.0 <= ARGS.dual_gate_salience_quantile <= 1.0:
+        raise ValueError("--dual-gate-salience-quantile must be between 0 and 1.")
+    if not 0.0 <= ARGS.dual_gate_surprise_quantile <= 1.0:
+        raise ValueError("--dual-gate-surprise-quantile must be between 0 and 1.")
 
     LATEST_TRANSCRIPT_PATH = Path(ARGS.transcript_path)
     LATEST_JSONL_PATH = Path(ARGS.turn_log_path)
+    DUAL_GATE_LOG_PATH = Path(ARGS.dual_gate_log_path)
+    DUAL_GATE_MEMORY_PATH = Path(ARGS.dual_gate_memory_path)
+    DUAL_GATE_SURPRISE_PATH = Path(ARGS.dual_gate_surprise_path)
     LATEST_TRANSCRIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
     LATEST_JSONL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DUAL_GATE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DUAL_GATE_MEMORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DUAL_GATE_SURPRISE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DUAL_GATE_LOG_PATH.write_text("", encoding="utf-8")
+    DUAL_GATE_MEMORY_PATH.write_text("", encoding="utf-8")
+    DUAL_GATE_SURPRISE_PATH.write_text("", encoding="utf-8")
+    DUAL_GATE_EVENTS.clear()
     persist_conversation()
 
     qwen_dtype = torch.float16 if "cuda" in ARGS.qwen_device else torch.float32
@@ -340,15 +930,25 @@ def main():
     ckpt = torch.load(ARGS.bridge_path, map_location="cpu", weights_only=False)
     checkpoint_qwen_model_id = ckpt.get("qwen_model_id", DEFAULT_QWEN)
     if ARGS.qwen_model_id != checkpoint_qwen_model_id:
-        raise ValueError(
-            "Checkpoint/model mismatch: "
-            f"checkpoint trained on {checkpoint_qwen_model_id}, "
-            f"but chat_server requested {ARGS.qwen_model_id}."
-        )
+        if is_same_qwen_family(ARGS.qwen_model_id, checkpoint_qwen_model_id):
+            print(
+                "[warn] Checkpoint/model mismatch: "
+                f"checkpoint trained on {checkpoint_qwen_model_id}, "
+                f"but chat_server requested {ARGS.qwen_model_id}. "
+                "Proceeding - same architecture family assumed."
+            )
+        else:
+            raise ValueError(
+                "Checkpoint/model mismatch: "
+                f"checkpoint trained on {checkpoint_qwen_model_id}, "
+                f"but chat_server requested {ARGS.qwen_model_id}."
+            )
 
-    target_specs = normalize_target_specs(
+    checkpoint_target_specs = normalize_target_specs(
         ckpt.get("target_specs") or ckpt.get("target_layers")
     )
+    cli_target_specs = parse_target_layers(ARGS.target_layers)
+    target_specs = checkpoint_target_specs
     mamba_target_layer = int(ckpt.get("mamba_target_layer", 3))
     context_dim = int(
         ckpt.get("context_dim", ckpt.get("bridge_config", {}).get("context_dim", 2048))
@@ -366,6 +966,19 @@ def main():
     )
     MODEL.eval()
 
+    checkpoint_target_widths = infer_checkpoint_target_widths(ckpt, checkpoint_target_specs)
+    target_layers_overridden = False
+    if cli_target_specs is not None:
+        print("[warn] Overriding checkpoint target_specs with CLI --target-layers")
+        target_specs = cli_target_specs
+        target_layers_overridden = True
+
+    target_dims = validate_target_specs_for_model(
+        MODEL,
+        target_specs,
+        checkpoint_target_widths,
+    )
+
     print(f"Patching layers: {target_specs}...")
     patched_layers = []
     for layer_idx, proj_name in target_specs:
@@ -374,8 +987,6 @@ def main():
         patched = DynamicLoRALinear(original)
         setattr(layer.self_attn, proj_name, patched)
         patched_layers.append(patched)
-
-    target_dims = [(layer.in_features, layer.out_features) for layer in patched_layers]
 
     print(f"Loading Mamba: {ARGS.mamba_model_id}...")
     ensure_mamba_ssm_compat()
@@ -431,22 +1042,50 @@ def main():
         bias_vectors = hypernet(context)
 
     for patched, bias in zip(patched_layers, bias_vectors):
-        patched.set_activation_bias(bias.squeeze(0).to(ARGS.qwen_device, dtype=torch.float32))
+        scaled_bias = ARGS.alpha * bias.squeeze(0).to(ARGS.qwen_device, dtype=torch.float32)
+        patched.set_activation_bias(scaled_bias)
 
-    print(f"\nBridge injected. Disposition: {episode['title']}")
+    gate_layers = sorted({layer_idx for layer_idx, _proj_name in target_specs})
+    ACTIVATION_RECORDER = ActivationRecorder(MODEL, gate_layers)
+    LAST_CONVERSATION_SNAPSHOT = record_activation_snapshot(ARGS.neutral_prompt)
+
+    update_runtime_state(
+        started_at=datetime.now().isoformat(timespec="seconds"),
+        started_monotonic=time.monotonic(),
+        running=True,
+        bridge_loaded=True,
+        busy=False,
+        stop_requested=False,
+        last_error="",
+        disposition=episode["title"],
+        dual_gate_enabled=bool(ARGS.dual_gate_enabled),
+        memory_count=0,
+        surprise_count=0,
+        last_gate={},
+        target_layers=format_target_specs(target_specs),
+        target_layers_overridden=target_layers_overridden,
+    )
+
+    print(f"\nBridge injected with alpha={ARGS.alpha}. Disposition: {episode['title']}")
     print(f"\n{'=' * 50}")
     print(f"Server starting on http://{ARGS.host}:{ARGS.port}")
     print(f"Open this on your phone: http://192.168.2.49:{ARGS.port}")
     print(f"Prompt labels: {ARGS.user_label} / {ARGS.model_label}")
     print(f"{'=' * 50}\n")
 
-    server = HTTPServer((ARGS.host, ARGS.port), ChatHandler)
+    SERVER = ThreadingHTTPServer((ARGS.host, ARGS.port), ChatHandler)
     try:
-        server.serve_forever()
+        SERVER.serve_forever()
     except KeyboardInterrupt:
         print("\nShutting down...")
+    finally:
+        update_runtime_state(running=False, busy=False)
         persist_conversation()
         print(f"Conversation saved to {LATEST_TRANSCRIPT_PATH}")
+        if ACTIVATION_RECORDER is not None:
+            ACTIVATION_RECORDER.cleanup()
+        if SERVER is not None:
+            SERVER.server_close()
 
 
 if __name__ == "__main__":
