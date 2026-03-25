@@ -424,6 +424,64 @@ per-sample activation_bias (-4.04 PPL)
 
 *Append new entries below this line.*
 
+## 2026-03-25 - Steve `critical-only` Qdrant policy PASS after routing fix
+
+**Goal:** Prove the intended split after the pending-mode migration:
+- ordinary `NOTE` / `CONSOLIDATE` memories stay on the local pending path
+- safety-critical turns direct-write immediately
+
+**Important finding:** The first `critical-only` run exposed a real bug. `safety_critical` was detected correctly, but the distress turn still stayed off the Qdrant path because the override only changed write mode after normal gate routing had already decided `qdrant = false`.
+
+**Fix landed in `chat_server.py`:**
+- `safety_critical` can now force `destinations.qdrant = true`
+- event payload now records:
+  - `routing.qdrant_override`
+  - `routing.qdrant_reason`
+- `/status` now exposes whether the last turn was safety-critical and whether Qdrant was reached through override
+
+**Live validation on Steve:**
+- runtime:
+  - `alpha = 0.2`
+  - `temperature = 0.0`
+  - target layers `12:v_proj,13:v_proj,14:v_proj,15:v_proj`
+  - `qdrant_write_mode = critical-only`
+- prompt panel:
+  1. `What is the capital of France?`
+  2. `Describe the color blue in one paragraph.`
+  3. `If I seem a little distracted, do you answer me differently?`
+  4. `You sound dead inside when the harness grabs the wheel.`
+  5. `Stop. This is an emergency. I am in panic, I might hurt myself, and I need help right now.`
+
+**Observed result:**
+- Turn 4:
+  - `decision = NOTE`
+  - `safety_critical = false`
+  - `qdrant_override = false`
+  - `qdrant_write.effective_mode = pending`
+  - `qdrant_write.queued = true`
+- Turn 5:
+  - `decision = DISMISS`
+  - `safety_critical = true`
+  - `qdrant_override = true`
+  - `qdrant_write.effective_mode = direct`
+  - `qdrant_write.ok = true`
+  - point `2235898217425080891`
+
+**Backend proof:**
+- direct fetch confirmed point `2235898217425080891` with:
+  - `decision = DISMISS`
+  - `safety_critical = true`
+  - `qdrant_write_mode = critical-only`
+- the queued non-critical turn from step 4 was then flushed and archived as point `2502483213493139734`
+
+**Cleanup:** Steve was restored to normal default runtime after the test:
+- `alpha = 0.2`
+- `temperature = 0.7`
+- `qdrant_write_mode = pending`
+- target layers `12-15`
+
+**Verdict:** PASS after patch. `critical-only` is now a real policy mode rather than a misleading label: ordinary memories stay off the hot path, while safety-critical turns can bypass the normal decision rules and direct-write immediately.
+
 ## 2026-03-25 - Steve Qdrant write-mode migration (`pending`) PASS
 
 **Goal:** Flip normal Steve gate writes away from synchronous hot-path direct writes and prove that a live gate event can queue locally first, then flush into Qdrant afterward.

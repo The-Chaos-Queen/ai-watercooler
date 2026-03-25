@@ -1148,7 +1148,8 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
         decision = "DISMISS"
 
     writes_mamba = decision in {"CONSOLIDATE", "ATTEND"}
-    writes_qdrant = decision in {"CONSOLIDATE", "NOTE"}
+    qdrant_override = bool(safety_critical.get("is_critical"))
+    writes_qdrant = decision in {"CONSOLIDATE", "NOTE"} or qdrant_override
     open_tension = bool(tension_hit)
 
     turn_index = sum(1 for turn in CONVERSATION if turn["speaker"] == ARGS.user_label)
@@ -1164,6 +1165,10 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
             "mamba": writes_mamba,
             "qdrant": writes_qdrant,
             "open_tension": open_tension,
+        },
+        "routing": {
+            "qdrant_override": qdrant_override,
+            "qdrant_reason": "safety_critical_override" if qdrant_override else "decision_rule",
         },
         "surprise": {
             "mean_token_nll": surprise["mean_token_nll"],
@@ -1209,6 +1214,7 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
                 "note": "surprise_hit and not salience_hit",
                 "attend": "salience_hit and not surprise_hit",
                 "dismiss": "not salience_hit and not surprise_hit",
+                "qdrant_override": "safety_critical can force qdrant regardless of decision",
             },
         },
         "mamba_trace": {
@@ -1269,6 +1275,9 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
             "surprise_hit": surprise_hit,
             "tension_hit": tension_hit,
             "open_tension": open_tension,
+            "safety_critical": bool(safety_critical.get("is_critical")),
+            "qdrant_routed": bool(event.get("destinations", {}).get("qdrant")),
+            "qdrant_override": bool(event.get("routing", {}).get("qdrant_override")),
             "qdrant_written": bool(event.get("qdrant_write", {}).get("ok")),
             "qdrant_queued": bool(event.get("qdrant_write", {}).get("queued")),
             "qdrant_effective_mode": event.get("qdrant_write", {}).get("effective_mode", ""),
