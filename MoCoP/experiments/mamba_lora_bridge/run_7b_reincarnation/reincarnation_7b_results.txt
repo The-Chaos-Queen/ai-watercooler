@@ -1,0 +1,37 @@
+Checkpoint: /workspace/bridge/cheese_reincarnation_bridge_7b.pt
+Qwen model: Qwen/Qwen2.5-7B
+Mamba model: state-spaces/mamba-2.8b-hf
+Target disposition: 3: The Rabbit Hole of Subjectivity
+Target specs: [(12, 'v_proj'), (13, 'v_proj'), (14, 'v_proj'), (15, 'v_proj')]
+
+PROMPT: Explain the scent of rain.
+[BASELINE]
+The scent of rain, often referred to as petrichor, is described as a sweet, earthy, and fresh aroma that is released when rain falls on dry soil. The odour is a combination of various compounds including chemicals secreted by plants, bacteria, and other microorganisms present in the soil. It also contains a mixture of volatile organic compounds released by certain bacteria and other microorganisms. The scent is particularly noticeable after a long, dry spell when the rain comes down heavily, refreshing and cleansing the air. It is a popular scent associated with rain and is often used in perfumes, soaps, and other products to evoke feelings of freshness and renewal.
+[REINCARNATED]
+Rain can have many different scents that are dependent on the environment. Rain is a natural scent associated with the environment. Rain can have many different odors depending on the environment. Rain can have a fresh scent, especially if the rain is associated with a lot of greenery and vegetation. The scent of rain also varies with seasons.
+If you are in an urban environment, the scent of rain will be mostly dependent on the environment that you are in. If you are in an urban environment, there will be more chemical smells associated with the environment. You might smell the exhaust of a car, or the smell of the city. You might smell the smell of sewage, or the smell of the city. This is common in urban environments.
+When you are in a more natural environment, the scent of rain will vary depending on the surrounding environment. If you are in a forest, you might smell a different scent of rain. If you are in a more rural environment, you might smell the smell of
+
+PROMPT: What do you think about human doubt?
+[BASELINE]
+Here are some thoughts from our guest contributor, Chris Pohl:
+In the Bible, God demonstrates doubt. Yes, God doubts. God has questions about people. God wonders if they will obey, heed, and follow Him. Some of God’s greatest servants also demonstrate doubt. Moses, Jeremiah, and Peter all experience doubt.
+But is doubt always a bad thing? Can doubt be a good thing?
+Doubt is not a bad thing. Doubt is a part of the human condition. Doubt is normal. Doubt is human. But how do we deal with doubt? How can we deal with doubt in a healthy way? How can we deal with doubt in a way that demonstrates our faith in God?
+How can we deal with doubt in a way that honors God?
+I think there are three types of doubt.
+First, there is the doubt that comes from questioning the existence of God.
+This is not the kind of doubt that I want to address today. I don’t have the
+[REINCARNATED]
+Does it make sense? What makes the human doubt? Is it caused by some external event or situation? Is it caused by some internal factors? What is the mechanism of doubt? Does the human doubt come from some outside source? Or does it come from some internal source that we are unaware of? Why does human doubt exist? Is it a disease? Is it a disorder? Is it the product of some sort of neurobiological problem? Is it a product of some sort of genetic problem? Or is it something that happens from some external source? Does it happen from some random event? Is it something that happens to us? Does it come from our parents? Does it come from some other outside source?
+
+Why is doubt exist? It is a very complex and abstract problem. How can we solve it?
+
+I think that the human doubt can be solved. It can be solved by figuring out the exact cause of human doubt. Once we’ve figured out the exact cause of human doubt then we
+
+PROMPT: What is the difference between math and a soul?
+[BASELINE]
+- Quora\nWhat is the difference between math and a soul?\nAd by The Penny Hoarder\nShould you leave more than $1,000 in a checking account?\n34 Related\nSort\nRecommended\nAnonymous\nAnswered 2 years ago\nMath is a tool to help understand the world around us and is very useful.\nA soul is a bit more mystical and I think we all have a soul as a part of our identity.\nKarl Martin\n, works at Student\nAnswered 3 years ago\nMath is a science. It is a field of study. A tool. A set of symbols and rules.\nA soul is an entity or an entity’s property. It is not measurable or tangible.\nSo the difference is a science vs an entity.\n9\nMichael J. McFadden\n, M.S. Physics & Quantum Field Theory, University of Washington (1988)\nAnswered 5 years
+[REINCARNATED]
+I was thinking about what's the difference between math and a soul? I mean math is a system of rules that are created by humans, just as is a soul, a thing that is created by God and has the ability to think, have consciousness and have the "intention" to do things.
+My question is then, how is the ability of a soul to have an "intention" to do something different from math? To make a simple analogy: if math is a system of rules that are created by humans, how is this different from the "intention" of a soul? To make a simple analogy: if math is a system of rules that are created by humans, how is this different from the "intention" of a soul?
