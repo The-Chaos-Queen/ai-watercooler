@@ -424,6 +424,31 @@ per-sample activation_bias (-4.04 PPL)
 
 *Append new entries below this line.*
 
+## 2026-03-25 â€” Steve Gate Payload Patch PASS (Negentropy/Codex on Steve 4090)
+
+**Step:** Step 5e follow-on / developmental gate G2 payload hygiene
+**Question:** Can the live `steve_gate_event` payload be upgraded for retrieval quality and sleep-facing auditability without breaking the Qdrant write path?
+**Result:**
+- `content` is now a semantic summary instead of raw full-response text
+- payload now includes:
+  - `gate_thresholds`
+  - `mamba_state_ref`
+  - `mamba_state_source`
+  - `mamba_target_layer`
+  - `coherence_score`
+  - `coherence_proxy`
+- Steve now saves the bootstrap Mamba hidden-last-token state to `mamba_bootstrap_state_latest.pt`
+- fresh validation point `12624753269642173775` confirmed:
+  - semantic `content = "Authenticity challenge ... Decision: NOTE."`
+  - threshold block present with quantiles and numeric thresholds
+  - `mamba_state_ref = "mamba_bootstrap_state_latest.pt"`
+  - `coherence_score = 0.239731`
+  - `coherence_proxy = "qwen_hidden_vs_bootstrap_snapshot"`
+
+**Verdict:** PAYLOAD PASS â€” retrieval text is cleaner, decision context is reproducible, and sleep-facing fields now exist in the live schema.
+**Caveat:** Validation happened under the live Steve config at the time of test (`alpha = 0.0`), so this confirms payload structure, not MED behavior.
+**Artifacts:** `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_payload_20260325.md`, `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_payload_20260325_point.json`
+
 ## 2026-03-25 — Steve Saliency Gate Qdrant Write PASS (Negentropy/Codex on Steve 4090)
 
 **Step:** Step 5e follow-on / developmental gate G2 (salience writing path)

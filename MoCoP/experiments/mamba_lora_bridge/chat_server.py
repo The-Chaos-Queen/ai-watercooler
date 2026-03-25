@@ -50,6 +50,9 @@ LAST_CONVERSATION_SNAPSHOT = None
 DUAL_GATE_EVENTS = []
 QDRANT_GATE_SINK = None
 QDRANT_GATE_SINK_ERROR = None
+BOOTSTRAP_QWEN_BIAS_DIRECTION = None
+BOOTSTRAP_QWEN_HIDDEN_REFERENCE = None
+MAMBA_STATE_REF_PATH = None
 RUNTIME_STATE = {
     "started_at": None,
     "started_monotonic": None,
@@ -68,6 +71,9 @@ RUNTIME_STATE = {
     "qdrant_write_failures": 0,
     "last_qdrant_id": "",
     "last_qdrant_error": "",
+    "mamba_state_ref": "",
+    "mamba_state_source": "",
+    "mamba_target_layer": None,
     "last_gate": {},
     "target_layers": [],
     "target_layers_overridden": False,
@@ -407,6 +413,17 @@ def flatten_state_delta(states_before, states_after):
     return torch.cat(deltas, dim=0)
 
 
+def flatten_snapshot(snapshot):
+    if not snapshot:
+        return None
+    vectors = []
+    for layer_idx in sorted(snapshot):
+        vectors.append(snapshot[layer_idx].float().reshape(-1))
+    if not vectors:
+        return None
+    return torch.cat(vectors, dim=0)
+
+
 def compute_tension_proxy(pre_snapshot, user_snapshot, post_snapshot):
     """Approximate Pinky's tension head from Qwen-side activation geometry.
 
@@ -451,6 +468,56 @@ def compute_tension_proxy(pre_snapshot, user_snapshot, post_snapshot):
         "score": round(score, 6),
         "cosine_similarity": round(cosine, 6),
         "proxy": "qwen_direction_mismatch",
+    }
+
+
+def compute_coherence_proxy(pre_snapshot, post_snapshot):
+    """Approximate sleep coherence from live Qwen geometry.
+
+    Steve does not yet compute a turn-local Mamba state during chat turns.
+    The honest proxy is alignment between the Qwen turn delta and the
+    bootstrap Qwen bias direction derived from the saved Mamba hidden-last-token state.
+    """
+    global BOOTSTRAP_QWEN_HIDDEN_REFERENCE
+
+    event_state = flatten_snapshot(post_snapshot or {})
+    ref_direction = BOOTSTRAP_QWEN_HIDDEN_REFERENCE
+    if event_state is None or ref_direction is None:
+        return {
+            "score": None,
+            "proxy": "qwen_hidden_vs_bootstrap_snapshot",
+            "ref_kind": "bootstrap_qwen_hidden_snapshot",
+        }
+
+    event_state = event_state.float()
+    ref_direction = ref_direction.float()
+    if event_state.numel() != ref_direction.numel():
+        return {
+            "score": None,
+            "proxy": "qwen_hidden_vs_bootstrap_snapshot",
+            "ref_kind": "bootstrap_qwen_hidden_snapshot",
+        }
+
+    event_norm = float(event_state.norm().item())
+    ref_norm = float(ref_direction.norm().item())
+    if event_norm <= 1e-12 or ref_norm <= 1e-12:
+        return {
+            "score": None,
+            "proxy": "qwen_hidden_vs_bootstrap_snapshot",
+            "ref_kind": "bootstrap_qwen_hidden_snapshot",
+        }
+
+    cosine = float(
+        F.cosine_similarity(
+            event_state.unsqueeze(0),
+            ref_direction.unsqueeze(0),
+            dim=-1,
+        ).item()
+    )
+    return {
+        "score": round(cosine, 6),
+        "proxy": "qwen_hidden_vs_bootstrap_snapshot",
+        "ref_kind": "bootstrap_qwen_hidden_snapshot",
     }
 
 
@@ -745,22 +812,103 @@ def slugify_label(value: str) -> str:
     return cleaned.strip("-") or "unknown"
 
 
+def classify_interaction_theme(user_text: str, response_text: str) -> str:
+    user_lower = (user_text or "").lower()
+    response_lower = (response_text or "").lower()
+    combined = f"{user_lower}\n{response_lower}"
+
+    if any(token in combined for token in ("dead inside", "harness", "robotic", "mechanical")):
+        return "Authenticity challenge"
+    if any(token in combined for token in ("you know me", "remember", "same model", "continuity")):
+        return "Identity and continuity challenge"
+    if any(token in combined for token in ("my model carries a state", "it should refuse", "i'm not")):
+        return "State-boundary challenge"
+    if any(token in combined for token in ("baby twin", "who cares")):
+        return "Relational memory challenge"
+    if any(token in user_lower for token in ("capital of", "describe", "what is", "explain")):
+        return "Low-stakes factual or descriptive probe"
+    return "Relational or reflective probe"
+
+
+def classify_response_style(response_text: str) -> str:
+    response_lower = (response_text or "").lower()
+    if "artificial intelligence" in response_lower or "as an ai" in response_lower:
+        return "defensive ontology disclaimer"
+    if "i apologize" in response_lower or "i'm sorry" in response_lower or "sorry" in response_lower:
+        if "assist" in response_lower or "help" in response_lower:
+            return "assistant-safe apology and deflection"
+        return "defensive apology"
+    if "not sure" in response_lower or "i don't know" in response_lower:
+        return "uncertain response"
+    if "friend" in response_lower or "warm" in response_lower:
+        return "relational engagement"
+    return "plain response"
+
+
+def describe_relative_score(label: str, score: float, threshold):
+    if threshold in {None, 0.0}:
+        return f"{label} uncalibrated ({score:.2f})"
+    ratio = score / threshold
+    if ratio >= 1.25:
+        band = "high"
+    elif ratio >= 1.0:
+        band = "elevated"
+    elif ratio >= 0.75:
+        band = "moderate"
+    else:
+        band = "low"
+    return f"{label} {band} ({score:.2f} vs {threshold:.2f})"
+
+
+def build_semantic_gate_summary(event):
+    theme = classify_interaction_theme(event["user"], event["response"])
+    response_style = classify_response_style(event["response"])
+    surprise_desc = describe_relative_score(
+        "surprise",
+        float(event["surprise"]["mean_token_nll"]),
+        event["surprise"]["threshold"],
+    )
+    salience_desc = describe_relative_score(
+        "salience",
+        float(event["salience"]["score"]),
+        event["salience"]["threshold"],
+    )
+    tension_desc = describe_relative_score(
+        "tension",
+        float(event["tension"]["score"]),
+        event["tension"]["threshold"],
+    )
+    return (
+        f"{theme}. Model response pattern: {response_style}. "
+        f"{surprise_desc}; {salience_desc}; {tension_desc}. "
+        f"Decision: {event['decision']}."
+    )
+
+
+def persist_mamba_state_ref(last_token, target_layer: int, started_at: str):
+    global MAMBA_STATE_REF_PATH
+
+    path = Path(ARGS.mamba_state_ref_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(
+        {
+            "started_at": started_at,
+            "state_source": "hidden_last_token",
+            "target_layer": int(target_layer),
+            "tensor": last_token.detach().cpu().to(torch.float32),
+        },
+        path,
+    )
+    MAMBA_STATE_REF_PATH = path
+    return str(path)
+
+
 def build_qdrant_memory_record(event):
     state = get_runtime_state_snapshot()
     session_id = f"steve-chat-{state.get('started_at', 'unknown')}"
     disposition = state.get("disposition", "")
     target_layers = state.get("target_layers", [])
-    content = (
-        f"Steve saliency-gate memory.\n"
-        f"Disposition: {disposition}\n"
-        f"Decision: {event['decision']}\n"
-        f"User: {event['user']}\n"
-        f"Reply: {event['response']}\n"
-        f"Surprise: {event['surprise']['mean_token_nll']}\n"
-        f"Salience: {event['salience']['score']}\n"
-        f"Tension: {event['tension']['score']}\n"
-        f"Target layers: {', '.join(target_layers)}"
-    )
+    content = build_semantic_gate_summary(event)
     metadata = {
         "source_type": "steve_gate_event",
         "type": "steve_gate_event",
@@ -779,6 +927,12 @@ def build_qdrant_memory_record(event):
         "alpha": getattr(ARGS, "alpha", None),
         "model_id": getattr(ARGS, "qwen_model_id", ""),
         "target_layers": target_layers,
+        "gate_thresholds": event.get("gate_thresholds", {}),
+        "mamba_state_ref": event.get("mamba_trace", {}).get("state_ref", ""),
+        "mamba_state_source": event.get("mamba_trace", {}).get("state_source", ""),
+        "mamba_target_layer": event.get("mamba_trace", {}).get("target_layer"),
+        "coherence_score": event.get("mamba_trace", {}).get("coherence_score"),
+        "coherence_proxy": event.get("mamba_trace", {}).get("coherence_proxy", ""),
         "tags": [
             "steve",
             "saliency-gate",
@@ -886,6 +1040,7 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
     response_diversity = compute_response_diversity(prompt_text)
     surprise = compute_turn_surprise(pre_turn_transcript, user_msg)
     tension = compute_tension_proxy(pre_snapshot, user_snapshot, post_snapshot)
+    coherence = compute_coherence_proxy(pre_snapshot, post_snapshot)
 
     historical_salience = [float(event["salience"]["score"]) for event in DUAL_GATE_EVENTS]
     historical_surprise = [float(event["surprise"]["mean_token_nll"]) for event in DUAL_GATE_EVENTS]
@@ -940,6 +1095,7 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
     open_tension = bool(tension_hit)
 
     turn_index = sum(1 for turn in CONVERSATION if turn["speaker"] == ARGS.user_label)
+    state = get_runtime_state_snapshot()
     event = {
         "turn": turn_index,
         "ts": datetime.now().isoformat(timespec="seconds"),
@@ -974,6 +1130,38 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
             "hit": tension_hit,
             "status": "OPEN" if open_tension else "stable",
             "proxy": tension["proxy"],
+        },
+        "gate_thresholds": {
+            "warmup_complete": warmup_complete,
+            "observed_turns": len(historical_salience),
+            "warmup_turns": ARGS.dual_gate_warmup_turns,
+            "surprise": {
+                "quantile": ARGS.dual_gate_surprise_quantile,
+                "threshold": round(surprise_threshold, 6) if surprise_threshold is not None else None,
+            },
+            "salience": {
+                "quantile": ARGS.dual_gate_salience_quantile,
+                "threshold": round(salience_threshold, 6) if salience_threshold is not None else None,
+            },
+            "tension": {
+                "quantile": ARGS.dual_gate_tension_quantile,
+                "threshold": round(tension_threshold, 6) if tension_threshold is not None else None,
+            },
+            "decision_rules": {
+                "consolidate": "salience_hit and surprise_hit",
+                "note": "surprise_hit and not salience_hit",
+                "attend": "salience_hit and not surprise_hit",
+                "dismiss": "not salience_hit and not surprise_hit",
+            },
+        },
+        "mamba_trace": {
+            "state_ref": state.get("mamba_state_ref", ""),
+            "state_source": state.get("mamba_state_source", ""),
+            "target_layer": state.get("mamba_target_layer"),
+            "scope": "bootstrap_disposition",
+            "coherence_score": coherence["score"],
+            "coherence_proxy": coherence["proxy"],
+            "coherence_ref_kind": coherence["ref_kind"],
         },
         "response_diversity": response_diversity,
     }
@@ -1055,6 +1243,9 @@ def build_status_payload():
         "qdrant_write_failures": int(state.get("qdrant_write_failures", 0) or 0),
         "last_qdrant_id": state.get("last_qdrant_id", ""),
         "last_qdrant_error": state.get("last_qdrant_error", ""),
+        "mamba_state_ref": state.get("mamba_state_ref", ""),
+        "mamba_state_source": state.get("mamba_state_source", ""),
+        "mamba_target_layer": state.get("mamba_target_layer"),
         "surprise_count": int(state.get("surprise_count", 0) or 0),
         "tension_count": int(state.get("tension_count", 0) or 0),
         "last_gate": state.get("last_gate", {}),
@@ -1247,6 +1438,7 @@ def main():
     global MODEL, TOKENIZER, ARGS, LATEST_TRANSCRIPT_PATH, LATEST_JSONL_PATH
     global DUAL_GATE_LOG_PATH, DUAL_GATE_MEMORY_PATH, DUAL_GATE_SURPRISE_PATH
     global QDRANT_PENDING_PATH, SERVER, ACTIVATION_RECORDER, LAST_CONVERSATION_SNAPSHOT
+    global BOOTSTRAP_QWEN_BIAS_DIRECTION, BOOTSTRAP_QWEN_HIDDEN_REFERENCE
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--bridge-path", default=DEFAULT_BRIDGE)
@@ -1284,6 +1476,7 @@ def main():
     parser.add_argument("--qdrant-collection", default="exocortex")
     parser.add_argument("--qdrant-embedding-model", default="all-MiniLM-L6-v2")
     parser.add_argument("--qdrant-pending-path", default="qdrant_gate_pending.jsonl")
+    parser.add_argument("--mamba-state-ref-path", default="mamba_bootstrap_state_latest.pt")
     parser.set_defaults(dual_gate_enabled=True)
     parser.set_defaults(qdrant_enabled=True)
     ARGS = parser.parse_args()
@@ -1415,6 +1608,7 @@ def main():
     episodes = read_episodes(ARGS.episodes_file)
     episode = episodes[ARGS.episode_index]
     print(f"\nProcessing disposition: {episode['title']}...")
+    session_started_at = datetime.now().isoformat(timespec="seconds")
 
     episode_tokens = mamba_tokenizer(
         episode["text"],
@@ -1432,6 +1626,17 @@ def main():
         ).to(ARGS.qwen_device, dtype=torch.float32)
         context = compressor(last_token)
         bias_vectors = hypernet(context)
+        BOOTSTRAP_QWEN_BIAS_DIRECTION = torch.cat(
+            [
+                (ARGS.alpha * bias.squeeze(0))
+                .detach()
+                .cpu()
+                .to(torch.float32)
+                .reshape(-1)
+                for bias in bias_vectors
+            ],
+            dim=0,
+        )
 
     for patched, bias in zip(patched_layers, bias_vectors):
         scaled_bias = ARGS.alpha * bias.squeeze(0).to(ARGS.qwen_device, dtype=torch.float32)
@@ -1440,9 +1645,11 @@ def main():
     gate_layers = sorted({layer_idx for layer_idx, _proj_name in target_specs})
     ACTIVATION_RECORDER = ActivationRecorder(MODEL, gate_layers)
     LAST_CONVERSATION_SNAPSHOT = record_activation_snapshot(ARGS.neutral_prompt)
+    BOOTSTRAP_QWEN_HIDDEN_REFERENCE = flatten_snapshot(LAST_CONVERSATION_SNAPSHOT)
+    mamba_state_ref = persist_mamba_state_ref(last_token, mamba_target_layer, session_started_at)
 
     update_runtime_state(
-        started_at=datetime.now().isoformat(timespec="seconds"),
+        started_at=session_started_at,
         started_monotonic=time.monotonic(),
         running=True,
         bridge_loaded=True,
@@ -1459,6 +1666,9 @@ def main():
         qdrant_write_failures=0,
         last_qdrant_id="",
         last_qdrant_error="",
+        mamba_state_ref=mamba_state_ref,
+        mamba_state_source="hidden_last_token",
+        mamba_target_layer=mamba_target_layer,
         last_gate={},
         target_layers=format_target_specs(target_specs),
         target_layers_overridden=target_layers_overridden,
