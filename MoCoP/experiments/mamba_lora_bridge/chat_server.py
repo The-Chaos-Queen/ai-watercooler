@@ -6,6 +6,7 @@ then Laura can talk to the model from a browser on the LAN.
 """
 
 import argparse
+import hashlib
 import json
 import math
 import threading
@@ -40,12 +41,15 @@ LATEST_JSONL_PATH = None
 DUAL_GATE_LOG_PATH = None
 DUAL_GATE_MEMORY_PATH = None
 DUAL_GATE_SURPRISE_PATH = None
+QDRANT_PENDING_PATH = None
 SERVER = None
 CHAT_LOCK = threading.Lock()
 STATE_LOCK = threading.Lock()
 ACTIVATION_RECORDER = None
 LAST_CONVERSATION_SNAPSHOT = None
 DUAL_GATE_EVENTS = []
+QDRANT_GATE_SINK = None
+QDRANT_GATE_SINK_ERROR = None
 RUNTIME_STATE = {
     "started_at": None,
     "started_monotonic": None,
@@ -57,7 +61,13 @@ RUNTIME_STATE = {
     "disposition": "",
     "dual_gate_enabled": False,
     "memory_count": 0,
+    "qdrant_count": 0,
     "surprise_count": 0,
+    "tension_count": 0,
+    "qdrant_synced_count": 0,
+    "qdrant_write_failures": 0,
+    "last_qdrant_id": "",
+    "last_qdrant_error": "",
     "last_gate": {},
     "target_layers": [],
     "target_layers_overridden": False,
@@ -145,9 +155,12 @@ function renderStatus(data) {
     const alpha = Number(data.alpha ?? 0).toFixed(1);
     const turns = data.turns ?? 0;
     const memories = data.memory_count ?? 0;
+    const qdrant = data.qdrant_count ?? 0;
     const surprises = data.surprise_count ?? 0;
+    const tensions = data.tension_count ?? 0;
+    const lastDecision = data.last_gate?.decision || '-';
     const modelLabel = data.model_id || 'unknown-model';
-    statusMeta.textContent = modelLabel + ' | alpha ' + alpha + ' | turns ' + turns + ' | mem ' + memories + ' | surp ' + surprises;
+    statusMeta.textContent = modelLabel + ' | alpha ' + alpha + ' | turns ' + turns + ' | mem ' + memories + ' | qdr ' + qdrant + ' | surp ' + surprises + ' | tens ' + tensions + ' | last ' + lastDecision;
   } else {
     statusMeta.textContent = 'server unreachable';
   }
@@ -378,6 +391,69 @@ def compute_drift(states_a, states_b):
     return drift
 
 
+def flatten_state_delta(states_before, states_after):
+    shared_layers = sorted(set(states_before) & set(states_after))
+    if not shared_layers:
+        return None
+
+    deltas = []
+    for layer_idx in shared_layers:
+        before = states_before[layer_idx].float().reshape(-1)
+        after = states_after[layer_idx].float().reshape(-1)
+        deltas.append(after - before)
+
+    if not deltas:
+        return None
+    return torch.cat(deltas, dim=0)
+
+
+def compute_tension_proxy(pre_snapshot, user_snapshot, post_snapshot):
+    """Approximate Pinky's tension head from Qwen-side activation geometry.
+
+    We do not have a direct Mamba predicted-direction head in the live Steve chat yet.
+    The best available proxy is the mismatch between:
+    - the activation direction induced by the incoming user turn, and
+    - the activation direction induced by the model's own response.
+
+    Low mismatch means the response resolved along the same internal direction.
+    High mismatch means the outcome pulled the model somewhere else entirely,
+    which is a useful proxy for unresolved internal contradiction.
+    """
+    incoming_delta = flatten_state_delta(pre_snapshot or {}, user_snapshot or {})
+    outcome_delta = flatten_state_delta(user_snapshot or {}, post_snapshot or {})
+
+    if incoming_delta is None or outcome_delta is None:
+        return {
+            "score": 0.0,
+            "cosine_similarity": None,
+            "proxy": "qwen_direction_mismatch",
+        }
+
+    incoming_norm = float(incoming_delta.norm().item())
+    outcome_norm = float(outcome_delta.norm().item())
+    if incoming_norm <= 1e-12 or outcome_norm <= 1e-12:
+        return {
+            "score": 0.0,
+            "cosine_similarity": None,
+            "proxy": "qwen_direction_mismatch",
+        }
+
+    cosine = float(
+        F.cosine_similarity(
+            incoming_delta.unsqueeze(0),
+            outcome_delta.unsqueeze(0),
+            dim=-1,
+        ).item()
+    )
+    # Same direction -> 0 tension. Orthogonal -> 1. Opposed -> 2.
+    score = 1.0 - cosine
+    return {
+        "score": round(score, 6),
+        "cosine_similarity": round(cosine, 6),
+        "proxy": "qwen_direction_mismatch",
+    }
+
+
 def compute_turn_surprise(prefix_text: str, user_msg: str):
     turn_text = f"{ARGS.user_label}: {user_msg}"
     combined_text = f"{prefix_text}\n{turn_text}" if prefix_text else turn_text
@@ -461,6 +537,50 @@ def infer_checkpoint_target_widths(checkpoint, fallback_specs):
     return [None] * len(fallback_specs)
 
 
+def resolve_checkpoint_runtime_contract(checkpoint):
+    bridge_config = checkpoint.get("bridge_config", {})
+    if not isinstance(bridge_config, dict):
+        bridge_config = {}
+    nested_config = checkpoint.get("config", {})
+    if not isinstance(nested_config, dict):
+        nested_config = {}
+
+    bridge_mode = checkpoint.get(
+        "bridge_mode",
+        bridge_config.get("bridge_mode", nested_config.get("bridge_mode", "activation_bias")),
+    )
+    mamba_state_source = checkpoint.get(
+        "mamba_state_source",
+        bridge_config.get(
+            "mamba_state_source",
+            nested_config.get("mamba_state_source", "hidden_last_token"),
+        ),
+    )
+    return str(bridge_mode), str(mamba_state_source)
+
+
+def validate_checkpoint_runtime_contract(
+    checkpoint,
+    *,
+    expected_bridge_mode="activation_bias",
+    expected_state_source="hidden_last_token",
+    caller="runtime",
+):
+    checkpoint_bridge_mode, checkpoint_state_source = resolve_checkpoint_runtime_contract(
+        checkpoint
+    )
+    if checkpoint_bridge_mode != expected_bridge_mode:
+        raise ValueError(
+            f"{caller} requires bridge_mode={expected_bridge_mode!r}, "
+            f"but checkpoint declares {checkpoint_bridge_mode!r}."
+        )
+    if checkpoint_state_source != expected_state_source:
+        raise ValueError(
+            f"{caller} requires mamba_state_source={expected_state_source!r}, "
+            f"but checkpoint declares {checkpoint_state_source!r}."
+        )
+
+
 def validate_target_specs_for_model(model, target_specs, expected_out_widths):
     model_layers = getattr(model.model, "layers", None)
     if model_layers is None:
@@ -520,6 +640,60 @@ def append_jsonl(path: Path, row):
         handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+class QdrantGateSink:
+    """Minimal Exocortex-compatible writer for Steve gate events."""
+
+    def __init__(self, host: str, port: int, collection_name: str, embedding_model: str):
+        from qdrant_client import QdrantClient
+        from qdrant_client.models import PointStruct
+        from sentence_transformers import SentenceTransformer
+
+        self.collection_name = collection_name
+        self.client = QdrantClient(host=host, port=port, timeout=10)
+        self.point_struct_cls = PointStruct
+        self.model = SentenceTransformer(embedding_model)
+
+    def _embed(self, text: str):
+        return self.model.encode(text).tolist()
+
+    def _make_id(self, identity_text: str) -> int:
+        digest = hashlib.md5(identity_text.encode("utf-8")).hexdigest()
+        return int(digest[:16], 16)
+
+    def store(self, content: str, metadata):
+        identity_text = json.dumps(
+            {
+                "session": metadata.get("session", ""),
+                "turn": metadata.get("turn", ""),
+                "decision": metadata.get("decision", ""),
+                "user": metadata.get("user", ""),
+                "response": metadata.get("response", ""),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+        point_id = self._make_id(identity_text)
+        vector = self._embed(content)
+        payload = {
+            "content": content,
+            "timestamp": datetime.now().isoformat(),
+            "stored_at": time.time(),
+        }
+        payload.update(metadata)
+
+        self.client.upsert(
+            collection_name=self.collection_name,
+            points=[
+                self.point_struct_cls(
+                    id=point_id,
+                    vector=vector,
+                    payload=payload,
+                )
+            ],
+        )
+        return str(point_id)
+
+
 def read_episodes(path):
     text = Path(path).read_text(encoding="utf-8")
     episodes = text.split("## Episode ")[1:]
@@ -564,23 +738,158 @@ def get_runtime_state_snapshot():
         return dict(RUNTIME_STATE)
 
 
+def slugify_label(value: str) -> str:
+    cleaned = "".join(ch.lower() if ch.isalnum() else "-" for ch in str(value or ""))
+    while "--" in cleaned:
+        cleaned = cleaned.replace("--", "-")
+    return cleaned.strip("-") or "unknown"
+
+
+def build_qdrant_memory_record(event):
+    state = get_runtime_state_snapshot()
+    session_id = f"steve-chat-{state.get('started_at', 'unknown')}"
+    disposition = state.get("disposition", "")
+    target_layers = state.get("target_layers", [])
+    content = (
+        f"Steve saliency-gate memory.\n"
+        f"Disposition: {disposition}\n"
+        f"Decision: {event['decision']}\n"
+        f"User: {event['user']}\n"
+        f"Reply: {event['response']}\n"
+        f"Surprise: {event['surprise']['mean_token_nll']}\n"
+        f"Salience: {event['salience']['score']}\n"
+        f"Tension: {event['tension']['score']}\n"
+        f"Target layers: {', '.join(target_layers)}"
+    )
+    metadata = {
+        "source_type": "steve_gate_event",
+        "type": "steve_gate_event",
+        "project": "MoCoP",
+        "trust_level": "working",
+        "retrieval_priority": "high" if event["decision"] == "CONSOLIDATE" else "medium",
+        "source": "steve_chat_server",
+        "source_path": str(DUAL_GATE_LOG_PATH) if DUAL_GATE_LOG_PATH is not None else "",
+        "thread_name": "steve-chat",
+        "session": session_id,
+        "turn": event["turn"],
+        "decision": event["decision"],
+        "user": event["user"],
+        "response": event["response"],
+        "disposition": disposition,
+        "alpha": getattr(ARGS, "alpha", None),
+        "model_id": getattr(ARGS, "qwen_model_id", ""),
+        "target_layers": target_layers,
+        "tags": [
+            "steve",
+            "saliency-gate",
+            slugify_label(event["decision"]),
+            slugify_label(disposition),
+        ],
+        "surprise_score": event["surprise"]["mean_token_nll"],
+        "salience_score": event["salience"]["score"],
+        "tension_score": event["tension"]["score"],
+        "response_diversity_entropy": event["response_diversity"]["entropy"],
+    }
+    return content, metadata
+
+
+def ensure_qdrant_gate_sink():
+    global QDRANT_GATE_SINK, QDRANT_GATE_SINK_ERROR
+
+    if not ARGS.qdrant_enabled:
+        return None
+    if QDRANT_GATE_SINK is not None:
+        return QDRANT_GATE_SINK
+    if QDRANT_GATE_SINK_ERROR:
+        return None
+
+    try:
+        QDRANT_GATE_SINK = QdrantGateSink(
+            host=ARGS.qdrant_host,
+            port=ARGS.qdrant_port,
+            collection_name=ARGS.qdrant_collection,
+            embedding_model=ARGS.qdrant_embedding_model,
+        )
+        print(
+            f"[qdrant] Online: host={ARGS.qdrant_host}:{ARGS.qdrant_port} "
+            f"collection={ARGS.qdrant_collection}"
+        )
+        update_runtime_state(last_qdrant_error="")
+        return QDRANT_GATE_SINK
+    except Exception as exc:
+        QDRANT_GATE_SINK_ERROR = str(exc)
+        print(f"[warn] Qdrant gate sink unavailable: {exc}")
+        update_runtime_state(last_qdrant_error=str(exc))
+        return None
+
+
+def store_qdrant_gate_event(event):
+    if not event.get("destinations", {}).get("qdrant"):
+        return
+
+    sink = ensure_qdrant_gate_sink()
+    content, metadata = build_qdrant_memory_record(event)
+    event["qdrant_write"] = {"ok": False, "point_id": "", "content_preview": content[:160]}
+
+    if sink is None:
+        append_jsonl(
+            QDRANT_PENDING_PATH,
+            {
+                "content": content,
+                "metadata": metadata,
+                "reason": QDRANT_GATE_SINK_ERROR or "qdrant disabled",
+            },
+        )
+        return
+
+    try:
+        point_id = sink.store(content=content, metadata=metadata)
+        event["qdrant_write"] = {
+            "ok": True,
+            "point_id": point_id,
+            "content_preview": content[:160],
+        }
+        update_runtime_state(last_qdrant_id=point_id, last_qdrant_error="")
+    except Exception as exc:
+        event["qdrant_write"] = {
+            "ok": False,
+            "point_id": "",
+            "error": str(exc),
+            "content_preview": content[:160],
+        }
+        append_jsonl(
+            QDRANT_PENDING_PATH,
+            {
+                "content": content,
+                "metadata": metadata,
+                "reason": str(exc),
+            },
+        )
+        update_runtime_state(last_qdrant_error=str(exc))
+        print(f"[warn] Qdrant write failed: {exc}")
+
+
 def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_transcript: str):
     global LAST_CONVERSATION_SNAPSHOT
 
     if LAST_CONVERSATION_SNAPSHOT is None:
         LAST_CONVERSATION_SNAPSHOT = record_activation_snapshot(build_transcript())
 
+    pre_snapshot = LAST_CONVERSATION_SNAPSHOT or {}
+    user_snapshot = record_activation_snapshot(build_transcript(CONVERSATION[:-1]))
     post_snapshot = record_activation_snapshot(build_transcript())
-    drift_by_layer = compute_drift(LAST_CONVERSATION_SNAPSHOT or {}, post_snapshot)
+    drift_by_layer = compute_drift(pre_snapshot, post_snapshot)
     salience_score = round(
         sum(drift_by_layer.values()) / len(drift_by_layer),
         6,
     ) if drift_by_layer else 0.0
     response_diversity = compute_response_diversity(prompt_text)
     surprise = compute_turn_surprise(pre_turn_transcript, user_msg)
+    tension = compute_tension_proxy(pre_snapshot, user_snapshot, post_snapshot)
 
     historical_salience = [float(event["salience"]["score"]) for event in DUAL_GATE_EVENTS]
     historical_surprise = [float(event["surprise"]["mean_token_nll"]) for event in DUAL_GATE_EVENTS]
+    historical_tension = [float(event["tension"]["score"]) for event in DUAL_GATE_EVENTS]
     warmup_complete = len(historical_salience) >= ARGS.dual_gate_warmup_turns
     salience_threshold = (
         compute_quantile(historical_salience, ARGS.dual_gate_salience_quantile)
@@ -592,8 +901,13 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
         if warmup_complete
         else None
     )
+    tension_threshold = (
+        compute_quantile(historical_tension, ARGS.dual_gate_tension_quantile)
+        if warmup_complete
+        else None
+    )
 
-    admitted = bool(
+    salience_hit = bool(
         ARGS.dual_gate_enabled
         and warmup_complete
         and salience_threshold is not None
@@ -605,6 +919,25 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
         and surprise_threshold is not None
         and surprise["mean_token_nll"] >= surprise_threshold
     )
+    tension_hit = bool(
+        ARGS.dual_gate_enabled
+        and warmup_complete
+        and tension_threshold is not None
+        and tension["score"] >= tension_threshold
+    )
+
+    if salience_hit and surprise_hit:
+        decision = "CONSOLIDATE"
+    elif salience_hit:
+        decision = "ATTEND"
+    elif surprise_hit:
+        decision = "NOTE"
+    else:
+        decision = "DISMISS"
+
+    writes_mamba = decision in {"CONSOLIDATE", "ATTEND"}
+    writes_qdrant = decision in {"CONSOLIDATE", "NOTE"}
+    open_tension = bool(tension_hit)
 
     turn_index = sum(1 for turn in CONVERSATION if turn["speaker"] == ARGS.user_label)
     event = {
@@ -613,6 +946,12 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
         "user": user_msg,
         "response": response,
         "mode": "gate" if warmup_complete else "observe",
+        "decision": decision,
+        "destinations": {
+            "mamba": writes_mamba,
+            "qdrant": writes_qdrant,
+            "open_tension": open_tension,
+        },
         "surprise": {
             "mean_token_nll": surprise["mean_token_nll"],
             "token_count": surprise["token_count"],
@@ -625,30 +964,63 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
             "weight": round((salience_score / salience_threshold), 4)
             if salience_threshold not in {None, 0.0}
             else None,
-            "admitted": admitted,
+            "hit": salience_hit,
             "by_layer": drift_by_layer,
+        },
+        "tension": {
+            "score": tension["score"],
+            "cosine_similarity": tension["cosine_similarity"],
+            "threshold": round(tension_threshold, 6) if tension_threshold is not None else None,
+            "hit": tension_hit,
+            "status": "OPEN" if open_tension else "stable",
+            "proxy": tension["proxy"],
         },
         "response_diversity": response_diversity,
     }
+
+    store_qdrant_gate_event(event)
 
     DUAL_GATE_EVENTS.append(event)
     append_jsonl(DUAL_GATE_LOG_PATH, event)
     if surprise_hit:
         append_jsonl(DUAL_GATE_SURPRISE_PATH, event)
-    if admitted:
+    if writes_mamba:
         append_jsonl(DUAL_GATE_MEMORY_PATH, event)
 
     LAST_CONVERSATION_SNAPSHOT = post_snapshot
     update_runtime_state(
-        memory_count=sum(1 for gate_event in DUAL_GATE_EVENTS if gate_event["salience"]["admitted"]),
+        memory_count=sum(
+            1 for gate_event in DUAL_GATE_EVENTS
+            if gate_event.get("destinations", {}).get("mamba")
+        ),
+        qdrant_count=sum(
+            1 for gate_event in DUAL_GATE_EVENTS
+            if gate_event.get("destinations", {}).get("qdrant")
+        ),
         surprise_count=sum(1 for gate_event in DUAL_GATE_EVENTS if gate_event["surprise"]["hit"]),
+        tension_count=sum(1 for gate_event in DUAL_GATE_EVENTS if gate_event["tension"]["hit"]),
+        qdrant_synced_count=sum(
+            1 for gate_event in DUAL_GATE_EVENTS
+            if gate_event.get("qdrant_write", {}).get("ok")
+        ),
+        qdrant_write_failures=sum(
+            1 for gate_event in DUAL_GATE_EVENTS
+            if gate_event.get("destinations", {}).get("qdrant")
+            and not gate_event.get("qdrant_write", {}).get("ok")
+        ),
         last_gate={
             "turn": turn_index,
             "mode": event["mode"],
+            "decision": decision,
             "salience": salience_score,
             "surprise": surprise["mean_token_nll"],
-            "admitted": admitted,
+            "tension": tension["score"],
+            "salience_hit": salience_hit,
             "surprise_hit": surprise_hit,
+            "tension_hit": tension_hit,
+            "open_tension": open_tension,
+            "qdrant_written": bool(event.get("qdrant_write", {}).get("ok")),
+            "qdrant_point_id": event.get("qdrant_write", {}).get("point_id", ""),
         },
     )
     return event
@@ -678,7 +1050,13 @@ def build_status_payload():
         "model_label": getattr(ARGS, "model_label", ""),
         "dual_gate_enabled": bool(state.get("dual_gate_enabled")),
         "memory_count": int(state.get("memory_count", 0) or 0),
+        "qdrant_count": int(state.get("qdrant_count", 0) or 0),
+        "qdrant_synced_count": int(state.get("qdrant_synced_count", 0) or 0),
+        "qdrant_write_failures": int(state.get("qdrant_write_failures", 0) or 0),
+        "last_qdrant_id": state.get("last_qdrant_id", ""),
+        "last_qdrant_error": state.get("last_qdrant_error", ""),
         "surprise_count": int(state.get("surprise_count", 0) or 0),
+        "tension_count": int(state.get("tension_count", 0) or 0),
         "last_gate": state.get("last_gate", {}),
         "target_layers": state.get("target_layers", []),
         "target_layers_overridden": bool(state.get("target_layers_overridden")),
@@ -868,7 +1246,7 @@ def request_server_shutdown():
 def main():
     global MODEL, TOKENIZER, ARGS, LATEST_TRANSCRIPT_PATH, LATEST_JSONL_PATH
     global DUAL_GATE_LOG_PATH, DUAL_GATE_MEMORY_PATH, DUAL_GATE_SURPRISE_PATH
-    global SERVER, ACTIVATION_RECORDER, LAST_CONVERSATION_SNAPSHOT
+    global QDRANT_PENDING_PATH, SERVER, ACTIVATION_RECORDER, LAST_CONVERSATION_SNAPSHOT
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--bridge-path", default=DEFAULT_BRIDGE)
@@ -895,10 +1273,19 @@ def main():
     parser.add_argument("--dual-gate-warmup-turns", type=int, default=3)
     parser.add_argument("--dual-gate-salience-quantile", type=float, default=0.75)
     parser.add_argument("--dual-gate-surprise-quantile", type=float, default=0.75)
+    parser.add_argument("--dual-gate-tension-quantile", type=float, default=0.75)
     parser.add_argument("--dual-gate-log-path", default="dual_gate_turns_latest.jsonl")
     parser.add_argument("--dual-gate-memory-path", default="salience_memory_latest.jsonl")
     parser.add_argument("--dual-gate-surprise-path", default="surprise_events_latest.jsonl")
+    parser.add_argument("--qdrant-enabled", dest="qdrant_enabled", action="store_true")
+    parser.add_argument("--no-qdrant", dest="qdrant_enabled", action="store_false")
+    parser.add_argument("--qdrant-host", default="192.168.2.191")
+    parser.add_argument("--qdrant-port", type=int, default=6333)
+    parser.add_argument("--qdrant-collection", default="exocortex")
+    parser.add_argument("--qdrant-embedding-model", default="all-MiniLM-L6-v2")
+    parser.add_argument("--qdrant-pending-path", default="qdrant_gate_pending.jsonl")
     parser.set_defaults(dual_gate_enabled=True)
+    parser.set_defaults(qdrant_enabled=True)
     ARGS = parser.parse_args()
 
     if ARGS.dual_gate_warmup_turns < 0:
@@ -907,17 +1294,21 @@ def main():
         raise ValueError("--dual-gate-salience-quantile must be between 0 and 1.")
     if not 0.0 <= ARGS.dual_gate_surprise_quantile <= 1.0:
         raise ValueError("--dual-gate-surprise-quantile must be between 0 and 1.")
+    if not 0.0 <= ARGS.dual_gate_tension_quantile <= 1.0:
+        raise ValueError("--dual-gate-tension-quantile must be between 0 and 1.")
 
     LATEST_TRANSCRIPT_PATH = Path(ARGS.transcript_path)
     LATEST_JSONL_PATH = Path(ARGS.turn_log_path)
     DUAL_GATE_LOG_PATH = Path(ARGS.dual_gate_log_path)
     DUAL_GATE_MEMORY_PATH = Path(ARGS.dual_gate_memory_path)
     DUAL_GATE_SURPRISE_PATH = Path(ARGS.dual_gate_surprise_path)
+    QDRANT_PENDING_PATH = Path(ARGS.qdrant_pending_path)
     LATEST_TRANSCRIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
     LATEST_JSONL_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_MEMORY_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_SURPRISE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    QDRANT_PENDING_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_LOG_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_MEMORY_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_SURPRISE_PATH.write_text("", encoding="utf-8")
@@ -928,6 +1319,7 @@ def main():
 
     print(f"Loading bridge: {ARGS.bridge_path}...")
     ckpt = torch.load(ARGS.bridge_path, map_location="cpu", weights_only=False)
+    validate_checkpoint_runtime_contract(ckpt, caller="chat_server")
     checkpoint_qwen_model_id = ckpt.get("qwen_model_id", DEFAULT_QWEN)
     if ARGS.qwen_model_id != checkpoint_qwen_model_id:
         if is_same_qwen_family(ARGS.qwen_model_id, checkpoint_qwen_model_id):
@@ -1060,7 +1452,13 @@ def main():
         disposition=episode["title"],
         dual_gate_enabled=bool(ARGS.dual_gate_enabled),
         memory_count=0,
+        qdrant_count=0,
         surprise_count=0,
+        tension_count=0,
+        qdrant_synced_count=0,
+        qdrant_write_failures=0,
+        last_qdrant_id="",
+        last_qdrant_error="",
         last_gate={},
         target_layers=format_target_specs(target_specs),
         target_layers_overridden=target_layers_overridden,

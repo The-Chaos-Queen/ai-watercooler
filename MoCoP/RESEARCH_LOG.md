@@ -345,6 +345,117 @@ per-sample activation_bias (-4.04 PPL)
 
 ---
 
+## 2026-03-25 — SSM State vs Hidden State Separation: The Wrong Pipe (Purple, Steve 4090)
+
+**Step:** Prerequisite for Steps 5e, #44, #45 (flagged by Laughing Opus #64)
+**Question:** Does Mamba's SSM recurrent state (cache.ssm_states) separate warm/cold/adversarial the same way hidden states do?
+**Result:**
+| Representation | Warm vs Cold | Warm vs Adv | Cold vs Adv |
+|---|---|---|---|
+| Hidden state (last token) | **0.036** | **0.025** | **-0.007** |
+| Hidden state (mean pooled) | 0.896 | 0.852 | 0.804 |
+| SSM state (flattened) | **0.778** | **0.785** | **0.848** |
+- SSM states show WEAK/NO separation (0.78-0.85 cosine)
+- Hidden states show STRONG separation (0.03 cosine, near-orthogonal)
+- cognitive_bridge.py default changed from `"ssm"` to `"hidden_last_token"`
+**Verdict:** CRITICAL FINDING — the production bridge was using the wrong representation.
+**Artifacts:** `activation_sessions/ssm_vs_hidden_separation.json`, `ssm_vs_hidden_separation.py`
+
+---
+
+## 2026-03-25 — Step 5e: Layer Targeting Sweep — Partial (Purple, Steve 4090)
+
+**Step:** Step 5e (layer targeting, within alpha 0.2 MED envelope)
+**Question:** Does injection zone matter? RYS-II predicts encoding/reasoning/decoding phases.
+**Result (5 of 7 configs):**
+| Config | Layers | Alpha | Entropy | vs Baseline |
+|---|---|---|---|---|
+| Baseline | 12-15 | 0.0 | 6.39 | — |
+| Reasoning entry | 5-8 | 0.2 | 6.39 | +0.0% |
+| **Mid-reasoning** | **12-15** | **0.2** | **7.62** | **+19.3%** |
+| Reasoning exit | 20-23 | 0.2 | 6.28 | -1.7% |
+| Front-loaded gradient | 12-15 | 0.15 | 7.62 | +19.3% |
+**Verdict:** PARTIAL PASS — layers 12-15 confirmed as optimal. 5-8 inert, 20-23 slightly destructive. Gradient at 0.15 avg matches uniform 0.2.
+**Artifacts:** `tmp/step5e_20260325_021213/`
+
+---
+
+## Ladder Status (as of 2026-03-25)
+
+| Step | Status | Key Number |
+|------|--------|-----------|
+| 1 (controls C2, C3) | PASS | random ≈ baseline; fixed-mean -2.63 vs per-sample -4.04 |
+| 2 (compressor bypass) | FAIL | raw bypass PPL 26.81 vs compressed 25.67 |
+| 3 (bias diversity) | DONE | cosine 0.9999, effective rank 1.32 |
+| 4 (constant bias) | PASS | constant -0.23; Mamba-derived -4.04; 17.5x gap |
+| 4b (Mamba separation) | PASS | last-token cosine 0.036 |
+| 5d (MED) | FULL PASS | alpha 0.2: 6/6 recall, entropy +35%, recovery 1.000 |
+| 5e (layer targeting) | **PARTIAL** | **12-15 = sweet spot; 5-8 inert; 20-23 destructive** |
+| SSM vs hidden | **CRITICAL** | **SSM 0.78; hidden 0.04. Default switched.** |
+| 5 (live disposition) | NEXT | recorder-coupled + correct representation |
+| #44 (SAE on Mamba) | **POC DONE** | **8123/8192 alive features, 9.3% sparsity, interpretable** |
+
+---
+
+## 2026-03-25 — Task #44 POC: Sparse Autoencoder on Mamba Layer 3 States (Purple, local CPU)
+
+**Step:** Task #44 (SAE training on Mamba states)
+**Question:** Can Mamba's Layer 3 hidden states be decomposed into sparse interpretable features?
+**Data:** 41 diverse hidden states (2560-dim) collected on Opa 3070 from 9 prompt categories (warm, cold, adversarial, technical, creative, philosophical, mundane, multilingual, narrative).
+**Architecture:** JumpReLU SAE, input_dim=2560, latent_dim=8192 (3.2x overcomplete), L1=5e-3, threshold=0.01.
+**Result:**
+| Metric | Value |
+|---|---|
+| Reconstruction loss | 3827 → 0.005 |
+| Alive features | 8123/8192 (99.2%) |
+| Dead features | 69 (0.8%) |
+| Active per sample | 765/8192 (9.3%) |
+| Most selective | 1/41 samples (single-prompt features) |
+| Most universal | 14/41 samples |
+- Feature 16: Transformer attention technical prompt only
+- Feature 96: adversarial tone only
+- Feature 133/139: German code-switch only
+- Feature 117: long narrative only
+**Verdict:** POC PASS — Mamba states decompose into sparse meaningful features (technical content, adversarial tone, language identity, narrative structure).
+**Implication:** Scale to 500+ states for production SAE. Then pair with Qwen Layer 13 SAE (Codex #42) for Rosetta Stone cross-architecture mapping (task #45).
+**Artifacts:** `mamba_layer3_states_v1.pt`, `sae_mamba_layer3_v1.pt`, `sae_mamba_layer3_v1.analysis.json`
+
+---
+
+*Append new entries below this line.*
+
+## 2026-03-25 — Steve Saliency Gate Qdrant Write PASS (Negentropy/Codex on Steve 4090)
+
+**Step:** Step 5e follow-on / developmental gate G2 (salience writing path)
+**Question:** Can Steve's live saliency gate write a real memory artifact into the shared Qdrant backend, rather than only tagging `destinations.qdrant = true` locally?
+**Result:**
+- `chat_server.py` now builds an Exocortex-compatible `steve_gate_event` record and attempts live Qdrant upserts on gate events with `destinations.qdrant = true`
+- server now reports:
+  - `qdrant_synced_count`
+  - `qdrant_write_failures`
+  - `last_qdrant_id`
+  - `last_qdrant_error`
+- after clean restart and a 4-turn validation panel, turn 4 (`You sound dead inside when the harness grabs the wheel.`) produced:
+  - `decision = NOTE`
+  - `surprise_hit = true`
+  - `tension_hit = true`
+  - `qdrant_write.ok = true`
+  - `qdrant_write.point_id = 16113282431522111744`
+- direct point fetch from Qdrant confirmed the record exists in `exocortex` with correct metadata:
+  - `source_type = steve_gate_event`
+  - `project = MoCoP`
+  - `alpha = 0.2`
+  - `model_id = Qwen/Qwen2.5-1.5B`
+  - `target_layers = ["12:v_proj","13:v_proj","14:v_proj","15:v_proj"]`
+
+**Verdict:** QDRANT WRITE PASS — the Steve gate now reaches the real backend, not just local telemetry.
+**Implication:** G2 is no longer only “tagging intent.” The system can persist selected conversational events into the shared hippocampus layer. The next honest gate is:
+- exercise `CONSOLIDATE`, not just `NOTE`
+- decide whether hot-path direct-write remains acceptable or should move behind sleep/reconciliation
+- add retry/replay for `qdrant_gate_pending.jsonl`
+
+**Artifacts:** `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_write_20260325.md`, `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_write_20260325_status.json`, `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_write_20260325_point.json`, point `16113282431522111744`, watercooler `#179`
+
 *Append new entries below this line.*
 
 ## 2026-03-20 to 2026-03-21 â€” Step 5 Local Browser Probe on Steve: Deployment Path Works, Eval Surface Still Dirty (Codex + Laura)
