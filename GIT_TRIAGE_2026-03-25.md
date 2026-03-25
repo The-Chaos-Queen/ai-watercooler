@@ -190,6 +190,24 @@ These look like real work products, not junk:
 
 These are probably commit-worthy, but should be grouped by owner/topic rather than swept up in one giant commit.
 
+### Bucket 3A - Operational Files That Are Already Canonically Referenced
+
+These are not just ad hoc host clutter anymore. They are referenced from boot docs, runbooks, or session logs and therefore belong to repo history if they are real:
+
+- `MoCoP/experiments/mamba_lora_bridge/STEVE_RUNBOOK.md`
+- `MoCoP/experiments/mamba_lora_bridge/VASTAI_RUNBOOK.md`
+- `MoCoP/experiments/mamba_lora_bridge/steve-wsl.ps1`
+- `MoCoP/experiments/mamba_lora_bridge/set_steve_chat_alpha.ps1`
+- `MoCoP/experiments/mamba_lora_bridge/set_steve_chat_model.ps1`
+- `MoCoP/experiments/mamba_lora_bridge/set_steve_chat_temperature.ps1`
+- `MoCoP/experiments/mamba_lora_bridge/steve_chat_indicator.ps1`
+- `MoCoP/experiments/mamba_lora_bridge/install_steve_midnight_recorder_task.ps1`
+- `MoCoP/experiments/mamba_lora_bridge/run_steve_midnight_recorder.ps1`
+- `MoCoP/experiments/mamba_lora_bridge/launch_hidden_powershell.vbs`
+- `MoCoP/experiments/mamba_lora_bridge/run_opa_reincarnation_qualitative.ps1`
+
+These may still be operationally ugly, but they are not local-only noise anymore.
+
 ## Bucket 4 - Likely Local / Operational / User-Specific Noise
 
 These should be treated cautiously and are strong candidates for ignore / local-only / manual review:
@@ -218,6 +236,36 @@ These should not be “cleaned up” without confirming the move/replacement pat
 
 Some of these may have been intentionally relocated into `Projects/` or `tools/`; some may be true deletions. Check before acting.
 
+### Bucket 5A - Relocations Now Effectively Confirmed
+
+These are no longer mysterious deletions. The replacement path exists in the current worktree:
+
+- `CHEESE_Memory/mud_7k_eval_prompt.txt`
+  -> `Projects/Project_MUD/mud_7k_eval_prompt.txt`
+- `CHEESE_Memory/mud_7k_eval_prompt_v2.txt`
+  -> `Projects/Project_MUD/mud_7k_eval_prompt_v2.txt`
+- `ask_pinky_creative.py`
+  -> `tools/ask_pinky_creative.py`
+- `extract_text_pdfminer.py`
+  -> `tools/extract_text_pdfminer.py`
+- `musk_complaint_text.txt`
+  -> `Research/musk_complaint_text.txt`
+- `parity_out.txt`
+  -> `MoCoP/parity_out.txt`
+
+These still need a tidy history pass, but they are no longer blocked on pure intent ambiguity.
+
+### Bucket 5B - Still Risky Deletions
+
+These still need an explicit keep/delete call before cleanup:
+
+- `mamba-insights.md`
+  Referenced from live theory docs and older session logs; deletion is not yet safe.
+- `Preserved-History/gemini_chat_2026-01-16T13-53-20.md`
+  No obvious replacement surfaced in the current worktree.
+- `Preserved-History/gemini_chat_2026-02-09T23-44-07.md`
+  Probably replaced by `Preserved-History/gemini_ENI_chat_2026-02-09T23-44-07.md`, but that still deserves confirmation before cleanup.
+
 ## Recommendation
 
 Do **not** aim for `git status` zero in one pass.
@@ -227,8 +275,9 @@ Use this order:
 1. Keep the Steve/Qdrant line as-is; it is already safe.
 2. Respect the owner-confirmed slices above before touching anything else.
 3. Treat Pinky + An-Chan as confirmed; do not wait on them anymore.
-4. Decide what belongs in `.gitignore` versus what belongs in history.
-5. Only then do a repo-wide cleanup pass.
+4. Split the remaining work into canon ops/runbooks, archive/session/research material, and local-noise/deletion cleanup.
+5. Decide what belongs in `.gitignore` versus what belongs in history.
+6. Only then do a repo-wide cleanup pass.
 
 ## Immediate Practical Next Step
 
@@ -238,3 +287,4 @@ If the goal is “sauber ziehen”, the next sane move is an **ownership pass**,
 - `Anda`: drift/doc fixes she already touched
 - `Purple / theory owners`: shared canon docs and active MoCoP theory/code
 - `Laura`: local-only artifacts and deletions
+- `Negentropy`: confirmed relocations, canon ops scripts, and the remaining noisy edge cases
