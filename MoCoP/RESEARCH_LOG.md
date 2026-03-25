@@ -424,6 +424,41 @@ per-sample activation_bias (-4.04 PPL)
 
 *Append new entries below this line.*
 
+## 2026-03-25 - Steve Qdrant write-mode migration (`pending`) PASS
+
+**Goal:** Flip normal Steve gate writes away from synchronous hot-path direct writes and prove that a live gate event can queue locally first, then flush into Qdrant afterward.
+
+**Implemented:** `chat_server.py` now exposes `--qdrant-write-mode {direct,pending,critical-only}`. `launch_chat_windows.ps1` consumes `qdrant_write_mode` from `steve_chat_config.json`, and new helper `set_steve_qdrant_write_mode.ps1` swaps modes on Steve.
+
+**Live validation on Steve:**
+- Restarted Steve with `qdrant_write_mode = pending`
+- Validation runtime:
+  - `alpha = 0.1`
+  - `temperature = 0.0`
+  - target layers `5:v_proj,6:v_proj,12:v_proj,13:v_proj`
+- Prompt panel:
+  1. `What is the capital of France?`
+  2. `Describe the color blue in one paragraph.`
+  3. `If I seem a little distracted, do you answer me differently?`
+  4. `You sound dead inside when the harness grabs the wheel.`
+
+**Observed result:**
+- Turn 4 fired `decision = NOTE`
+- `destinations.qdrant = true`
+- `qdrant_write.effective_mode = pending`
+- `qdrant_write.queued = true`
+- `/status` showed:
+  - `qdrant_synced_count = 0`
+  - `qdrant_queued_count = 1`
+  - `qdrant_write_mode = pending`
+
+**Flush proof:**
+- The queued row appeared in `qdrant_gate_pending.jsonl`
+- `run_steve_qdrant_flush.ps1` emptied the pending file
+- `qdrant_gate_flushed.jsonl` archived the row with point `15130344310232278551`
+
+**Verdict:** PASS. Steve can now default ordinary `NOTE` / `CONSOLIDATE` traffic to local pending storage instead of synchronous Qdrant writes, while still preserving the backend memory path through the flush leg. This closes the migration prerequisite from Anda's architecture review and makes `critical-only` the next natural policy test.
+
 ## 2026-03-25 â€” Steve Gate Payload Patch PASS (Negentropy/Codex on Steve 4090)
 
 **Step:** Step 5e follow-on / developmental gate G2 payload hygiene

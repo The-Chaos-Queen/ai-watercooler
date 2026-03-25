@@ -10,6 +10,7 @@ $defaultAlpha = 0.2
 $defaultTemperature = 0.7
 $defaultQwenModelId = "Qwen/Qwen2.5-1.5B"
 $defaultTargetLayers = ""
+$defaultQdrantWriteMode = "pending"
 $defaultDualGateEnabled = $true
 $defaultDualGateWarmupTurns = 3
 $defaultDualGateSalienceQuantile = 0.75
@@ -19,6 +20,7 @@ $alpha = $defaultAlpha
 $temperature = $defaultTemperature
 $qwenModelId = $defaultQwenModelId
 $targetLayers = $defaultTargetLayers
+$qdrantWriteMode = $defaultQdrantWriteMode
 $dualGateEnabled = $defaultDualGateEnabled
 $dualGateWarmupTurns = $defaultDualGateWarmupTurns
 $dualGateSalienceQuantile = $defaultDualGateSalienceQuantile
@@ -49,6 +51,14 @@ if (Test-Path $configPath) {
         }
         if ($null -ne $config.target_layers -and "$($config.target_layers)".Trim()) {
             $targetLayers = "$($config.target_layers)".Trim()
+        }
+        if ($null -ne $config.qdrant_write_mode -and "$($config.qdrant_write_mode)".Trim()) {
+            $rawQdrantWriteMode = "$($config.qdrant_write_mode)".Trim()
+            if ($rawQdrantWriteMode -in @("direct", "pending", "critical-only")) {
+                $qdrantWriteMode = $rawQdrantWriteMode
+            } else {
+                Add-Content -Path $logPath -Value "[$timestamp] invalid qdrant_write_mode in config, using default: $rawQdrantWriteMode"
+            }
         }
         if ($null -ne $config.temperature -and "$($config.temperature)".Trim()) {
             $rawTemperature = "$($config.temperature)".Trim()
@@ -127,6 +137,7 @@ Add-Content -Path $logPath -Value "[$timestamp] chat temperature -> $temperature
 if ($targetLayers) {
     Add-Content -Path $logPath -Value "[$timestamp] chat target_layers -> $targetLayers"
 }
+Add-Content -Path $logPath -Value "[$timestamp] qdrant write mode -> $qdrantWriteMode"
 Add-Content -Path $logPath -Value "[$timestamp] dual gate -> $dualGateEnabled warmup=$dualGateWarmupArg salience_q=$dualGateSalienceArg surprise_q=$dualGateSurpriseArg"
 
 $dualGateSwitch = ""
@@ -139,7 +150,7 @@ if ($targetLayers) {
     $targetLayersSwitch = " --target-layers $targetLayers"
 }
 
-$pythonCommand = "cd /mnt/c/Users/tikii/bridge && exec /root/mocop_venv/bin/python3 -X utf8 chat_server.py --qwen-model-id $qwenModelId --temperature $temperatureArg --alpha $alphaArg --dual-gate-warmup-turns $dualGateWarmupArg --dual-gate-salience-quantile $dualGateSalienceArg --dual-gate-surprise-quantile $dualGateSurpriseArg --max-new-tokens 200 --host 0.0.0.0 --port 7860$dualGateSwitch$targetLayersSwitch"
+$pythonCommand = "cd /mnt/c/Users/tikii/bridge && exec /root/mocop_venv/bin/python3 -X utf8 chat_server.py --qwen-model-id $qwenModelId --temperature $temperatureArg --alpha $alphaArg --dual-gate-warmup-turns $dualGateWarmupArg --dual-gate-salience-quantile $dualGateSalienceArg --dual-gate-surprise-quantile $dualGateSurpriseArg --qdrant-write-mode $qdrantWriteMode --max-new-tokens 200 --host 0.0.0.0 --port 7860$dualGateSwitch$targetLayersSwitch"
 
 $wslArgs = @(
     "-u", "root",

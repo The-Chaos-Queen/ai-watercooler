@@ -1,6 +1,7 @@
 {
   "alpha": "0.2",
   "qwen_model_id": "Qwen/Qwen2.5-1.5B",
+  "qdrant_write_mode": "pending",
   "target_layers": "",
   "temperature": "0.7",
   "dual_gate_enabled": true,

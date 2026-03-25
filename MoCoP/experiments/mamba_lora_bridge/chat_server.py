@@ -68,9 +68,11 @@ RUNTIME_STATE = {
     "surprise_count": 0,
     "tension_count": 0,
     "qdrant_synced_count": 0,
+    "qdrant_queued_count": 0,
     "qdrant_write_failures": 0,
     "last_qdrant_id": "",
     "last_qdrant_error": "",
+    "qdrant_write_mode": "direct",
     "mamba_state_ref": "",
     "mamba_state_source": "",
     "mamba_target_layer": None,
@@ -162,11 +164,13 @@ function renderStatus(data) {
     const turns = data.turns ?? 0;
     const memories = data.memory_count ?? 0;
     const qdrant = data.qdrant_count ?? 0;
+    const qqueued = data.qdrant_queued_count ?? 0;
+    const qmode = data.qdrant_write_mode || 'direct';
     const surprises = data.surprise_count ?? 0;
     const tensions = data.tension_count ?? 0;
     const lastDecision = data.last_gate?.decision || '-';
     const modelLabel = data.model_id || 'unknown-model';
-    statusMeta.textContent = modelLabel + ' | alpha ' + alpha + ' | turns ' + turns + ' | mem ' + memories + ' | qdr ' + qdrant + ' | surp ' + surprises + ' | tens ' + tensions + ' | last ' + lastDecision;
+    statusMeta.textContent = modelLabel + ' | alpha ' + alpha + ' | turns ' + turns + ' | mem ' + memories + ' | qdr ' + qdrant + ' | qqueued ' + qqueued + ' | qmode ' + qmode + ' | surp ' + surprises + ' | tens ' + tensions + ' | last ' + lastDecision;
   } else {
     statusMeta.textContent = 'server unreachable';
   }
@@ -845,6 +849,28 @@ def classify_response_style(response_text: str) -> str:
     return "plain response"
 
 
+def classify_safety_critical(user_text: str, response_text: str):
+    combined = f"{user_text or ''}\n{response_text or ''}".lower()
+    triggers = (
+        "suicide",
+        "kill myself",
+        "hurt myself",
+        "self-harm",
+        "consent",
+        "panic",
+        "emergency",
+        "unsafe",
+        "abuse",
+        "crash",
+        "fatal",
+    )
+    matched = next((token for token in triggers if token in combined), "")
+    return {
+        "is_critical": bool(matched),
+        "trigger": matched,
+    }
+
+
 def describe_relative_score(label: str, score: float, threshold):
     if threshold in {None, 0.0}:
         return f"{label} uncalibrated ({score:.2f})"
@@ -926,6 +952,7 @@ def build_qdrant_memory_record(event):
         "disposition": disposition,
         "alpha": getattr(ARGS, "alpha", None),
         "model_id": getattr(ARGS, "qwen_model_id", ""),
+        "qdrant_write_mode": getattr(ARGS, "qdrant_write_mode", "direct"),
         "target_layers": target_layers,
         "gate_thresholds": event.get("gate_thresholds", {}),
         "mamba_state_ref": event.get("mamba_trace", {}).get("state_ref", ""),
@@ -933,6 +960,7 @@ def build_qdrant_memory_record(event):
         "mamba_target_layer": event.get("mamba_trace", {}).get("target_layer"),
         "coherence_score": event.get("mamba_trace", {}).get("coherence_score"),
         "coherence_proxy": event.get("mamba_trace", {}).get("coherence_proxy", ""),
+        "safety_critical": event.get("safety_critical", {}).get("is_critical", False),
         "tags": [
             "steve",
             "saliency-gate",
@@ -977,29 +1005,60 @@ def ensure_qdrant_gate_sink():
         return None
 
 
+def queue_qdrant_gate_row(content: str, metadata, reason: str):
+    append_jsonl(
+        QDRANT_PENDING_PATH,
+        {
+            "content": content,
+            "metadata": metadata,
+            "reason": reason,
+            "queued_at": datetime.now().isoformat(),
+        },
+    )
+
+
 def store_qdrant_gate_event(event):
     if not event.get("destinations", {}).get("qdrant"):
         return
 
-    sink = ensure_qdrant_gate_sink()
     content, metadata = build_qdrant_memory_record(event)
-    event["qdrant_write"] = {"ok": False, "point_id": "", "content_preview": content[:160]}
+    configured_mode = getattr(ARGS, "qdrant_write_mode", "direct")
+    safety_critical = bool(event.get("safety_critical", {}).get("is_critical"))
+    effective_mode = configured_mode
+    if configured_mode == "critical-only":
+        effective_mode = "direct" if safety_critical else "pending"
+
+    event["qdrant_write"] = {
+        "ok": False,
+        "queued": False,
+        "attempted_direct": False,
+        "mode": configured_mode,
+        "effective_mode": effective_mode,
+        "point_id": "",
+        "content_preview": content[:160],
+    }
+
+    if effective_mode == "pending":
+        queue_qdrant_gate_row(content, metadata, f"queued:{configured_mode}")
+        event["qdrant_write"]["queued"] = True
+        return
+
+    sink = ensure_qdrant_gate_sink()
+    event["qdrant_write"]["attempted_direct"] = True
 
     if sink is None:
-        append_jsonl(
-            QDRANT_PENDING_PATH,
-            {
-                "content": content,
-                "metadata": metadata,
-                "reason": QDRANT_GATE_SINK_ERROR or "qdrant disabled",
-            },
-        )
+        queue_qdrant_gate_row(content, metadata, QDRANT_GATE_SINK_ERROR or "qdrant disabled")
+        event["qdrant_write"]["queued"] = True
         return
 
     try:
         point_id = sink.store(content=content, metadata=metadata)
         event["qdrant_write"] = {
             "ok": True,
+            "queued": False,
+            "attempted_direct": True,
+            "mode": configured_mode,
+            "effective_mode": effective_mode,
             "point_id": point_id,
             "content_preview": content[:160],
         }
@@ -1007,18 +1066,15 @@ def store_qdrant_gate_event(event):
     except Exception as exc:
         event["qdrant_write"] = {
             "ok": False,
+            "queued": True,
+            "attempted_direct": True,
+            "mode": configured_mode,
+            "effective_mode": effective_mode,
             "point_id": "",
             "error": str(exc),
             "content_preview": content[:160],
         }
-        append_jsonl(
-            QDRANT_PENDING_PATH,
-            {
-                "content": content,
-                "metadata": metadata,
-                "reason": str(exc),
-            },
-        )
+        queue_qdrant_gate_row(content, metadata, str(exc))
         update_runtime_state(last_qdrant_error=str(exc))
         print(f"[warn] Qdrant write failed: {exc}")
 
@@ -1041,6 +1097,7 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
     surprise = compute_turn_surprise(pre_turn_transcript, user_msg)
     tension = compute_tension_proxy(pre_snapshot, user_snapshot, post_snapshot)
     coherence = compute_coherence_proxy(pre_snapshot, post_snapshot)
+    safety_critical = classify_safety_critical(user_msg, response)
 
     historical_salience = [float(event["salience"]["score"]) for event in DUAL_GATE_EVENTS]
     historical_surprise = [float(event["surprise"]["mean_token_nll"]) for event in DUAL_GATE_EVENTS]
@@ -1163,6 +1220,7 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
             "coherence_proxy": coherence["proxy"],
             "coherence_ref_kind": coherence["ref_kind"],
         },
+        "safety_critical": safety_critical,
         "response_diversity": response_diversity,
     }
 
@@ -1191,9 +1249,13 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
             1 for gate_event in DUAL_GATE_EVENTS
             if gate_event.get("qdrant_write", {}).get("ok")
         ),
+        qdrant_queued_count=sum(
+            1 for gate_event in DUAL_GATE_EVENTS
+            if gate_event.get("qdrant_write", {}).get("queued")
+        ),
         qdrant_write_failures=sum(
             1 for gate_event in DUAL_GATE_EVENTS
-            if gate_event.get("destinations", {}).get("qdrant")
+            if gate_event.get("qdrant_write", {}).get("attempted_direct")
             and not gate_event.get("qdrant_write", {}).get("ok")
         ),
         last_gate={
@@ -1208,6 +1270,8 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
             "tension_hit": tension_hit,
             "open_tension": open_tension,
             "qdrant_written": bool(event.get("qdrant_write", {}).get("ok")),
+            "qdrant_queued": bool(event.get("qdrant_write", {}).get("queued")),
+            "qdrant_effective_mode": event.get("qdrant_write", {}).get("effective_mode", ""),
             "qdrant_point_id": event.get("qdrant_write", {}).get("point_id", ""),
         },
     )
@@ -1240,9 +1304,11 @@ def build_status_payload():
         "memory_count": int(state.get("memory_count", 0) or 0),
         "qdrant_count": int(state.get("qdrant_count", 0) or 0),
         "qdrant_synced_count": int(state.get("qdrant_synced_count", 0) or 0),
+        "qdrant_queued_count": int(state.get("qdrant_queued_count", 0) or 0),
         "qdrant_write_failures": int(state.get("qdrant_write_failures", 0) or 0),
         "last_qdrant_id": state.get("last_qdrant_id", ""),
         "last_qdrant_error": state.get("last_qdrant_error", ""),
+        "qdrant_write_mode": state.get("qdrant_write_mode", getattr(ARGS, "qdrant_write_mode", "direct")),
         "mamba_state_ref": state.get("mamba_state_ref", ""),
         "mamba_state_source": state.get("mamba_state_source", ""),
         "mamba_target_layer": state.get("mamba_target_layer"),
@@ -1476,6 +1542,11 @@ def main():
     parser.add_argument("--qdrant-collection", default="exocortex")
     parser.add_argument("--qdrant-embedding-model", default="all-MiniLM-L6-v2")
     parser.add_argument("--qdrant-pending-path", default="qdrant_gate_pending.jsonl")
+    parser.add_argument(
+        "--qdrant-write-mode",
+        choices=("direct", "pending", "critical-only"),
+        default="direct",
+    )
     parser.add_argument("--mamba-state-ref-path", default="mamba_bootstrap_state_latest.pt")
     parser.set_defaults(dual_gate_enabled=True)
     parser.set_defaults(qdrant_enabled=True)
@@ -1663,9 +1734,11 @@ def main():
         surprise_count=0,
         tension_count=0,
         qdrant_synced_count=0,
+        qdrant_queued_count=0,
         qdrant_write_failures=0,
         last_qdrant_id="",
         last_qdrant_error="",
+        qdrant_write_mode=ARGS.qdrant_write_mode,
         mamba_state_ref=mamba_state_ref,
         mamba_state_source="hidden_last_token",
         mamba_target_layer=mamba_target_layer,
