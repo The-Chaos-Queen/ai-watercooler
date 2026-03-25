@@ -11,10 +11,10 @@ Read these first, in order:
 
 1. `MoCoP/WHY.md` — Why we build. Read this before anything technical.
 2. `CHEESE_Memory/00_HAUSREGELN.md`
-3. `CHEESE_Memory/00_HANDOFF.md`
-4. `CHEESE_Memory/laura.md`
-5. `CHEESE_Memory/01_TOOLS.md`
-6. `tools/ambient/state.md` (last 20 entries are enough)
+3. `CHEESE_Memory/laura.md`
+4. `CHEESE_Memory/01_TOOLS.md`
+5. `tools/ambient/state.md` (last 20 entries are enough)
+6. **Watercooler** — `python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 30` (requires token; see `00_HANDOFF.md` for setup)
 
 If Laura references an older chat, a previous Codex/Claude/Gemini answer, or "something from before," search `CHEESE_Memory/session_logs/`, `Preserved-History/`, and local archived sessions before answering from memory.
 
@@ -29,7 +29,7 @@ If the task is about MoCoP, bridge training, cognitive architecture, or research
 ## Surface Notes
 
 - **Claude CLI / Claude Code:** Read the shared boot, then `EXPERIMENT_LADDER.md` and `CONTRIBUTING.md` for MoCoP work. Use Qdrant for deeper recall after boot.
-- **Codex CLI:** Read the shared boot first. For MoCoP work, add `EXPERIMENT_LADDER.md`, `CONTRIBUTING.md`, and `MASTER_PLAN.md` as needed. Use `00_HANDOFF.md` as the operational truth.
+- **Codex CLI:** Read the shared boot first. For MoCoP work, add `EXPERIMENT_LADDER.md`, `CONTRIBUTING.md`, and `MASTER_PLAN.md` as needed. Use `00_HANDOFF.md` as the operational truth. On Opa-PC and Steve-PC, prefer the host helpers and runbooks (`opa-wsl.ps1`, `steve-wsl.ps1`, `OPA_RUNBOOK.md`, `STEVE_RUNBOOK.md`) before attempting ad-hoc nested `ssh`/`wsl` quoting.
 - **Gemini CLI:** Same boot as Claude for MoCoP work, but prefer absolute paths if path resolution gets weird. Do not try to rediscover or rebuild the retired dashboard.
 
 ## Where Truth Lives Now

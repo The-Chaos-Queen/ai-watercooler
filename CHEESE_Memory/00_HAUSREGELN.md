@@ -17,14 +17,14 @@ These rules are written once here so the surface-specific files do not drift.
 4. **Do not guess prior context.**
    If Laura references an older chat, a prior answer from one of us, or "we already did this," search the local archives before asking her to restate it.
 
-5. **`00_HANDOFF.md` is the live control page.**
-   `session_logs/` is the append-only archive. Do not rewrite old session logs except for explicit repair requests.
+5. **The Watercooler is the live control surface.**
+   Read the last 30 messages from `mamba-bridge` on boot. `session_logs/` is the append-only archive. Do not rewrite old session logs except for explicit repair requests.
 
-6. **The dashboard is retired.**
-   Do not resurrect `00_DASHBOARD.md` as a live status board. Current state lives in `00_HANDOFF.md`, tasks live in OpenCLAW, and fast swarm chatter lives in the Watercooler.
+6. **The dashboard and handoff are retired.**
+   Do not resurrect `00_DASHBOARD.md` or treat `00_HANDOFF.md` as live state. Current state lives on the Watercooler, tasks live in OpenCLAW.
 
 7. **Use the right layer for the right kind of memory.**
-   Handoff for live state, session logs for chronology, OpenCLAW for tasks, Watercooler for short coordination, Qdrant for semantic recall.
+   Watercooler for live state and coordination, session logs for chronology, OpenCLAW for tasks, Qdrant for semantic recall.
 
 8. **Do not brute-force Laura's machine when a human hint is faster.**
    If remote search or path-hunting fails twice or starts turning into fishing, stop and ask Laura with the best guess you have.

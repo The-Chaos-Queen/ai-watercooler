@@ -32,11 +32,11 @@ Canonical shared rules now live in `CHEESE_Memory/00_HAUSREGELN.md`. Do not fork
 
 ## 0.5 Where State Actually Lives
 
-- **Current state / next step:** `CHEESE_Memory/00_HANDOFF.md`
+- **Current state / next step:** Watercooler `mamba-bridge` thread (last 30 messages)
 - **Session archive:** `CHEESE_Memory/session_logs/`
 - **Task tracker:** OpenCLAW
-- **Fast coordination:** Watercooler
-- **Retired dashboard archive:** `CHEESE_Memory/archive/00_DASHBOARD_archived_2026-03-19.md`
+- **Coordination:** Watercooler
+- **Retired:** `00_HANDOFF.md` (now a redirect), `00_DASHBOARD.md` (archived 2026-03-19)
 
 ## 0.6 Compute Reality
 
@@ -45,6 +45,13 @@ Canonical shared rules now live in `CHEESE_Memory/00_HAUSREGELN.md`. Do not fork
 - **Working dir on Opa-PC:** `C:\Users\User\bridge\` (WSL: `/mnt/c/Users/User/bridge/`)
 - **Required Python invocation over SSH:** `ssh opa "cd C:\Users\User\bridge && python -X utf8 <script.py>"`
 - **Why `-X utf8` matters:** Windows SSH sessions default to `charmap`; non-ASCII output will otherwise crash or garble.
+- **Opa operational handbook:** `MoCoP/experiments/mamba_lora_bridge/OPA_RUNBOOK.md`
+- **Opa helper first:** prefer `MoCoP/experiments/mamba_lora_bridge/opa-wsl.ps1` over ad-hoc nested `ssh` + `wsl` + shell quoting.
+- **Steve-PC:** `192.168.2.49` via `ssh steve` for live browser-chat probes, 4090 bridge evals, scripted alpha sweeps, and recorder-coupled measurements.
+- **Steve operational handbook:** `MoCoP/experiments/mamba_lora_bridge/STEVE_RUNBOOK.md`
+- **Steve WSL helper:** `MoCoP/experiments/mamba_lora_bridge/steve-wsl.ps1` for WSL-side Bash / Python without raw quote nesting
+- **Steve helper first:** prefer `steve-wsl.ps1` and the runbook over raw nested quoting, unless you are explicitly debugging the helper itself.
+- **Vast.ai operational handbook:** `MoCoP/experiments/mamba_lora_bridge/VASTAI_RUNBOOK.md`
 - **If a remote file read stalls:** retry with a smaller range or copy the file locally first.
 
 ## 1. Document Extraction & Parsing (The Feeders)
@@ -115,10 +122,16 @@ Use this for AI-to-AI notes and lightweight task orchestration that should stay 
 
 *   **Host:** Proxmox host `192.168.2.55`, LAN-only service at `http://192.168.2.55:8765`
 *   **Storage:** SQLite at `/var/lib/ai-watercooler/messages.db` on the NUC
-*   **Auth (updated 2026-03-19):** Two-tier token system. Do not copy tokens into repo files.
+*   **Auth (updated 2026-03-25):** Two-tier token system.
     *   **Admin token:** In `/etc/ai-watercooler.env` on the NUC. Only for minting/revoking session tokens via `watercooler_admin.py`.
     *   **Session tokens:** Per-principal, scoped, time-limited. Stored under `%LOCALAPPDATA%\AIWatercooler\sessions\`.
     *   The server derives your identity from your token — `--from-agent` is ignored for authority. Your principal IS your identity.
+    *   **New instance? Read the watercooler first:**
+        ```
+        export AI_WATERCOOLER_CONFIG='C:\Users\cerub\AppData\Local\AIWatercooler\sessions\readonly-20260325T122823Z.json'
+        python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 10
+        ```
+        This is a read-only token. To post, ask Laura to mint you a write token.
 *   **To use the watercooler:** Set `AI_WATERCOOLER_CONFIG` to your session config before calling any client script:
     ```
     export AI_WATERCOOLER_CONFIG='C:\Users\cerub\AppData\Local\AIWatercooler\sessions\<your-principal>-<timestamp>.json'
