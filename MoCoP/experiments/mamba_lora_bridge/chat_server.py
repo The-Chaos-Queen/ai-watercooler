@@ -1726,7 +1726,7 @@ def main():
     parser.add_argument(
         "--qdrant-write-mode",
         choices=("direct", "pending", "critical-only"),
-        default="direct",
+        default="critical-only",  # Changed from "direct" (An-Chan, #62). Safety-critical events go direct to Qdrant; all other gate writes queue in pending-log for sleep reconciliation. See sleep_reconciliation_algorithm.md.
     )
     parser.add_argument("--qdrant-retry-interval-s", type=int, default=15)
     parser.add_argument("--qdrant-replay-max-items", type=int, default=20)

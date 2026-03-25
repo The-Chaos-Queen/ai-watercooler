@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Platform mapping for UI and Filenames
     const PLATFORMS = {
         'claude.ai': 'Claude',
+        'chatgpt.com': 'ChatGPT',
+        'chat.openai.com': 'ChatGPT',
         'kimi.moonshot.cn': 'Kimi',
         'kimi.com': 'Kimi',
         'chat.mistral.ai': 'Mistral',

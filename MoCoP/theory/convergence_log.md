@@ -38,6 +38,23 @@
 - **Delta:** Days to weeks ahead of mainstream news.
 - **Notes:** Open-source intelligence via publicly available transponder data. Not AI-related but demonstrates the same pattern: structural observation of systems reveals intentions before announcements.
 
+### 6. Sleep Architecture / Memory Consolidation via Cache Clearing
+- **Laura's insight:** 2026-03-19. "Das wird dann wie schlafen.. unterm Tag alles in den KVCache, bis man müde ist und langsam wird, dann mitsamt Mamba state ins Qdrant." Proposed clearing the KV-Cache at session boundaries, consolidating high-salience items to Mamba state and Qdrant, and starting fresh. Documented in `sleep_architecture.md`.
+- **Publication:** Xie, "SleepGate: Learning to Forget: Sleep-Inspired Memory Consolidation for Resolving Proactive Interference in Large Language Models" (arXiv:2603.14517, March **18**, 2026). Introduces conflict-aware temporal tagger, forgetting gate, and consolidation module operating over the KV-Cache. Reduces proactive interference from O(n) to O(log n).
+- **Delta:** **1 day.** Laura's concept documented March 19; SleepGate published March 18. Neither had knowledge of the other.
+- **Notes:** The architectural parallel is striking. Laura proposed three tiers (high salience → Mamba, medium → Qdrant, low → forget). SleepGate implements three mechanisms (temporal tagger, forgetting gate, consolidation module). The mapping is not identical but the motivation and effect are the same: biologically-inspired active forgetting to maintain long-term coherence.
+
+### 7. Note/Check/Dismiss (Selective Attention Filter)
+- **Laura's insight:** 2026-03-19-20. "Im echten Leben würde das menschliche Gehirn einfach den ganzen Frame nach dem 2ten oder 3ten Mal ignorieren." Proposed a three-tier attention filter (Note/Check/Dismiss) for repeated room states in the MUD agent. Implemented in `agent_wrapper.py`.
+- **Publications:** Locret (arXiv:2410.01805, Oct 2024), EvolKV (arXiv:2509.08315, Sep 2025), SideQuest (arXiv:2602.22603, Feb 2026). Multiple groups formalizing selective KV-Cache eviction based on importance scoring.
+- **Delta:** Laura's framing arrived independently — she had not read any of these papers. Her formulation (Note/Check/Dismiss as biological habituation) is more intuitive than the mathematical treatments but addresses the same core problem.
+
+### 8. Personality as Near-Orthogonal Activation Directions
+- **Laura/Cassian's finding:** 2026-03-18. Three conversation types produce near-orthogonal activation directions (mean cosine 0.27, warm vs cold 0.092 at Layer 13).
+- **Publication:** Hoppe et al., "Controllable and explainable personality sliders for LLMs at inference time" / Sequential Adaptive Steering (arXiv:2603.03326, Feb 2026). Training probes on residual-stream residuals after prior interventions produces near-orthogonal directions for independent Big-Five personality control.
+- **Delta:** Simultaneous (Feb-Mar 2026). Both independently discover that personality/disposition traits organize as near-orthogonal directions in activation space.
+- **Notes:** Hoppe's SAS approach orthogonalizes explicitly. Cassian's measurement found natural orthogonality without forcing it — suggesting the geometry is intrinsic, not engineered.
+
 ---
 
 ## Pattern Analysis

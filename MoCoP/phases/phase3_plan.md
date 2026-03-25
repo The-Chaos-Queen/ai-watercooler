@@ -80,8 +80,8 @@ Qdrant collection: "mocop_states"
 1. New session begins. System generates a semantic embedding of the session context.
 2. Query Qdrant for nearest matching prior state vectors.
 3. Load the state file from the returned path.
-4. Feed state through compressor -> hypernetwork -> LoRA injection.
-5. Qwen generates with injected LoRA. Behavioral continuity achieved.
+4. Feed state through compressor -> hypernetwork -> activation bias injection at v_proj layers 12-15.
+5. Qwen generates with injected activation bias. Behavioral continuity achieved.
 
 ### Open Questions for Persistence
 

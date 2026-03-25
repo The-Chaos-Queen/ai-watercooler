@@ -74,7 +74,7 @@ Mean-pooling across all layers (the initial compressor strategy) dilutes this si
 
 1. **MambaStateCompressor must target Layer 3 specifically.** The compressor extracts `mamba_state[:, 3]` (shape: `(batch, 2560, 16)`) and projects it to a context vector. This is implemented in `models.py` with `target_layer=3` as default.
 
-2. **Input flat size is deterministic.** At Layer 3, the flattened feature dimension is `d_model * d_state = 2560 * 16 = 40,960`. The compressor's projection layer is initialized with this exact size. No lazy initialization.
+2. **Input dimension depends on extraction path.** At Layer 3, the SSM state has shape `(2560, 16)` = 40,960 flat. However, the current production bridge uses **last-token hidden-state extraction** where the input is `d_model = 2560`. Pinky's Step 4b (2026-03-20) proved hidden-state last-token is 2.5x more informative than SSM state for disposition (cosine 0.036 vs 0.778). **Use `hidden_last_token` path, not `ssm_states`.**
 
 3. **Linear separability enables simpler hypernetwork.** Since the probe confirmed facts are linearly separable at Layer 3, the hypernetwork does not need deep nonlinear capacity to decode the signal. A 2-layer MLP backbone is architecturally appropriate.
 

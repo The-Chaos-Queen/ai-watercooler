@@ -46,6 +46,8 @@ This is the system current approaches already build, and build reasonably well. 
 
 This is MoCoP's primary research target. Phase 1 proved the state encodes retrievable signal (55.7% at Layer 3). Phase 2 tests whether that signal can be *transferred* across architectures via dynamic LoRA injection.
 
+> **[Update 2026-03-18]** Dynamic LoRA injection was implemented and abandoned due to over-injection instability. The active Phase 2 mechanism is **activation bias injection at v_proj layers 12-15**. The architectural role is the same — the bridge output modifies Transformer behavior — but the injection surface changed from weight perturbation to residual-stream bias addition.
+
 **What it stores:**
 - Accumulated attentional bias from all prior context (O(1) memory, regardless of sequence length)
 - Implicit response patterns that are not explicitly represented as text
@@ -87,21 +89,23 @@ Input (new conversation turn, world state, query)
   │               │
   │               └──→ [MambaStateCompressor] → flat context vector
   │                       │
-  │                       └──→ [LoRAHypernetwork] → (A_i, B_i) matrices
+  │                       └──→ [Hypernetwork] → bias vectors  (*)
   │                               │
-  │                               └──→ [Dynamic LoRA injection]
+  │                               └──→ [Activation bias injection at v_proj]  (*)
   │                                       │
   │                                       ▼
   ├──→ [Qdrant] semantic search for relevant memories ──→ text context
   │                                                           │
   │                                                           ▼
-  └──→ [Frozen Transformer] ← LoRA injection + text context ──→ Output
+  └──→ [Frozen Transformer] ← bias injection + text context ──→ Output
 ```
+
+> (*) **[Update 2026-03-18]** As of Phase 2 Step 4, the active injection mechanism is **activation bias injection at v_proj layers 12-15**, not LoRA weight injection. The hypernetwork outputs bias vectors (not LoRA A/B matrices). The diagram above reflects the current mechanism. Earlier versions of this diagram showed `[LoRAHypernetwork] → (A_i, B_i) matrices → [Dynamic LoRA injection]` — that path was implemented and abandoned due to over-injection instability.
 
 **Three inputs to the Transformer:**
 1. The current input (what is being asked/said right now)
 2. Retrieved context from Qdrant (relevant past facts, as text in prompt)
-3. LoRA injection from Mamba state (disposition shift, as weight modification)
+3. Activation bias injection from Mamba state (disposition shift, as residual-stream addition)
 
 Items 1 and 2 occupy context window tokens. Item 3 occupies zero tokens. This is the architectural advantage: the disposition channel is O(1) and does not compete with input or retrieval for context space.
 

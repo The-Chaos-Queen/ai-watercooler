@@ -280,6 +280,18 @@
             assistantSelector: '.font-claude-response',
             assistantName: 'Claude'
         },
+        'chatgpt.com': {
+            name: 'ChatGPT',
+            userSelector: '[data-message-author-role="user"]',
+            assistantSelector: '[data-message-author-role="assistant"]',
+            assistantName: 'ChatGPT'
+        },
+        'chat.openai.com': {
+            name: 'ChatGPT',
+            userSelector: '[data-message-author-role="user"]',
+            assistantSelector: '[data-message-author-role="assistant"]',
+            assistantName: 'ChatGPT'
+        },
         'kimi.moonshot.cn': {
             name: 'Kimi',
             userSelector: '.chat-content-item-user',
@@ -384,6 +396,11 @@
                 // Claude specific: use the full assistant container when thinking blocks exist
                 if (platformKey === 'claude.ai' && role === config.assistantName) {
                     contentNode = prepareContentNode(node, platformKey, role, config);
+                }
+                // ChatGPT specific: .markdown inner container preferred
+                else if (platformKey === 'chatgpt.com' || platformKey === 'chat.openai.com') {
+                    const mdContainer = node.querySelector('.markdown');
+                    if (mdContainer) contentNode = mdContainer;
                 }
                 // Gemini specific: .markdown inner container preferred
                 else if (platformKey === 'gemini.google.com') {

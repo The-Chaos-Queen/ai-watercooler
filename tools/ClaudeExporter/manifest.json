@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "AI Chat Exporter",
     "version": "2.0",
-    "description": "Export chats from Claude, Kimi, Mistral, and Grok to Markdown.",
+    "description": "Export chats from Claude, ChatGPT, Kimi, Mistral, Grok, Gemini, DeepSeek, and LMArena to Markdown.",
     "permissions": [
         "activeTab",
         "scripting",
@@ -17,7 +17,9 @@
         "https://gemini.google.com/*",
         "https://chat.deepseek.com/*",
         "https://arena.ai/*",
-        "https://chat.lmsys.org/*"
+        "https://chat.lmsys.org/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
     ],
     "action": {
         "default_popup": "popup.html",

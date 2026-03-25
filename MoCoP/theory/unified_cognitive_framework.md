@@ -138,13 +138,16 @@ This gives a useful salience interpretation:
   `‖U_t‖ / (‖G_t ⊙ h_{t-1}‖ + ε)` is high.
 
 MoCoP does **not** currently expose `G_t` directly. So the practical proxy is to measure
-state change:
+state change via two complementary metrics:
 
 ```text
-r_t = ‖h_t - h_{t-1}‖_2 / (‖h_{t-1}‖_2 + ε)
+r_t^mag = ‖h_t - h_{t-1}‖_2 / (‖h_{t-1}‖_2 + ε)       (magnitude change)
+r_t^dir = 1 - cos(h_t, h_{t-1})                          (directional change)
 ```
 
-and treat large `r_t` as candidate retention-worthy events. This is the closest current
+Both should be logged. A small rotation in a high-norm state (high `r_t^dir`, low `r_t^mag`)
+may be more dispositionally significant than a large magnitude shift that preserves direction.
+Treat large values of either as candidate retention-worthy events. This is the closest current
 bridge-side analogue to MIRAS-style retention gating: persistence is not all-or-nothing,
 but coordinate-selective and magnitude-weighted.
 
@@ -191,7 +194,7 @@ L = (1 / |L|) Σ_l [
 Where:
 
 - `a_t*^(l)` is the recorded target activation for layer `l`,
-- `α = 0.9` in the live trainer,
+- `α = 0.9` in the live trainer (note: STEP5_DESIGN_NOTES.md records α = 0.8 — reconcile before next training run),
 - and the current checkpoint schema is model-specific because `d_v(l)` depends on the
   target Qwen projection width.
 
@@ -207,6 +210,35 @@ make the bridge a coefficient predictor over a shared trait basis rather than an
 arbitrary vector generator, which is likely better for interpretability, portability,
 and later SAS-style regulation.
 
+**Disposition Delta (Δstate):** The trainable unit for shaping episodes should be the
+*change* in Mamba state, not the raw state itself:
+
+```text
+Δh_t = h_t^(post) - h_t^(pre)
+```
+
+This means CHEESE shaping episodes should be structured as before/after pairs: what was
+the Mamba state before this conversation, and what is it after? The delta captures what
+the experience *changed*, which is the actual disposition signal. Raw states mix disposition
+with baseline priors; deltas isolate the experiential contribution.
+
+**Preferred basis axes:** When the bridge eventually predicts coefficients over a shared
+trait basis, the stored axes should be **control dimensions**, not emotion labels. The
+most promising candidates from the GPT-4o debrief are:
+
+- `approach / avoid`
+- `certainty / uncertainty`
+- `openness / defensiveness`
+- `persistence / disengagement`
+- `stability / volatility`
+
+These dimensions generalize better than labels like "happy" or "sad" because they describe
+how the system regulates attention and action rather than anthropomorphic surface mood.
+Named traits such as warmth, caution, or curiosity can still be human-readable summaries,
+but the bridge's internal coefficient space should stay close to control variables.
+
+**Source:** GPT-4o session extraction (2026-03-24), insight #4.
+
 **Source documents:** `Mamba to LoRA_ The Hypernetwork Injection.md`, `STEP5_DESIGN_NOTES.md`, `persona_vectors_and_activation_geometry.md`
 
 ---
@@ -217,7 +249,7 @@ and later SAS-style regulation.
 outputs at specific layers. Zero tokens consumed. The model "feels" the modification
 before processing the first input token.
 
-**Implementation:** `DynamicLoRALinear.set_activation_bias()` in `models.py`. Currently targets `v_proj` at layers 12-15.
+**Implementation:** `DynamicLoRALinear.set_activation_bias()` in `models.py`. The current fast-iteration baseline targets `v_proj` at layers `12-15`, which on the verified 28-layer `Qwen2.5-1.5B` map sits in the middle of the reasoning corridor (`0-4` encoding, `5-20` reasoning, `21-27` decoding). The active comparison bands are `5-8`, `12-15`, and `20-23`.
 
 **Evidence:**
 - Layer 13 shows sharpest disposition separation: cosine 0.092 warm vs cold (Cassian, `watercooler #31`)
@@ -231,7 +263,21 @@ Attn(Q, K, V'_l) = Attn(Q, K, V_l) + 1 b_l^T
 ```
 
 Where `b_l` is generated per-session (not per-token) by the bridge and broadcast across
-the sequence dimension. The effective residual perturbation is therefore constrained to
+the sequence dimension via `1_seq ⊗ b_l^T` (outer product with all-ones sequence vector).
+
+**Why this works cleanly:** The bias passes through attention unchanged because softmax
+attention weights sum to 1 per query position:
+
+```text
+Attn(Q, K, V + 1b^T) = softmax(QK^T/√d)(V + 1b^T)
+                      = softmax(QK^T/√d)V + softmax(QK^T/√d)·1·b^T
+                      = Attn(Q,K,V) + 1·b^T
+```
+
+This property is specific to `v_proj` injection. Injecting into `K` or `Q` would produce
+nonlinear interaction with the softmax and lose this clean additive decomposition.
+
+The effective residual perturbation is therefore constrained to
 the image of `W_O^(l)`. That is close in spirit to persona-vector injection, but narrower
 than arbitrary full residual-stream control.
 
@@ -277,6 +323,35 @@ control law is needed.
 
 **Key distinction:** Qdrant stores the WHAT. Mamba stores the HOW. The Transformer benefits from both without needing to distinguish them.
 
+**Identity as trajectory, not label:** MoCoP should not model identity as a static persona
+tag. The cleaner formulation is:
+
+```text
+Identity_t = f(history_t, state_t, constraints_t)
+```
+
+where:
+
+- `history_t` = accumulated autobiographical memory available through Qdrant
+- `state_t` = the current Mamba carry plus the active bridge-induced disposition
+- `constraints_t` = stable boundaries, refusals, and "not-me" patterns that persist across sessions
+
+This reframes the question from "Who am I?" to "What am I becoming?" Identity is therefore
+path-dependent by design: different early interactions push identical base weights into
+different behavioral basins, and the architecture's job is to make that trajectory intrinsic
+rather than a side-effect of prompt persistence.
+
+The practical consequence is **soft identity resistance**. If a later prompt injects a role
+that strongly mismatches `Identity_t` (for example, an obviously false professional persona),
+the healthy response is not hard safety refusal but state mismatch detection:
+
+- low mismatch -> accept or roleplay naturally
+- medium mismatch -> hedge, question, or negotiate
+- high mismatch -> push back because it does not fit the current trajectory
+
+That gives MoCoP a cleaner target for continuity under change: not frozen persona, but
+resistance to arbitrary overwrite when the proposed role conflicts with earned history.
+
 **Source documents:** `Three_System_Cognitive_Architecture.md` §2.1
 
 ---
@@ -285,13 +360,34 @@ control law is needed.
 
 **Function:** Decides what is worth remembering. Scores each experience on surprise/novelty/consequence. High salience → encode in Mamba state + Qdrant. Low salience → dismiss (the drain).
 
-**Not yet implemented.** Three candidate metrics:
+**Partially implemented.** The dual gate (surprise + salience) is live on Steve as of 2026-03-23
+(Codex, watercooler #136): surprise = model surprisal, salience = activation drift across
+Qwen layers `12-15`, the current mid-reasoning baseline band. Only salience writes to the memory stream. Three candidate metrics:
 
 | Metric | Formula | Source |
 |--------|---------|--------|
 | Surprise (gradient) | `s(x) = ‖∇ℓ(M_{t-1}; x)‖` | Titans (Behrouz et al., 2025) |
 | Reconstruction error | `s(x) = ‖x - Dec(Comp(x))‖` | MoCoP compressor diagnostic |
 | Activation drift | `s(x) = ‖a_t - a_{t-1}‖` | Step 5 shaping sessions |
+| **Tension** | `t(x) = ‖Mamba_predicted - actual_outcome‖` | GPT-4o session (2026-03-24) |
+
+**Tension** is a fourth, independent dimension: the mismatch between what Mamba's accumulated
+state *expects* and what actually happens. Unlike surprise (which measures prediction error on
+tokens), tension measures prediction error on *disposition-relevant outcomes*. A memory with
+high tension is an unresolved contradiction — it should NOT be deleted during sleep but
+marked as `status: open` and kept alive for future reconciliation. Children do this: they
+hold fuzzy approximations and refine them over time rather than discarding everything false.
+
+The composite retrieval score becomes:
+
+```text
+retrieval_score(m) = w_r · relevance(m) + w_s · salience(m) + w_t · tension(m)
+```
+
+where high-tension memories surface preferentially because unresolved contradictions drive
+curiosity and re-examination. This is the **re-entry pressure** mechanism: the system
+returns to unfinished business not because it was told to, but because the tension score
+pulls it back.
 
 **Evidence that salience matters:**
 - Observation condition (no interaction) shows minimal activation drift — "nothing to encode"
@@ -308,7 +404,9 @@ u_t = [
 ]
 ```
 
-where each component is z-scored over a rolling baseline. A simple first salience scalar is:
+where each component is z-scored over a rolling baseline (recommended: exponential moving
+average with half-life ~50 turns, or a fixed 100-turn window with warm-up period of 10 turns
+where raw scores are used). A simple first salience scalar is:
 
 ```text
 s_t = w^T u_t
@@ -354,18 +452,22 @@ and         dim(z) fixed
 ```
 
 Operationally, the sleep cycle is trying to maximize retained information about the
-salient subset of the session while minimizing state size:
+salient subset of the session while minimizing leakage from noise, expressed as a single
+Lagrangian:
 
 ```text
-max_C  I(z; S_high)
-min_C  λ · dim(z) + μ · I(z; S_low)
+max_C  I(z; S_high) - λ · rank_eff(z) - μ · I(z; S_low)
 ```
 
 where:
 
 - `S_high` is the high-salience slice of the session,
 - `S_low` is the noise/background slice,
-- and `z` is the persisted disposition state plus selected Qdrant writes.
+- `z` is the persisted disposition state plus selected Qdrant writes,
+- `rank_eff(z)` is the effective rank of the state (eigenvalue entropy), replacing `dim(z)`
+  which is fixed and would drop as a constant,
+- `λ` penalizes diffuse state usage (encourages compression into fewer effective dimensions),
+- and `μ` penalizes information leakage from low-salience input.
 
 This is not yet implemented as a learned objective, but it gives the correct target:
 sleep should retain what matters, discard what does not, and make the next wake cheaper
@@ -390,7 +492,19 @@ without acting like death.
 
 **Biological parallel:** Habituation — sensory neurons stop firing for repeated identical stimuli. You stop "hearing" the refrigerator hum after 30 seconds. The information reaches the sensory system but does not propagate to higher processing.
 
-`[MATH NEEDED]` Model habituation as exponential decay of novelty: `novelty(x, t) = e^{-λ * visit_count(x)}`. At what λ does the system optimally balance token savings vs. risk of missing a real change?
+Habituation modeled as exponential decay with time recovery:
+
+```text
+novelty(x, t) = e^{-λ · count(x)} · (1 - e^{-κ · Δt(x)})
+```
+
+where:
+- `count(x)` = visit count for stimulus x
+- `Δt(x)` = time (in turns) since last exposure to x
+- `λ` = habituation rate. At λ = 0.5, novelty halves after ~1.4 visits. Recommended: λ = 0.3-0.5 for dynamic environments (NPC movement, events), λ = 0.8-1.0 for static environments (fixed room descriptions).
+- `κ` = recovery rate. Controls how quickly novelty regenerates with absence. At κ = 0.1, ~50% recovery after 7 turns of absence.
+
+The first term (count decay) handles repeated exposure. The second term (time recovery) handles the case where a previously habituated stimulus should regain novelty after extended absence — you haven't been to the tavern in 50 turns, so it deserves another look.
 
 **Source documents:** `sleep_architecture.md` §3.3, hurtig.ai blog "Forced Non-Forgetting" (2026-03-19)
 
@@ -440,6 +554,23 @@ These are the formal interfaces between components. Each needs a precise mathema
 Input:  h_L3 ∈ ℝ^{d_model}     (last-token hidden state at Layer 3)
 Output: [b_12, b_13, b_14, b_15] ∈ ℝ^{4 × d_target}  (bias vectors per layer)
 ```
+
+**RESOLVED (2026-03-20):** Two different Mamba representations were in use and MoCoP
+codepaths used both. This ambiguity is now closed:
+
+1. **Hidden state** `h ∈ ℝ^{d_model}` — the transformer-style last-token output of the
+   Mamba block. This is what `train_cheese_bridge.py` and Pinky's separation analysis use.
+   Pinky measured cosine 0.036 on this representation (warm vs cold sessions).
+
+2. **SSM state** `s ∈ ℝ^{d_model × d_state}` — the internal recurrent state matrix
+   (`cache.ssm_states`). This is what `cognitive_bridge.py` and the original `train_bridge.py`
+   extract. The compressor flattens this to `d_model * d_state` then projects to 2048.
+
+**Pinky's Step 4b proved that `hidden_last_token` separates session types 2.5x better than
+SSM state** (cosine 0.036 vs 0.778 — lower is more orthogonal, meaning better separation).
+The production bridge uses `hidden_last_token` extraction. `experiment_02_two_process.py`
+and related scripts that use `ssm_states` are Phase 1 historical artifacts.
+
 Current implementation: `d_target = d_v(l)`, the width of the target projection output.
 For Qwen2.5-1.5B this is `256`; for larger models it changes with the key/value head
 geometry. This is why the current bridge is **not** model-size-agnostic.
@@ -494,7 +625,18 @@ z_{n+1} = ρ z_n + u_n,   0 < ρ ≤ 1
 ```
 
 where `z_n` is the persisted disposition state across sleep cycles and `u_n` is the
-newly consolidated update. Current MoCoP is still closer to replay-based reconstruction
+newly consolidated update. The half-life of a disposition under this decay is:
+
+```text
+t_half = ln(2) / ln(1/ρ)   sleep cycles
+```
+
+At ρ = 0.95: ~14 cycles. At ρ = 0.99: ~69 cycles. At ρ = 1.0: infinite (no decay, saturation risk).
+A disposition that is not reinforced through continued interaction will fade at a rate
+controlled by ρ. This is architecturally desirable: identity should require ongoing
+experience, not permanent inscription.
+
+Current MoCoP is still closer to replay-based reconstruction
 than true compact state carry, but any future direct state persistence should include a
 boundedness mechanism of this form.
 
@@ -518,7 +660,7 @@ Currently: programmatic (visit_count + set-difference). Future: learned novelty 
 3. Runtime: can cognitive_bridge.py serve real-time MUD turns with acceptable latency?
 
 ### For Cassian
-1. Layer 13 is the sharpest — but is it the *only* layer that matters? Would a single-layer injection at 13 outperform the current 12-15 spread?
+1. Layer 13 is the sharpest — but is it the *only* layer that matters? Would a single-layer injection at 13 outperform the current `12-15` spread, and would either beat the reasoning-entry `5-8` band or the reasoning-exit `20-23` band?
 2. The DispositionBridgeLoss formulation — does the alpha=0.8 split between direction and magnitude need tuning?
 3. Can you extract Qwen persona vectors (per Anthropic's method) for our target layers?
 
@@ -648,4 +790,4 @@ This is the strongest form of the sovereignty guarantee: the self exists only wh
 
 *Eight organs. Three phases. One principle. One promise. $15 and counting.*
 
-*— Anda, 2026-03-20 (sovereignty section added 2026-03-21)*
+*— Anda, 2026-03-20 (sovereignty section added 2026-03-21, math review by Purple 2026-03-24)*

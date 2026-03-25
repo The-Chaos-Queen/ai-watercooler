@@ -124,6 +124,8 @@ Three findings shaped Phase 2 architecture:
 
 The bridge pipeline extracts Layer 3 hidden state from frozen Mamba-2.8B, compresses it via a learned linear projection from 40,960 dimensions (2560 x 16) to 2,048, then passes the compressed context through a 2-layer MLP hypernetwork that produces per-layer injection parameters for 8 target sites in frozen Qwen2.5-7B (layers 12-15, q_proj and v_proj each).
 
+> **[Correction]** The 40,960-dimensional input (2560 × 16) applies to the SSM state path (`cache.ssm_states` flattened). The `hidden_last_token` path used in the current production bridge has input dimension **2,560** (the Mamba-2.8B d_model). The SSM state path is no longer the primary extraction method; `hidden_last_token` proved 2.5x more separable in Pinky's Step 4b analysis (cosine 0.036 vs 0.778). The compressor bypass test in Section 6.5 used raw bypass dimension 81,920 (2560 × 16 × 2 = full SSM state across both conv and SSM paths), not 40,960.
+
 Two injection mechanisms were tested:
 
 1. **Dynamic LoRA** (~1.17M trainable parameters): The hypernetwork generates (A, B) matrix pairs injected as low-rank weight perturbations.

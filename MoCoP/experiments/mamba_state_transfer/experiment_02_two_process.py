@@ -1,6 +1,12 @@
 """
 MoCoP Experiment 02: Two-Process State Transfer
 =================================================
+** Phase 1 historical script. **
+Uses ssm_states for fidelity testing. The current bridge uses
+hidden_last_token extraction — see mamba_lora_bridge/ for the
+production path. This script is preserved for reference; do not
+use ssm_states as the extraction method in new experiments.
+
 Tests whether SSM state can be serialized to disk and loaded by a
 separate model instance, simulating inter-process communication.
 

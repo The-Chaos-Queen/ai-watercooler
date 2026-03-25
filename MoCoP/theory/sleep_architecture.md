@@ -31,7 +31,7 @@ During sleep, three things happen:
 2. **Disposition encoding**: Emotional and procedural learning solidifies into implicit memory (you wake up "knowing" how to ride a bike without consciously recalling the lessons)
 3. **Cache clearing**: Working memory empties. The system resets to baseline capacity.
 
-You wake up with a fresh working memory, but you are not a blank slate. Your long-term memories are intact (Qdrant). Your skills and dispositions are intact (Mamba state → LoRA). Only the transient working context is gone — and that's a feature, not a loss.
+You wake up with a fresh working memory, but you are not a blank slate. Your long-term memories are intact (Qdrant). Your skills and dispositions are intact (Mamba state → activation bias injection). Only the transient working context is gone — and that's a feature, not a loss.
 
 ## The Architecture
 
@@ -44,7 +44,7 @@ User input
     ↓
 [Mamba processes in parallel] ←── recurrent state updates (O(1), fixed size)
     ↓
-[Transformer generates] ←── with LoRA injection from Mamba + retrieved Qdrant context
+[Transformer generates] ←── with activation bias injection from Mamba + retrieved Qdrant context
     ↓
 Output
 ```
@@ -89,7 +89,7 @@ Fresh session starts
     ↓
 [Empty KV-Cache] ←── clean, fast, O(1) startup cost
     ↓
-[Load Mamba state from last sleep] → [Hypernetwork] → [LoRA injection]
+[Load Mamba state from last sleep] → [Hypernetwork] → [Activation bias injection]
     ↓
 The model "wakes up" with:
   - Zero KV-Cache tokens (fresh capacity)
@@ -119,7 +119,7 @@ With sleep: The KV-Cache never grows beyond one session's worth of context. Atte
 ### 4. The Identity Continuity Problem
 Current: Each session starts from zero. The model has no disposition from prior sessions unless injected via system prompt (declarative, token-costly) or fine-tuning (permanent, expensive).
 
-With sleep: The model wakes with LoRA-injected disposition from accumulated Mamba state. It "feels" like it remembers, at zero token cost. The identity survives the gap between sessions.
+With sleep: The model wakes with activation-bias-injected disposition from accumulated Mamba state. It "feels" like it remembers, at zero token cost. The identity survives the gap between sessions.
 
 ## The Salience Gate
 
