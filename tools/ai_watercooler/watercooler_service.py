@@ -797,6 +797,8 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 default="safe",
             )
             assignee = clamp_text(payload.get("assignee", ""), field_name="assignee", max_len=80, allow_empty=True)
+            if assignee.lower() in ("unassigned", "none", "null", "n/a"):
+                assignee = ""
             labels = normalize_string_array(payload.get("labels"), field_name="labels", max_items=32, max_len=64)
             refs = normalize_string_array(payload.get("refs"), field_name="refs", max_items=64, max_len=512)
             note = clamp_text(payload.get("note", ""), field_name="note", max_len=4000, allow_empty=True)

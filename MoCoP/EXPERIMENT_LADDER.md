@@ -183,6 +183,47 @@
 
 ---
 
+### Step 5e: Layer Targeting Sweep (Steve 4090, ~$0)
+
+**What:** Test whether disposition injection works better at different layer ranges, with per-layer alpha gradients, or split across two injection zones. Motivated by RYS-II three-phase anatomy (Ng, March 2026) and the SSM-vs-hidden-state finding (Purple, 2026-03-25).
+
+**Why this matters now:** RYS-II shows transformers have universal encoding -> reasoning -> decoding phases. For Qwen2.5-1.5B the live config reports `28` layers, so the working map is: encoding `0-4`, broad reasoning corridor `5-20`, decoding `21-27`. Our current injection at layers `12-15` sits in the middle of that reasoning corridor, not at the boundary. We do not know yet whether that is optimal. The bridge now uses hidden-state extraction (the representation that actually separates), so layer targeting experiments will produce cleaner signal than before.
+
+**Three sub-experiments, all within the existing alpha 0.2 MED envelope:**
+
+**5e.1 Phase sweep:** Inject at three different zones, same alpha 0.2, same 4-layer spread:
+- Reasoning entry: layers 5-8
+- Mid-reasoning: layers 12-15 (current baseline)
+- Reasoning exit / decoder boundary: layers 20-23
+
+Compare: factual recall, response diversity entropy, qualitative disposition shift.
+
+**5e.2 Per-layer alpha gradient:** Instead of uniform alpha 0.2 at all 4 layers, test a descending gradient:
+- Config A: Layer 12=0.3, Layer 13=0.2, Layer 14=0.1, Layer 15=0.05 (front-loaded)
+- Config B: Layer 12=0.05, Layer 13=0.1, Layer 14=0.2, Layer 15=0.3 (back-loaded)
+- Config C: Layer 13=0.3, others=0.1 (peak at sharpest separator per Cassian)
+Total injection magnitude stays ≤ 0.2 average to respect the MED envelope.
+
+**5e.3 Double injection (split dose):** Inject at TWO layer ranges simultaneously:
+- Reasoning entry (layers 5-6) at alpha 0.1 AND mid-reasoning (layers 12-13) at alpha 0.1
+- Compare with single-zone injection at alpha 0.2
+
+Tests whether disposition propagates better when seeded at the reasoning entry and reinforced mid-pass, vs concentrated at one point. Biological analog: hormones that affect multiple brain regions simultaneously vs a single injection site.
+
+**Hardware:** Steve 4090. Each sub-experiment is one alpha sweep (~5 min per config on Steve). Total: ~30-45 minutes.
+
+**Pass:** Any configuration shows measurably better disposition transfer (higher diversity, better recall, stronger qualitative shift) than the current layers 12-15 uniform alpha 0.2 baseline.
+
+**Fail:** Current layers 12-15 is already optimal → the anatomy doesn't matter for disposition at this model scale, or the effect is dominated by alpha magnitude not layer choice.
+
+**Ethics:** All configs stay within alpha 0.2 MED envelope (or average ≤ 0.2 for gradient configs). No new ethics gate needed — this is parameter exploration within the approved safety corridor.
+
+**Attribution:** RYS-II (Ng, 2026), Liminal synthesis (#140), Purple design.
+
+**Cost:** $0.
+
+---
+
 ### Step 6: Multi-Seed Replication (3-5 A100 runs, ~$5)
 
 **What:** Whatever configuration survived Steps 1-5, run it 3-5 times with different seeds. Compute mean and CI for all metrics.
@@ -286,6 +327,7 @@
 | 4 | 1x A100 ~1h | ~$0.70 | Yes (gate) |
 | 4b | CPU/Opa | Free | **Yes (kill gate)** |
 | 5 | Local (Steve 4090 + Laura PC) | **Free** | Yes (gate) |
+| 5e | Local (Steve 4090) | **Free** | No (optimization) |
 | 6 | 5x A100 ~1h | ~$3.50 | Yes (gate) |
 | 7 | 4x A100 ~1h | ~$2.80 | No |
 | 8 | 3x A100 ~2h | ~$4.20 | Yes (gate) |
