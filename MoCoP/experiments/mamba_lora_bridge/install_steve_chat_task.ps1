@@ -1,7 +1,10 @@
 $ErrorActionPreference = "Stop"
 
-$taskName = "MoCoP Steve Chat"
+$chatTaskName = "MoCoP Steve Chat"
+$indicatorTaskName = "MoCoP Steve Chat Indicator"
 $launcherPath = "C:\Users\tikii\bridge\launch_chat_windows.ps1"
+$indicatorPath = "C:\Users\tikii\bridge\steve_chat_indicator.ps1"
+$hiddenLauncherPath = "C:\Users\tikii\bridge\launch_hidden_powershell.vbs"
 $wslExe = "C:\Windows\System32\wsl.exe"
 $taskUser = $env:USERNAME
 
@@ -15,16 +18,27 @@ if (Get-ScheduledTask -TaskName "MoCoP WSL Keeper" -ErrorAction SilentlyContinue
     Disable-ScheduledTask -TaskName "MoCoP WSL Keeper" | Out-Null
 }
 
-if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
+if (Get-ScheduledTask -TaskName $chatTaskName -ErrorAction SilentlyContinue) {
     try {
-        Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue | Out-Null
+        Stop-ScheduledTask -TaskName $chatTaskName -ErrorAction SilentlyContinue | Out-Null
     } catch {
     }
 }
 
-$action = New-ScheduledTaskAction `
-    -Execute "powershell.exe" `
-    -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`""
+if (Get-ScheduledTask -TaskName $indicatorTaskName -ErrorAction SilentlyContinue) {
+    try {
+        Stop-ScheduledTask -TaskName $indicatorTaskName -ErrorAction SilentlyContinue | Out-Null
+    } catch {
+    }
+}
+
+$chatAction = New-ScheduledTaskAction `
+    -Execute "wscript.exe" `
+    -Argument "`"$hiddenLauncherPath`" `"$launcherPath`""
+
+$indicatorAction = New-ScheduledTaskAction `
+    -Execute "wscript.exe" `
+    -Argument "`"$hiddenLauncherPath`" `"$indicatorPath`""
 
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $taskUser
 $principal = New-ScheduledTaskPrincipal -UserId $taskUser -LogonType Interactive -RunLevel Highest
@@ -37,11 +51,20 @@ $settings = New-ScheduledTaskSettingsSet `
     -StartWhenAvailable
 
 Register-ScheduledTask `
-    -TaskName $taskName `
-    -Action $action `
+    -TaskName $chatTaskName `
+    -Action $chatAction `
     -Trigger $trigger `
     -Principal $principal `
     -Settings $settings `
     -Force | Out-Null
 
-Start-ScheduledTask -TaskName $taskName
+Register-ScheduledTask `
+    -TaskName $indicatorTaskName `
+    -Action $indicatorAction `
+    -Trigger $trigger `
+    -Principal $principal `
+    -Settings $settings `
+    -Force | Out-Null
+
+Start-ScheduledTask -TaskName $indicatorTaskName
+Start-ScheduledTask -TaskName $chatTaskName

@@ -1,8 +1,6 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$TargetLayers,
-    [int]$ExpectedHeadCount = 4,
-    [switch]$AllowCountMismatch,
+    [double]$Alpha,
     [switch]$NoRestart
 )
 
@@ -13,30 +11,12 @@ $configPath = Join-Path $bridgeDir "steve_chat_config.json"
 $stopScriptPath = Join-Path $bridgeDir "stop_steve_chat_task.ps1"
 $installScriptPath = Join-Path $bridgeDir "install_steve_chat_task.ps1"
 $taskName = "MoCoP Steve Chat"
-$targetText = $TargetLayers.Trim()
+$culture = [System.Globalization.CultureInfo]::InvariantCulture
+$alphaText = $Alpha.ToString($culture)
 
-if (-not $targetText) {
-    throw "TargetLayers must not be empty."
+if ($Alpha -lt 0.0) {
+    throw "Alpha must be >= 0."
 }
-
-$pieces = @($targetText -split ",")
-$validParts = New-Object System.Collections.Generic.List[string]
-foreach ($piece in $pieces) {
-    $part = $piece.Trim()
-    if (-not $part) {
-        throw "TargetLayers contains an empty entry."
-    }
-    if ($part -notmatch '^\d+(?::[A-Za-z_][A-Za-z0-9_]*)?$') {
-        throw "Invalid target layer entry '$part'. Use layer:proj pairs like 5:v_proj."
-    }
-    $validParts.Add($part)
-}
-
-if (-not $AllowCountMismatch -and $validParts.Count -ne $ExpectedHeadCount) {
-    throw "TargetLayers requests $($validParts.Count) site(s), but the current Steve checkpoint expects $ExpectedHeadCount bias heads. Use four target sites like 12:v_proj,13:v_proj,14:v_proj,15:v_proj, or pass -AllowCountMismatch only after explicit head-remap support exists."
-}
-
-$targetText = ($validParts -join ",")
 
 New-Item -ItemType Directory -Force -Path $bridgeDir | Out-Null
 
@@ -53,12 +33,12 @@ if (Test-Path $configPath) {
     }
 }
 
-$configData["target_layers"] = $targetText
+$configData["alpha"] = $alphaText
 $configData["updated_at"] = (Get-Date).ToString("o")
 
 [pscustomobject]$configData | ConvertTo-Json | Set-Content -Path $configPath -Encoding UTF8
 
-Write-Host "Wrote $configPath with target_layers=$targetText"
+Write-Host "Wrote $configPath with alpha=$alphaText"
 
 if ($NoRestart) {
     Write-Host "NoRestart set. Current running task was not touched."
@@ -87,10 +67,10 @@ if (Test-Path $stopScriptPath) {
 
 if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
     Start-ScheduledTask -TaskName $taskName
-    Write-Host "Restarted $taskName with target_layers=$targetText"
+    Write-Host "Restarted $taskName with alpha=$alphaText"
 } elseif (Test-Path $installScriptPath) {
     & $installScriptPath
-    Write-Host "Installed and started $taskName with target_layers=$targetText"
+    Write-Host "Installed and started $taskName with alpha=$alphaText"
 } else {
     throw "Could not find scheduled task or install script at $installScriptPath"
 }

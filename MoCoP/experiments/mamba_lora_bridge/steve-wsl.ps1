@@ -1,17 +1,23 @@
 [CmdletBinding(DefaultParameterSetName = "Run")]
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$User,
-
-    [string]$RemoteHost = "192.168.2.194",
+    [string]$RemoteHost = "steve",
 
     [int]$Port = 22,
+
+    [string]$WslUser = "root",
+
+    [string]$BridgeDir = "/mnt/c/Users/tikii/bridge",
+
+    [string]$PythonBin = "/root/mocop_venv/bin/python3",
 
     [Parameter(ParameterSetName = "Run", Mandatory = $true)]
     [string]$Run,
 
     [Parameter(ParameterSetName = "RunFile", Mandatory = $true)]
     [string]$RunFile,
+
+    [Parameter(ParameterSetName = "BridgePythonFile", Mandatory = $true)]
+    [string]$BridgePythonFile,
 
     [Parameter(ParameterSetName = "Tail", Mandatory = $true)]
     [string]$TailLog,
@@ -21,6 +27,8 @@ param(
 
     [Parameter(ParameterSetName = "Grep", Mandatory = $true)]
     [string]$Pattern,
+
+    [string[]]$PythonArgs = @(),
 
     [ValidateRange(1, 20000)]
     [int]$Lines = 120
@@ -43,13 +51,13 @@ function Convert-ToLf {
 function Invoke-RemoteWslBash {
     param([Parameter(Mandatory = $true)][string]$ScriptText)
 
-    $target = "$User@$RemoteHost"
+    $target = $RemoteHost
     $sshArgs = [System.Collections.Generic.List[string]]::new()
     if ($Port -ne 22) {
         $null = $sshArgs.Add("-p")
         $null = $sshArgs.Add("$Port")
     }
-    foreach ($arg in @($target, "wsl", "bash", "-se")) {
+    foreach ($arg in @($target, "wsl", "-u", $WslUser, "bash", "-se")) {
         $null = $sshArgs.Add($arg)
     }
 
@@ -95,6 +103,19 @@ function Invoke-RemoteWslBash {
     }
 }
 
+function Join-BashArgs {
+    param([string[]]$Values)
+
+    if (-not $Values -or $Values.Count -eq 0) {
+        return ""
+    }
+
+    $escaped = foreach ($value in $Values) {
+        "'" + (Escape-BashSingleQuoted -Value $value) + "'"
+    }
+    return " " + ($escaped -join " ")
+}
+
 $scriptBody = switch ($PSCmdlet.ParameterSetName) {
     "Run" {
         @"
@@ -110,6 +131,22 @@ $Run
         @"
 set -euo pipefail
 $fileText
+"@
+    }
+    "BridgePythonFile" {
+        $safeBridgeDir = Escape-BashSingleQuoted -Value $BridgeDir
+        $safePythonBin = Escape-BashSingleQuoted -Value $PythonBin
+        $scriptPath = $BridgePythonFile
+        if (-not [System.IO.Path]::IsPathRooted($scriptPath)) {
+            $scriptPath = "$BridgeDir/$BridgePythonFile"
+        }
+        $scriptPath = $scriptPath -replace "\\", "/"
+        $safeScriptPath = Escape-BashSingleQuoted -Value $scriptPath
+        $argText = Join-BashArgs -Values $PythonArgs
+        @"
+set -euo pipefail
+cd '$safeBridgeDir'
+exec '$safePythonBin' -X utf8 '$safeScriptPath'$argText
 "@
     }
     "Tail" {
