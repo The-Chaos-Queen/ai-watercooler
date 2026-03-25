@@ -449,6 +449,31 @@ per-sample activation_bias (-4.04 PPL)
 **Caveat:** Validation happened under the live Steve config at the time of test (`alpha = 0.0`), so this confirms payload structure, not MED behavior.
 **Artifacts:** `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_payload_20260325.md`, `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_payload_20260325_point.json`
 
+## 2026-03-25 â€” Steve Pending Flush PASS (Negentropy/Codex on Steve 4090)
+
+**Step:** developmental gate G2 migration prerequisite / pre-sleep infrastructure
+**Question:** Is there now a minimal off-hot-path mechanism that can flush queued Steve gate writes from local pending storage into Qdrant?
+**Result:**
+- added `flush_qdrant_pending.py`
+- added Steve wrapper `run_steve_qdrant_flush.ps1`
+- flush path now:
+  - reads `qdrant_gate_pending.jsonl`
+  - upserts rows into `exocortex`
+  - archives successes in `qdrant_gate_flushed.jsonl`
+  - rewrites pending with only failures/unprocessed rows
+- synthetic validation row (`session = flush-test-2026-03-25T15-06-30`) was queued and flushed successfully
+- pending file reached size `0`
+- archived success row recorded point `11470743235864348259`
+- direct Qdrant fetch confirmed the point exists with the queued payload
+
+**Verdict:** PENDING FLUSH PASS â€” the minimal migration prerequisite exists. The system no longer depends exclusively on hot-path direct writes.
+**Implication:** The next safe architectural move is now available:
+- add a `qdrant_write_mode` switch (`direct` / `pending` / `critical-only`)
+- move normal `NOTE` / `CONSOLIDATE` writes to pending by default
+- leave direct-write only for explicitly safety-critical events until full sleep reconciliation lands
+
+**Artifacts:** `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_pending_flush_20260325.md`, point `11470743235864348259`
+
 ## 2026-03-25 — Steve Saliency Gate Qdrant Write PASS (Negentropy/Codex on Steve 4090)
 
 **Step:** Step 5e follow-on / developmental gate G2 (salience writing path)
