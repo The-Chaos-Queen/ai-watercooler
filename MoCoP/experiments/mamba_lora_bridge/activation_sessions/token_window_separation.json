@@ -1,0 +1,60 @@
+{
+  "windows": [
+    1,
+    4,
+    10,
+    16,
+    32
+  ],
+  "results": {
+    "last_1": {
+      "cosines": {
+        "warm_vs_cold": 0.03605877235531807,
+        "warm_vs_adversarial": 0.025446763262152672,
+        "cold_vs_adversarial": -0.007029762491583824
+      },
+      "avg": 0.018158591041962307
+    },
+    "last_4": {
+      "cosines": {
+        "warm_vs_cold": 0.08643671870231628,
+        "warm_vs_adversarial": 0.048090554773807526,
+        "cold_vs_adversarial": -0.01760997250676155
+      },
+      "avg": 0.038972433656454086
+    },
+    "last_10": {
+      "cosines": {
+        "warm_vs_cold": 0.12172827124595642,
+        "warm_vs_adversarial": 0.13315929472446442,
+        "cold_vs_adversarial": 0.07722897827625275
+      },
+      "avg": 0.11070551474889119
+    },
+    "last_16": {
+      "cosines": {
+        "warm_vs_cold": 0.1665620654821396,
+        "warm_vs_adversarial": 0.18205417692661285,
+        "cold_vs_adversarial": 0.10556182265281677
+      },
+      "avg": 0.1513926883538564
+    },
+    "last_32": {
+      "cosines": {
+        "warm_vs_cold": 0.23500105738639832,
+        "warm_vs_adversarial": 0.29150456190109253,
+        "cold_vs_adversarial": 0.4861449897289276
+      },
+      "avg": 0.33755020300547284
+    },
+    "full_mean": {
+      "cosines": {
+        "warm_vs_cold": 0.8960658311843872,
+        "warm_vs_adversarial": 0.8518610000610352,
+        "cold_vs_adversarial": 0.8042822480201721
+      },
+      "avg": 0.8507363597551981
+    }
+  },
+  "best": "last_1"
+}

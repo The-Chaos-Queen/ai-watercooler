@@ -1,0 +1,28 @@
+{
+  "analysis": "ssm_vs_hidden_state_separation",
+  "date": "2026-03-25",
+  "author": "Purple",
+  "target_layer": 3,
+  "results": {
+    "hidden_last": {
+      "warm_vs_cold": 0.03605877235531807,
+      "warm_vs_adversarial": 0.025446763262152672,
+      "cold_vs_adversarial": -0.007029762491583824
+    },
+    "hidden_mean": {
+      "warm_vs_cold": 0.8960658311843872,
+      "warm_vs_adversarial": 0.8518610000610352,
+      "cold_vs_adversarial": 0.8042822480201721
+    },
+    "ssm_state_flat": {
+      "warm_vs_cold": 0.7780532836914062,
+      "warm_vs_adversarial": 0.7853564023971558,
+      "cold_vs_adversarial": 0.8475240468978882
+    }
+  },
+  "pinky_reference": {
+    "hidden_last_warm_vs_cold": 0.036,
+    "hidden_last_warm_vs_adversarial": 0.025,
+    "hidden_last_cold_vs_adversarial": -0.007
+  }
+}
