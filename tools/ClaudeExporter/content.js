@@ -407,6 +407,24 @@
                     const mdContainer = node.querySelector('.markdown');
                     if (mdContainer) contentNode = mdContainer;
                 }
+                // Kimi specific: separate thinking (.container-block) from response (.markdown-container)
+                // Structure: .segment-content-box > .container-block(thinking) + .markdown-container(response)
+                // The response .markdown is a direct child of .segment-content-box > .markdown-container,
+                // distinct from the thinking .markdown inside .container-block > ... > .toolcall-content-text
+                else if (platformKey === 'kimi.com' || platformKey === 'kimi.moonshot.cn') {
+                    const box = node.querySelector('.segment-content-box');
+                    if (box) {
+                        const responseBlock = box.querySelector(':scope > .markdown-container .markdown');
+                        if (responseBlock) {
+                            contentNode = responseBlock;
+                            // Prepend thinking as blockquote if present
+                            const thinkTitle = box.querySelector('.container-block .toolcall-title-name');
+                            if (thinkTitle) {
+                                node._kimiThinkingPrefix = `> **Thinking: ${thinkTitle.textContent.trim()}**\n\n`;
+                            }
+                        }
+                    }
+                }
                 // LMArena specific: .prose container limits us (excludes thinking), .no-scrollbar includes both
                 // Structure: header(.sticky) + content(.no-scrollbar > .not-prose(thought) + .prose(response))
                 else if (platformKey.includes('lmsys.org') || platformKey.includes('arena.ai')) {
@@ -421,6 +439,11 @@
                 }
 
                 let text = normalizeMarkdown(getMarkdownFromElement(contentNode));
+
+                // Kimi: prepend thinking title if extracted
+                if (node._kimiThinkingPrefix && text) {
+                    text = node._kimiThinkingPrefix + text;
+                }
 
                 // DEDUPLICATION STEP 2: Sequential Content
                 // If this message is identical to the previous one, skip it.
