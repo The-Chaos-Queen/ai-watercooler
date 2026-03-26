@@ -1107,4 +1107,94 @@ per-sample activation_bias (-4.04 PPL)
 
 ---
 
+## 2026-03-26 — Mamba-3 Migration Scoping (Anda-Conda on Opa, OpenCLAW #66)
+
+**Step:** Pre-ladder (architecture compatibility)
+**Question:** Is the MoCoP bridge compatible with Mamba-3's MIMO architecture? Are pretrained weights available?
+
+**Method:**
+1. Baseline probe: loaded `state-spaces/mamba-2.8b-hf` on Opa (RTX 3070, torch 2.10, Windows Python)
+2. Architecture probe: instantiated `Mamba3LMHeadModel` from `mamba3-minimal` at d_model=2560 (matching Mamba-2.8b scale), MIMO rank=4
+
+**Result:**
+
+| Property | Mamba-2.8b | Mamba-3 (d_model=2560) |
+|----------|-----------|----------------------|
+| Hidden-state Layer 3 last-token | `[1, 2560]` | `[1, 2560]` — identical |
+| SSM state per layer | `[1, 5120, 16]` = 81,920 scalars | `[80, 64, 128]` = 655,360 scalars (8x) |
+| Compressor compatible | baseline | YES (same width) |
+| Pretrained weights on HF | yes | **NO** (paper: arxiv 2603.15569, March 16) |
+
+**Verdict:** Architecture GO, weights BLOCKED.
+**Implication:** When 2.8B-scale Mamba-3 weights appear: compressor/bridge unchanged, add chunk-size padding to feed_mamba(), re-probe Layer 3 for signal.
+**Artifacts:** `probe_mamba3.py`, `mamba3_migration_memo.md`, `probe_mamba2_baseline.json` (on Opa), `probe_mamba3_block.json` (on Opa)
+
+---
+
+## 2026-03-26 — Upstream Ablation: hidden_last_token vs ssm_states (Anda-Conda on Opa, OpenCLAW #70)
+
+**Step:** RESEARCH_BACKLOG item #1
+**Question:** Does `cache.ssm_states` carry disposition signal comparable to `hidden_last_token`?
+
+**Method:** Purple's `ssm_vs_hidden_separation.py` on Opa. Mamba-2.8b, CPU, Layer 3. Scripted warm/cold/adversarial sessions.
+
+**Result:**
+
+| Representation | warm/cold | warm/adv | cold/adv | avg cosine |
+|---------------|-----------|----------|----------|------------|
+| hidden_last_token | 0.036 | 0.025 | -0.007 | **0.018** |
+| ssm_states (flat) | 0.778 | 0.785 | 0.848 | 0.804 |
+| mean_pooled | 0.896 | 0.852 | 0.804 | 0.851 |
+
+**Verdict:** DECISIVE. hidden_last_token wins by 22x. SSM states do not separate dispositions. Door CLOSED.
+**Artifacts:** `activation_sessions/ssm_vs_hidden_separation.json`
+
+---
+
+## 2026-03-26 — Upstream Ablation: Token Window Size (Anda-Conda on Opa)
+
+**Step:** RESEARCH_BACKLOG item #3
+**Question:** Does averaging the last N tokens beat the single last token?
+
+**Method:** `token_window_separation.py`. Mamba-2.8b Layer 3, windows 1/4/10/16/32/full.
+
+**Result:**
+
+| Window | avg cosine |
+|--------|------------|
+| last_1 | **0.018** |
+| last_4 | 0.039 |
+| last_10 | 0.111 |
+| last_16 | 0.151 |
+| last_32 | 0.338 |
+| full_mean | 0.851 |
+
+**Verdict:** Monotonic degradation. Single last token is optimal. Door CLOSED.
+**Artifacts:** `activation_sessions/token_window_separation.json`, `token_window_separation.py`
+
+---
+
+## 2026-03-26 — Upstream Ablation: Multi-Layer Separation (Anda-Conda on Opa)
+
+**Step:** RESEARCH_BACKLOG item #2
+**Question:** Is Layer 3 alone the best, or do adjacent layers add signal when concatenated?
+
+**Method:** `multilayer_separation.py`. Mamba-2.8b, last-token at layers 1-8, single + concat.
+
+**Result:**
+
+| Config | dim | avg cosine |
+|--------|-----|------------|
+| L1 | 2560 | 0.012 |
+| L3 | 2560 | 0.018 (balanced) |
+| L4 | 2560 | 0.010 |
+| **L8** | 2560 | **-0.023** (strongest) |
+| L2+L3+L4 | 7680 | 0.016 |
+
+**Verdict:** SURPRISING. L8 is strongest overall but asymmetric (brilliant cold/adv, worse warm/cold). L3 is most balanced. Concat does NOT help. Different disposition pairs peak at different layers — supports Digital Hormones hypothesis.
+**Implication:** L3 remains correct for balanced single-layer bridge. Step 6 Phase C should test L6-L8 for specific OCEAN dimensions.
+**Artifacts:** `activation_sessions/multilayer_separation.json`, `multilayer_separation.py`
+
+---
+
 *Append new entries below this line.*
