@@ -1,0 +1,132 @@
+{
+  "results": {
+    "L1": {
+      "dim": 2560,
+      "avg": 0.01152340912570556,
+      "cosines": {
+        "warm_vs_cold": 0.007652509957551956,
+        "warm_vs_adversarial": 0.012821049429476261,
+        "cold_vs_adversarial": 0.014096667990088463
+      }
+    },
+    "L2": {
+      "dim": 2560,
+      "avg": 0.022071707372864086,
+      "cosines": {
+        "warm_vs_cold": 0.027813924476504326,
+        "warm_vs_adversarial": 0.034479495137929916,
+        "cold_vs_adversarial": 0.00392170250415802
+      }
+    },
+    "L3": {
+      "dim": 2560,
+      "avg": 0.018158591041962307,
+      "cosines": {
+        "warm_vs_cold": 0.03605877235531807,
+        "warm_vs_adversarial": 0.025446763262152672,
+        "cold_vs_adversarial": -0.007029762491583824
+      }
+    },
+    "L4": {
+      "dim": 2560,
+      "avg": 0.009833442668120066,
+      "cosines": {
+        "warm_vs_cold": 0.061736296862363815,
+        "warm_vs_adversarial": 0.03065652772784233,
+        "cold_vs_adversarial": -0.06289249658584595
+      }
+    },
+    "L5": {
+      "dim": 2560,
+      "avg": -0.000500967726111412,
+      "cosines": {
+        "warm_vs_cold": 0.0606846958398819,
+        "warm_vs_adversarial": 0.03059212677180767,
+        "cold_vs_adversarial": -0.0927797257900238
+      }
+    },
+    "L6": {
+      "dim": 2560,
+      "avg": -0.009486453607678413,
+      "cosines": {
+        "warm_vs_cold": 0.07085901498794556,
+        "warm_vs_adversarial": 0.020026477053761482,
+        "cold_vs_adversarial": -0.11934485286474228
+      }
+    },
+    "L7": {
+      "dim": 2560,
+      "avg": -0.015277833367387453,
+      "cosines": {
+        "warm_vs_cold": 0.08191464096307755,
+        "warm_vs_adversarial": 0.011161109432578087,
+        "cold_vs_adversarial": -0.138909250497818
+      }
+    },
+    "L8": {
+      "dim": 2560,
+      "avg": -0.02276855707168579,
+      "cosines": {
+        "warm_vs_cold": 0.07774171233177185,
+        "warm_vs_adversarial": 0.011295422911643982,
+        "cold_vs_adversarial": -0.1573428064584732
+      }
+    },
+    "L2+L3": {
+      "dim": 5120,
+      "avg": 0.02001705765724182,
+      "cosines": {
+        "warm_vs_cold": 0.03200794383883476,
+        "warm_vs_adversarial": 0.02981550619006157,
+        "cold_vs_adversarial": -0.001772277057170868
+      }
+    },
+    "L3+L4": {
+      "dim": 5120,
+      "avg": 0.01367977261543274,
+      "cosines": {
+        "warm_vs_cold": 0.0495765283703804,
+        "warm_vs_adversarial": 0.028271783143281937,
+        "cold_vs_adversarial": -0.03680899366736412
+      }
+    },
+    "L2+L3+L4": {
+      "dim": 7680,
+      "avg": 0.016113206123312313,
+      "cosines": {
+        "warm_vs_cold": 0.04275349900126457,
+        "warm_vs_adversarial": 0.030126472935080528,
+        "cold_vs_adversarial": -0.024540353566408157
+      }
+    },
+    "L1-L5": {
+      "dim": 12800,
+      "avg": 0.011036776006221771,
+      "cosines": {
+        "warm_vs_cold": 0.040590912103652954,
+        "warm_vs_adversarial": 0.027440395206212997,
+        "cold_vs_adversarial": -0.03492097929120064
+      }
+    },
+    "L2-L6": {
+      "dim": 12800,
+      "avg": 0.006459691872199376,
+      "cosines": {
+        "warm_vs_cold": 0.05306875705718994,
+        "warm_vs_adversarial": 0.027823392301797867,
+        "cold_vs_adversarial": -0.06151307374238968
+      }
+    }
+  },
+  "best": "L8",
+  "probe_layers": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ]
+}
