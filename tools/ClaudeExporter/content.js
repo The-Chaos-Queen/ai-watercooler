@@ -150,6 +150,21 @@
             } catch (e) { }
         });
 
+        // Kimi: expand collapsed thinking blocks by clicking .toolcall-title-container
+        document.querySelectorAll('.container-block .resize-container').forEach(rc => {
+            const height = window.getComputedStyle(rc).height;
+            if (height === '0px' || parseInt(height) < 10) {
+                const block = rc.closest('.container-block');
+                const titleClick = block ? block.querySelector('.toolcall-title-container') : null;
+                if (titleClick) {
+                    try {
+                        titleClick.click();
+                        changed = true;
+                    } catch (e) { }
+                }
+            }
+        });
+
         return changed;
     }
 
