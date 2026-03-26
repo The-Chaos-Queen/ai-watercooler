@@ -8,8 +8,9 @@ param(
     [string]$RunRoot = "/workspace/mocop_step6_runs",
     [string[]]$Seeds = @("7", "42", "1337"),
     [string]$RunSetId = $(Get-Date -Format "yyyyMMddTHHmmss"),
-    [Parameter(Mandatory = $true)]
-    [string]$TrainCommandTemplate,
+    [ValidateSet("", "current_1p5b_reincarnation")]
+    [string]$Profile = "",
+    [string]$TrainCommandTemplate = "",
     [string]$EvalCommandTemplate = "",
     [string]$PanelPath = "MoCoP/experiments/mamba_lora_bridge/step6_eval_panel.json",
     [switch]$Execute
@@ -31,9 +32,49 @@ function Expand-Template {
     return $result
 }
 
+function Get-ProfileTemplates {
+    param(
+        [Parameter(Mandatory = $true)][string]$ProfileName
+    )
+
+    switch ($ProfileName) {
+        "current_1p5b_reincarnation" {
+            return @{
+                Train = @'
+test -f record_cheese_batch.py
+test -f train_cheese_bridge.py
+python3 record_cheese_batch.py
+python3 train_cheese_bridge.py --output-name "{run_dir}/bridge_seed_{seed}.pt" --legacy-output-name "{run_dir}/bridge_seed_{seed}_legacy.pt"
+'@
+                Eval = @'
+test -f reincarnated_inference.py
+python3 reincarnated_inference.py --bridge-path "{run_dir}/bridge_seed_{seed}.pt" --panel-file "{panel}" --results-file "{run_dir}/step6_eval_seed_{seed}.json" --output-format json --seed {seed} --temperature 0.7 --qwen-device cuda:0 --mamba-device cpu --bridge-device cuda:0
+'@
+            }
+        }
+        default {
+            throw "Unsupported profile: $ProfileName"
+        }
+    }
+}
+
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $stagingRoot = Join-Path $scriptDir ("run_reincarnation\step6_seed_matrix_" + $RunSetId)
 New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
+
+if ($Profile) {
+    $profileTemplates = Get-ProfileTemplates -ProfileName $Profile
+    if (-not $TrainCommandTemplate) {
+        $TrainCommandTemplate = $profileTemplates.Train
+    }
+    if (-not $EvalCommandTemplate) {
+        $EvalCommandTemplate = $profileTemplates.Eval
+    }
+}
+
+if (-not $TrainCommandTemplate) {
+    throw "Provide -TrainCommandTemplate or use -Profile."
+}
 
 $normalizedRepoRoot = $RepoRoot.TrimEnd("/")
 $normalizedRunRoot = $RunRoot.TrimEnd("/")
@@ -103,16 +144,17 @@ $evalCommand
         panel_path        = $panelRemotePath
         local_train_script = $trainScriptPath
         local_eval_script  = if ($evalCommand) { $evalScriptPath } else { $null }
+        profile            = if ($Profile) { $Profile } else { $null }
     }
 
     if ($Execute) {
-        & scp @scpBase $trainScriptPath "$target:$remoteDir/train.sh"
+        & scp @scpBase $trainScriptPath "${target}:$remoteDir/train.sh"
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to copy train.sh for seed $seed"
         }
 
         if ($evalCommand) {
-            & scp @scpBase $evalScriptPath "$target:$remoteDir/eval.sh"
+            & scp @scpBase $evalScriptPath "${target}:$remoteDir/eval.sh"
             if ($LASTEXITCODE -ne 0) {
                 throw "Failed to copy eval.sh for seed $seed"
             }

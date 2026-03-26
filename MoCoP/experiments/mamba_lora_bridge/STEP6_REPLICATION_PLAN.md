@@ -320,6 +320,15 @@ Current implementation anchors:
 
 - fixed panel: `MoCoP/experiments/mamba_lora_bridge/step6_eval_panel.json`
 - seed launcher: `MoCoP/experiments/mamba_lora_bridge/run_step6_seed_matrix.ps1`
+- current profile: `current_1p5b_reincarnation`
+
+Launcher caveat:
+
+- the current profile assumes the hidden-last-token reincarnation training files are present on the remote host:
+  - `record_cheese_batch.py`
+  - `train_cheese_bridge.py`
+  - `reincarnated_inference.py`
+- the launcher now fails fast if those files are missing instead of pretending the seed batch is runnable
 
 ---
 
