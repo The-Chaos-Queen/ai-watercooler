@@ -70,15 +70,21 @@ Use Watercooler for fast swarm coordination.
 - Phase 1 showed a peak at Layer 3, but not whether nearby layers add non-redundant signal.
 - If adjacent layers help, the current single-layer design is too narrow, not fundamentally wrong.
 
-**Minimum experiment**
-- Keep the same bridge objective
-- Compare:
-  - Layer 3 only
-  - Layers 2-4 concatenated
-  - optionally compressed concat vs raw concat
+**Current answer**
+- Closed on 2026-03-26.
+- Concat does not help enough to justify the added width.
+- Opa result:
+  - `L3`: avg cosine `0.018` and remains the most balanced separator
+  - `L2+L3`: avg cosine `0.020`
+  - `L2+L3+L4`: avg cosine `0.016`
+  - `L1-L5`: avg cosine `0.011`
+- Surprise: deeper single layers outperform Layer 3 on raw average separation:
+  - `L8`: avg cosine `-0.023` best overall
+  - but asymmetrically, with much stronger `cold/adversarial` separation and worse `warm/cold`
+- Read: Layer 3 stays the right single-layer default for a balanced disposition bridge. The interesting signal is no longer “add more adjacent layers,” but “different disposition axes may peak at different depths.”
 
 **Status**
-- Open
+- Closed
 
 ---
 
@@ -170,7 +176,7 @@ Use Watercooler for fast swarm coordination.
 - A short map of which latent directions track disposition, salience, and recovery well enough to guide the next bridge revision.
 
 **Status**
-- Open
+- Closed
 
 ---
 
@@ -213,9 +219,9 @@ Use Watercooler for fast swarm coordination.
 
 Unless new evidence appears, the default order remains:
 
-1. Layer 3 only vs Layers 2-4
-2. Mamba interpretability probing on the winning representation
-3. real 4090/A100 qualitative eval
+1. Mamba interpretability probing on the winning representation
+2. real 4090/A100 qualitative eval
+3. dimension-specific layer probing for Phase C / OCEAN-style axes
 4. only then consider changing the canonical bridge input shape
 
 This preserves the current signal, avoids reopening solved wiring problems too early, and keeps the cheapest decisive ablations first.

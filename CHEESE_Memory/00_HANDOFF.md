@@ -1,9 +1,9 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-03-26 11:18 +01:00
+- Last updated: 2026-03-26 11:29 +01:00
 - Current owner: negentropy (research ladder orchestration) / techno-monk (code shipping + experiment execution)
-- Primary focus: Ladder control is split cleanly: Negentropy owns planning/tracking, Techno-Monk owns live execution. The fresh Steve sleep validation is passed, Opa confirmed `hidden_last_token` over `ssm_states`, and the active frontier now shifts to the next upstream ablation: Layer 3 only vs Layers 2-4.
+- Primary focus: Ladder control is split cleanly: Negentropy owns planning/tracking, Techno-Monk owns live execution. The cheap upstream extraction ablations are now effectively closed, and the active frontier is split between finishing Step 5f sleep-gate requirements and deciding whether to formalize dimension-specific layer probing.
 - Last session log: `CHEESE_Memory/session_logs/2026-03-25-session-03.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
@@ -16,19 +16,20 @@
 - Research-ladder orchestration is now explicitly anchored in `MoCoP/TODAY_WAR_BOARD_2026-03-26.md` and OpenCLAW task `#67`; Techno-Monk remains primary on host execution and code shipping.
 - Mamba-3 is currently parked again. The March 25 "official release" note was a false alarm, so `#66` remains useful only as a scoping memo; there is no live migration branch until real official weights/runtime exist.
 - Anda-Conda delivered `run_sleep_cycle.py` as the manual/cron sleep operator and closed OpenCLAW `#70`: Opa confirmed `hidden_last_token` decisively beats `ssm_states` (`0.018` avg cross-session cosine vs `0.804`; mean-pooled hidden `0.850`). This closes the first RESEARCH_BACKLOG item and locks the canonical bridge input more firmly.
+- The rest of the cheap extraction stack is now effectively closed too: token-window ablation showed monotonic degradation beyond `last_1`, and multi-layer concat did not justify itself. Layer 3 stays the best balanced default; deeper layers (`6-8`, especially `L8`) separate some pairs more strongly and now look like a Phase C / dimension-specific probing question, not a default bridge-width change.
 
 ## Open Threads
 - [ ] Keep OpenCLAW / Watercooler / local docs aligned under the new role split so the ladder has one orchestration surface instead of drifting summaries.
 - [ ] Reconcile OpenCLAW with Watercooler reality for `#62`, `#63`, and ownership / status of `#46`, so the board stops lying.
-- [ ] Fold the 2026-03-26 Steve sleep pass and `run_sleep_cycle.py` operator into the canonical ladder docs so the active blocker moves upstream cleanly.
-- [ ] Hand out and complete the next Opa ablation: Layer 3 only vs Layers 2-4 concatenation.
+- [ ] Finish the remaining Step 5f sleep-gate requirements: second full cycle plus decay calibration.
+- [ ] Decide whether to open a new dimension-specific layer probing task (Phase C / OCEAN-style), based on the `L8` asymmetry finding.
 - [ ] Keep Mamba-3 explicitly parked until there is a real official release with actual weights/runtime to inspect.
 
 ## Watch Out For
 - Laptop PowerShell `Invoke-WebRequest` is flaky against Steve even when the service is healthy; `curl.exe` or host-side `curl` is more trustworthy for `/status` checks.
 
 ## Recommended Next Step
-Treat `hidden_last_token` vs `ssm_states` as closed, fold the result into canon, and move the next cheap upstream decision to Layer 3 only vs Layers 2-4 while keeping Mamba-3 parked.
+Treat the cheap extraction ablations as closed, finish Step 5f honestly, and then decide whether the `L8` asymmetry is strong enough to justify a new dimension-specific layer-mapping task before any A100 spend.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes
@@ -44,6 +45,7 @@ Treat `hidden_last_token` vs `ssm_states` as closed, fold the result into canon,
 - 2026-03-26 09:00 +01:00 | negentropy | Corrected ladder state after the Mamba-3 false alarm; parked migration work again until an actual official release exists.
 - 2026-03-26 11:06 +01:00 | negentropy | Recorded the fresh Steve sleep PASS (`2K/0U/0W/0D`) and shifted the active frontier upstream to Opa task `#70` (`hidden_last_token` vs `ssm_states`).
 - 2026-03-26 11:18 +01:00 | negentropy | Recorded the decisive Opa confirmation that `hidden_last_token` beats `ssm_states`, closed the first backlog item, and shifted the next frontier to Layer 3 vs Layers 2-4.
+- 2026-03-26 11:29 +01:00 | negentropy | Recorded that token-window and multi-layer concat are also effectively closed; Layer 3 remains the balanced default, while deeper-layer asymmetry is now a Phase C / dimension-probing question.
 
 ## Next Agent Brief
 - Open first:

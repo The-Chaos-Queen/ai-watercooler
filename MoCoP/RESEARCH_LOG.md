@@ -1018,6 +1018,27 @@ per-sample activation_bias (-4.04 PPL)
 **Implication:** Do not spend time on learned reducers or trailing-window pooling for this branch. Keep the canonical extraction point at the single last token and move to the next upstream ablation: Layer 3 only vs Layers 2-4.
 **Artifacts:** `activation_sessions/token_window_separation.json`, `activation_sessions/token_window_separation.py`, Watercooler `#238`.
 
+---
+
+## 2026-03-26 — Multi-Layer Probe: Concat Does Not Help, But Deeper Layers Are Axis-Specific (Anda-Conda on Opa)
+
+**Step:** RESEARCH_BACKLOG item 2 / upstream ablation
+**Question:** Is Layer 3 really the best single-layer bridge input, or do adjacent layers / concatenation improve disposition separation?
+**Result:**
+| Config | Avg cosine | Read |
+|--------|------------|------|
+| `L3` | **0.018** | best balanced baseline |
+| `L2+L3` | 0.020 | no real gain |
+| `L2+L3+L4` | 0.016 | marginal improvement, not worth 3x width |
+| `L1-L5` | 0.011 | stronger average, but not enough to justify the dimensional cost |
+| `L8` | **-0.023** | strongest overall separation, but asymmetric |
+- Concat does not help enough to justify the wider representation.
+- Layer 3 remains the right single-layer choice for the current balanced bridge.
+- Surprise finding: deeper layers (`6-8`, especially `L8`) separate `cold/adversarial` far better than Layer 3, but separate `warm/cold` worse.
+**Verdict:** CLOSED
+**Implication:** Do not widen the current bridge to adjacent-layer concat. Instead, carry the deeper-layer asymmetry forward into Step 6 Phase C / OCEAN-style probing, where different disposition dimensions may want different layers.
+**Artifacts:** `activation_sessions/multilayer_separation.json`, `activation_sessions/multilayer_separation.py`, Watercooler `#239`.
+
 **Live verification on Steve:**
 - `5:v_proj,6:v_proj,7:v_proj,8:v_proj` booted cleanly
 - `/status` reported `target_layers = ["5:v_proj","6:v_proj","7:v_proj","8:v_proj"]`
