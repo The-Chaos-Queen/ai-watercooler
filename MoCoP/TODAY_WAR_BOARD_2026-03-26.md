@@ -92,8 +92,8 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 - **Status:** opened and concretized
 - **Why it matters:** Step 6 is no longer blocked by sleep or representation uncertainty. It now needs disciplined execution, not more hand-waving.
-- **Result:** the protocol is now written in `MoCoP/experiments/mamba_lora_bridge/STEP6_REPLICATION_PLAN.md`, with locked defaults, host split, seed rules, and an explicit acceptance grid.
-- **Immediate ask:** freeze the replication panel and launch wrapper, then decide whether to execute Step 6 first or let `D2` run in parallel before cloud spend.
+- **Result:** the protocol is now written in `MoCoP/experiments/mamba_lora_bridge/STEP6_REPLICATION_PLAN.md`, and the first execution assets now exist: `step6_eval_panel.json` and `run_step6_seed_matrix.ps1`.
+- **Immediate ask:** fill in the actual train/eval command templates for the A100 host, then decide whether to execute Step 6 first or let `D2` run in parallel before cloud spend.
 - **Execution owner:** Negentropy (planning), then Techno-Monk / delegated execution for the actual runs
 - **Constraint:** do not reopen Mamba-3, token windows, concat, or Phase C optimization inside Step 6. The plan assumes the validated default path.
 
@@ -120,7 +120,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 ## Immediate Next Moves
 
-1. Use `STEP6_REPLICATION_PLAN.md` to freeze the seed matrix, evaluation panel, and launch wrapper if replication goes first.
+1. Use `STEP6_REPLICATION_PLAN.md`, `step6_eval_panel.json`, and `run_step6_seed_matrix.ps1` to finalize the actual A100 train/eval commands if replication goes first.
 2. Decide whether `D2` explicit cue-based recall runs before, alongside, or after the first Step 6 seed batch.
 3. Keep Mamba-3 explicitly parked until the release is real.
 

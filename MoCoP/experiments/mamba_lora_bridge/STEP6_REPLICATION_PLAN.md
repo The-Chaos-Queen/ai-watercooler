@@ -159,6 +159,10 @@ Each seed should produce the same artifact bundle.
 
 Run the resulting checkpoint on the fixed evaluation panel.
 
+Frozen panel file:
+
+- `MoCoP/experiments/mamba_lora_bridge/step6_eval_panel.json`
+
 Minimum panel slices:
 
 - observation / passive null condition
@@ -267,6 +271,15 @@ Each seed should leave behind:
 - `post_sleep_report.json` for any seed that touches the memory path
 - one compact verdict line
 
+Artifact layout convention:
+
+- run-set root: `<run_root>/<run_set_id>/`
+- per-seed root: `<run_root>/<run_set_id>/seed_<seed>/`
+- canonical logs:
+  - `train.log`
+  - `eval.log`
+  - `post_sleep_report.json` if memory was exercised
+
 Suggested verdict format:
 
 ```text
@@ -302,6 +315,11 @@ seed=42 | effect=pass | welfare=pass | memory=not_used | note=clean replication
 2. Define the seed-specific artifact folder naming convention.
 3. Write the actual launch wrapper for the Step 6 A100 seed matrix.
 4. Keep D2 and later growth work explicitly parallel, not entangled with replication.
+
+Current implementation anchors:
+
+- fixed panel: `MoCoP/experiments/mamba_lora_bridge/step6_eval_panel.json`
+- seed launcher: `MoCoP/experiments/mamba_lora_bridge/run_step6_seed_matrix.ps1`
 
 ---
 
