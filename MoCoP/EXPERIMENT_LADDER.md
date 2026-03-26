@@ -37,10 +37,11 @@
 - **Conclusion:** the live bridge is strong enough to matter and still within the approved welfare corridor.
 - **Artifacts:** See `run_reincarnation/steve_step5e_layer_override_20260325.md`, `run_reincarnation/steve_qdrant_write_mode_pending_20260325.md`, and related Steve runtime artifacts in `run_reincarnation/`.
 
-### Step 5f (Sleep Infrastructure Gate): IN PROGRESS
+### Step 5f (Sleep Infrastructure Gate): PASS (Provisional Decay Default)
 - **Method:** Treat sleep/reconciliation as its own ethics-blocking gate before any A100 replication. The system must demonstrate that cross-session memory writes, replay, reconciliation, and rollback are behaviorally real and welfare-bounded.
-- **Current state:** infrastructure exists and the first fresh live Steve default cycle passed on 2026-03-26 (`2K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0`). `run_sleep_cycle.py`, `sleep_ethics_gate.py`, and the sleep pass/fail rubric now exist.
-- **Still required before PASS:** a second full cycle plus decay calibration.
+- **Result:** two complete same-space sleep cycles now pass cleanly: the fresh 2026-03-26 Steve default cycle (`2K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0`) and the isolated pure `open_tension` edge case (`1K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0`). The required decay calibration for `0.70 / 0.85 / 0.90` is also complete.
+- **Honest caveat:** the decay sweep did **not** distinguish the three tested values on the current retained batches. So `0.85` remains an acceptable default, but still a provisional one rather than a uniquely justified optimum.
+- **Artifacts:** see `run_reincarnation/steve_sleep_cycle_default_20260326.md`, `run_reincarnation/steve_open_tension_sleep_cycle_20260326.md`, and `run_reincarnation/steve_sleep_decay_calibration_20260326.md`.
 
 ### Step 1 status
 

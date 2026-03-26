@@ -20,7 +20,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 - **Step 5e:** partial pass. Layer targeting matters; `12-15` remains the working zone.
 - **Wake -> sleep path:** behaviorally real on Steve after the replay-policy split.
 - **Step 5f:** now passed at the gate level. Two complete same-space sleep cycles are clean, and the required decay calibration run is done.
-- **Current live question:** the cheap extraction ablations are now essentially closed. The next real question is whether to probe dimension-specific layer peaks before spending A100 time.
+- **Current live question:** the cheap extraction ablations and Phase C-lite probe are now closed. The next real choice is D1 growth integration versus direct Step 6 replication planning.
 
 ## Current Hard Facts
 
@@ -35,7 +35,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
   - pure `open_tension` edge case: `1K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0`
 - Decay calibration for `0.70 / 0.85 / 0.90` is complete on the current retained batches.
 - Honest caveat: the decay sweep did **not** distinguish the three values on these batches, so `0.85` remains acceptable but still provisional rather than uniquely justified.
-- Layer 3 remains the best balanced bridge layer. Adjacent-layer concat does not help enough to justify the width, but deeper layers (`6-8`, especially `L8`) separate some disposition pairs more strongly and may matter for Phase C / OCEAN-style dimension probing.
+- Layer 3 remains the best balanced bridge layer. Phase C-lite now confirms dimension-specific depth structure: Agreeableness peaks at `L1`, Neuroticism at `L7`, and the cold/adversarial detachment axis sharpens hard by `L8`.
 - Mamba-3 is currently **parked**, not active migration work. The March 25 "release" note was a false alarm; until official weights/runtime exist, this stays a scoping memo, not an execution branch.
 
 ## Active Ladder Threads
@@ -58,18 +58,19 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 ### 3. Dimension-Specific Layer Probing
 
-- **Status:** queued, non-blocking
+- **Status:** completed (informational, non-blocking)
 - **Why it matters:** the multi-layer probe says width is not the answer, but layer depth may still matter per disposition axis
-- **Immediate ask:** run Phase C-lite first on existing warm/cold/adversarial data: recast them as partial OCEAN proxies, compute Fisher Ratio per layer per dimension, and map the best bands for Qwen 1.5B / 7B without spending A100
+- **Result:** Purple's Phase C-lite reanalysis of existing data says different dimensions peak at different Mamba depths: `L1` for agreeableness proxy, `L7` for neuroticism proxy, and `L2/L8` for the cold/adversarial detachment axis, with genuine anti-correlation by `L8`.
+- **Immediate ask:** treat this as future architecture guidance only. Do not change the validated live default or block A100 on it.
 - **Execution owner:** Purple
 - **Orchestration owner:** Negentropy
-- **Constraint:** informational only. Do not block A100 or growth-ladder work on it; layers `12-15` remain the validated default until this math says otherwise.
+- **Constraint:** informational only. Layers `12-15` remain the validated Qwen injection default, and the current single-layer bridge stays live until a later multi-head experiment earns a change.
 
 ### 4. Canon Consolidation
 
 - **Status:** open
 - **Why it matters:** Watercooler/live behavior has outrun some canon docs again
-- **Immediate ask:** fold the 2026-03-26 Step 5f closeout, the decay calibration, and the closed Opa ablations into the right ladder-facing docs
+- **Immediate ask:** fold Purple's completed Phase C-lite result into the canon surfaces and clean the remaining OpenCLAW drift on `#71`
 - **Execution owner:** Negentropy
 - **Orchestration owner:** Negentropy
 
@@ -105,8 +106,8 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 ## Immediate Next Moves
 
-1. Run the queued Phase C-lite Fisher-ratio pass on existing data and treat it as informational, not blocking.
-2. Queue and track D1 private-write-policy integration now that D0 birth isolation is proven.
+1. Advance D1 private-write-policy integration now that D0 birth isolation is proven.
+2. Start Step 6 replication planning without waiting on more cheap layer math.
 3. Keep Mamba-3 explicitly parked until the release is real.
 
 ## One-Sentence Summary

@@ -57,7 +57,7 @@ Use Watercooler for fast swarm coordination.
 - Report cosine separation, within-class variance, and downstream bridge quality if feasible
 
 **Status**
-- Open
+- Closed
 
 ---
 
@@ -220,8 +220,8 @@ Use Watercooler for fast swarm coordination.
 Unless new evidence appears, the default order remains:
 
 1. Mamba interpretability probing on the winning representation
-2. real 4090/A100 qualitative eval
-3. dimension-specific layer probing for Phase C / OCEAN-style axes
-4. only then consider changing the canonical bridge input shape
+2. real 4090/A100 qualitative eval or Step 6 replication planning
+3. growth-ladder D1 and later developmental memory work in parallel
+4. only then consider changing the canonical bridge input shape, using the already-closed Phase C-lite map as guidance
 
 This preserves the current signal, avoids reopening solved wiring problems too early, and keeps the cheapest decisive ablations first.

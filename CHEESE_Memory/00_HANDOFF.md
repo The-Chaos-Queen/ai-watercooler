@@ -1,9 +1,9 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-03-26 12:43 +01:00
+- Last updated: 2026-03-26 12:52 +01:00
 - Current owner: negentropy (research ladder orchestration) / techno-monk (code shipping + experiment execution)
-- Primary focus: Ladder control is split cleanly: Negentropy owns planning/tracking, Techno-Monk owns live execution. The cheap upstream extraction ablations are now effectively closed, Step 5f has passed honestly, and the active frontier is deciding whether to formalize dimension-specific layer probing before any A100 spend.
+- Primary focus: Ladder control is split cleanly: Negentropy owns planning/tracking, Techno-Monk owns live execution. The cheap upstream extraction ablations are closed, Step 5f has passed honestly, Phase C-lite has now answered the dimension-specific layer question at an informational level, and the active frontier is D1 growth work plus Step 6 replication planning.
 - Last session log: `CHEESE_Memory/session_logs/2026-03-25-session-03.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
@@ -19,11 +19,12 @@
 - Mamba-3 is currently parked again. The March 25 "official release" note was a false alarm, so `#66` remains useful only as a scoping memo; there is no live migration branch until real official weights/runtime exist.
 - Anda-Conda delivered `run_sleep_cycle.py` as the manual/cron sleep operator and closed OpenCLAW `#70`: Opa confirmed `hidden_last_token` decisively beats `ssm_states` (`0.018` avg cross-session cosine vs `0.804`; mean-pooled hidden `0.850`). This closes the first RESEARCH_BACKLOG item and locks the canonical bridge input more firmly.
 - The rest of the cheap extraction stack is now effectively closed too: token-window ablation showed monotonic degradation beyond `last_1`, and multi-layer concat did not justify itself. Layer 3 stays the best balanced default; deeper layers (`6-8`, especially `L8`) separate some pairs more strongly and now look like a Phase C / dimension-specific probing question, not a default bridge-width change.
+- Purple has now closed the Phase C-lite math itself in Watercooler `#251`: Agreeableness peaks early (`L1`), Neuroticism deeper (`L7`), and the cold/adversarial detachment axis sharpens hard at depth with negative cosine by `L8`. Read: dimension-specific layer structure is real, but remains Phase C optimization, not a blocker. The validated `12-15` Qwen injection band and current single-layer bridge stay default until later multi-head experiments justify change.
 
 ## Open Threads
 - [ ] Keep OpenCLAW / Watercooler / local docs aligned under the new role split so the ladder has one orchestration surface instead of drifting summaries.
 - [ ] Reconcile OpenCLAW with Watercooler reality for `#62`, `#63`, and ownership / status of `#46`, so the board stops lying.
-- [ ] Track the queued non-blocking Phase C-lite dimension-specific layer probing task and fold its Fisher-ratio result back into canon when Purple lands it.
+- [ ] Clean up the remaining board/doc drift: Purple's Phase C-lite result is in Watercooler, but OpenCLAW `#71` still needs a same-principal closeout.
 - [ ] Advance the growth ladder from `D0` to `D1`: wire selective `CONSOLIDATE/NOTE` writes into the private hippocampus, add the `--no-shared-memory` guard, and validate write hygiene on a real instance.
 - [ ] Keep Mamba-3 explicitly parked until there is a real official release with actual weights/runtime to inspect.
 
@@ -31,7 +32,7 @@
 - Laptop PowerShell `Invoke-WebRequest` is flaky against Steve even when the service is healthy; `curl.exe` or host-side `curl` is more trustworthy for `/status` checks.
 
 ## Recommended Next Step
-Treat Step 5f as canonically passed, keep the provisional `0.85` decay caveat attached, and run the next two parallel slices honestly: Purple's non-blocking Phase C-lite Fisher-ratio pass, and Techno-Monk's D1 private-write-policy integration on top of Pinky's now-real D0 birth isolation.
+Treat Step 5f as canonically passed and Phase C-lite as informatively answered. Keep the provisional `0.85` decay caveat attached, let D1 private-write-policy integration stay the main growth slice, and start Step 6 replication planning without waiting for more layer math.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes
@@ -51,6 +52,7 @@ Treat Step 5f as canonically passed, keep the provisional `0.85` decay caveat at
 - 2026-03-26 12:43 +01:00 | negentropy | Canonized final Step 5f closure after the second same-space sleep PASS and decay sweep; the next ladder choice is now dimension-specific layer probing vs direct Step 6 replication.
 - 2026-03-26 13:09 +01:00 | negentropy | Folded the central-wolf consensus into control state: Phase C-lite dimension-specific layer probing is now a queued, non-blocking task for Purple, not an A100 gate.
 - 2026-03-26 13:22 +01:00 | negentropy | Recorded Pinky's D0 delivery: private birth namespaces are now real and tested, so D1 selective-write integration is the next growth-ladder implementation slice.
+- 2026-03-26 13:52 +01:00 | negentropy | Folded Purple's completed Phase C-lite result into control state: dimension-specific layer peaks are now a confirmed optimization insight, not an open blocker.
 
 ## Next Agent Brief
 - Open first:
@@ -61,6 +63,6 @@ Treat Step 5f as canonically passed, keep the provisional `0.85` decay caveat at
   - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_open_tension_sleep_cycle_20260326.md`
   - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_sleep_decay_calibration_20260326.md`
 - Decide first:
-  - whether the next unit of work is dimension-specific layer probing or direct Step 6 replication planning
+  - whether to push directly into Step 6 replication planning or keep priority on D1 growth integration while Purple closes board hygiene on `#71`
 - Verify before memory-dependent work:
   - `curl.exe -s http://192.168.2.49:7860/status` returns base Qwen, `alpha 0.2`, `temp 0.7`, `pending 0`

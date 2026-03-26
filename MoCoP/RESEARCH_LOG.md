@@ -1197,4 +1197,24 @@ per-sample activation_bias (-4.04 PPL)
 
 ---
 
+## 2026-03-26 — Task #71: Phase C-lite Dimension-Specific Layer Probing (Purple, local analysis)
+
+**Step:** Phase C-lite (non-blocking, informational)
+**Question:** Do different disposition dimensions peak at different Mamba layers? (Digital hormones hypothesis, Liminal #140)
+**Method:** Recast existing warm/cold/adversarial sessions as partial OCEAN proxies (Agreeableness, Neuroticism, Detachment axis). Computed per-dimension per-layer separation from Anda-Conda's multilayer_separation.json. Pure math on existing data, no new forward passes.
+**Result:**
+| Dimension | OCEAN Proxy | Best Mamba Layer | Cosine | Pattern |
+|---|---|---|---|---|
+| Agreeableness | warm vs cold | **L1** | 0.008 | Peaks early, degrades deeper |
+| Neuroticism | warm vs adversarial | **L7** | 0.011 | Tightens monotonically deeper |
+| Detachment axis | cold vs adversarial | **L2** | 0.004 | Goes NEGATIVE at depth (L8: -0.157) |
+- Different dimensions ARE encoded at different depths. The digital hormones hypothesis is partially confirmed.
+- Cold/adversarial goes anti-correlated at deeper layers — genuine dimensional structure, not noise.
+- Current Layer 3 extraction is a compromise across dimensions; a multi-head bridge reading L1+L7 could outperform single-layer.
+**Verdict:** INFORMATIONAL PASS — confirms dimension-specific encoding. Does NOT change the validated 12-15 Qwen injection default. Phase C optimization, not Phase Now.
+**Implication:** Multi-head Mamba extraction (one head per OCEAN dimension, different source layers) is a viable future architecture. Requires new shaping sessions for real OCEAN coverage (beyond warm/cold/adversarial) before A100 investment.
+**Artifacts:** Analysis computed from `activation_sessions/multilayer_separation.json`. Watercooler #251.
+
+---
+
 *Append new entries below this line.*
