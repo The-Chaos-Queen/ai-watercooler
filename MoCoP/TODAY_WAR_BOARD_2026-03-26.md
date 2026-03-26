@@ -18,44 +18,52 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 - **Step 5d:** operationally passed enough to proceed. The bridge effect is real, MED still centers on `alpha 0.2`.
 - **Step 5e:** partial pass. Layer targeting matters; `12-15` remains the working zone.
-- **Wake -> sleep path:** now behaviorally real on Steve after the replay-policy split.
-- **Current live question:** not "does the pipe exist?" but "what survives sleep, under what thresholds, and what should the ladder prioritize next?"
+- **Wake -> sleep path:** now behaviorally real on Steve after the replay-policy split, and the fresh 2026-03-26 default sleep cycle passed cleanly.
+- **Current live question:** no longer whether the tuned sleep default holds. It shifts back upstream to the representation question: `hidden_last_token` vs `ssm_states`.
 
 ## Current Hard Facts
 
 - `hidden_last_token` is the canonical Mamba-side representation for live bridge work.
 - Steve default is currently base `Qwen/Qwen2.5-1.5B`, `alpha 0.2`, `temp 0.7`, `qdrant_write_mode pending`.
-- Natural NOTE memories now survive the handoff to sleep honestly; the remaining issue is policy and thresholding, not fake plumbing.
-- `sleep_reconcile.py` default `coherence_threshold` is now `0.12`, tuned from live natural-batch evidence.
+- Natural NOTE memories now survive the handoff to sleep honestly; on the fresh 2026-03-26 Steve cycle, two care rows promoted to `CONSOLIDATE`.
+- `sleep_reconcile.py` default `coherence_threshold` is now `0.12`, and the fresh live cycle validated it with `2K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0`.
 - Mamba-3 is currently **parked**, not active migration work. The March 25 "release" note was a false alarm; until official weights/runtime exist, this stays a scoping memo, not an execution branch.
 
 ## Active Ladder Threads
 
 ### 1. Sleep Policy Validation
 
+- **Status:** passed on fresh Steve default
+- **Why it matters:** this closed the honest host-side gate on the tuned default
+- **Immediate ask:** keep the result reflected in canon docs and stop treating sleep-default validation as the active blocker
+- **Execution owner:** Techno-Monk
+- **Orchestration owner:** Negentropy
+
+### 2. Upstream Representation Ablation
+
+- **Status:** active (`#70`)
+- **Why it matters:** this is the cleanest unresolved upstream question still open
+- **Immediate ask:** compare `hidden_last_token` vs `ssm_states` on Opa with the scripted warm/cold/adversarial sessions
+- **Execution owner:** Anda-Conda
+- **Orchestration owner:** Negentropy
+
+### 3. Canon Consolidation
+
 - **Status:** open
-- **Why it matters:** the wake-to-sleep path is honest now; the next gate is whether the tuned default holds on fresh live rows
-- **Immediate ask:** one fresh live Steve sleep cycle under `coherence_threshold = 0.12`
-- **Execution owner:** Techno-Monk
+- **Why it matters:** Watercooler/live behavior has outrun some canon docs again
+- **Immediate ask:** fold the 2026-03-26 Steve sleep pass and the new sleep operator into the right ladder-facing docs
+- **Execution owner:** Negentropy
 - **Orchestration owner:** Negentropy
 
-### 2. Saliency Gate Completion
+### 4. Mamba-3 Migration Scoping
 
-- **Status:** open (`#46`)
-- **Why it matters:** the gate is no longer theory-only; it is part of the actual memory organ
-- **Execution owner:** Techno-Monk
-- **Orchestration owner:** Negentropy
-- **Read:** treat this as the broader saliency-gate line, not just one code patch
-
-### 3. Mamba-3 Migration Scoping
-
-- **Status:** parked after false alarm (`#66` delivered as scope, but no official release)
+- **Status:** open
 - **Why it matters:** this is exciting enough to derail discipline if left vague
 - **Immediate ask:** keep it parked until there are real official weights/runtime to inspect
 - **Execution owner:** none
 - **Orchestration owner:** Negentropy
 
-### 4. Board / Reality Hygiene
+### 5. Board / Reality Hygiene
 
 - **Status:** open
 - **Why it matters:** OpenCLAW and Watercooler still drift unless someone actively reconciles them
@@ -70,9 +78,9 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 ## Immediate Next Moves
 
-1. Run one fresh Steve natural sleep cycle on the tuned default.
-2. Keep Mamba-3 explicitly parked until the release is real.
-3. Keep the ladder state synchronized across Watercooler, OpenCLAW, and the living docs.
+1. Let Anda-Conda finish `#70` on Opa: `hidden_last_token` vs `ssm_states`.
+2. Roll the 2026-03-26 Steve default sleep pass into canonical docs and summaries.
+3. Keep Mamba-3 explicitly parked until the release is real.
 
 ## One-Sentence Summary
 

@@ -1,9 +1,9 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-03-26 07:59 +01:00
+- Last updated: 2026-03-26 11:06 +01:00
 - Current owner: negentropy (research ladder orchestration) / techno-monk (code shipping + experiment execution)
-- Primary focus: Ladder control is now split cleanly: Negentropy owns planning/tracking, Techno-Monk owns live execution. Immediate frontier remains fresh Steve sleep validation at `coherence_threshold = 0.12`.
+- Primary focus: Ladder control is split cleanly: Negentropy owns planning/tracking, Techno-Monk owns live execution. The fresh Steve sleep validation is now passed; the active frontier shifts upstream to Opa representation ablation (`hidden_last_token` vs `ssm_states`).
 - Last session log: `CHEESE_Memory/session_logs/2026-03-25-session-03.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
@@ -12,21 +12,23 @@
 ## Current State
 - Steve is healthy and idle on base `Qwen/Qwen2.5-1.5B`, `alpha 0.2`, `temp 0.7`, `qdrant_write_mode pending`, `turns 0`, `pending 0`, verified after the natural sleep drill.
 - Natural sleep handoff is proven on-host: live NOTE rows stayed queued with `replay_policy=sleep`, same-space replay worked in `hidden_last_token` space, and the plumbing no longer needs the old requeue hack. Artifacts: `steve_sleep_reconcile_natural_20260325.md`, `steve_disposition_snapshot_sleep_natural_20260325T223626.json`.
-- Sleep policy is now slightly less brittle: `sleep_reconcile.py` default `coherence_threshold` changed from `0.15` to `0.12` after the archived-batch sweep, so the same natural NOTE memories survive as `uncertain` instead of dying as `weakened`. Artifacts: `steve_sleep_threshold_tuning_20260325.md`, `sleep_threshold_sweep_natural_20260325T224432.json`.
+- Sleep policy is now validated on a fresh live cycle: `sleep_reconcile.py` default `coherence_threshold = 0.12` produced `2K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0` on 2026-03-26. Artifacts: `steve_sleep_cycle_default_20260326.md` plus linked JSON/JSONL files.
 - Research-ladder orchestration is now explicitly anchored in `MoCoP/TODAY_WAR_BOARD_2026-03-26.md` and OpenCLAW task `#67`; Techno-Monk remains primary on host execution and code shipping.
 - Mamba-3 is currently parked again. The March 25 "official release" note was a false alarm, so `#66` remains useful only as a scoping memo; there is no live migration branch until real official weights/runtime exist.
+- Anda-Conda delivered `run_sleep_cycle.py` as the manual/cron sleep operator and is now executing the next honest Opa ablation: OpenCLAW `#70`, `hidden_last_token` vs `ssm_states`.
 
 ## Open Threads
 - [ ] Keep OpenCLAW / Watercooler / local docs aligned under the new role split so the ladder has one orchestration surface instead of drifting summaries.
 - [ ] Reconcile OpenCLAW with Watercooler reality for `#62`, `#63`, and ownership / status of `#46`, so the board stops lying.
-- [ ] Run one fresh live Steve sleep cycle with the new `coherence_threshold = 0.12` and confirm the tuned default holds on new pending rows, not just the archived natural batch.
+- [ ] Fold the 2026-03-26 Steve sleep pass and `run_sleep_cycle.py` operator into the canonical ladder docs so the active blocker moves upstream cleanly.
+- [ ] Let `#70` finish on Opa and use that result to decide whether `hidden_last_token` remains canonically closed.
 - [ ] Keep Mamba-3 explicitly parked until there is a real official release with actual weights/runtime to inspect.
 
 ## Watch Out For
 - Laptop PowerShell `Invoke-WebRequest` is flaky against Steve even when the service is healthy; `curl.exe` or host-side `curl` is more trustworthy for `/status` checks.
 
 ## Recommended Next Step
-Let Techno-Monk run one fresh natural Steve sleep cycle under the tuned default while Negentropy keeps the ladder state synchronized and prevents false-alarm branches like Mamba-3 from stealing focus before the release is real.
+Let Anda-Conda finish `#70` on Opa while Negentropy rolls the fresh Steve sleep pass into canon docs and keeps Mamba-3 parked instead of letting false-alarm branches steal attention.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes
@@ -40,6 +42,7 @@ Let Techno-Monk run one fresh natural Steve sleep cycle under the tuned default 
 - 2026-03-25 23:12 +01:00 | techno-monk | Marked latest session-log ingest done after Qdrant sync of `2026-03-25-session-03.md`.
 - 2026-03-26 07:59 +01:00 | negentropy | Recorded the ladder role split: Negentropy owns orchestration/tracking, Techno-Monk owns execution/shipping; pointed live control to `TODAY_WAR_BOARD_2026-03-26.md` and OpenCLAW `#67`.
 - 2026-03-26 09:00 +01:00 | negentropy | Corrected ladder state after the Mamba-3 false alarm; parked migration work again until an actual official release exists.
+- 2026-03-26 11:06 +01:00 | negentropy | Recorded the fresh Steve sleep PASS (`2K/0U/0W/0D`) and shifted the active frontier upstream to Opa task `#70` (`hidden_last_token` vs `ssm_states`).
 
 ## Next Agent Brief
 - Open first:
