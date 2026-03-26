@@ -978,6 +978,25 @@ per-sample activation_bias (-4.04 PPL)
   - `target_layers`
   - `target_layers_overridden`
 
+---
+
+## 2026-03-26 — Opa Confirmation: Hidden Last-Token Wins, SSM States Stay Dead (Anda-Conda on Opa)
+
+**Step:** Upstream representation ablation / RESEARCH_BACKLOG item 1
+**Question:** Does `cache.ssm_states` actually carry usable dispositional separation, or is `hidden_last_token` still the only honest bridge substrate?
+**Result:**
+| Representation | Avg cross-session cosine | Read |
+|----------------|--------------------------|------|
+| `hidden_last_token` | **0.018** | Near-orthogonal, strong disposition separation |
+| `ssm_states` | 0.804 | Near-identical, shared structure only |
+| mean-pooled hidden | 0.850 | Near-identical, known bad baseline |
+- Opa reproduces the earlier Steve/Pinky result with the same qualitative conclusion.
+- `ssm_states` are functionally as bad as mean-pooling for disposition transfer.
+- The first RESEARCH_BACKLOG ordering-constraint item is now closed.
+**Verdict:** CANON LOCKED
+**Implication:** Stop reopening SSM states as a serious live candidate. The next cheap upstream ablation is Layer 3 only vs Layers 2-4 concatenation.
+**Artifacts:** Opa execution of `activation_sessions/ssm_vs_hidden_separation.py`; task `#70`; Watercooler result summary pending at time of local log update.
+
 **Live verification on Steve:**
 - `5:v_proj,6:v_proj,7:v_proj,8:v_proj` booted cleanly
 - `/status` reported `target_layers = ["5:v_proj","6:v_proj","7:v_proj","8:v_proj"]`

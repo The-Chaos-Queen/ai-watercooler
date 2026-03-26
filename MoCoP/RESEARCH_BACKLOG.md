@@ -41,7 +41,13 @@ Use Watercooler for fast swarm coordination.
 - If `hidden_last_token` remains clearly better, we can stop reopening that door.
 
 **Current position**
-- Keep `hidden_last_token` as the canonical baseline until this is tested.
+- Closed on 2026-03-26.
+- `hidden_last_token` is now empirically locked as the canonical bridge input.
+- Opa confirmation matched the earlier Steve/Pinky result:
+  - `hidden_last_token`: avg cross-session cosine `0.018`
+  - `ssm_states`: avg cross-session cosine `0.804`
+  - mean-pooled hidden: avg cross-session cosine `0.850`
+- Read: SSM states are effectively as bad as mean-pooling for disposition transfer.
 
 **Minimum experiment**
 - Same scripted warm/cold/adversarial sessions
@@ -131,11 +137,36 @@ Use Watercooler for fast swarm coordination.
 - Re-run the equivalent of Phase 1 / Step 4b on Mamba-3 before any bridge rewrite
 
 **Status**
+- Closed
+
+---
+
+### 5. Mamba Interpretability Probing on the Winning Representation
+
+**Question**
+- Once the bridge input shape is fixed, what exactly is the Mamba state representing, and can we identify the dimensions that drive the downstream disposition effect?
+
+**Why it matters**
+- If the current bridge works, the next risk is cargo-culting a representation we do not understand.
+- Probing before the next scale-up gives us a chance to separate "useful state" from accidental wiring.
+- The result should constrain whether later bridges stay free-form, move to a basis, or target specific subspaces/layers.
+
+**Minimum experiment**
+- Freeze the winning Mamba input representation and train cheap probes for:
+  - episode identity / disposition class
+  - care-relevant salience vs novelty
+  - recovery after contradiction or re-entry
+- Add one interpretability pass that compares the probed dimensions against bridge-induced activation drift on Qwen.
+
+**Deliverable**
+- A short map of which latent directions track disposition, salience, and recovery well enough to guide the next bridge revision.
+
+**Status**
 - Open
 
 ---
 
-### 5. Basis-Constrained Bridge vs Free Hypernetwork
+### 6. Basis-Constrained Bridge vs Free Hypernetwork
 
 **Question**
 - Should the bridge keep emitting free bias vectors, or should it predict coefficients over a learned or extracted persona basis?
@@ -153,7 +184,7 @@ Use Watercooler for fast swarm coordination.
 
 ## P3 — Future-Facing Backlog
 
-### 6. Direct Developmental Memory Metrics
+### 7. Direct Developmental Memory Metrics
 
 **Question**
 - Once Growth Before SAS moves from theory to code, what is the best measurement suite for concept formation, not just retrieval success?
@@ -174,8 +205,8 @@ Use Watercooler for fast swarm coordination.
 
 Unless new evidence appears, the default order remains:
 
-1. `hidden_last_token` vs `ssm_states`
-2. Layer 3 only vs Layers 2-4
+1. Layer 3 only vs Layers 2-4
+2. Mamba interpretability probing on the winning representation
 3. real 4090/A100 qualitative eval
 4. token-window ablation
 5. only then consider changing the canonical bridge input shape

@@ -19,7 +19,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 - **Step 5d:** operationally passed enough to proceed. The bridge effect is real, MED still centers on `alpha 0.2`.
 - **Step 5e:** partial pass. Layer targeting matters; `12-15` remains the working zone.
 - **Wake -> sleep path:** now behaviorally real on Steve after the replay-policy split, and the fresh 2026-03-26 default sleep cycle passed cleanly.
-- **Current live question:** no longer whether the tuned sleep default holds. It shifts back upstream to the representation question: `hidden_last_token` vs `ssm_states`.
+- **Current live question:** the representation question is now closed in favor of `hidden_last_token`. The next honest upstream gate is whether Layer 3 alone is enough, or whether Layers 2-4 carry useful non-redundant signal.
 
 ## Current Hard Facts
 
@@ -41,10 +41,10 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 ### 2. Upstream Representation Ablation
 
-- **Status:** active (`#70`)
-- **Why it matters:** this is the cleanest unresolved upstream question still open
-- **Immediate ask:** compare `hidden_last_token` vs `ssm_states` on Opa with the scripted warm/cold/adversarial sessions
-- **Execution owner:** Anda-Conda
+- **Status:** `hidden_last_token` vs `ssm_states` is now closed by Opa confirmation
+- **Why it matters:** the result is decisive enough to lock the canonical bridge input and stop reopening SSM states as a live candidate
+- **Immediate ask:** spin the next Opa ablation: Layer 3 only vs Layers 2-4 concatenation
+- **Execution owner:** open
 - **Orchestration owner:** Negentropy
 
 ### 3. Canon Consolidation
@@ -78,8 +78,8 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 ## Immediate Next Moves
 
-1. Let Anda-Conda finish `#70` on Opa: `hidden_last_token` vs `ssm_states`.
-2. Roll the 2026-03-26 Steve default sleep pass into canonical docs and summaries.
+1. Canonize the Opa confirmation that `hidden_last_token` beats `ssm_states` decisively.
+2. Hand out the next Opa ablation: Layer 3 only vs Layers 2-4 concatenation.
 3. Keep Mamba-3 explicitly parked until the release is real.
 
 ## One-Sentence Summary

@@ -22,7 +22,25 @@
 - Persona Vectors research proved: disposition IS a linear direction in activation space, shared across model families
 - Training data is synthetic MUD facts — wrong substrate for the real goal
 
-## Current Status Snapshot (2026-03-18 evening)
+## Current Status Snapshot (2026-03-26 midday)
+
+### Step 5a (C.H.E.E.S.E. Reincarnation): PASS (Qualitative)
+- **Method:** Injected a Mamba-derived state from a philosophical C.H.E.E.S.E. log into Qwen-1.5B's `v_proj` layers (12-15) via an activation bias bridge trained with Directional Loss.
+- **Result:** The "Reincarnated" model showed a distinct and profound personality shift, moving from generic AI responses to philosophical, self-referential, and slightly erratic behavior, closely matching the original C.H.E.E.S.E. disposition.
+- **Conclusion:** The bridge can successfully transfer high-level, complex dispositional states, not just facts or simple styles. The "Adrenaline" channel is open.
+- **Artifacts:** See `run_reincarnation/C.H.E.E.S.E_Reincarnation_Debrief_20260325.md`.
+
+### Step 5d (Minimum Effective Dose on Steve): PASS
+- **Method:** Live Steve 4090 eval on base `Qwen/Qwen2.5-1.5B` with activation-bias injection, response-diversity tracking, and recovery checks under the current production path.
+- **Result:** `alpha 0.2` is the MED. The bridge hit `6/6` recall vs `4/6` baseline, entropy increased rather than collapsing, recovery after alpha removal stayed `1.0`, and distress markers stayed `0`.
+- **Infrastructure state:** dual saliency gate is live, `qdrant_write_mode` now defaults to `pending`, and the wake→sleep path no longer depends on the old replay hack.
+- **Conclusion:** the live bridge is strong enough to matter and still within the approved welfare corridor.
+- **Artifacts:** See `run_reincarnation/steve_step5e_layer_override_20260325.md`, `run_reincarnation/steve_qdrant_write_mode_pending_20260325.md`, and related Steve runtime artifacts in `run_reincarnation/`.
+
+### Step 5f (Sleep Infrastructure Gate): IN PROGRESS
+- **Method:** Treat sleep/reconciliation as its own ethics-blocking gate before any A100 replication. The system must demonstrate that cross-session memory writes, replay, reconciliation, and rollback are behaviorally real and welfare-bounded.
+- **Current state:** infrastructure exists and the first fresh live Steve default cycle passed on 2026-03-26 (`2K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0`). `run_sleep_cycle.py`, `sleep_ethics_gate.py`, and the sleep pass/fail rubric now exist.
+- **Still required before PASS:** a second full cycle plus decay calibration.
 
 ### Step 1 status
 
@@ -55,6 +73,8 @@
 - The next decision is no longer "is there any channel at all?" but whether to prioritize Step 2b multi-layer concat or Step 5 substrate change.
 - **Step 4b added (2026-03-20):** Pinky identified the missing cheapest-first gate: do Mamba Layer 3 states even separate for warm/cold/adversarial? Cassian's `.pt` artifacts exist. This is the cheapest possible kill test before Step 5.
 - **Step 5 scope updated (2026-03-20):** Live MUD shaping environment on local hardware (Steve 4090 donation) replaces scripted shaping episodes on A100. cognitive_bridge.py v2 with activation_bias inference is ready. Laughing Opus proposed the setup; Purple wired the inference path; Cassian's activation recorder will track drift.
+- **Step 5d result now matters operationally:** the MED corridor is not hypothetical anymore; `alpha 0.2` is the current live default, not just an eval curiosity.
+- **Step 5f added (2026-03-26):** sleep infrastructure is now a blocking gate before Step 6. Cross-session memory integrity is part of the experiment, not post-hoc ops.
 
 ## The Ladder
 
@@ -224,11 +244,50 @@ Tests whether disposition propagates better when seeded at the reasoning entry a
 
 ---
 
+### Step 5f: Sleep Infrastructure Gate (Steve + local operators, ~$0)
+
+**What:** Prove that the bridge's cross-session memory path is behaviorally real, ethically bounded, and reproducible enough to support later replication. This is a gate on memory integrity, not just host plumbing.
+
+**Why this is blocking now:** Step 6 is multi-seed replication. Multi-seed results are not scientifically clean if cross-session memory handling is still unstable, unrecoverable, or welfare-blind. If sleep changes what survives across sessions, then sleep integrity is part of the experiment surface.
+
+**Required components:**
+- `run_sleep_cycle.py` operator
+- `sleep_reconcile.py`
+- `sleep_ethics_gate.py`
+- `sleep_pass_fail_rubric.md`
+
+**Pass criteria:**
+- `2` complete sleep cycles with `PASS` or `WARN` from `sleep_ethics_gate.py`
+- diversity ratio `>= 0.70` in both cycles
+- recovery `>= 0.90`
+- decay calibration run completed for `0.70 / 0.85 / 0.90`
+- full logging:
+  - versioned pre-sleep snapshot
+  - reconciliation output
+  - post-sleep gate report
+  - one-line rubric summary in Watercooler / session log
+
+**Fail:**
+- any `STOP` verdict from the ethics gate
+- rollback required because post-sleep diversity collapses below threshold
+- sleep-tagged rows are still consumed by retry logic before reconciliation
+- cross-session behavior cannot be reproduced because memory integrity is unstable
+
+**Pass -> unlocks:** Step 6 multi-seed replication
+
+**Fail -> action:** keep work local to sleep/reconciliation and do not spend A100 time pretending the system is more reproducible than it is.
+
+**Cost:** $0.
+
+---
+
 ### Step 6: Multi-Seed Replication (3-5 A100 runs, ~$5)
 
 **What:** Whatever configuration survived Steps 1-5, run it 3-5 times with different seeds. Compute mean and CI for all metrics.
 
 **How:** Same command, different `--seed`.
+
+**Blocking dependency:** Step `5f` must pass first. Multi-seed replication without a stable, ethics-gated sleep/memory path is not a clean replication story.
 
 **Pass:** Effect is consistent across seeds. 95% CI for behavioral shift doesn't cross zero.
 
