@@ -460,21 +460,6 @@
                                 }
                             }
                         });
-                        // Collect sources from the reference sidebar (.site-item links)
-                        const sourceItems = document.querySelectorAll('a.site-item[href]');
-                        if (sourceItems.length > 0) {
-                            combined += '\n\n### Sources\n\n';
-                            sourceItems.forEach((item, idx) => {
-                                const title = (item.querySelector('.site-title') || {}).textContent || '';
-                                const site = (item.querySelector('.site-name') || {}).textContent || '';
-                                const href = item.href || '';
-                                const label = title.trim() || site.trim() || href;
-                                combined += `${idx + 1}. [${label}](${href})`;
-                                if (site && title) combined += ` (${site.trim()})`;
-                                combined += '\n';
-                            });
-                        }
-
                         if (combined.trim()) {
                             node._kimiFullContent = normalizeMarkdown(combined);
                         }
@@ -529,6 +514,24 @@
         messages.forEach((msg) => {
             output += `## ${msg.role}\n\n${msg.content}\n\n---\n\n`;
         });
+
+        // Kimi: append sources section once at the end
+        if (platformKey === 'kimi.com' || platformKey === 'kimi.moonshot.cn') {
+            const sourceItems = document.querySelectorAll('a.site-item[href]');
+            if (sourceItems.length > 0) {
+                output += `## Sources (${sourceItems.length})\n\n`;
+                sourceItems.forEach((item, idx) => {
+                    const title = (item.querySelector('.site-title') || {}).textContent || '';
+                    const site = (item.querySelector('.site-name') || {}).textContent || '';
+                    const href = item.href || '';
+                    const label = title.trim() || site.trim() || href;
+                    output += `${idx + 1}. [${label}](${href})`;
+                    if (site && title) output += ` (${site.trim()})`;
+                    output += '\n';
+                });
+                output += '\n';
+            }
+        }
 
         return output;
     }
