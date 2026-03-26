@@ -429,24 +429,31 @@
                 else if (platformKey === 'kimi.com' || platformKey === 'kimi.moonshot.cn') {
                     const box = node.querySelector('.segment-content-box');
                     if (box) {
-                        const responseMC = box.querySelector(':scope > .markdown-container');
-                        const responseBlock = responseMC ? responseMC.querySelector('.markdown') : null;
-                        if (responseBlock) {
-                            contentNode = responseBlock;
-                            // Prepend thinking block (title + full body) as blockquote
-                            const thinkBlock = box.querySelector('.container-block');
-                            if (thinkBlock) {
-                                const thinkTitle = thinkBlock.querySelector('.toolcall-title-name');
-                                const thinkBody = thinkBlock.querySelector('.markdown');
-                                const titleText = thinkTitle ? thinkTitle.textContent.trim() : 'Thinking';
-                                const bodyText = thinkBody ? normalizeMarkdown(getMarkdownFromElement(thinkBody)) : '';
-                                let prefix = `> **${titleText}**\n`;
+                        // Walk all direct children in order: container-block (thinking/search)
+                        // and markdown-container (response) can alternate multiple times
+                        let combined = '';
+                        Array.from(box.children).forEach(child => {
+                            if (child.classList.contains('container-block')) {
+                                // Thinking or search block — render as blockquote
+                                const title = child.querySelector('.toolcall-title-name');
+                                const body = child.querySelector('.markdown');
+                                const titleText = title ? title.textContent.trim() : 'Thinking';
+                                const bodyText = body ? normalizeMarkdown(getMarkdownFromElement(body)) : '';
+                                combined += `> **${titleText}**\n`;
                                 if (bodyText) {
-                                    prefix += `> ${bodyText.replace(/\n/g, '\n> ')}\n`;
+                                    combined += `> ${bodyText.replace(/\n/g, '\n> ')}\n`;
                                 }
-                                prefix += '\n';
-                                node._kimiThinkingPrefix = prefix;
+                                combined += '\n';
+                            } else if (child.classList.contains('markdown-container')) {
+                                // Response block — render as normal text
+                                const md = child.querySelector('.markdown');
+                                if (md) {
+                                    combined += normalizeMarkdown(getMarkdownFromElement(md)) + '\n\n';
+                                }
                             }
+                        });
+                        if (combined.trim()) {
+                            node._kimiFullContent = normalizeMarkdown(combined);
                         }
                     }
                 }
@@ -465,9 +472,9 @@
 
                 let text = normalizeMarkdown(getMarkdownFromElement(contentNode));
 
-                // Kimi: prepend thinking title if extracted
-                if (node._kimiThinkingPrefix && text) {
-                    text = node._kimiThinkingPrefix + text;
+                // Kimi: use pre-built full content (thinking + response blocks in order)
+                if (node._kimiFullContent) {
+                    text = node._kimiFullContent;
                 }
 
                 // DEDUPLICATION STEP 2: Sequential Content
