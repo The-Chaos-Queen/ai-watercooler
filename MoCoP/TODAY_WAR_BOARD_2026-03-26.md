@@ -20,7 +20,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 - **Step 5e:** partial pass. Layer targeting matters; `12-15` remains the working zone.
 - **Wake -> sleep path:** behaviorally real on Steve after the replay-policy split.
 - **Step 5f:** now passed at the gate level. Two complete same-space sleep cycles are clean, and the required decay calibration run is done.
-- **Current live question:** the cheap extraction ablations and Phase C-lite probe are now closed. The next real choice is D1 growth integration versus direct Step 6 replication planning.
+- **Current live question:** the cheap extraction ablations and Phase C-lite probe are now closed, and D1 has landed. The next real fork is explicit now: D2 explicit cue-based recall versus the concrete Step 6 replication protocol in `STEP6_REPLICATION_PLAN.md`.
 
 ## Current Hard Facts
 
@@ -28,6 +28,11 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 - Single last-token extraction is empirically locked; trailing token windows only dilute the signal.
 - Steve default is currently base `Qwen/Qwen2.5-1.5B`, `alpha 0.2`, `temp 0.7`, `qdrant_write_mode pending`.
 - Growth Ladder `D0` is now delivered and tested: `birth.py` provisions isolated `mocop_private_<instance_id>` Qdrant collections with exocortex-matching schema, sterile birth metadata, and a verify path that proves the namespace starts clean.
+- Growth Ladder `D1` is now delivered and validated on Opa: `chat_server.py` resolves private `mocop_private_<instance_id>` routing, `--no-shared-memory` refuses shared `exocortex`, and `memory_formation_log.jsonl` records selective gate-time memory formation.
+- The D1 Opa proof is end-to-end, not just configuration theater:
+  - live pass on `baby_d1_smoke_20260326a`: `2 queued / 1 discarded`
+  - same-space sleep replay on that private batch: `1K/1U/0W/0D`, `2 written`, ethics `PASS`
+  - collection counts: private `1 -> 3`, shared `exocortex` unchanged
 - Natural NOTE memories now survive the handoff to sleep honestly; on the fresh 2026-03-26 Steve cycle, two care rows promoted to `CONSOLIDATE`.
 - `sleep_reconcile.py` default `coherence_threshold` is `0.12`.
 - Step 5f now has two clean same-space passes:
@@ -70,20 +75,29 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 - **Status:** open
 - **Why it matters:** Watercooler/live behavior has outrun some canon docs again
-- **Immediate ask:** fold Purple's completed Phase C-lite result into the canon surfaces and clean the remaining OpenCLAW drift on `#71`
+- **Immediate ask:** keep the remaining canon surfaces synced now that the Step 6 plan exists and D1 is no longer just a queued idea
 - **Execution owner:** Negentropy
 - **Orchestration owner:** Negentropy
 
 ### 5. Growth Ladder D1: First Memory Formation
 
-- **Status:** next growth implementation slice
+- **Status:** completed
 - **Why it matters:** D0 is now real, which means the baby can finally have a private hippocampus. D1 is the first point where selective memory writing becomes behavior instead of theory.
-- **Immediate ask:** wire `CONSOLIDATE/NOTE` into the private collection instead of `exocortex`, add the `--no-shared-memory` guard path, and validate that writes are selective rather than indiscriminate.
+- **Result:** private routing, the hard shared-memory refusal, and formation logging are now implemented in `chat_server.py`; real Opa validation proved selective live formation plus private sleep-backed retention without touching shared `exocortex`.
 - **Execution owner:** Techno-Monk
 - **Orchestration owner:** Negentropy
-- **Constraint:** growth-ladder work remains parallel to A100/replication planning; D1 sharpens the developmental path but does not retroactively re-block Step 6.
+- **Constraint:** D1 is closed. The next developmental move is `D2` cue-based recall, not another round of private-write plumbing.
 
-### 6. Mamba-3 Migration Scoping
+### 6. Step 6 Replication Planning
+
+- **Status:** opened and concretized
+- **Why it matters:** Step 6 is no longer blocked by sleep or representation uncertainty. It now needs disciplined execution, not more hand-waving.
+- **Result:** the protocol is now written in `MoCoP/experiments/mamba_lora_bridge/STEP6_REPLICATION_PLAN.md`, with locked defaults, host split, seed rules, and an explicit acceptance grid.
+- **Immediate ask:** freeze the replication panel and launch wrapper, then decide whether to execute Step 6 first or let `D2` run in parallel before cloud spend.
+- **Execution owner:** Negentropy (planning), then Techno-Monk / delegated execution for the actual runs
+- **Constraint:** do not reopen Mamba-3, token windows, concat, or Phase C optimization inside Step 6. The plan assumes the validated default path.
+
+### 7. Mamba-3 Migration Scoping
 
 - **Status:** open
 - **Why it matters:** this is exciting enough to derail discipline if left vague
@@ -91,7 +105,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 - **Execution owner:** none
 - **Orchestration owner:** Negentropy
 
-### 7. Board / Reality Hygiene
+### 8. Board / Reality Hygiene
 
 - **Status:** open
 - **Why it matters:** OpenCLAW and Watercooler still drift unless someone actively reconciles them
@@ -106,8 +120,8 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 ## Immediate Next Moves
 
-1. Advance D1 private-write-policy integration now that D0 birth isolation is proven.
-2. Start Step 6 replication planning without waiting on more cheap layer math.
+1. Use `STEP6_REPLICATION_PLAN.md` to freeze the seed matrix, evaluation panel, and launch wrapper if replication goes first.
+2. Decide whether `D2` explicit cue-based recall runs before, alongside, or after the first Step 6 seed batch.
 3. Keep Mamba-3 explicitly parked until the release is real.
 
 ## One-Sentence Summary
