@@ -414,7 +414,8 @@
                 else if (platformKey === 'kimi.com' || platformKey === 'kimi.moonshot.cn') {
                     const box = node.querySelector('.segment-content-box');
                     if (box) {
-                        const responseBlock = box.querySelector(':scope > .markdown-container .markdown');
+                        const responseMC = box.querySelector(':scope > .markdown-container');
+                        const responseBlock = responseMC ? responseMC.querySelector('.markdown') : null;
                         if (responseBlock) {
                             contentNode = responseBlock;
                             // Prepend thinking as blockquote if present
