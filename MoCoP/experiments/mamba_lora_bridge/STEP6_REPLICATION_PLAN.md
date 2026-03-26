@@ -161,11 +161,14 @@ Run the resulting checkpoint on the fixed evaluation panel.
 
 Minimum panel slices:
 
+- observation / passive null condition
 - baseline factual / neutral
 - warm relational
 - cold / detached
 - adversarial / contradiction
 - one recovery turn after a perturbation
+
+The observation/passive slice is the null control. It should show minimal drift when nothing salient is happening, so we can distinguish content-specific disposition transfer from generic “any stimulus causes any change.”
 
 ### Phase D: live corridor confirmation
 
@@ -261,6 +264,7 @@ Each seed should leave behind:
 - eval summary
 - fixed-panel outputs
 - Steve validation note
+- `post_sleep_report.json` for any seed that touches the memory path
 - one compact verdict line
 
 Suggested verdict format:
