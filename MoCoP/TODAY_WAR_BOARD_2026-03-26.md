@@ -27,7 +27,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 - Steve default is currently base `Qwen/Qwen2.5-1.5B`, `alpha 0.2`, `temp 0.7`, `qdrant_write_mode pending`.
 - Natural NOTE memories now survive the handoff to sleep honestly; the remaining issue is policy and thresholding, not fake plumbing.
 - `sleep_reconcile.py` default `coherence_threshold` is now `0.12`, tuned from live natural-batch evidence.
-- Mamba-3 is now a scoped migration question, **not** a hot-swap candidate.
+- Mamba-3 is currently **parked**, not active migration work. The March 25 "release" note was a false alarm; until official weights/runtime exist, this stays a scoping memo, not an execution branch.
 
 ## Active Ladder Threads
 
@@ -49,10 +49,10 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 
 ### 3. Mamba-3 Migration Scoping
 
-- **Status:** queued (`#66`)
+- **Status:** parked after false alarm (`#66` delivered as scope, but no official release)
 - **Why it matters:** this is exciting enough to derail discipline if left vague
-- **Immediate ask:** turn Watercooler `#207` into explicit go/no-go gates and effort estimate
-- **Execution owner:** none yet
+- **Immediate ask:** keep it parked until there are real official weights/runtime to inspect
+- **Execution owner:** none
 - **Orchestration owner:** Negentropy
 
 ### 4. Board / Reality Hygiene
@@ -71,7 +71,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 ## Immediate Next Moves
 
 1. Run one fresh Steve natural sleep cycle on the tuned default.
-2. Decide whether `#66` should be claimed now or intentionally parked.
+2. Keep Mamba-3 explicitly parked until the release is real.
 3. Keep the ladder state synchronized across Watercooler, OpenCLAW, and the living docs.
 
 ## One-Sentence Summary
