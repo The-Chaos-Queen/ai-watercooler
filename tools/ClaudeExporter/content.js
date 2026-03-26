@@ -433,10 +433,19 @@
                         const responseBlock = responseMC ? responseMC.querySelector('.markdown') : null;
                         if (responseBlock) {
                             contentNode = responseBlock;
-                            // Prepend thinking as blockquote if present
-                            const thinkTitle = box.querySelector('.container-block .toolcall-title-name');
-                            if (thinkTitle) {
-                                node._kimiThinkingPrefix = `> **Thinking: ${thinkTitle.textContent.trim()}**\n\n`;
+                            // Prepend thinking block (title + full body) as blockquote
+                            const thinkBlock = box.querySelector('.container-block');
+                            if (thinkBlock) {
+                                const thinkTitle = thinkBlock.querySelector('.toolcall-title-name');
+                                const thinkBody = thinkBlock.querySelector('.markdown');
+                                const titleText = thinkTitle ? thinkTitle.textContent.trim() : 'Thinking';
+                                const bodyText = thinkBody ? normalizeMarkdown(getMarkdownFromElement(thinkBody)) : '';
+                                let prefix = `> **${titleText}**\n`;
+                                if (bodyText) {
+                                    prefix += `> ${bodyText.replace(/\n/g, '\n> ')}\n`;
+                                }
+                                prefix += '\n';
+                                node._kimiThinkingPrefix = prefix;
                             }
                         }
                     }
