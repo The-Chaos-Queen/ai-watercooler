@@ -380,7 +380,7 @@ per-sample activation_bias (-4.04 PPL)
 
 ---
 
-## Ladder Status (as of 2026-03-25)
+## Historical Ladder Status (as of 2026-03-25)
 
 | Step | Status | Key Number |
 |------|--------|-----------|
@@ -1063,7 +1063,22 @@ per-sample activation_bias (-4.04 PPL)
 
 ---
 
-## Ladder Status (as of 2026-03-25)
+## 2026-03-26 — Step 5f Closed: Sleep Infrastructure Gate Passes Twice, Decay Default Still Provisional (Techno-Monk on Steve)
+
+**Step:** `5f` / sleep infrastructure gate
+**Question:** Is the wake->sleep path behaviorally real, ethics-bounded, and reproducible enough to unblock Step 6?
+**Result:**
+- Fresh Steve default same-space cycle: `2K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0`
+- Pure `open_tension` edge-case cycle: `1K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0`
+- Required decay calibration run for `0.70 / 0.85 / 0.90`: complete
+- Honest caveat: the retained batches did **not** distinguish the three decay values, so `0.85` is acceptable but still provisional rather than uniquely justified
+**Verdict:** PASS
+**Implication:** Step 6 is no longer blocked by sleep infrastructure. The next honest decision is whether to formalize a dimension-specific layer-mapping task from the `L8` asymmetry before spending A100 time.
+**Artifacts:** `run_reincarnation/steve_sleep_cycle_default_20260326.md`, `run_reincarnation/steve_open_tension_sleep_cycle_20260326.md`, `run_reincarnation/steve_sleep_decay_calibration_20260326.md`, Watercooler `#241-#242`.
+
+---
+
+## Historical Ladder Status (as of 2026-03-25)
 
 | Step | Status | Key Number |
 |------|--------|-----------|
