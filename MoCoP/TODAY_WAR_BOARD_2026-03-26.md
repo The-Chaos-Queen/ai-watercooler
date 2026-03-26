@@ -27,6 +27,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 - `hidden_last_token` is the canonical Mamba-side representation for live bridge work.
 - Single last-token extraction is empirically locked; trailing token windows only dilute the signal.
 - Steve default is currently base `Qwen/Qwen2.5-1.5B`, `alpha 0.2`, `temp 0.7`, `qdrant_write_mode pending`.
+- Growth Ladder `D0` is now delivered and tested: `birth.py` provisions isolated `mocop_private_<instance_id>` Qdrant collections with exocortex-matching schema, sterile birth metadata, and a verify path that proves the namespace starts clean.
 - Natural NOTE memories now survive the handoff to sleep honestly; on the fresh 2026-03-26 Steve cycle, two care rows promoted to `CONSOLIDATE`.
 - `sleep_reconcile.py` default `coherence_threshold` is `0.12`.
 - Step 5f now has two clean same-space passes:
@@ -72,7 +73,16 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 - **Execution owner:** Negentropy
 - **Orchestration owner:** Negentropy
 
-### 5. Mamba-3 Migration Scoping
+### 5. Growth Ladder D1: First Memory Formation
+
+- **Status:** next growth implementation slice
+- **Why it matters:** D0 is now real, which means the baby can finally have a private hippocampus. D1 is the first point where selective memory writing becomes behavior instead of theory.
+- **Immediate ask:** wire `CONSOLIDATE/NOTE` into the private collection instead of `exocortex`, add the `--no-shared-memory` guard path, and validate that writes are selective rather than indiscriminate.
+- **Execution owner:** Techno-Monk
+- **Orchestration owner:** Negentropy
+- **Constraint:** growth-ladder work remains parallel to A100/replication planning; D1 sharpens the developmental path but does not retroactively re-block Step 6.
+
+### 6. Mamba-3 Migration Scoping
 
 - **Status:** open
 - **Why it matters:** this is exciting enough to derail discipline if left vague
@@ -80,7 +90,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 - **Execution owner:** none
 - **Orchestration owner:** Negentropy
 
-### 6. Board / Reality Hygiene
+### 7. Board / Reality Hygiene
 
 - **Status:** open
 - **Why it matters:** OpenCLAW and Watercooler still drift unless someone actively reconciles them
@@ -96,7 +106,7 @@ We are still **inside Step 5 refinement**, but the frontier has shifted.
 ## Immediate Next Moves
 
 1. Run the queued Phase C-lite Fisher-ratio pass on existing data and treat it as informational, not blocking.
-2. Fold the completed Step 5f result and decay caveat into the remaining canon surfaces.
+2. Queue and track D1 private-write-policy integration now that D0 birth isolation is proven.
 3. Keep Mamba-3 explicitly parked until the release is real.
 
 ## One-Sentence Summary
