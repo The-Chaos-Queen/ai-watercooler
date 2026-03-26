@@ -88,8 +88,16 @@ Use Watercooler for fast swarm coordination.
 - Should the bridge keep using only the single final Mamba token state, or is there useful extra signal in a short trailing sequence of final token states?
 
 **Current answer**
-- Do **not** replace single `last-token` as the default yet.
-- Explore this only as an ablation after the more important upstream questions above.
+- Closed on 2026-03-26.
+- Single `last-token` is empirically optimal on the current scripted warm/cold/adversarial sessions.
+- Opa result:
+  - `last_1`: avg cosine `0.018`
+  - `last_4`: avg cosine `0.039`
+  - `last_10`: avg cosine `0.111`
+  - `last_16`: avg cosine `0.151`
+  - `last_32`: avg cosine `0.338`
+  - `full_mean`: avg cosine `0.851`
+- Read: every added token diluted the signal. No trailing window helped.
 
 **Why it is not the default**
 - The current evidence strongly favors `last-token` over mean-pooled representations.
@@ -118,7 +126,7 @@ Use Watercooler for fast swarm coordination.
 - Response Diversity / Recovery Dynamics under the ethics gate
 
 **Status**
-- Backlog only, not active
+- Closed
 
 ---
 
@@ -208,7 +216,6 @@ Unless new evidence appears, the default order remains:
 1. Layer 3 only vs Layers 2-4
 2. Mamba interpretability probing on the winning representation
 3. real 4090/A100 qualitative eval
-4. token-window ablation
-5. only then consider changing the canonical bridge input shape
+4. only then consider changing the canonical bridge input shape
 
 This preserves the current signal, avoids reopening solved wiring problems too early, and keeps the cheapest decisive ablations first.

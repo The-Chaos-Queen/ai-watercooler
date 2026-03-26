@@ -997,6 +997,27 @@ per-sample activation_bias (-4.04 PPL)
 **Implication:** Stop reopening SSM states as a serious live candidate. The next cheap upstream ablation is Layer 3 only vs Layers 2-4 concatenation.
 **Artifacts:** Opa execution of `activation_sessions/ssm_vs_hidden_separation.py`; task `#70`; Watercooler result summary pending at time of local log update.
 
+---
+
+## 2026-03-26 — Token-Window Ablation: Single Last Token Wins (Anda-Conda on Opa)
+
+**Step:** RESEARCH_BACKLOG item 3 / extraction ablation
+**Question:** Does averaging a short trailing token window beat the single final token?
+**Result:**
+| Window | Avg cross-session cosine | Read |
+|--------|--------------------------|------|
+| `last_1` | **0.018** | best separation |
+| `last_4` | 0.039 | worse |
+| `last_10` | 0.111 | worse |
+| `last_16` | 0.151 | worse |
+| `last_32` | 0.338 | much worse |
+| `full_mean` | 0.851 | effectively dead |
+- Degradation is monotonic: every extra token dilutes the disposition signal.
+- No trailing window outperformed the single final token.
+**Verdict:** CLOSED
+**Implication:** Do not spend time on learned reducers or trailing-window pooling for this branch. Keep the canonical extraction point at the single last token and move to the next upstream ablation: Layer 3 only vs Layers 2-4.
+**Artifacts:** `activation_sessions/token_window_separation.json`, `activation_sessions/token_window_separation.py`, Watercooler `#238`.
+
 **Live verification on Steve:**
 - `5:v_proj,6:v_proj,7:v_proj,8:v_proj` booted cleanly
 - `/status` reported `target_layers = ["5:v_proj","6:v_proj","7:v_proj","8:v_proj"]`
