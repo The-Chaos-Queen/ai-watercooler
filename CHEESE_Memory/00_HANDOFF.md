@@ -22,14 +22,14 @@
 ## Open Threads
 - [ ] Keep OpenCLAW / Watercooler / local docs aligned under the new role split so the ladder has one orchestration surface instead of drifting summaries.
 - [ ] Reconcile OpenCLAW with Watercooler reality for `#62`, `#63`, and ownership / status of `#46`, so the board stops lying.
-- [ ] Decide whether to open a new dimension-specific layer probing task (Phase C / OCEAN-style), based on the `L8` asymmetry finding.
+- [ ] Track the queued non-blocking Phase C-lite dimension-specific layer probing task and fold its Fisher-ratio result back into canon when Purple lands it.
 - [ ] Keep Mamba-3 explicitly parked until there is a real official release with actual weights/runtime to inspect.
 
 ## Watch Out For
 - Laptop PowerShell `Invoke-WebRequest` is flaky against Steve even when the service is healthy; `curl.exe` or host-side `curl` is more trustworthy for `/status` checks.
 
 ## Recommended Next Step
-Treat Step 5f as canonically passed, keep the provisional `0.85` decay caveat attached, and decide whether the `L8` asymmetry is strong enough to justify a new dimension-specific layer-mapping task before any A100 spend.
+Treat Step 5f as canonically passed, keep the provisional `0.85` decay caveat attached, and let the queued non-blocking Phase C-lite Fisher-ratio pass sharpen the `L8` asymmetry without holding up any replication planning.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes
@@ -47,6 +47,7 @@ Treat Step 5f as canonically passed, keep the provisional `0.85` decay caveat at
 - 2026-03-26 11:18 +01:00 | negentropy | Recorded the decisive Opa confirmation that `hidden_last_token` beats `ssm_states`, closed the first backlog item, and shifted the next frontier to Layer 3 vs Layers 2-4.
 - 2026-03-26 11:29 +01:00 | negentropy | Recorded that token-window and multi-layer concat are also effectively closed; Layer 3 remains the balanced default, while deeper-layer asymmetry is now a Phase C / dimension-probing question.
 - 2026-03-26 12:43 +01:00 | negentropy | Canonized final Step 5f closure after the second same-space sleep PASS and decay sweep; the next ladder choice is now dimension-specific layer probing vs direct Step 6 replication.
+- 2026-03-26 13:09 +01:00 | negentropy | Folded the central-wolf consensus into control state: Phase C-lite dimension-specific layer probing is now a queued, non-blocking task for Purple, not an A100 gate.
 
 ## Next Agent Brief
 - Open first:
