@@ -48,6 +48,7 @@ Test-NetConnection 192.168.2.49 -Port 7860
 
 The current Steve stack is built around these files:
 
+- `autobiographical_memory.py`
 - `chat_server.py`
 - `launch_chat_windows.ps1`
 - `install_steve_chat_task.ps1`
@@ -88,6 +89,7 @@ If you changed Steve-facing code locally, copy the updated files into Steve's br
 
 Typical targets:
 
+- `autobiographical_memory.py`
 - `chat_server.py`
 - `launch_chat_windows.ps1`
 - `install_steve_chat_task.ps1`
@@ -98,6 +100,7 @@ Typical targets:
 Example pattern:
 
 ```powershell
+scp .\autobiographical_memory.py steve:C:/Users/tikii/bridge/
 scp .\chat_server.py steve:C:/Users/tikii/bridge/
 scp .\launch_chat_windows.ps1 steve:C:/Users/tikii/bridge/
 scp .\install_steve_chat_task.ps1 steve:C:/Users/tikii/bridge/
@@ -170,6 +173,7 @@ Important behavior:
 
 - `install_steve_chat_task.ps1` starts both the chat task and the tray-indicator task.
 - the chat task is launched hidden through `wscript.exe` and `launch_hidden_powershell.vbs`
+- `steve_chat_indicator.ps1` is intended to be singleton-only; if Steve ever sees multiple `Experiment Status Tracker` windows again, the indicator task likely spawned from an older copy and should be redeployed
 - the stop script does not just stop the scheduled task; it also kills any lingering WSL listener on port `7860`
 
 ## Runtime Config Knobs
@@ -231,7 +235,10 @@ Pending queue behavior after the sleep-handoff fix:
 
 - rows tagged `replay_policy=sleep` stay in `qdrant_gate_pending.jsonl` until `sleep_reconcile.py` or a manual flush handles them
 - rows tagged `replay_policy=retry` are still auto-replayed by the background worker when the sink is healthy again
+- `NOTE` / `CONSOLIDATE` events queue normally, but a `DISMISS` with `open_tension=true` is also forced into the sleep queue with `reason=queued:sleep_tagged`
+- `sleep_gate_events_latest.jsonl` is the wake-to-sleep audit stream; it should mirror every gate-time sleep candidate, including open-tension dismissals that would otherwise look like `qdrant=false`
 - `/status` now exposes `qdrant_sleep_pending_count` and `qdrant_retry_pending_count` so you can tell which kind of backlog you are looking at
+- `/status` also exposes `open_tension_count` and `sleep_tagged_count` so you can tell whether the gate is only observing or actually handing events to sleep
 
 ## Health Checks
 
@@ -287,6 +294,37 @@ Notes:
 - restarting the task clears the live session memory but keeps transcript files on disk
 - the tray indicator should stay running even when the chat task is parked
 - for ad hoc WSL experiments, sync the file with `scp` and run it through `steve-wsl.ps1 -BridgePythonFile ...`
+- the browser UI now has a right-side live inspector for runtime, gate, recall, and the last memory packet when `chat_server.py` and `autobiographical_memory.py` are current on Steve
+
+### A.1 Deploy the live memory inspector
+
+Use this when you want the chat surface plus the live memory-pipeline pane.
+
+From the laptop repo root:
+
+```powershell
+cd C:\Users\cerub\OneDrive\Dokumente\LLM\MoCoP\experiments\mamba_lora_bridge
+scp .\autobiographical_memory.py steve:C:/Users/tikii/bridge/
+scp .\chat_server.py steve:C:/Users/tikii/bridge/
+ssh steve powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\tikii\bridge\install_steve_chat_task.ps1
+```
+
+Then open:
+
+```text
+http://192.168.2.49:7860/
+```
+
+What you should see:
+
+- left pane: normal chat
+- right pane: live inspector
+  - runtime
+  - last gate
+  - last recall
+  - last memory packet
+
+If the browser still shows the old single-column UI, the host is still serving an older `chat_server.py`.
 
 ### B. Step 5d alpha sweep
 
@@ -325,6 +363,27 @@ What it does:
 - runs `step5d_bridge_recorder.py` inside WSL
 - writes recorder outputs under `C:\Users\tikii\bridge\bridge_recorder_runs\`
 - writes a run log under `C:\Users\tikii\bridge\logs\`
+
+### D. Sleep threshold sweep
+
+Use when sleep reconciliation is behaving honestly, but you need to tune classification thresholds against a real archived pending batch instead of guessing.
+
+Run from the laptop after syncing the helper:
+
+```powershell
+scp .\sleep_threshold_sweep.py steve:C:/Users/tikii/bridge/
+powershell -ExecutionPolicy Bypass -File .\steve-wsl.ps1 -BridgePythonFile sleep_threshold_sweep.py `
+  -PythonArgs '--pending-path','qdrant_gate_pending.reconciled_<timestamp>.jsonl','--mamba-state','mamba_bootstrap_state_latest.pt','--replay-device','cuda','--only-writing'
+```
+
+What it does:
+
+- loads one archived pending batch
+- computes same-space Mamba replay once
+- sweeps `strength_threshold` / `coherence_threshold` without reloading Mamba for every combo
+- prints which threshold pairs would write, weaken, or discard each entry
+
+Use this before touching defaults in `sleep_reconcile.py`.
 
 ## Artifacts and Logs
 

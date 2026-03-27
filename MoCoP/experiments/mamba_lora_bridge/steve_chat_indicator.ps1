@@ -12,6 +12,12 @@ public static class SteveChatNativeMethods {
 }
 "@
 
+$indicatorMutexCreated = $false
+$indicatorMutex = New-Object System.Threading.Mutex($true, "Local\MoCoP.SteveChatIndicator", [ref]$indicatorMutexCreated)
+if (-not $indicatorMutexCreated) {
+    exit 0
+}
+
 $bridgeDir = "C:\Users\tikii\bridge"
 $configPath = Join-Path $bridgeDir "steve_chat_config.json"
 $logPath = Join-Path $bridgeDir "logs\steve_chat_windows_task.log"
@@ -177,12 +183,7 @@ $notifyIcon.Text = "MoCoP Steve Chat"
 $notifyIcon.Icon = $redIcon
 $notifyIcon.Add_DoubleClick({ Start-Process $openUrl })
 
-$form = New-Object System.Windows.Forms.Form
-$form.ShowInTaskbar = $false
-$form.WindowState = [System.Windows.Forms.FormWindowState]::Minimized
-$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedToolWindow
-$form.Opacity = 0
-$form.Add_Shown({ $form.Hide() })
+$appContext = New-Object System.Windows.Forms.ApplicationContext
 
 function Update-Indicator {
     $status = Get-SteeringStatus
@@ -210,16 +211,18 @@ $timer.Start()
 $exitItem.Add_Click({
     $timer.Stop()
     $notifyIcon.Visible = $false
-    $form.Close()
+    $appContext.ExitThread()
 })
 
-$form.Add_FormClosing({
+Update-Indicator
+try {
+    [System.Windows.Forms.Application]::Run($appContext)
+} finally {
     $timer.Stop()
     $notifyIcon.Visible = $false
     $notifyIcon.Dispose()
     $greenIcon.Dispose()
     $redIcon.Dispose()
-})
-
-Update-Indicator
-[System.Windows.Forms.Application]::Run($form)
+    $indicatorMutex.ReleaseMutex() | Out-Null
+    $indicatorMutex.Dispose()
+}

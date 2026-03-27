@@ -32,6 +32,18 @@ if (Get-ScheduledTask -TaskName $indicatorTaskName -ErrorAction SilentlyContinue
     }
 }
 
+try {
+    Get-CimInstance Win32_Process -ErrorAction Stop |
+        Where-Object {
+            ($_.CommandLine -like "*steve_chat_indicator.ps1*") -or
+            ($_.CommandLine -like "*launch_hidden_powershell.vbs*steve_chat_indicator.ps1*")
+        } |
+        ForEach-Object {
+            Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+} catch {
+}
+
 $chatAction = New-ScheduledTaskAction `
     -Execute "wscript.exe" `
     -Argument "`"$hiddenLauncherPath`" `"$launcherPath`""

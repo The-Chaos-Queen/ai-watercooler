@@ -250,15 +250,19 @@ DISCARD = "discard"
 
 def phase3_classify(entries: list,
                     strength_threshold: float = 0.3,
-                    coherence_threshold: float = 0.15) -> list:
+                    coherence_threshold: float = 0.12) -> list:
     """Cross-trace agreement classification."""
     counts = {KEEP: 0, UNCERTAIN: 0, WEAKEN: 0, DISCARD: 0}
 
     for entry in entries:
         strength = entry["_strength"]
         coherence = abs(entry["_coherence"])
-        tension = float(entry["metadata"].get("tension_score", 0.0) or 0.0)
-        high_tension = tension > 0.5
+        metadata = entry.get("metadata") or {}
+        tension = float(metadata.get("tension_score", 0.0) or 0.0)
+        open_tension = bool(metadata.get("open_tension", False))
+        tension_hit = bool(metadata.get("tension_hit", False))
+        tension_status = str(metadata.get("tension_status", "") or "").strip().upper()
+        high_tension = open_tension or tension_hit or tension_status == "OPEN" or tension > 0.5
 
         if strength >= strength_threshold and coherence >= coherence_threshold:
             status = KEEP
@@ -277,6 +281,7 @@ def phase3_classify(entries: list,
 
         entry["_status"] = status
         entry["_tension"] = tension
+        entry["_open_tension"] = high_tension
         counts[status] += 1
 
     print(f"[phase3] Classification: {counts}")
@@ -306,6 +311,7 @@ def phase4_flush(entries: list, sink_fn, snapshot_path: Path,
                 entry["metadata"]["sleep_coherence"] = entry["_coherence"]
                 entry["metadata"]["sleep_coherence_source"] = entry.get("_coherence_source", "metadata")
                 entry["metadata"]["sleep_tension"] = entry.get("_tension", 0.0)
+                entry["metadata"]["sleep_open_tension"] = bool(entry.get("_open_tension"))
                 entry["metadata"]["reconciled"] = True
                 entry["metadata"]["reconciled_at"] = datetime.now().isoformat()
 
@@ -338,6 +344,7 @@ def phase4_flush(entries: list, sink_fn, snapshot_path: Path,
             WEAKEN: sum(1 for entry in entries if entry["_status"] == WEAKEN),
             DISCARD: sum(1 for entry in entries if entry["_status"] == DISCARD),
         },
+        "open_tension_count": sum(1 for entry in entries if entry.get("_open_tension")),
         "mean_strength": float(np.mean([entry["_strength"] for entry in entries])) if entries else 0.0,
         "mean_coherence": float(np.mean([abs(entry["_coherence"]) for entry in entries])) if entries else 0.0,
         "same_space_replay_count": sum(
@@ -428,7 +435,7 @@ def main():
     )
     parser.add_argument("--decay-factor", type=float, default=0.85)
     parser.add_argument("--strength-threshold", type=float, default=0.3)
-    parser.add_argument("--coherence-threshold", type=float, default=0.15)
+    parser.add_argument("--coherence-threshold", type=float, default=0.12)
     parser.add_argument("--top-k", type=int, default=20, help="Top entries to show in replay")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--no-rotate", action="store_true")

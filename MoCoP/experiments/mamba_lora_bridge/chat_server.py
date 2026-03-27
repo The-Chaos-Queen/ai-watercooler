@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 import threading
 import time
 from datetime import datetime
@@ -20,6 +21,11 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from autobiographical_memory import (
+    build_recall_text as build_autobiographical_recall_text,
+    enrich_memory_metadata,
+    format_memory_anchor_lines,
+)
 from mamba_runtime_compat import ensure_mamba_ssm_compat
 from models import ActivationBiasHypernetwork, DynamicLoRALinear, MambaStateCompressor
 
@@ -31,6 +37,8 @@ DEFAULT_EPISODES_FILE = "CHEESE_SHAPING_EPISODES.md"
 DEFAULT_TARGET_SPECS = [(12, "v_proj"), (13, "v_proj"), (14, "v_proj"), (15, "v_proj")]
 DEFAULT_USER_LABEL = "Laura"
 DEFAULT_MODEL_LABEL = "Reply"
+PRIVATE_QDRANT_COLLECTION_PREFIX = "mocop_private_"
+SHARED_QDRANT_COLLECTION = "exocortex"
 
 MODEL = None
 TOKENIZER = None
@@ -41,6 +49,9 @@ LATEST_JSONL_PATH = None
 DUAL_GATE_LOG_PATH = None
 DUAL_GATE_MEMORY_PATH = None
 DUAL_GATE_SURPRISE_PATH = None
+DUAL_GATE_SLEEP_PATH = None
+MEMORY_FORMATION_LOG_PATH = None
+RECALL_LOG_PATH = None
 QDRANT_PENDING_PATH = None
 QDRANT_FLUSHED_PATH = None
 SERVER = None
@@ -66,10 +77,21 @@ RUNTIME_STATE = {
     "last_error": "",
     "disposition": "",
     "dual_gate_enabled": False,
+    "instance_id": "",
+    "no_shared_memory": False,
+    "qdrant_collection": SHARED_QDRANT_COLLECTION,
     "memory_count": 0,
     "qdrant_count": 0,
     "surprise_count": 0,
     "tension_count": 0,
+    "open_tension_count": 0,
+    "sleep_tagged_count": 0,
+    "formation_log_count": 0,
+    "formation_written_count": 0,
+    "formation_queued_count": 0,
+    "formation_discarded_count": 0,
+    "recall_request_count": 0,
+    "recall_hit_count": 0,
     "qdrant_synced_count": 0,
     "qdrant_queued_count": 0,
     "qdrant_pending_count": 0,
@@ -85,6 +107,8 @@ RUNTIME_STATE = {
     "mamba_state_ref": "",
     "mamba_state_source": "",
     "mamba_target_layer": None,
+    "last_recall": {},
+    "last_memory_packet": {},
     "last_gate": {},
     "target_layers": [],
     "target_layers_overridden": False,
@@ -101,6 +125,8 @@ HTML_PAGE = """<!DOCTYPE html>
   #header { padding: 12px 16px; background: #16213e; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   #header-main { font-size: 14px; color: #8b8b8b; }
   #header-main span { color: #c4956a; font-weight: bold; }
+  #main { flex: 1; min-height: 0; display: flex; }
+  #chat-shell { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   #status-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   #status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; border: 1px solid #31415f; background: #0f1730; font-size: 12px; color: #d9def0; }
   #status-dot { width: 10px; height: 10px; border-radius: 999px; background: #d45d5d; box-shadow: 0 0 0 3px rgba(212, 93, 93, 0.18); }
@@ -121,6 +147,15 @@ HTML_PAGE = """<!DOCTYPE html>
   #stop:disabled { opacity: 0.5; cursor: default; }
   #thinking { display: none; align-self: flex-start; color: #c4956a; font-size: 13px; padding: 8px 14px; }
   #thinking.active { display: block; }
+  #inspector { width: 420px; max-width: 42vw; border-left: 1px solid #333; background: #141b33; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .panel { background: #0f1730; border: 1px solid #2a3657; border-radius: 12px; padding: 12px; }
+  .panel h3 { font-size: 13px; color: #c4956a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .panel pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: Consolas, monospace; font-size: 12px; line-height: 1.45; color: #d9def0; }
+  .panel .muted { color: #8b8b8b; font-size: 12px; line-height: 1.45; }
+  @media (max-width: 1100px) {
+    #main { flex-direction: column; }
+    #inspector { width: 100%; max-width: none; border-left: none; border-top: 1px solid #333; max-height: 42vh; }
+  }
 </style>
 </head><body>
 <div id="header">
@@ -134,11 +169,33 @@ HTML_PAGE = """<!DOCTYPE html>
     <button id="stop" onclick="stopServer()">Stop</button>
   </div>
 </div>
-<div id="chat"></div>
-<div id="thinking" class="msg system">thinking...</div>
-<div id="input-area">
-  <input id="msg" type="text" placeholder="Say something..." autocomplete="off">
-  <button id="send" onclick="send()">Send</button>
+<div id="main">
+  <div id="chat-shell">
+    <div id="chat"></div>
+    <div id="thinking" class="msg system">thinking...</div>
+    <div id="input-area">
+      <input id="msg" type="text" placeholder="Say something..." autocomplete="off">
+      <button id="send" onclick="send()">Send</button>
+    </div>
+  </div>
+  <aside id="inspector">
+    <div class="panel">
+      <h3>Runtime</h3>
+      <pre id="inspector-runtime">waiting for status...</pre>
+    </div>
+    <div class="panel">
+      <h3>Last Gate</h3>
+      <pre id="inspector-gate">no gate event yet</pre>
+    </div>
+    <div class="panel">
+      <h3>Last Recall</h3>
+      <pre id="inspector-recall">no recall yet</pre>
+    </div>
+    <div class="panel">
+      <h3>Memory Packet</h3>
+      <pre id="inspector-memory">no memory packet yet</pre>
+    </div>
+  </aside>
 </div>
 <script>
 const chat = document.getElementById('chat');
@@ -149,6 +206,16 @@ const thinking = document.getElementById('thinking');
 const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const statusMeta = document.getElementById('status-meta');
+const inspectorRuntime = document.getElementById('inspector-runtime');
+const inspectorGate = document.getElementById('inspector-gate');
+const inspectorRecall = document.getElementById('inspector-recall');
+const inspectorMemory = document.getElementById('inspector-memory');
+let lastStatusPayload = null;
+let liveInspector = {
+  lastGate: null,
+  lastRecall: null,
+  lastMemoryPacket: null,
+};
 
 function addMsg(text, cls) {
   const div = document.createElement('div');
@@ -163,7 +230,120 @@ function setControlsDisabled(disabled) {
   btn.disabled = disabled;
 }
 
+function prettyJson(value) {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'string') return value || '—';
+  if (Array.isArray(value) && value.length === 0) return '—';
+  if (typeof value === 'object' && Object.keys(value).length === 0) return '—';
+  return JSON.stringify(value, null, 2);
+}
+
+function formatRuntimeInspector(data) {
+  if (!data) return 'server unreachable';
+  return [
+    `running: ${Boolean(data.running)}`,
+    `busy: ${Boolean(data.busy)}`,
+    `model: ${data.model_id || '-'}`,
+    `alpha: ${data.alpha ?? '-'}`,
+    `temperature: ${data.temperature ?? '-'}`,
+    `turns: ${data.turns ?? 0}`,
+    `collection: ${data.qdrant_collection || '-'}`,
+    `write_mode: ${data.qdrant_write_mode || '-'}`,
+    `memory_count: ${data.memory_count ?? 0}`,
+    `qdrant_count: ${data.qdrant_count ?? 0}`,
+    `pending: ${data.qdrant_pending_count ?? 0}`,
+    `sleep_pending: ${data.qdrant_sleep_pending_count ?? 0}`,
+    `retry_pending: ${data.qdrant_retry_pending_count ?? 0}`,
+    `replayed: ${data.qdrant_replayed_count ?? 0}`,
+    `formation logged/written/queued/discarded: ${(data.formation_log_count ?? 0)}/${(data.formation_written_count ?? 0)}/${(data.formation_queued_count ?? 0)}/${(data.formation_discarded_count ?? 0)}`,
+    `recall hits: ${(data.recall_hit_count ?? 0)}/${(data.recall_request_count ?? 0)}`,
+    `last error: ${data.last_error || '-'}`,
+  ].join('\n');
+}
+
+function formatGateInspector(gate) {
+  if (!gate || Object.keys(gate).length === 0) return 'no gate event yet';
+  return [
+    `turn: ${gate.turn ?? '-'}`,
+    `mode: ${gate.mode || '-'}`,
+    `decision: ${gate.decision || '-'}`,
+    `salience: ${gate.salience ?? '-'}`,
+    `surprise: ${gate.surprise ?? '-'}`,
+    `tension: ${gate.tension ?? '-'}`,
+    `hits: salience=${Boolean(gate.salience_hit)} surprise=${Boolean(gate.surprise_hit)} tension=${Boolean(gate.tension_hit)}`,
+    `open_tension: ${Boolean(gate.open_tension)}`,
+    `safety_critical: ${Boolean(gate.safety_critical)}`,
+    `qdrant_routed: ${Boolean(gate.qdrant_routed)}`,
+    `qdrant_written: ${Boolean(gate.qdrant_written)}`,
+    `qdrant_queued: ${Boolean(gate.qdrant_queued)}`,
+    `effective_mode: ${gate.qdrant_effective_mode || '-'}`,
+    `point_id: ${gate.qdrant_point_id || '-'}`,
+  ].join('\n');
+}
+
+function formatRecallInspector(recall) {
+  if (!recall || Object.keys(recall).length === 0) return 'no recall yet';
+  const lines = [
+    `source: ${recall.source || '-'}`,
+    `query: ${recall.query || '-'}`,
+    `results: ${recall.result_count ?? (recall.results_preview ? recall.results_preview.length : 0)}`,
+    `top_score: ${recall.top_score ?? '-'}`,
+  ];
+  const previews = recall.results_preview || [];
+  previews.forEach((row, idx) => {
+    lines.push('');
+    lines.push(`[${idx + 1}] score=${row.score ?? '-'} overlap=${row.overlap ?? '-'}`);
+    lines.push(`decision: ${row.decision || '-'}`);
+    lines.push(`gist: ${row.event_gist || row.content_preview || '-'}`);
+    if (row.user_preview) lines.push(`user: ${row.user_preview}`);
+    if (row.response_preview) lines.push(`reply: ${row.response_preview}`);
+  });
+  return lines.join('\n');
+}
+
+function formatMemoryInspector(packet) {
+  if (!packet || Object.keys(packet).length === 0) return 'no memory packet yet';
+  const frame = packet.autobiographical_frame || {};
+  const lines = [
+    `decision: ${packet.decision || '-'}`,
+    `memory_kind: ${packet.memory_kind || '-'}`,
+    `time_scope: ${packet.time_scope || '-'}`,
+    `confidence: ${packet.confidence_label || '-'}`,
+    `event_gist: ${packet.event_gist || '-'}`,
+    '',
+    `content: ${packet.content || '-'}`,
+    '',
+    `user: ${packet.user || '-'}`,
+    `reply: ${packet.response || '-'}`,
+    '',
+    `qdrant_write: ${prettyJson(packet.qdrant_write || {})}`,
+    '',
+    `autobiographical_frame: ${prettyJson(frame)}`,
+  ];
+  return lines.join('\n');
+}
+
+function renderInspector(statusData) {
+  inspectorRuntime.textContent = formatRuntimeInspector(statusData);
+  inspectorGate.textContent = formatGateInspector(liveInspector.lastGate || statusData?.last_gate);
+  inspectorRecall.textContent = formatRecallInspector(liveInspector.lastRecall || statusData?.last_recall);
+  inspectorMemory.textContent = formatMemoryInspector(liveInspector.lastMemoryPacket || statusData?.last_memory_packet);
+}
+
+function previewRecallResults(results) {
+  return (results || []).map(row => ({
+    score: row.score ?? null,
+    overlap: row.overlap ?? null,
+    decision: row.metadata?.decision || '',
+    event_gist: row.metadata?.event_gist || '',
+    content_preview: row.content || '',
+    user_preview: row.metadata?.user || '',
+    response_preview: row.metadata?.response || '',
+  }));
+}
+
 function renderStatus(data) {
+  lastStatusPayload = data;
   const healthy = Boolean(data && data.running && !data.stop_requested);
   statusDot.className = healthy ? 'online' : 'offline';
   statusText.textContent = healthy ? (data.busy ? 'active | busy' : 'active') : (data && data.stop_requested ? 'stopping' : 'offline');
@@ -190,6 +370,7 @@ function renderStatus(data) {
 
   setControlsDisabled(!healthy);
   stopBtn.disabled = !(data && data.running) || Boolean(data && data.stop_requested);
+  renderInspector(data);
 }
 
 async function refreshStatus() {
@@ -217,6 +398,22 @@ async function send() {
     });
     const data = await res.json();
     addMsg((data.response || '...').trim() || '...', 'ai');
+    if (data.dual_gate) {
+      liveInspector.lastGate = data.dual_gate;
+    }
+    if (data.recall && data.recall.requested) {
+      liveInspector.lastRecall = {
+        source: 'chat',
+        query: data.recall.query || text,
+        result_count: (data.recall.results || []).length,
+        top_score: (data.recall.results && data.recall.results.length) ? data.recall.results[0].score : null,
+        results_preview: previewRecallResults(data.recall.results || []),
+      };
+    }
+    if (data.memory_packet) {
+      liveInspector.lastMemoryPacket = data.memory_packet;
+    }
+    renderInspector(lastStatusPayload);
   } catch(e) {
     addMsg('Error: ' + e.message, 'system');
   }
@@ -246,7 +443,7 @@ async function stopServer() {
     addMsg('Stop requested. The server closed before it could answer.', 'system');
   }
 
-  window.setTimeout(refreshStatus, 1200);
+window.setTimeout(refreshStatus, 1200);
 }
 
 input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
@@ -799,6 +996,46 @@ def update_qdrant_pending_state(rows=None):
     return rows, summary
 
 
+def build_private_qdrant_collection_name(instance_id: str) -> str:
+    return f"{PRIVATE_QDRANT_COLLECTION_PREFIX}{instance_id}"
+
+
+def is_private_qdrant_collection(collection_name: str) -> bool:
+    return str(collection_name or "").startswith(PRIVATE_QDRANT_COLLECTION_PREFIX)
+
+
+def resolve_memory_scope_args(args):
+    instance_id = str(getattr(args, "instance_id", "") or "").strip()
+    requested_collection = str(getattr(args, "qdrant_collection", "") or "").strip()
+    if not requested_collection:
+        requested_collection = SHARED_QDRANT_COLLECTION
+
+    if instance_id:
+        expected_collection = build_private_qdrant_collection_name(instance_id)
+        if requested_collection == SHARED_QDRANT_COLLECTION:
+            requested_collection = expected_collection
+        elif requested_collection != expected_collection:
+            raise ValueError(
+                "--instance-id requires matching private --qdrant-collection "
+                f"({expected_collection}), got {requested_collection}."
+            )
+
+    if getattr(args, "no_shared_memory", False):
+        if requested_collection == SHARED_QDRANT_COLLECTION:
+            raise ValueError(
+                "--no-shared-memory refuses shared exocortex. "
+                "Pass --instance-id or an explicit mocop_private_<instance_id> collection."
+            )
+        if not is_private_qdrant_collection(requested_collection):
+            raise ValueError(
+                "--no-shared-memory requires a mocop_private_<instance_id> collection, "
+                f"got {requested_collection}."
+            )
+
+    args.instance_id = instance_id
+    args.qdrant_collection = requested_collection
+
+
 class QdrantGateSink:
     """Minimal Exocortex-compatible writer for Steve gate events."""
 
@@ -819,7 +1056,36 @@ class QdrantGateSink:
         digest = hashlib.md5(identity_text.encode("utf-8")).hexdigest()
         return int(digest[:16], 16)
 
+    def _build_recall_text(self, content: str, metadata) -> str:
+        return build_autobiographical_recall_text(
+            content,
+            metadata,
+            speaker_name=getattr(ARGS, "user_label", "Laura"),
+        )
+
+    def _recall_overlap(self, query_text: str, payload: dict) -> int:
+        def tokens(text: str):
+            return {
+                token
+                for token in re.findall(r"[a-z0-9]+", (text or "").lower())
+                if len(token) >= 3
+            }
+
+        query_tokens = tokens(query_text)
+        if not query_tokens:
+            return 0
+        recall_text = str(
+            payload.get("recall_text")
+            or self._build_recall_text(str(payload.get("content", "") or ""), payload)
+        )
+        return len(query_tokens & tokens(recall_text))
+
     def store(self, content: str, metadata):
+        metadata = enrich_memory_metadata(
+            content,
+            metadata,
+            speaker_name=getattr(ARGS, "user_label", "Laura"),
+        )
         identity_text = json.dumps(
             {
                 "session": metadata.get("session", ""),
@@ -832,9 +1098,11 @@ class QdrantGateSink:
             sort_keys=True,
         )
         point_id = self._make_id(identity_text)
-        vector = self._embed(content)
+        recall_text = self._build_recall_text(content, metadata)
+        vector = self._embed(recall_text)
         payload = {
             "content": content,
+            "recall_text": recall_text,
             "timestamp": datetime.now().isoformat(),
             "stored_at": time.time(),
         }
@@ -851,6 +1119,34 @@ class QdrantGateSink:
             ],
         )
         return str(point_id)
+
+    def query(self, query_text: str, limit: int = 3, score_threshold: Optional[float] = None):
+        fetch_limit = max(limit + 4, limit * 2, 6)
+        vector = self._embed(query_text)
+        response = self.client.query_points(
+            collection_name=self.collection_name,
+            query=vector,
+            limit=fetch_limit,
+            with_payload=True,
+            with_vectors=False,
+            score_threshold=score_threshold,
+        )
+        rows = []
+        for point in getattr(response, "points", []) or []:
+            payload = dict(getattr(point, "payload", {}) or {})
+            if payload.get("type") == "birth_record":
+                continue
+            rows.append(
+                {
+                    "id": str(getattr(point, "id", "")),
+                    "score": float(getattr(point, "score", 0.0) or 0.0),
+                    "overlap": self._recall_overlap(query_text, payload),
+                    "content": str(payload.get("content", "") or ""),
+                    "metadata": payload,
+                }
+            )
+        rows.sort(key=lambda row: (int(row.get("overlap", 0)), float(row.get("score", 0.0))), reverse=True)
+        return rows[:limit]
 
 
 def read_episodes(path):
@@ -1022,6 +1318,7 @@ def build_qdrant_memory_record(event):
     session_id = f"steve-chat-{state.get('started_at', 'unknown')}"
     disposition = state.get("disposition", "")
     target_layers = state.get("target_layers", [])
+    collection_name = state.get("qdrant_collection", getattr(ARGS, "qdrant_collection", ""))
     content = build_semantic_gate_summary(event)
     metadata = {
         "source_type": "steve_gate_event",
@@ -1035,11 +1332,16 @@ def build_qdrant_memory_record(event):
         "session": session_id,
         "turn": event["turn"],
         "decision": event["decision"],
+        "speaker_name": getattr(ARGS, "user_label", "Laura"),
         "user": event["user"],
         "response": event["response"],
         "disposition": disposition,
         "alpha": getattr(ARGS, "alpha", None),
         "model_id": getattr(ARGS, "qwen_model_id", ""),
+        "instance_id": state.get("instance_id", ""),
+        "no_shared_memory": bool(state.get("no_shared_memory")),
+        "memory_scope": "private" if is_private_qdrant_collection(collection_name) else "shared",
+        "qdrant_collection": collection_name,
         "qdrant_write_mode": getattr(ARGS, "qdrant_write_mode", "direct"),
         "target_layers": target_layers,
         "gate_thresholds": event.get("gate_thresholds", {}),
@@ -1049,6 +1351,14 @@ def build_qdrant_memory_record(event):
         "coherence_score": event.get("mamba_trace", {}).get("coherence_score"),
         "coherence_proxy": event.get("mamba_trace", {}).get("coherence_proxy", ""),
         "safety_critical": event.get("safety_critical", {}).get("is_critical", False),
+        "gate_mode": event.get("mode", ""),
+        "surprise_hit": bool(event.get("surprise", {}).get("hit")),
+        "salience_hit": bool(event.get("salience", {}).get("hit")),
+        "tension_hit": bool(event.get("tension", {}).get("hit")),
+        "open_tension": bool(event.get("destinations", {}).get("open_tension")),
+        "tension_status": event.get("tension", {}).get("status", ""),
+        "gate_destinations": event.get("destinations", {}),
+        "gate_routing": event.get("routing", {}),
         "tags": [
             "steve",
             "saliency-gate",
@@ -1060,7 +1370,224 @@ def build_qdrant_memory_record(event):
         "tension_score": event["tension"]["score"],
         "response_diversity_entropy": event["response_diversity"]["entropy"],
     }
+    metadata = enrich_memory_metadata(
+        content,
+        metadata,
+        speaker_name=getattr(ARGS, "user_label", "Laura"),
+    )
     return content, metadata
+
+
+def build_memory_packet_preview(event):
+    content, metadata = build_qdrant_memory_record(event)
+    return {
+        "content": content,
+        "decision": metadata.get("decision", ""),
+        "memory_kind": metadata.get("memory_kind", ""),
+        "time_scope": metadata.get("time_scope", ""),
+        "confidence_label": metadata.get("confidence_label", ""),
+        "event_gist": metadata.get("event_gist", ""),
+        "user": metadata.get("user", ""),
+        "response": metadata.get("response", ""),
+        "qdrant_collection": metadata.get("qdrant_collection", ""),
+        "autobiographical_frame": metadata.get("autobiographical_frame", {}),
+        "qdrant_write": dict(event.get("qdrant_write", {}) or {}),
+        "destinations": dict(event.get("destinations", {}) or {}),
+        "routing": dict(event.get("routing", {}) or {}),
+    }
+
+
+def determine_memory_formation_action(event) -> str:
+    qdrant_write = event.get("qdrant_write", {}) or {}
+    if qdrant_write.get("ok"):
+        return "write_immediately"
+    if qdrant_write.get("queued"):
+        effective_mode = str(qdrant_write.get("effective_mode", "") or "")
+        if effective_mode == "pending":
+            return "queue_for_sleep"
+        return "queue_for_retry"
+    return "discard"
+
+
+def build_memory_formation_record(event):
+    state = get_runtime_state_snapshot()
+    action = determine_memory_formation_action(event)
+    qdrant_write = event.get("qdrant_write", {}) or {}
+    return {
+        "turn": event.get("turn"),
+        "ts": event.get("ts"),
+        "instance_id": state.get("instance_id", ""),
+        "no_shared_memory": bool(state.get("no_shared_memory")),
+        "qdrant_collection": state.get("qdrant_collection", getattr(ARGS, "qdrant_collection", "")),
+        "decision": event.get("decision"),
+        "policy_scope": "d1_private" if bool(state.get("no_shared_memory")) else "shared_default",
+        "action": action,
+        "written": bool(qdrant_write.get("ok")),
+        "queued": bool(qdrant_write.get("queued")),
+        "sleep_candidate": bool(qdrant_write.get("sleep_candidate")),
+        "open_tension": bool(event.get("destinations", {}).get("open_tension")),
+        "qdrant_routed": bool(event.get("destinations", {}).get("qdrant")),
+        "qdrant_effective_mode": qdrant_write.get("effective_mode", ""),
+        "qdrant_point_id": qdrant_write.get("point_id", ""),
+        "scores": {
+            "surprise": event.get("surprise", {}).get("mean_token_nll"),
+            "salience": event.get("salience", {}).get("score"),
+            "tension": event.get("tension", {}).get("score"),
+            "coherence": event.get("mamba_trace", {}).get("coherence_score"),
+        },
+        "content_preview": build_semantic_gate_summary(event)[:160],
+        "user_preview": str(event.get("user", "") or "")[:160],
+        "response_preview": str(event.get("response", "") or "")[:160],
+    }
+
+
+def append_memory_formation_record(event):
+    if MEMORY_FORMATION_LOG_PATH is None or event.get("mode") != "gate":
+        return
+
+    entry = build_memory_formation_record(event)
+    append_jsonl(MEMORY_FORMATION_LOG_PATH, entry)
+
+    snapshot = get_runtime_state_snapshot()
+    update_runtime_state(
+        formation_log_count=int(snapshot.get("formation_log_count", 0) or 0) + 1,
+        formation_written_count=int(snapshot.get("formation_written_count", 0) or 0)
+        + (1 if entry["written"] else 0),
+        formation_queued_count=int(snapshot.get("formation_queued_count", 0) or 0)
+        + (1 if entry["queued"] else 0),
+        formation_discarded_count=int(snapshot.get("formation_discarded_count", 0) or 0)
+        + (1 if entry["action"] == "discard" else 0),
+    )
+
+
+def coerce_recall_limit(value, default: int = 3, minimum: int = 1, maximum: int = 8) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(minimum, min(maximum, parsed))
+
+
+def coerce_optional_float(value):
+    if value in {None, ""}:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def build_recall_log_entry(query: str, results, source: str, question_text: str = ""):
+    state = get_runtime_state_snapshot()
+    return {
+        "ts": datetime.now().isoformat(timespec="seconds"),
+        "query": query,
+        "source": source,
+        "question_text": question_text,
+        "instance_id": state.get("instance_id", ""),
+        "qdrant_collection": state.get("qdrant_collection", getattr(ARGS, "qdrant_collection", "")),
+        "no_shared_memory": bool(state.get("no_shared_memory")),
+        "result_count": len(results),
+        "top_score": round(float(results[0]["score"]), 6) if results else None,
+        "results": [
+            {
+                "id": row.get("id", ""),
+                "score": round(float(row.get("score", 0.0) or 0.0), 6),
+                "overlap": int(row.get("overlap", 0) or 0),
+                "content_preview": str(row.get("content", "") or "")[:180],
+                "event_gist": str((row.get("metadata", {}) or {}).get("event_gist", "") or "")[:180],
+                "user_preview": str((row.get("metadata", {}) or {}).get("user", "") or "")[:160],
+                "response_preview": str((row.get("metadata", {}) or {}).get("response", "") or "")[:160],
+                "decision": str((row.get("metadata", {}) or {}).get("decision", "") or ""),
+            }
+            for row in results
+        ],
+    }
+
+
+def append_recall_log_entry(query: str, results, source: str, question_text: str = ""):
+    if RECALL_LOG_PATH is None:
+        return
+
+    entry = build_recall_log_entry(query, results, source, question_text=question_text)
+    append_jsonl(RECALL_LOG_PATH, entry)
+
+    snapshot = get_runtime_state_snapshot()
+    update_runtime_state(
+        recall_request_count=int(snapshot.get("recall_request_count", 0) or 0) + 1,
+        recall_hit_count=int(snapshot.get("recall_hit_count", 0) or 0) + (1 if results else 0),
+        last_recall={
+            "query": query,
+            "source": source,
+            "result_count": len(results),
+            "top_score": entry["top_score"],
+            "results_preview": entry["results"][:3],
+        },
+    )
+
+
+def format_recalled_memories(results) -> str:
+    if not results:
+        return ""
+
+    lines = [
+        "[Private recollection]",
+        "These are remembered anchors from this private life, not transcript lines to recite.",
+        f"{ARGS.user_label} is the person speaking to me right now, not a random example or a stranger.",
+        "If one of these fits Laura's question, answer from memory using I for myself and you for Laura.",
+        "Do not mention retrieval, do not read the notes out loud, and do not answer like an archivist.",
+    ]
+    for idx, row in enumerate(results, start=1):
+        metadata = row.get("metadata", {}) or {}
+        lines.append(f"{idx}.")
+        content = str(row.get("content", "") or "").strip()
+        lines.extend(format_memory_anchor_lines(content, metadata, current_speaker=ARGS.user_label))
+    lines.append("[/Private recollection]")
+    return "\n".join(lines)
+
+
+def perform_private_recall(query: str, limit: int = 3, score_threshold: Optional[float] = None, source: str = "api", question_text: str = ""):
+    query_text = str(query or "").strip()
+    if not query_text:
+        return []
+    if not ARGS.qdrant_enabled:
+        raise RuntimeError("Qdrant recall unavailable: qdrant is disabled.")
+
+    sink = ensure_qdrant_gate_sink(force_retry=True)
+    if sink is None:
+        raise RuntimeError("Qdrant recall unavailable: sink could not be initialized.")
+
+    results = sink.query(query_text, limit=limit, score_threshold=score_threshold)
+    append_recall_log_entry(query_text, results, source=source, question_text=question_text)
+    return results
+
+
+def build_sleep_gate_record(event):
+    state = get_runtime_state_snapshot()
+    return {
+        "turn": event.get("turn"),
+        "ts": event.get("ts"),
+        "session": f"steve-chat-{state.get('started_at', 'unknown')}",
+        "decision": event.get("decision"),
+        "mode": event.get("mode"),
+        "user": event.get("user"),
+        "response": event.get("response"),
+        "open_tension": bool(event.get("destinations", {}).get("open_tension")),
+        "sleep_candidate": bool(
+            event.get("decision") in {"CONSOLIDATE", "NOTE", "ATTEND"}
+            or event.get("destinations", {}).get("open_tension")
+        ),
+        "destinations": event.get("destinations", {}),
+        "routing": event.get("routing", {}),
+        "surprise": event.get("surprise", {}),
+        "salience": event.get("salience", {}),
+        "tension": event.get("tension", {}),
+        "gate_thresholds": event.get("gate_thresholds", {}),
+        "mamba_trace": event.get("mamba_trace", {}),
+        "safety_critical": event.get("safety_critical", {}),
+        "response_diversity": event.get("response_diversity", {}),
+        "summary": build_semantic_gate_summary(event),
+    }
 
 
 def note_qdrant_sink_failure(exc):
@@ -1244,14 +1771,30 @@ def queue_qdrant_gate_row(content: str, metadata, reason: str, replay_policy: st
 
 
 def store_qdrant_gate_event(event):
-    if not event.get("destinations", {}).get("qdrant"):
+    destinations = event.get("destinations", {}) or {}
+    sleep_candidate = bool(
+        event.get("mode") == "gate"
+        and (
+            event.get("decision") in {"CONSOLIDATE", "NOTE", "ATTEND"}
+            or destinations.get("open_tension")
+        )
+    )
+    qdrant_target = bool(destinations.get("qdrant"))
+    if not qdrant_target and not sleep_candidate:
         return
 
     content, metadata = build_qdrant_memory_record(event)
     configured_mode = getattr(ARGS, "qdrant_write_mode", "direct")
     safety_critical = bool(event.get("safety_critical", {}).get("is_critical"))
     effective_mode = configured_mode
-    if configured_mode == "critical-only":
+    if getattr(ARGS, "no_shared_memory", False):
+        if safety_critical or event.get("decision") == "CONSOLIDATE":
+            effective_mode = "direct"
+        elif event.get("decision") == "NOTE":
+            effective_mode = "pending"
+        elif configured_mode == "critical-only":
+            effective_mode = "pending"
+    elif configured_mode == "critical-only":
         effective_mode = "direct" if safety_critical else "pending"
 
     event["qdrant_write"] = {
@@ -1262,7 +1805,14 @@ def store_qdrant_gate_event(event):
         "effective_mode": effective_mode,
         "point_id": "",
         "content_preview": content[:160],
+        "sleep_candidate": sleep_candidate,
     }
+
+    if sleep_candidate and not qdrant_target:
+        queue_qdrant_gate_row(content, metadata, "queued:sleep_tagged", replay_policy="sleep")
+        event["qdrant_write"]["queued"] = True
+        event["qdrant_write"]["effective_mode"] = "pending"
+        return
 
     if effective_mode == "pending":
         queue_qdrant_gate_row(content, metadata, f"queued:{configured_mode}", replay_policy="sleep")
@@ -1465,6 +2015,11 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
         append_jsonl(DUAL_GATE_SURPRISE_PATH, event)
     if writes_mamba:
         append_jsonl(DUAL_GATE_MEMORY_PATH, event)
+    if event["mode"] == "gate" and (
+        event["decision"] in {"CONSOLIDATE", "NOTE", "ATTEND"} or open_tension
+    ):
+        append_jsonl(DUAL_GATE_SLEEP_PATH, build_sleep_gate_record(event))
+    append_memory_formation_record(event)
 
     LAST_CONVERSATION_SNAPSHOT = post_snapshot
     update_runtime_state(
@@ -1478,6 +2033,18 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
         ),
         surprise_count=sum(1 for gate_event in DUAL_GATE_EVENTS if gate_event["surprise"]["hit"]),
         tension_count=sum(1 for gate_event in DUAL_GATE_EVENTS if gate_event["tension"]["hit"]),
+        open_tension_count=sum(
+            1 for gate_event in DUAL_GATE_EVENTS
+            if gate_event.get("destinations", {}).get("open_tension")
+        ),
+        sleep_tagged_count=sum(
+            1 for gate_event in DUAL_GATE_EVENTS
+            if gate_event.get("mode") == "gate"
+            and (
+                gate_event.get("decision") in {"CONSOLIDATE", "NOTE", "ATTEND"}
+                or gate_event.get("destinations", {}).get("open_tension")
+            )
+        ),
         qdrant_synced_count=sum(
             1 for gate_event in DUAL_GATE_EVENTS
             if gate_event.get("qdrant_write", {}).get("ok")
@@ -1534,6 +2101,9 @@ def build_status_payload():
         "alpha": getattr(ARGS, "alpha", None),
         "temperature": getattr(ARGS, "temperature", None),
         "model_id": getattr(ARGS, "qwen_model_id", ""),
+        "instance_id": state.get("instance_id", ""),
+        "no_shared_memory": bool(state.get("no_shared_memory")),
+        "qdrant_collection": state.get("qdrant_collection", getattr(ARGS, "qdrant_collection", SHARED_QDRANT_COLLECTION)),
         "user_label": getattr(ARGS, "user_label", ""),
         "model_label": getattr(ARGS, "model_label", ""),
         "dual_gate_enabled": bool(state.get("dual_gate_enabled")),
@@ -1556,17 +2126,30 @@ def build_status_payload():
         "mamba_target_layer": state.get("mamba_target_layer"),
         "surprise_count": int(state.get("surprise_count", 0) or 0),
         "tension_count": int(state.get("tension_count", 0) or 0),
+        "open_tension_count": int(state.get("open_tension_count", 0) or 0),
+        "sleep_tagged_count": int(state.get("sleep_tagged_count", 0) or 0),
+        "formation_log_count": int(state.get("formation_log_count", 0) or 0),
+        "formation_written_count": int(state.get("formation_written_count", 0) or 0),
+        "formation_queued_count": int(state.get("formation_queued_count", 0) or 0),
+        "formation_discarded_count": int(state.get("formation_discarded_count", 0) or 0),
+        "recall_request_count": int(state.get("recall_request_count", 0) or 0),
+        "recall_hit_count": int(state.get("recall_hit_count", 0) or 0),
+        "last_recall": state.get("last_recall", {}),
+        "last_memory_packet": state.get("last_memory_packet", {}),
         "last_gate": state.get("last_gate", {}),
         "target_layers": state.get("target_layers", []),
         "target_layers_overridden": bool(state.get("target_layers_overridden")),
     }
 
 
-def build_prompt():
+def build_prompt(recalled_memories=None):
     lines = []
     transcript = build_transcript()
     if transcript:
         lines.append(transcript)
+    recall_block = format_recalled_memories(recalled_memories or [])
+    if recall_block:
+        lines.append(recall_block)
     lines.append(f"{ARGS.model_label}:")
     return "\n".join(lines)
 
@@ -1661,6 +2244,10 @@ class ChatHandler(BaseHTTPRequestHandler):
             self._handle_chat()
             return
 
+        if self.path == "/recall":
+            self._handle_recall()
+            return
+
         if self.path == "/stop":
             self._handle_stop()
             return
@@ -1694,8 +2281,21 @@ class ChatHandler(BaseHTTPRequestHandler):
             update_runtime_state(busy=True, last_error="")
             try:
                 pre_turn_transcript = build_transcript()
+                recall_requested = bool(body.get("use_recall"))
+                recall_query = str(body.get("recall_query", "") or "").strip()
+                recall_limit = coerce_recall_limit(body.get("recall_limit", 3))
+                recall_score_threshold = coerce_optional_float(body.get("recall_score_threshold"))
+                recalled_memories = []
                 append_turn(ARGS.user_label, user_msg)
-                prompt = build_prompt()
+                if recall_requested:
+                    recalled_memories = perform_private_recall(
+                        recall_query or user_msg,
+                        limit=recall_limit,
+                        score_threshold=recall_score_threshold,
+                        source="chat",
+                        question_text=user_msg,
+                    )
+                prompt = build_prompt(recalled_memories=recalled_memories)
 
                 raw_response, response = generate_reply(prompt)
                 if not response:
@@ -1707,13 +2307,57 @@ class ChatHandler(BaseHTTPRequestHandler):
 
                 append_turn(ARGS.model_label, response)
                 gate_event = evaluate_dual_gate(user_msg, response, prompt, pre_turn_transcript)
-                self._json_response({"response": response, "dual_gate": gate_event})
+                memory_packet_preview = build_memory_packet_preview(gate_event)
+                update_runtime_state(last_memory_packet=memory_packet_preview)
+                self._json_response(
+                    {
+                        "response": response,
+                        "dual_gate": gate_event,
+                        "memory_packet": memory_packet_preview,
+                        "recall": {
+                            "requested": recall_requested,
+                            "query": recall_query or user_msg if recall_requested else "",
+                            "results": recalled_memories,
+                        },
+                    }
+                )
             except Exception as exc:
                 update_runtime_state(last_error=str(exc))
                 print(f"[error] Chat request failed: {exc}")
                 self._json_response({"error": str(exc), "response": "..."}, status=500)
             finally:
                 update_runtime_state(busy=False)
+
+    def _handle_recall(self):
+        body = self._read_json_body()
+        query = str(body.get("query", "") or "").strip()
+        if not query:
+            self._json_response({"error": "missing query", "results": []}, status=400)
+            return
+
+        limit = coerce_recall_limit(body.get("limit", 3))
+        score_threshold = coerce_optional_float(body.get("score_threshold"))
+        try:
+            results = perform_private_recall(
+                query,
+                limit=limit,
+                score_threshold=score_threshold,
+                source="api",
+            )
+        except Exception as exc:
+            update_runtime_state(last_error=str(exc))
+            self._json_response({"error": str(exc), "results": []}, status=503)
+            return
+
+        self._json_response(
+            {
+                "query": query,
+                "limit": limit,
+                "count": len(results),
+                "collection": get_runtime_state_snapshot().get("qdrant_collection", getattr(ARGS, "qdrant_collection", "")),
+                "results": results,
+            }
+        )
 
     def _handle_stop(self):
         body = self._read_json_body()
@@ -1744,7 +2388,8 @@ def request_server_shutdown():
 
 def main():
     global MODEL, TOKENIZER, ARGS, LATEST_TRANSCRIPT_PATH, LATEST_JSONL_PATH
-    global DUAL_GATE_LOG_PATH, DUAL_GATE_MEMORY_PATH, DUAL_GATE_SURPRISE_PATH
+    global DUAL_GATE_LOG_PATH, DUAL_GATE_MEMORY_PATH, DUAL_GATE_SURPRISE_PATH, DUAL_GATE_SLEEP_PATH
+    global MEMORY_FORMATION_LOG_PATH, RECALL_LOG_PATH
     global QDRANT_PENDING_PATH, QDRANT_FLUSHED_PATH, SERVER, ACTIVATION_RECORDER, LAST_CONVERSATION_SNAPSHOT
     global BOOTSTRAP_QWEN_BIAS_DIRECTION, BOOTSTRAP_QWEN_HIDDEN_REFERENCE
 
@@ -1765,6 +2410,8 @@ def main():
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--user-label", default=DEFAULT_USER_LABEL)
     parser.add_argument("--model-label", default=DEFAULT_MODEL_LABEL)
+    parser.add_argument("--instance-id", default="")
+    parser.add_argument("--no-shared-memory", action="store_true")
     parser.add_argument("--transcript-path", default="chat_session_latest.txt")
     parser.add_argument("--turn-log-path", default="chat_turns_latest.jsonl")
     parser.add_argument("--neutral-prompt", default="The weather today is")
@@ -1777,6 +2424,7 @@ def main():
     parser.add_argument("--dual-gate-log-path", default="dual_gate_turns_latest.jsonl")
     parser.add_argument("--dual-gate-memory-path", default="salience_memory_latest.jsonl")
     parser.add_argument("--dual-gate-surprise-path", default="surprise_events_latest.jsonl")
+    parser.add_argument("--dual-gate-sleep-path", default="sleep_gate_events_latest.jsonl")
     parser.add_argument("--qdrant-enabled", dest="qdrant_enabled", action="store_true")
     parser.add_argument("--no-qdrant", dest="qdrant_enabled", action="store_false")
     parser.add_argument("--qdrant-host", default="192.168.2.191")
@@ -1785,6 +2433,8 @@ def main():
     parser.add_argument("--qdrant-embedding-model", default="all-MiniLM-L6-v2")
     parser.add_argument("--qdrant-pending-path", default="qdrant_gate_pending.jsonl")
     parser.add_argument("--qdrant-flushed-path", default="qdrant_gate_flushed.jsonl")
+    parser.add_argument("--memory-formation-log-path", default="memory_formation_log.jsonl")
+    parser.add_argument("--recall-log-path", default="private_recall_log.jsonl")
     parser.add_argument(
         "--qdrant-write-mode",
         choices=("direct", "pending", "critical-only"),
@@ -1796,6 +2446,7 @@ def main():
     parser.set_defaults(dual_gate_enabled=True)
     parser.set_defaults(qdrant_enabled=True)
     ARGS = parser.parse_args()
+    resolve_memory_scope_args(ARGS)
 
     if ARGS.dual_gate_warmup_turns < 0:
         raise ValueError("--dual-gate-warmup-turns must be >= 0.")
@@ -1811,18 +2462,27 @@ def main():
     DUAL_GATE_LOG_PATH = Path(ARGS.dual_gate_log_path)
     DUAL_GATE_MEMORY_PATH = Path(ARGS.dual_gate_memory_path)
     DUAL_GATE_SURPRISE_PATH = Path(ARGS.dual_gate_surprise_path)
+    DUAL_GATE_SLEEP_PATH = Path(ARGS.dual_gate_sleep_path)
     QDRANT_PENDING_PATH = Path(ARGS.qdrant_pending_path)
     QDRANT_FLUSHED_PATH = Path(ARGS.qdrant_flushed_path)
+    MEMORY_FORMATION_LOG_PATH = Path(ARGS.memory_formation_log_path)
+    RECALL_LOG_PATH = Path(ARGS.recall_log_path)
     LATEST_TRANSCRIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
     LATEST_JSONL_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_MEMORY_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_SURPRISE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DUAL_GATE_SLEEP_PATH.parent.mkdir(parents=True, exist_ok=True)
     QDRANT_PENDING_PATH.parent.mkdir(parents=True, exist_ok=True)
     QDRANT_FLUSHED_PATH.parent.mkdir(parents=True, exist_ok=True)
+    MEMORY_FORMATION_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    RECALL_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_LOG_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_MEMORY_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_SURPRISE_PATH.write_text("", encoding="utf-8")
+    DUAL_GATE_SLEEP_PATH.write_text("", encoding="utf-8")
+    MEMORY_FORMATION_LOG_PATH.write_text("", encoding="utf-8")
+    RECALL_LOG_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_EVENTS.clear()
     persist_conversation()
 
@@ -1976,10 +2636,21 @@ def main():
         last_error="",
         disposition=episode["title"],
         dual_gate_enabled=bool(ARGS.dual_gate_enabled),
+        instance_id=ARGS.instance_id,
+        no_shared_memory=bool(ARGS.no_shared_memory),
+        qdrant_collection=ARGS.qdrant_collection,
         memory_count=0,
         qdrant_count=0,
         surprise_count=0,
         tension_count=0,
+        open_tension_count=0,
+        sleep_tagged_count=0,
+        formation_log_count=0,
+        formation_written_count=0,
+        formation_queued_count=0,
+        formation_discarded_count=0,
+        recall_request_count=0,
+        recall_hit_count=0,
         qdrant_synced_count=0,
         qdrant_queued_count=0,
         qdrant_pending_count=0,
@@ -1995,6 +2666,8 @@ def main():
         mamba_state_ref=mamba_state_ref,
         mamba_state_source="hidden_last_token",
         mamba_target_layer=mamba_target_layer,
+        last_recall={},
+        last_memory_packet={},
         last_gate={},
         target_layers=format_target_specs(target_specs),
         target_layers_overridden=target_layers_overridden,

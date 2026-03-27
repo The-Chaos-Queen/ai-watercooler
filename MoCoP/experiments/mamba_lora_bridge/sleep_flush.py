@@ -23,6 +23,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from autobiographical_memory import build_recall_text, enrich_memory_metadata
+
 
 def load_pending(path: Path):
     """Read JSONL pending log, yield (line_number, record) tuples."""
@@ -72,6 +74,7 @@ def create_sink(host: str, port: int, collection: str, embedding_model: str):
     model = SentenceTransformer(embedding_model)
 
     def store(content: str, metadata: dict) -> str:
+        metadata = enrich_memory_metadata(content, metadata, speaker_name=metadata.get("speaker_name"))
         identity_text = json.dumps(
             {
                 "session": metadata.get("session", ""),
@@ -85,9 +88,11 @@ def create_sink(host: str, port: int, collection: str, embedding_model: str):
         )
         digest = hashlib.md5(identity_text.encode("utf-8")).hexdigest()
         point_id = int(digest[:16], 16)
-        vector = model.encode(content).tolist()
+        recall_text = build_recall_text(content, metadata, speaker_name=metadata.get("speaker_name"))
+        vector = model.encode(recall_text).tolist()
         payload = {
             "content": content,
+            "recall_text": recall_text,
             "timestamp": datetime.now().isoformat(),
             "stored_at": time.time(),
             "flushed_from_pending": True,

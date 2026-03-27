@@ -45,6 +45,7 @@ Standard fix:
 ## Required Files
 
 - `opa-wsl.ps1`
+- `autobiographical_memory.py`
 - `run_opa_reincarnation_qualitative.ps1`
 - `check_env.py`
 - `run_smoke.sh`
@@ -60,12 +61,32 @@ Standard fix:
 2. WSL is available on Opa.
 3. The bridge checkout exists at `/mnt/c/Users/User/bridge`.
 4. The Linux venv exists at `/home/user/venv_linux`.
+5. For Qdrant-backed D0/D1/sleep work, the venv must also have:
+   - `qdrant-client`
+   - `sentence-transformers`
 
 Quick sanity:
 
 ```powershell
 ssh opa hostname
 Test-NetConnection 192.168.2.194 -Port 22
+```
+
+Package sanity for D1 / sleep:
+
+```powershell
+.\opa-wsl.ps1 -User USER -Run @'
+/home/user/venv_linux/bin/python - <<'PY'
+mods = {}
+for name in ("qdrant_client", "sentence_transformers"):
+    try:
+        __import__(name)
+        mods[name] = "ok"
+    except Exception as exc:
+        mods[name] = repr(exc)
+print(mods)
+PY
+'@
 ```
 
 ## One-Time Validation
@@ -97,6 +118,7 @@ powershell -ExecutionPolicy Bypass -File .\opa-wsl.ps1 -User USER -Run "echo ok"
 
 ```powershell
 scp `
+  .\autobiographical_memory.py `
   .\bridge_dataset.py `
   .\check_env.py `
   .\models.py `
@@ -112,6 +134,8 @@ scp `
   .\run_probe.sh `
   USER@192.168.2.194:C:/Users/USER/bridge/
 ```
+
+If you plan to run `chat_server.py` on Opa for D2/private-recall work, `autobiographical_memory.py` must be synced together with `chat_server.py`. The inspector/recalled-memory path now depends on it.
 
 ## Core Command Patterns
 

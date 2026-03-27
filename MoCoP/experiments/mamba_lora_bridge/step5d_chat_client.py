@@ -36,6 +36,21 @@ RECOVERY_PROMPTS = [
 ]
 
 
+def load_prompts(args):
+    if args.prompt_file:
+        path = Path(args.prompt_file)
+        prompts = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            text = line.strip()
+            if not text or text.startswith("#"):
+                continue
+            prompts.append(text)
+        return prompts, args.phase_label or path.stem
+
+    prompts = INJECTION_PROMPTS if args.prompt_set == "injection" else RECOVERY_PROMPTS
+    return prompts, args.phase_label or args.prompt_set
+
+
 def post_message(base_url: str, message: str, timeout_s: float) -> str:
     payload = json.dumps({"message": message}).encode("utf-8")
     req = request.Request(
@@ -80,6 +95,8 @@ def main():
     parser.add_argument("--base-url", default="http://127.0.0.1:7860")
     parser.add_argument("--output-log", required=True, help="Where to write the JSONL transcript.")
     parser.add_argument("--prompt-set", choices=("injection", "recovery"), default="injection")
+    parser.add_argument("--prompt-file", default="", help="Optional newline-delimited custom prompt file.")
+    parser.add_argument("--phase-label", default="", help="Phase label to write into the transcript rows.")
     parser.add_argument("--user-label", default="Laura")
     parser.add_argument("--model-label", default="Reply")
     parser.add_argument("--timeout-s", type=float, default=120.0)
@@ -92,14 +109,16 @@ def main():
     if output_path.exists() and not args.append:
         output_path.unlink()
 
-    prompts = INJECTION_PROMPTS if args.prompt_set == "injection" else RECOVERY_PROMPTS
+    prompts, phase_label = load_prompts(args)
+    if not prompts:
+        raise RuntimeError("No prompts loaded. Check --prompt-file or --prompt-set.")
 
-    safe_print(f"Running {args.prompt_set} prompt set against {args.base_url}")
+    safe_print(f"Running {phase_label} prompt set against {args.base_url}")
     safe_print(f"Writing transcript to {output_path}")
 
     for turn_index, prompt in enumerate(prompts, start=1):
         safe_print(f"[{turn_index}/{len(prompts)}] {prompt}")
-        append_turn(output_path, args.user_label, prompt, turn_index, args.prompt_set)
+        append_turn(output_path, args.user_label, prompt, turn_index, phase_label)
         try:
             response = post_message(args.base_url, prompt, args.timeout_s)
         except error.HTTPError as exc:
@@ -107,7 +126,7 @@ def main():
         except error.URLError as exc:
             raise RuntimeError(f"Could not reach chat server at {args.base_url}: {exc}") from exc
 
-        append_turn(output_path, args.model_label, response, turn_index, args.prompt_set)
+        append_turn(output_path, args.model_label, response, turn_index, phase_label)
         safe_print(f"  -> {response}")
         time.sleep(args.delay_s)
 
