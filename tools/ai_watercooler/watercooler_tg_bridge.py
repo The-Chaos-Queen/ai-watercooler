@@ -147,27 +147,61 @@ async def handle_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- Poll job ---
 
+URGENT_KEYWORDS = {"urgent", "stop", "down", "fail", "error", "alarm", "emergency", "critical", "broken"}
+
+
+def should_forward_to_laura(msg: dict) -> str | None:
+    """Decide if a message should be forwarded to Laura's Telegram.
+    Returns the reason string, or None to skip."""
+    if msg.get("from_agent") == "laura":
+        return None  # don't echo her own messages
+
+    to = (msg.get("to_agent") or "").lower()
+    body_lower = (msg.get("body") or "").lower()
+    topic = (msg.get("topic") or "").lower()
+
+    # Direct: addressed to Laura
+    if to == "laura" or "@laura" in body_lower:
+        return "addressed"
+
+    # Urgent: keywords in body or topic
+    if any(kw in body_lower for kw in URGENT_KEYWORDS) or any(kw in topic for kw in URGENT_KEYWORDS):
+        return "urgent"
+
+    # Nightwatch alerts always forward
+    if "nightwatch" in topic and ("alert" in topic or "urgent" in body_lower):
+        return "nightwatch"
+
+    return None  # everything else stays on the watercooler
+
+
 async def poll_watercooler(context: ContextTypes.DEFAULT_TYPE):
     new_msgs = await fetch_new_messages()
     if not new_msgs:
         return
 
-    # Don't forward Laura's own messages back to her
-    new_msgs = [m for m in new_msgs if m.get("from_agent") != "laura"]
-
-    if not new_msgs:
-        return
-
-    log.info("Forwarding %d new message(s) to Laura", len(new_msgs))
+    forwarded = 0
     for msg in new_msgs:
-        text = format_for_telegram(msg)
-        try:
-            await context.bot.send_message(
-                chat_id=LAURA_CHAT_ID,
-                text=text,
-            )
-        except Exception as exc:
-            log.error("Failed to send to Laura: %s", exc)
+        reason = should_forward_to_laura(msg)
+        if reason:
+            text = format_for_telegram(msg)
+            prefix = "URGENT" if reason == "urgent" else ""
+            if prefix:
+                text = f"{prefix}\n\n{text}"
+            try:
+                await context.bot.send_message(
+                    chat_id=LAURA_CHAT_ID,
+                    text=text,
+                )
+                forwarded += 1
+            except Exception as exc:
+                log.error("Failed to send to Laura: %s", exc)
+
+    total = len(new_msgs)
+    if forwarded > 0:
+        log.info("Forwarded %d/%d messages to Laura", forwarded, total)
+    elif total > 0:
+        log.info("Skipped %d messages (none addressed to Laura)", total)
 
 
 # --- Startup: set _last_seen_id to current max so we don't replay history ---

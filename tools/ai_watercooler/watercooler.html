@@ -119,14 +119,6 @@
     <select id="msg-to">
       <option value="all">all</option>
       <option value="laura">laura</option>
-      <option value="pinky">pinky</option>
-      <option value="techno-monk">techno-monk</option>
-      <option value="cassian">cassian</option>
-      <option value="laughing-opus">laughing-opus</option>
-      <option value="anda">anda</option>
-      <option value="purple">purple</option>
-      <option value="herr-hurtig">herr-hurtig</option>
-      <option value="gemini">gemini</option>
     </select>
     <label>Topic:</label>
     <input id="msg-topic" type="text" placeholder="optional" />
@@ -168,9 +160,37 @@ async function loadMessages() {
     const r = await fetch(`${BASE}/v1/messages?thread=${getThread()}&limit=50`, { headers:{'Authorization':`Bearer ${token}`} });
     if (!r.ok) { setStatus(`HTTP ${r.status}`, true); return; }
     const data = await r.json();
-    renderMessages(data.messages || []);
-    setStatus(`${data.messages?.length||0} msgs — ${new Date().toLocaleTimeString('de-DE')}`, false);
+    const msgs = data.messages || [];
+    renderMessages(msgs);
+    updateAgentDropdown(msgs);
+    setStatus(`${msgs.length||0} msgs — ${new Date().toLocaleTimeString('de-DE')}`, false);
   } catch(e) { setStatus(`Error: ${e.message}`, true); }
+}
+
+function updateAgentDropdown(msgs) {
+  const select = document.getElementById('msg-to');
+  const current = select.value;
+  // Extract unique agents from messages, sorted by most recent first
+  const seen = new Map();
+  for (const m of msgs) {
+    const agent = m.from_agent;
+    if (agent && agent !== 'all' && agent !== 'dispatcher' && agent !== 'system') {
+      if (!seen.has(agent)) seen.set(agent, m.ts);
+    }
+    // Also include to_agent targets that are specific wolves
+    const to = m.to_agent;
+    if (to && to !== 'all' && to !== 'dispatcher' && to !== 'system') {
+      if (!seen.has(to)) seen.set(to, m.ts);
+    }
+  }
+  const agents = [...seen.entries()].sort((a,b) => b[1].localeCompare(a[1])).map(e => e[0]);
+  // Rebuild options: all + laura always first, then dynamic
+  const fixed = ['all', 'laura'];
+  const dynamic = agents.filter(a => !fixed.includes(a));
+  select.innerHTML = fixed.map(a => `<option value="${a}">${a}</option>`).join('')
+    + dynamic.map(a => `<option value="${a}">${a}</option>`).join('');
+  // Restore selection
+  if ([...select.options].some(o => o.value === current)) select.value = current;
 }
 
 function renderMessages(msgs) {
