@@ -25,29 +25,51 @@ function Write-Log {
 }
 
 function Get-CurrentWifiSsid {
-    $output = netsh wlan show interfaces | Out-String
-    foreach ($line in ($output -split "`r?`n")) {
-        if ($line -match '^\s*SSID\s*:\s*(.+)$' -and $line -notmatch '^\s*BSSID\s*:') {
-            $ssid = $Matches[1].Trim()
-            if ($ssid) {
-                return $ssid
+    try {
+        $output = netsh wlan show interfaces | Out-String
+        foreach ($line in ($output -split "`r?`n")) {
+            if ($line -match '^\s*SSID\s*:\s*(.+)$' -and $line -notmatch '^\s*BSSID\s*:') {
+                $ssid = $Matches[1].Trim()
+                if ($ssid) {
+                    return $ssid
+                }
             }
         }
+    } catch {
+        Write-Log "netsh wlan show interfaces failed: $($_.Exception.Message)"
     }
+
+    try {
+        $profile = Get-NetConnectionProfile |
+            Where-Object { $_.InterfaceAlias -eq $InterfaceAlias } |
+            Select-Object -First 1
+
+        if ($profile -and $profile.Name) {
+            Write-Log "Falling back to Get-NetConnectionProfile for current SSID detection."
+            return $profile.Name.Trim()
+        }
+    } catch {
+        Write-Log "Get-NetConnectionProfile fallback failed: $($_.Exception.Message)"
+    }
+
     return $null
 }
 
 function Get-VisibleWifiSsids {
-    $output = netsh wlan show networks mode=bssid | Out-String
     $ssids = New-Object System.Collections.Generic.HashSet[string] ([System.StringComparer]::Ordinal)
 
-    foreach ($line in ($output -split "`r?`n")) {
-        if ($line -match '^\s*SSID\s+\d+\s*:\s*(.*)$') {
-            $ssid = $Matches[1].Trim()
-            if ($ssid) {
-                [void]$ssids.Add($ssid)
+    try {
+        $output = netsh wlan show networks mode=bssid | Out-String
+        foreach ($line in ($output -split "`r?`n")) {
+            if ($line -match '^\s*SSID\s+\d+\s*:\s*(.*)$') {
+                $ssid = $Matches[1].Trim()
+                if ($ssid) {
+                    [void]$ssids.Add($ssid)
+                }
             }
         }
+    } catch {
+        Write-Log "netsh wlan show networks failed: $($_.Exception.Message)"
     }
 
     return @($ssids)
@@ -90,9 +112,13 @@ if ($currentSsid -eq $TargetSsid) {
 }
 
 $visibleSsids = Get-VisibleWifiSsids
-if ($visibleSsids -notcontains $TargetSsid) {
+if ($visibleSsids.Count -gt 0 -and $visibleSsids -notcontains $TargetSsid) {
     Write-Log "Target SSID '$TargetSsid' is not currently visible. Current SSID: '$currentSsid'."
     exit 2
+}
+
+if ($visibleSsids.Count -eq 0) {
+    Write-Log "Visible SSID scan returned no data. Proceeding with stored-profile reconnect attempt."
 }
 
 Write-Log "Current SSID '$currentSsid' is not '$TargetSsid'. Attempting reconnect via '$InterfaceAlias'."
