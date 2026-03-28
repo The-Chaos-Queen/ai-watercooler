@@ -8,6 +8,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$script:ResolvedInterfaceAlias = $null
+
 function Write-Log {
     param([string]$Message)
 
@@ -41,7 +43,7 @@ function Get-CurrentWifiSsid {
 
     try {
         $profile = Get-NetConnectionProfile |
-            Where-Object { $_.InterfaceAlias -eq $InterfaceAlias } |
+            Where-Object { $_.InterfaceAlias -eq $script:ResolvedInterfaceAlias } |
             Select-Object -First 1
 
         if ($profile -and $profile.Name) {
@@ -102,11 +104,50 @@ function Ensure-PrivateProfile {
     }
 }
 
+function Resolve-WifiInterfaceAlias {
+    param([string]$PreferredAlias)
+
+    try {
+        $adapters = Get-NetAdapter -ErrorAction Stop
+    } catch {
+        Write-Log "Get-NetAdapter failed: $($_.Exception.Message)"
+        return $PreferredAlias
+    }
+
+    if ($PreferredAlias) {
+        $exact = $adapters | Where-Object { $_.Name -eq $PreferredAlias } | Select-Object -First 1
+        if ($exact) {
+            return $exact.Name
+        }
+    }
+
+    $candidates = $adapters | Where-Object {
+        $_.InterfaceDescription -match 'Wireless|Wi-?Fi|WLAN|802\.11' -or $_.Name -match 'Wi-?Fi|WLAN'
+    }
+
+    if (-not $candidates) {
+        Write-Log "No wireless adapter candidates found. Falling back to preferred alias '$PreferredAlias'."
+        return $PreferredAlias
+    }
+
+    $connectedCandidate = $candidates | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1
+    if ($connectedCandidate) {
+        Write-Log "Auto-detected wireless adapter '$($connectedCandidate.Name)'."
+        return $connectedCandidate.Name
+    }
+
+    $firstCandidate = $candidates | Select-Object -First 1
+    Write-Log "Using first wireless adapter candidate '$($firstCandidate.Name)'."
+    return $firstCandidate.Name
+}
+
+$script:ResolvedInterfaceAlias = Resolve-WifiInterfaceAlias -PreferredAlias $InterfaceAlias
+
 $currentSsid = Get-CurrentWifiSsid
 if ($currentSsid -eq $TargetSsid) {
     Write-Log "Already connected to '$TargetSsid'."
     if ($SetPrivate) {
-        Ensure-PrivateProfile -ExpectedSsid $TargetSsid -ExpectedInterfaceAlias $InterfaceAlias
+        Ensure-PrivateProfile -ExpectedSsid $TargetSsid -ExpectedInterfaceAlias $script:ResolvedInterfaceAlias
     }
     exit 0
 }
@@ -121,8 +162,8 @@ if ($visibleSsids.Count -eq 0) {
     Write-Log "Visible SSID scan returned no data. Proceeding with stored-profile reconnect attempt."
 }
 
-Write-Log "Current SSID '$currentSsid' is not '$TargetSsid'. Attempting reconnect via '$InterfaceAlias'."
-$connectOutput = netsh wlan connect name="$TargetSsid" ssid="$TargetSsid" interface="$InterfaceAlias" | Out-String
+Write-Log "Current SSID '$currentSsid' is not '$TargetSsid'. Attempting reconnect via '$script:ResolvedInterfaceAlias'."
+$connectOutput = netsh wlan connect name="$TargetSsid" ssid="$TargetSsid" interface="$script:ResolvedInterfaceAlias" | Out-String
 Write-Log ($connectOutput.Trim())
 
 Start-Sleep -Seconds $ConnectWaitSeconds
@@ -134,7 +175,7 @@ if ($newSsid -ne $TargetSsid) {
 
 Write-Log "Connected to '$TargetSsid' successfully."
 if ($SetPrivate) {
-    Ensure-PrivateProfile -ExpectedSsid $TargetSsid -ExpectedInterfaceAlias $InterfaceAlias
+    Ensure-PrivateProfile -ExpectedSsid $TargetSsid -ExpectedInterfaceAlias $script:ResolvedInterfaceAlias
 }
 
 exit 0
