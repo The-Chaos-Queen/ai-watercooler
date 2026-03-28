@@ -104,6 +104,27 @@ function Ensure-PrivateProfile {
     }
 }
 
+function Test-SsidMatch {
+    param(
+        [string]$Observed,
+        [string]$Expected
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Observed) -or [string]::IsNullOrWhiteSpace($Expected)) {
+        return $false
+    }
+
+    if ($Observed -eq $Expected) {
+        return $true
+    }
+
+    if ($Observed -like "$Expected *") {
+        return $true
+    }
+
+    return $false
+}
+
 function Resolve-WifiInterfaceAlias {
     param([string]$PreferredAlias)
 
@@ -144,8 +165,8 @@ function Resolve-WifiInterfaceAlias {
 $script:ResolvedInterfaceAlias = Resolve-WifiInterfaceAlias -PreferredAlias $InterfaceAlias
 
 $currentSsid = Get-CurrentWifiSsid
-if ($currentSsid -eq $TargetSsid) {
-    Write-Log "Already connected to '$TargetSsid'."
+if (Test-SsidMatch -Observed $currentSsid -Expected $TargetSsid) {
+    Write-Log "Already connected to target network ('$currentSsid')."
     if ($SetPrivate) {
         Ensure-PrivateProfile -ExpectedSsid $TargetSsid -ExpectedInterfaceAlias $script:ResolvedInterfaceAlias
     }
@@ -168,7 +189,7 @@ Write-Log ($connectOutput.Trim())
 
 Start-Sleep -Seconds $ConnectWaitSeconds
 $newSsid = Get-CurrentWifiSsid
-if ($newSsid -ne $TargetSsid) {
+if (-not (Test-SsidMatch -Observed $newSsid -Expected $TargetSsid)) {
     Write-Log "Reconnect failed. Current SSID is '$newSsid'."
     exit 1
 }
