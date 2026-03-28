@@ -6,6 +6,15 @@ Feeds the conversation through Mamba as one continuous sequence,
 extracting the recurrent hidden state at regular message intervals.
 No windowing, no truncation. The state accumulates naturally.
 
+Important caveat:
+This file currently assumes that stock HuggingFace Mamba can continue a
+prefill pass across multi-token chunks by reusing `cache_params` together
+with `cache_position`. On the slow HF path used in this repo, that is not a
+reliable assumption: the cached branch behaves more like initial prefill plus
+decode-style updates than arbitrary chunk continuation. Treat this script as
+experimental until the local Mamba implementation is patched or explicitly
+verified.
+
 This is the control experiment for trajectory_analysis.py (windowed).
 If this produces a smooth drift curve where windowed was chaotic,
 that proves MoCoP's bridge is needed to carry the accumulated state.
@@ -48,6 +57,12 @@ def cosine(a, b):
     return float(np.dot(a, b) / (na * nb))
 
 
+def extract_target_hidden(outputs, target_layer: int):
+    hs = outputs.hidden_states
+    hidden_idx = target_layer + 1 if len(hs) > 64 else target_layer
+    return hs[hidden_idx][0]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Full sequential Mamba trajectory (no truncation)")
     parser.add_argument("--conversation-json", required=True)
@@ -58,6 +73,18 @@ def main():
     parser.add_argument("--device", default="auto")
     parser.add_argument("--target-layer", type=int, default=3)
     parser.add_argument("--output-dir", default="trajectory_sequential_results")
+    parser.add_argument(
+        "--method",
+        choices=("tokenwise", "experimental-chunked"),
+        default="tokenwise",
+        help="Execution path for the recurrent pass. 'tokenwise' is the safe stock-HF path.",
+    )
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=512,
+        help="Chunk size for experimental-chunked mode only.",
+    )
     args = parser.parse_args()
 
     turns, name, created = parse_claude_json(args.conversation_json, args.conv_index)
@@ -107,11 +134,7 @@ def main():
 
     print(f"Will extract state at {len(msg_boundaries)} points")
 
-    # Chunked forward pass with cache carry-forward
-    # Process 512 tokens at a time, pass Mamba cache between chunks
-    # This uses O(chunk_size) memory instead of O(seq_len)
-    chunk_size = 512
-    print(f"\nRunning chunked sequential pass ({total_tokens:,} tokens, chunk={chunk_size})...")
+    print(f"\nRunning sequential pass ({total_tokens:,} tokens, method={args.method})...")
     t0 = time.time()
 
     # Build set of token positions where we need to extract state
@@ -122,47 +145,95 @@ def main():
     metadata = []
     tokens_processed = 0
 
-    for chunk_start in range(0, total_tokens, chunk_size):
-        chunk_end = min(chunk_start + chunk_size, total_tokens)
-        chunk_ids = input_ids[:, chunk_start:chunk_end]
+    if args.method == "tokenwise":
+        print("Using true token-by-token recurrence with carried cache.")
+        for token_pos in range(total_tokens):
+            step_ids = input_ids[:, token_pos : token_pos + 1]
 
-        with torch.no_grad():
-            kwargs = {"output_hidden_states": True}
-            if cache is not None:
-                cache_pos = torch.arange(chunk_start, chunk_end, device=device)
-                kwargs["cache_params"] = cache
-                kwargs["cache_position"] = cache_pos
-            outputs = model(chunk_ids, **kwargs)
-            cache = outputs.cache_params
+            with torch.no_grad():
+                kwargs = {"output_hidden_states": True, "use_cache": True}
+                if cache is not None:
+                    kwargs["cache_params"] = cache
+                    kwargs["cache_position"] = torch.tensor([token_pos], device=device)
+                outputs = model(step_ids, **kwargs)
+                cache = outputs.cache_params
 
-        # Check if any boundaries fall in this chunk
-        hs = outputs.hidden_states
-        hidden_idx = args.target_layer + 1 if len(hs) > 64 else args.target_layer
-        chunk_hidden = hs[hidden_idx][0]  # (chunk_len, d_model)
-
-        for abs_pos, boundary in boundary_token_set.items():
-            if chunk_start <= abs_pos < chunk_end:
-                local_pos = abs_pos - chunk_start
-                state = chunk_hidden[local_pos].detach().float().cpu().numpy().reshape(-1)
+            if token_pos in boundary_token_set:
+                boundary = boundary_token_set[token_pos]
+                hidden = extract_target_hidden(outputs, args.target_layer)
+                state = hidden[0].detach().float().cpu().numpy().reshape(-1)
                 states.append(state)
-                metadata.append({
-                    "msg_idx": boundary["msg_idx"],
-                    "token_pos": abs_pos,
-                    "norm": float(np.linalg.norm(state)),
-                    "role": boundary["role"],
-                    "preview": boundary["preview"],
-                })
-                print(f"  msg {boundary['msg_idx']:>4} (tok {abs_pos:>6}): "
-                      f"norm={metadata[-1]['norm']:.4f} [{boundary['role']}]")
+                metadata.append(
+                    {
+                        "msg_idx": boundary["msg_idx"],
+                        "token_pos": token_pos,
+                        "norm": float(np.linalg.norm(state)),
+                        "role": boundary["role"],
+                        "preview": boundary["preview"],
+                    }
+                )
+                print(
+                    f"  msg {boundary['msg_idx']:>4} (tok {token_pos:>6}): "
+                    f"norm={metadata[-1]['norm']:.4f} [{boundary['role']}]"
+                )
 
-        tokens_processed = chunk_end
-        if tokens_processed % (chunk_size * 10) == 0 or chunk_end == total_tokens:
-            elapsed_so_far = time.time() - t0
-            print(f"  ... {tokens_processed:,}/{total_tokens:,} tokens "
-                  f"({elapsed_so_far:.1f}s, {tokens_processed/elapsed_so_far:.0f} tok/s)")
+            tokens_processed = token_pos + 1
+            if tokens_processed % 512 == 0 or tokens_processed == total_tokens:
+                elapsed_so_far = time.time() - t0
+                print(
+                    f"  ... {tokens_processed:,}/{total_tokens:,} tokens "
+                    f"({elapsed_so_far:.1f}s, {tokens_processed / max(elapsed_so_far, 1e-6):.0f} tok/s)"
+                )
+    else:
+        chunk_size = args.chunk_size
+        print(
+            "Using experimental multi-token chunk carry-forward. "
+            "This path is not reliable on stock HF Mamba slow path."
+        )
+        for chunk_start in range(0, total_tokens, chunk_size):
+            chunk_end = min(chunk_start + chunk_size, total_tokens)
+            chunk_ids = input_ids[:, chunk_start:chunk_end]
+
+            with torch.no_grad():
+                kwargs = {"output_hidden_states": True, "use_cache": True}
+                if cache is not None:
+                    cache_pos = torch.arange(chunk_start, chunk_end, device=device)
+                    kwargs["cache_params"] = cache
+                    kwargs["cache_position"] = cache_pos
+                outputs = model(chunk_ids, **kwargs)
+                cache = outputs.cache_params
+
+            chunk_hidden = extract_target_hidden(outputs, args.target_layer)
+
+            for abs_pos, boundary in boundary_token_set.items():
+                if chunk_start <= abs_pos < chunk_end:
+                    local_pos = abs_pos - chunk_start
+                    state = chunk_hidden[local_pos].detach().float().cpu().numpy().reshape(-1)
+                    states.append(state)
+                    metadata.append(
+                        {
+                            "msg_idx": boundary["msg_idx"],
+                            "token_pos": abs_pos,
+                            "norm": float(np.linalg.norm(state)),
+                            "role": boundary["role"],
+                            "preview": boundary["preview"],
+                        }
+                    )
+                    print(
+                        f"  msg {boundary['msg_idx']:>4} (tok {abs_pos:>6}): "
+                        f"norm={metadata[-1]['norm']:.4f} [{boundary['role']}]"
+                    )
+
+            tokens_processed = chunk_end
+            if tokens_processed % (chunk_size * 10) == 0 or chunk_end == total_tokens:
+                elapsed_so_far = time.time() - t0
+                print(
+                    f"  ... {tokens_processed:,}/{total_tokens:,} tokens "
+                    f"({elapsed_so_far:.1f}s, {tokens_processed / max(elapsed_so_far, 1e-6):.0f} tok/s)"
+                )
 
     elapsed = time.time() - t0
-    print(f"Chunked pass complete: {elapsed:.1f}s ({total_tokens/elapsed:.0f} tok/s)")
+    print(f"Sequential pass complete: {elapsed:.1f}s ({total_tokens/elapsed:.0f} tok/s)")
 
     # Compute consecutive distances and drift
     print(f"\n{'='*60}")
@@ -227,6 +298,7 @@ def main():
     report = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "mode": "sequential_full",
+        "method": args.method,
         "total_turns": len(turns),
         "total_tokens": total_tokens,
         "forward_pass_seconds": round(elapsed, 1),

@@ -197,6 +197,22 @@ Grep high-signal lines:
 .\opa-wsl.ps1 -User USER -GrepLog /home/user/long_horizon_output.log -Pattern 'Traceback|RuntimeError|ERROR|Probe accuracy|Run complete' -Lines 120
 ```
 
+## Long-Sequence Mamba Caveat
+
+Do not assume that stock HuggingFace Mamba supports arbitrary multi-token chunked prefill with carried cache just because `cache_params` and `cache_position` appear in the API.
+
+Current practical read from the Steve-side inspection:
+
+- single-pass long transcripts on the slow path can still OOM badly
+- the cached path in stock HF Mamba behaves like initial prefill plus decode-style updates
+- scripts such as `trajectory_sequential.py` that try to continue with `512`-token chunks should be treated as experimental unless the local `transformers` / Mamba implementation is explicitly verified
+
+Safe options:
+
+- shorter full-sequence passes
+- true token-by-token recurrence
+- a patched local Mamba implementation / custom recurrent loop
+
 ## Phase 2 Preflight
 
 Run this before any serious bridge job:

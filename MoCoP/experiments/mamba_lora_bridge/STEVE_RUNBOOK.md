@@ -155,7 +155,7 @@ powershell -ExecutionPolicy Bypass -File .\steve-wsl.ps1 -RunFile .\some_steve_j
 
 2. **`-RunFile` needs an absolute path.** Relative paths like `./run_foo.sh` resolve against PowerShell's cwd, which may not be the bridge dir. Always use full paths: `powershell -ExecutionPolicy Bypass -File "C:\Users\cerub\...\steve-wsl.ps1" -RunFile "C:\Users\cerub\...\run_foo.sh"`
 
-3. **Both Opa AND Steve OOM on >10K tokens with single-pass Mamba-2.8b (slow path).** The HuggingFace fallback (no `mamba-ssm` kernels) materializes huge intermediate tensors — 20GB+ for 20K tokens. Fix: use chunked forward passes with cache carry-forward (512 tokens/chunk). See `trajectory_sequential.py` for the pattern.
+3. **Both Opa AND Steve OOM on >10K tokens with single-pass Mamba-2.8b (slow path).** The HuggingFace fallback (no `mamba-ssm` kernels) materializes huge intermediate tensors — 20GB+ for 20K tokens. Important correction: on Steve's current stock HF Mamba path (`transformers 5.3.0`), generic multi-token chunked prefill with carried `cache_params` is not a reliable fix even though `cache_position` exists in the API. The cached path effectively behaves like initial prefill plus decode-style updates, not arbitrary 512-token chunk continuation. Treat `trajectory_sequential.py` as experimental until the local Mamba implementation is patched or replaced. Safe options today are shorter full-sequence passes, true token-by-token recurrence, or a custom/patched recurrent loop.
 
 5. **HF model cache locations:**
    - Steve WSL: `/root/.cache/huggingface/hub/` (Mamba-2.8b already cached)

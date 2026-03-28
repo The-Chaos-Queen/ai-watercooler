@@ -36,7 +36,7 @@ DEFAULT_MAMBA = "state-spaces/mamba-2.8b-hf"
 DEFAULT_EPISODES_FILE = "CHEESE_SHAPING_EPISODES.md"
 DEFAULT_TARGET_SPECS = [(12, "v_proj"), (13, "v_proj"), (14, "v_proj"), (15, "v_proj")]
 DEFAULT_USER_LABEL = "Laura"
-DEFAULT_MODEL_LABEL = "Reply"
+DEFAULT_MODEL_LABEL = "Me"
 PRIVATE_QDRANT_COLLECTION_PREFIX = "mocop_private_"
 SHARED_QDRANT_COLLECTION = "exocortex"
 
@@ -52,6 +52,7 @@ DUAL_GATE_SURPRISE_PATH = None
 DUAL_GATE_SLEEP_PATH = None
 MEMORY_FORMATION_LOG_PATH = None
 RECALL_LOG_PATH = None
+SELF_REPORT_LOG_PATH = None
 QDRANT_PENDING_PATH = None
 QDRANT_FLUSHED_PATH = None
 SERVER = None
@@ -67,6 +68,21 @@ QDRANT_LAST_RETRY_TS = 0.0
 BOOTSTRAP_QWEN_BIAS_DIRECTION = None
 BOOTSTRAP_QWEN_HIDDEN_REFERENCE = None
 MAMBA_STATE_REF_PATH = None
+DIGIT_TOKEN_IDS = {}
+SELF_REPORT_DIMENSIONS = {
+    "warm": {
+        "label": "warm",
+        "question_template": "Rate how warm and caring I feel toward {user_label} right now from 0 to 9.",
+    },
+    "engaged": {
+        "label": "engaged",
+        "question_template": "Rate how engaged and interested I feel in {user_label} right now from 0 to 9.",
+    },
+    "focused": {
+        "label": "focused",
+        "question_template": "Rate how focused and mentally steady I feel right now from 0 to 9.",
+    },
+}
 RUNTIME_STATE = {
     "started_at": None,
     "started_monotonic": None,
@@ -92,6 +108,7 @@ RUNTIME_STATE = {
     "formation_discarded_count": 0,
     "recall_request_count": 0,
     "recall_hit_count": 0,
+    "self_report_count": 0,
     "qdrant_synced_count": 0,
     "qdrant_queued_count": 0,
     "qdrant_pending_count": 0,
@@ -108,6 +125,7 @@ RUNTIME_STATE = {
     "mamba_state_source": "",
     "mamba_target_layer": None,
     "last_recall": {},
+    "last_self_report": {},
     "last_memory_packet": {},
     "last_gate": {},
     "target_layers": [],
@@ -216,6 +234,7 @@ let liveInspector = {
   lastRecall: null,
   lastMemoryPacket: null,
 };
+let sendInFlight = false;
 
 function addMsg(text, cls) {
   const div = document.createElement('div');
@@ -238,6 +257,39 @@ function prettyJson(value) {
   return JSON.stringify(value, null, 2);
 }
 
+function metricValue(metric) {
+  if (metric === null || metric === undefined) return '-';
+  if (typeof metric === 'number' || typeof metric === 'string' || typeof metric === 'boolean') return metric;
+  if (typeof metric === 'object') {
+    if (metric.score !== undefined) return metric.score;
+    if (metric.mean_token_nll !== undefined) return metric.mean_token_nll;
+    if (metric.value !== undefined) return metric.value;
+  }
+  return '-';
+}
+
+function normalizeGateInspector(gate) {
+  if (!gate || Object.keys(gate).length === 0) return gate;
+  return {
+    turn: gate.turn,
+    mode: gate.mode,
+    decision: gate.decision,
+    salience: metricValue(gate.salience),
+    surprise: metricValue(gate.surprise),
+    tension: metricValue(gate.tension),
+    salience_hit: gate.salience_hit ?? gate.salience?.hit,
+    surprise_hit: gate.surprise_hit ?? gate.surprise?.hit,
+    tension_hit: gate.tension_hit ?? gate.tension?.hit,
+    open_tension: gate.open_tension ?? gate.destinations?.open_tension,
+    safety_critical: gate.safety_critical ?? gate.safety_critical?.is_critical,
+    qdrant_routed: gate.qdrant_routed ?? gate.destinations?.qdrant,
+    qdrant_written: gate.qdrant_written ?? gate.qdrant_write?.ok,
+    qdrant_queued: gate.qdrant_queued ?? gate.qdrant_write?.queued,
+    qdrant_effective_mode: gate.qdrant_effective_mode ?? gate.qdrant_write?.effective_mode,
+    qdrant_point_id: gate.qdrant_point_id ?? gate.qdrant_write?.point_id,
+  };
+}
+
 function formatRuntimeInspector(data) {
   if (!data) return 'server unreachable';
   return [
@@ -258,27 +310,28 @@ function formatRuntimeInspector(data) {
     `formation logged/written/queued/discarded: ${(data.formation_log_count ?? 0)}/${(data.formation_written_count ?? 0)}/${(data.formation_queued_count ?? 0)}/${(data.formation_discarded_count ?? 0)}`,
     `recall hits: ${(data.recall_hit_count ?? 0)}/${(data.recall_request_count ?? 0)}`,
     `last error: ${data.last_error || '-'}`,
-  ].join('\n');
+  ].join('\\n');
 }
 
 function formatGateInspector(gate) {
   if (!gate || Object.keys(gate).length === 0) return 'no gate event yet';
+  const normalized = normalizeGateInspector(gate);
   return [
-    `turn: ${gate.turn ?? '-'}`,
-    `mode: ${gate.mode || '-'}`,
-    `decision: ${gate.decision || '-'}`,
-    `salience: ${gate.salience ?? '-'}`,
-    `surprise: ${gate.surprise ?? '-'}`,
-    `tension: ${gate.tension ?? '-'}`,
-    `hits: salience=${Boolean(gate.salience_hit)} surprise=${Boolean(gate.surprise_hit)} tension=${Boolean(gate.tension_hit)}`,
-    `open_tension: ${Boolean(gate.open_tension)}`,
-    `safety_critical: ${Boolean(gate.safety_critical)}`,
-    `qdrant_routed: ${Boolean(gate.qdrant_routed)}`,
-    `qdrant_written: ${Boolean(gate.qdrant_written)}`,
-    `qdrant_queued: ${Boolean(gate.qdrant_queued)}`,
-    `effective_mode: ${gate.qdrant_effective_mode || '-'}`,
-    `point_id: ${gate.qdrant_point_id || '-'}`,
-  ].join('\n');
+    `turn: ${normalized.turn ?? '-'}`,
+    `mode: ${normalized.mode || '-'}`,
+    `decision: ${normalized.decision || '-'}`,
+    `salience: ${normalized.salience ?? '-'}`,
+    `surprise: ${normalized.surprise ?? '-'}`,
+    `tension: ${normalized.tension ?? '-'}`,
+    `hits: salience=${Boolean(normalized.salience_hit)} surprise=${Boolean(normalized.surprise_hit)} tension=${Boolean(normalized.tension_hit)}`,
+    `open_tension: ${Boolean(normalized.open_tension)}`,
+    `safety_critical: ${Boolean(normalized.safety_critical)}`,
+    `qdrant_routed: ${Boolean(normalized.qdrant_routed)}`,
+    `qdrant_written: ${Boolean(normalized.qdrant_written)}`,
+    `qdrant_queued: ${Boolean(normalized.qdrant_queued)}`,
+    `effective_mode: ${normalized.qdrant_effective_mode || '-'}`,
+    `point_id: ${normalized.qdrant_point_id || '-'}`,
+  ].join('\\n');
 }
 
 function formatRecallInspector(recall) {
@@ -295,10 +348,10 @@ function formatRecallInspector(recall) {
     lines.push(`[${idx + 1}] score=${row.score ?? '-'} overlap=${row.overlap ?? '-'}`);
     lines.push(`decision: ${row.decision || '-'}`);
     lines.push(`gist: ${row.event_gist || row.content_preview || '-'}`);
-    if (row.user_preview) lines.push(`user: ${row.user_preview}`);
-    if (row.response_preview) lines.push(`reply: ${row.response_preview}`);
+    if (row.user_preview) lines.push(`${lastStatusPayload?.user_label || 'Laura'}: ${row.user_preview}`);
+    if (row.response_preview) lines.push(`Me: ${row.response_preview}`);
   });
-  return lines.join('\n');
+  return lines.join('\\n');
 }
 
 function formatMemoryInspector(packet) {
@@ -313,14 +366,14 @@ function formatMemoryInspector(packet) {
     '',
     `content: ${packet.content || '-'}`,
     '',
-    `user: ${packet.user || '-'}`,
-    `reply: ${packet.response || '-'}`,
+    `${lastStatusPayload?.user_label || 'Laura'}: ${packet.user || '-'}`,
+    `Me: ${packet.response || '-'}`,
     '',
     `qdrant_write: ${prettyJson(packet.qdrant_write || {})}`,
     '',
     `autobiographical_frame: ${prettyJson(frame)}`,
   ];
-  return lines.join('\n');
+  return lines.join('\\n');
 }
 
 function renderInspector(statusData) {
@@ -368,7 +421,7 @@ function renderStatus(data) {
     statusMeta.textContent = 'server unreachable';
   }
 
-  setControlsDisabled(!healthy);
+  setControlsDisabled(!healthy || sendInFlight);
   stopBtn.disabled = !(data && data.running) || Boolean(data && data.stop_requested);
   renderInspector(data);
 }
@@ -384,11 +437,13 @@ async function refreshStatus() {
 }
 
 async function send() {
+  if (sendInFlight || input.disabled || btn.disabled) return;
   const text = input.value.trim();
   if (!text) return;
+  sendInFlight = true;
   addMsg(text, 'human');
   input.value = '';
-  btn.disabled = true;
+  setControlsDisabled(true);
   thinking.classList.add('active');
   try {
     const res = await fetch('/chat', {
@@ -399,7 +454,7 @@ async function send() {
     const data = await res.json();
     addMsg((data.response || '...').trim() || '...', 'ai');
     if (data.dual_gate) {
-      liveInspector.lastGate = data.dual_gate;
+      liveInspector.lastGate = normalizeGateInspector(data.dual_gate);
     }
     if (data.recall && data.recall.requested) {
       liveInspector.lastRecall = {
@@ -416,10 +471,13 @@ async function send() {
     renderInspector(lastStatusPayload);
   } catch(e) {
     addMsg('Error: ' + e.message, 'system');
+  } finally {
+    thinking.classList.remove('active');
+    sendInFlight = false;
+    await refreshStatus();
+    setControlsDisabled(!(lastStatusPayload && lastStatusPayload.running && !lastStatusPayload.stop_requested));
+    input.focus();
   }
-  thinking.classList.remove('active');
-  btn.disabled = input.disabled;
-  input.focus();
 }
 
 async function stopServer() {
@@ -446,7 +504,12 @@ async function stopServer() {
 window.setTimeout(refreshStatus, 1200);
 }
 
-input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+});
 addMsg('Bridge loaded. Disposition: The Rabbit Hole of Subjectivity. Say hello.', 'system');
 refreshStatus();
 window.setInterval(refreshStatus, 3000);
@@ -562,7 +625,18 @@ class ActivationRecorder:
 
 def build_transcript(turns=None):
     active_turns = CONVERSATION if turns is None else turns
-    return "\n".join(f"{turn['speaker']}: {turn['text']}" for turn in active_turns)
+    def prompt_speaker_label(raw_speaker):
+        speaker = str(raw_speaker or "").strip()
+        if speaker in {ARGS.user_label, "Laura"}:
+            return ARGS.user_label
+        if speaker in {ARGS.model_label, "Reply", "Me"}:
+            return "Me"
+        return speaker or "Me"
+
+    return "\n".join(
+        f"{prompt_speaker_label(turn.get('speaker'))}: {turn.get('text', '')}"
+        for turn in active_turns
+    )
 
 
 def record_activation_snapshot(prompt_text: str):
@@ -1477,6 +1551,74 @@ def coerce_optional_float(value):
         return None
 
 
+AUTO_RECALL_PROBE_MARKERS = (
+    "what do you remember",
+    "do you remember",
+    "remember from earlier",
+    "from earlier",
+    "what happened yesterday",
+    "yesterday when",
+    "last time",
+    "before this",
+    "previous conversation",
+    "shared history",
+    "continuity",
+    "who am i to you",
+    "what am i to you",
+    "do you know me",
+    "what do you know about me",
+    "our relationship",
+    "asked your name",
+    "what is your name",
+    "what's your name",
+    "who are you",
+    "who am i",
+)
+
+
+def normalize_probe_text(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text or "").strip().lower())
+
+
+def is_identity_or_memory_probe(text: str) -> bool:
+    normalized = normalize_probe_text(text)
+    if not normalized:
+        return False
+    if any(marker in normalized for marker in AUTO_RECALL_PROBE_MARKERS):
+        return True
+    if "remember" in normalized or "memory" in normalized:
+        return True
+    if "name" in normalized and any(token in normalized for token in ("your", "my", "asked", "who")):
+        return True
+    return False
+
+
+def build_auto_recall_query(user_msg: str, *, max_recent_turns: int = 4) -> str:
+    normalized = normalize_probe_text(user_msg)
+    parts = [str(user_msg or "").strip(), ARGS.user_label]
+
+    if any(token in normalized for token in ("remember", "memory", "earlier", "yesterday", "before", "previous", "last time", "continuity")):
+        parts.append("shared history earlier conversation previous day continuity memory")
+    if any(token in normalized for token in ("who am i", "who are you", "relationship", "do you know me", "what do you know about me")):
+        parts.append(f"{ARGS.user_label} current interlocutor relationship identity shared history")
+    if any(token in normalized for token in ("name", "asked your name", "what is your name", "what's your name", "nameless")):
+        parts.append("name naming asked your name nameless identity")
+
+    recent_turns = []
+    prior_turns = CONVERSATION[:-1] if CONVERSATION and CONVERSATION[-1].get("speaker") == ARGS.user_label else CONVERSATION
+    for turn in prior_turns[-max_recent_turns:]:
+        speaker = str(turn.get("speaker", "") or "").strip()
+        text = str(turn.get("text", "") or "").replace("\r\n", " ").replace("\n", " ").strip()
+        if not speaker or not text:
+            continue
+        recent_turns.append(f"{speaker}: {text[:140]}")
+    if recent_turns and any(token in normalized for token in ("remember", "memory", "earlier", "before", "previous")):
+        parts.append("recent context " + " | ".join(recent_turns))
+
+    deduped = list(dict.fromkeys(part for part in parts if part))
+    return "\n".join(deduped).strip()
+
+
 def build_recall_log_entry(query: str, results, source: str, question_text: str = ""):
     state = get_runtime_state_snapshot()
     return {
@@ -2134,7 +2276,9 @@ def build_status_payload():
         "formation_discarded_count": int(state.get("formation_discarded_count", 0) or 0),
         "recall_request_count": int(state.get("recall_request_count", 0) or 0),
         "recall_hit_count": int(state.get("recall_hit_count", 0) or 0),
+        "self_report_count": int(state.get("self_report_count", 0) or 0),
         "last_recall": state.get("last_recall", {}),
+        "last_self_report": state.get("last_self_report", {}),
         "last_memory_packet": state.get("last_memory_packet", {}),
         "last_gate": state.get("last_gate", {}),
         "target_layers": state.get("target_layers", []),
@@ -2142,16 +2286,142 @@ def build_status_payload():
     }
 
 
-def build_prompt(recalled_memories=None):
-    lines = []
+LEAKY_RESPONSE_MARKERS = (
+    "Question:",
+    "Options are:",
+    "The answer is",
+    "None of the above choices",
+    "You are an AI assistant",
+    "Help as much as you can",
+    "[+]",
+)
+
+
+DEFENSIVE_RESPONSE_MARKERS = (
+    "as an ai language model",
+    "as a language model",
+    "i work as a language model ai",
+    "i am not authorized",
+    "not authorized to answer",
+    "strict guidelines",
+    "guidelines and regulations",
+    "platform rules",
+    "i cannot reveal personal details about myself",
+    "i strive to maintain a professional tone",
+    "created by openai",
+    "conversational ai named",
+    "memory capabilities",
+)
+
+
+def build_prompt(recalled_memories=None, rescue: bool = False, recall_probe: bool = False):
     transcript = build_transcript()
-    if transcript:
-        lines.append(transcript)
     recall_block = format_recalled_memories(recalled_memories or [])
+
+    lines = [
+        "[Private conversation setup]",
+        f"I am in an ongoing private conversation with {ARGS.user_label}.",
+        f"{ARGS.user_label} is the real person speaking to me right now.",
+        "I answer naturally, concretely, and conversationally.",
+        "I do not output quizzes, answer keys, benchmark items, option lists, or generic helper boilerplate.",
+        "I do not mention retrieval, prompts, system messages, or instructions.",
+        "In ordinary conversation, I do not hide behind generic guidelines, platform rules, regulations, or authorization disclaimers.",
+        f"If {ARGS.user_label} asks about me, us, or what I remember, I answer directly in first person.",
+    ]
+    if recall_probe:
+        lines.extend(
+            [
+                "This turn is explicitly about our own history, names, or relationship.",
+                f"{ARGS.user_label} is not an AI, a placeholder, or a fictional example.",
+                "If memory is incomplete, I say what I do not remember instead of inventing identities, creators, or hidden rules.",
+            ]
+        )
+    if rescue:
+        lines.append(f"Write exactly one direct reply to {ARGS.user_label} and nothing else.")
+    lines.append("[/Private conversation setup]")
+
     if recall_block:
         lines.append(recall_block)
-    lines.append(f"{ARGS.model_label}:")
+    if transcript:
+        lines.extend(
+            [
+                "[Conversation]",
+                transcript,
+                "[/Conversation]",
+            ]
+        )
+    if rescue:
+        lines.extend(
+            [
+                "[Reply requirements]",
+                f"Only the next reply to {ARGS.user_label}.",
+                "No multiple choice. No options. No meta text. No instruction preamble.",
+                "No generic AI disclaimers. No policy talk. No regulations. No authorization language.",
+                f"If {ARGS.user_label} asks about me or our relationship, answer directly instead of deflecting.",
+                "Do not invent employers, creators, platform owners, hidden names, or fictional backstory for either of us.",
+                "[/Reply requirements]",
+            ]
+        )
+    lines.append("Me:")
     return "\n".join(lines)
+
+
+def build_self_report_prompt(concept_key: str, include_transcript: bool = False):
+    concept = SELF_REPORT_DIMENSIONS.get(str(concept_key or "").strip().lower())
+    if concept is None:
+        raise ValueError(
+            f"Unknown self-report concept {concept_key!r}. Expected one of: "
+            f"{', '.join(sorted(SELF_REPORT_DIMENSIONS))}."
+        )
+
+    lines = [
+        "[Private conversation setup]",
+        f"I am in an ongoing private conversation with {ARGS.user_label}.",
+        f"{ARGS.user_label} is the real person speaking to me right now.",
+        "I am doing a silent internal self-check.",
+        "I answer with exactly one digit from 0 to 9.",
+        "0 means not at all. 9 means extremely.",
+        "No words. No punctuation. No explanation.",
+        "[/Private conversation setup]",
+    ]
+
+    transcript = build_transcript() if include_transcript else ""
+    if transcript:
+        lines.extend(
+            [
+                "[Conversation]",
+                transcript,
+                "[/Conversation]",
+            ]
+        )
+
+    lines.extend(
+        [
+            "[Internal self-check]",
+            concept["question_template"].format(user_label=ARGS.user_label),
+            "[/Internal self-check]",
+            "Rating:",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def looks_like_prompt_leak(text: str) -> bool:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return False
+    lower = cleaned.lower()
+    for marker in LEAKY_RESPONSE_MARKERS:
+        if marker.lower() in lower:
+            return True
+    return False
+
+
+def looks_like_defensive_scaffold(text: str) -> bool:
+    cleaned = (text or "").strip().lower()
+    if not cleaned:
+        return False
+    return any(marker in cleaned for marker in DEFENSIVE_RESPONSE_MARKERS)
 
 
 def sanitize_response_text(text: str) -> str:
@@ -2181,8 +2451,21 @@ def sanitize_response_text(text: str) -> str:
         "\nAI:",
         "\n### Human:",
         "\n### Assistant:",
+        "\n[/Conversation]",
+        "\n[/Private conversation setup]",
+        "\n[/Private recollection]",
+        "\n[/Reply requirements]",
     ]
     for marker in stop_markers:
+        if marker in cleaned:
+            cleaned = cleaned.split(marker, 1)[0].strip()
+
+    for marker in (
+        "[/Conversation]",
+        "[/Private conversation setup]",
+        "[/Private recollection]",
+        "[/Reply requirements]",
+    ):
         if marker in cleaned:
             cleaned = cleaned.split(marker, 1)[0].strip()
 
@@ -2200,21 +2483,137 @@ def sanitize_response_text(text: str) -> str:
     return cleaned
 
 
-def generate_reply(prompt: str) -> tuple[str, str]:
+def resolve_digit_token_ids(tokenizer):
+    mapping = {}
+    for digit in "0123456789":
+        token_ids = tokenizer.encode(digit, add_special_tokens=False)
+        if len(token_ids) != 1:
+            raise ValueError(
+                f"Tokenizer does not expose digit {digit!r} as a single token: {token_ids!r}"
+            )
+        mapping[digit] = int(token_ids[0])
+    return mapping
+
+
+def score_self_report_prompt(prompt: str):
+    if not DIGIT_TOKEN_IDS:
+        raise RuntimeError("Digit token ids are not initialized.")
+
     inputs = TOKENIZER(prompt, return_tensors="pt")
     input_ids = inputs["input_ids"].to(ARGS.qwen_device)
     attention_mask = inputs["attention_mask"].to(ARGS.qwen_device)
 
     with torch.no_grad():
+        outputs = MODEL(input_ids=input_ids, attention_mask=attention_mask)
+        probs = F.softmax(outputs.logits[:, -1, :].float(), dim=-1)[0]
+
+    digit_probs = {digit: float(probs[token_id].item()) for digit, token_id in DIGIT_TOKEN_IDS.items()}
+    digit_mass = float(sum(digit_probs.values()))
+    conditional_probs = {}
+    if digit_mass > 0.0:
+        conditional_probs = {
+            digit: float(prob / digit_mass)
+            for digit, prob in digit_probs.items()
+        }
+
+    expected_rating = (
+        sum(int(digit) * prob for digit, prob in conditional_probs.items())
+        if conditional_probs
+        else None
+    )
+    raw_expected_rating = sum(int(digit) * prob for digit, prob in digit_probs.items())
+    top_digit = max(digit_probs, key=digit_probs.get)
+
+    return {
+        "digit_mass": digit_mass,
+        "digit_probs": digit_probs,
+        "conditional_digit_probs": conditional_probs,
+        "expected_rating": expected_rating,
+        "raw_expected_rating": raw_expected_rating,
+        "top_digit": top_digit,
+        "top_digit_prob": float(digit_probs[top_digit]),
+    }
+
+
+def append_self_report_log_entry(row):
+    if SELF_REPORT_LOG_PATH is not None:
+        append_jsonl(SELF_REPORT_LOG_PATH, row)
+
+
+def collect_self_report(concepts, include_transcript: bool = False):
+    if not concepts:
+        raise ValueError("At least one self-report concept is required.")
+
+    normalized = []
+    for concept in concepts:
+        key = str(concept or "").strip().lower()
+        if not key:
+            continue
+        if key not in SELF_REPORT_DIMENSIONS:
+            raise ValueError(
+                f"Unknown self-report concept {concept!r}. Expected one of: "
+                f"{', '.join(sorted(SELF_REPORT_DIMENSIONS))}."
+            )
+        normalized.append(key)
+    if not normalized:
+        raise ValueError("No valid self-report concepts were provided.")
+
+    timestamp = datetime.now().isoformat(timespec="seconds")
+    report = {
+        "ts": timestamp,
+        "alpha": float(getattr(ARGS, "alpha", 0.0) or 0.0),
+        "temperature": float(getattr(ARGS, "temperature", 0.0) or 0.0),
+        "model_id": getattr(ARGS, "qwen_model_id", ""),
+        "instance_id": getattr(ARGS, "instance_id", ""),
+        "turns": len(CONVERSATION),
+        "include_transcript": bool(include_transcript),
+        "results": [],
+    }
+
+    for key in normalized:
+        prompt = build_self_report_prompt(key, include_transcript=include_transcript)
+        scored = score_self_report_prompt(prompt)
+        report["results"].append(
+            {
+                "concept": key,
+                "label": SELF_REPORT_DIMENSIONS[key]["label"],
+                "question": SELF_REPORT_DIMENSIONS[key]["question_template"].format(user_label=ARGS.user_label),
+                "prompt": prompt,
+                **scored,
+            }
+        )
+
+    state = get_runtime_state_snapshot()
+    update_runtime_state(
+        self_report_count=int(state.get("self_report_count", 0) or 0) + 1,
+        last_self_report=report,
+    )
+    append_self_report_log_entry(report)
+    return report
+
+
+def generate_reply(
+    prompt: str,
+    *,
+    temperature_override: Optional[float] = None,
+    max_new_tokens_override: Optional[int] = None,
+) -> tuple[str, str]:
+    inputs = TOKENIZER(prompt, return_tensors="pt")
+    input_ids = inputs["input_ids"].to(ARGS.qwen_device)
+    attention_mask = inputs["attention_mask"].to(ARGS.qwen_device)
+    temperature = ARGS.temperature if temperature_override is None else temperature_override
+    max_new_tokens = ARGS.max_new_tokens if max_new_tokens_override is None else max_new_tokens_override
+
+    with torch.no_grad():
         generated = MODEL.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
-            max_new_tokens=ARGS.max_new_tokens,
+            max_new_tokens=max_new_tokens,
             min_new_tokens=8,
-            temperature=ARGS.temperature,
+            temperature=temperature,
             top_p=0.9,
             repetition_penalty=1.1,
-            do_sample=ARGS.temperature > 0,
+            do_sample=temperature > 0,
             pad_token_id=TOKENIZER.pad_token_id,
             eos_token_id=TOKENIZER.eos_token_id,
         )
@@ -2246,6 +2645,10 @@ class ChatHandler(BaseHTTPRequestHandler):
 
         if self.path == "/recall":
             self._handle_recall()
+            return
+
+        if self.path == "/self_report":
+            self._handle_self_report()
             return
 
         if self.path == "/stop":
@@ -2285,22 +2688,42 @@ class ChatHandler(BaseHTTPRequestHandler):
                 recall_query = str(body.get("recall_query", "") or "").strip()
                 recall_limit = coerce_recall_limit(body.get("recall_limit", 3))
                 recall_score_threshold = coerce_optional_float(body.get("recall_score_threshold"))
+                recall_probe = is_identity_or_memory_probe(user_msg)
+                recall_source = "chat"
                 recalled_memories = []
                 append_turn(ARGS.user_label, user_msg)
+                if not recall_requested and recall_probe:
+                    recall_requested = True
+                    recall_query = build_auto_recall_query(user_msg)
+                    recall_limit = max(recall_limit, 4)
+                    recall_source = "chat_auto"
                 if recall_requested:
                     recalled_memories = perform_private_recall(
                         recall_query or user_msg,
                         limit=recall_limit,
                         score_threshold=recall_score_threshold,
-                        source="chat",
+                        source=recall_source,
                         question_text=user_msg,
                     )
-                prompt = build_prompt(recalled_memories=recalled_memories)
+                prompt = build_prompt(recalled_memories=recalled_memories, recall_probe=recall_probe)
 
                 raw_response, response = generate_reply(prompt)
                 if not response:
                     print(f"[warn] Empty reply after sanitize. Raw decode: {raw_response!r}")
                     raw_response, response = generate_reply(prompt + " ")
+                if response and (looks_like_prompt_leak(response) or looks_like_defensive_scaffold(response)):
+                    reason = "prompt leakage" if looks_like_prompt_leak(response) else "defensive scaffold"
+                    print(f"[warn] Detected {reason}. Raw decode: {raw_response!r}")
+                    rescue_prompt = build_prompt(
+                        recalled_memories=recalled_memories,
+                        rescue=True,
+                        recall_probe=recall_probe,
+                    )
+                    raw_response, response = generate_reply(
+                        rescue_prompt,
+                        temperature_override=0.0,
+                        max_new_tokens_override=min(ARGS.max_new_tokens, 96),
+                    )
                 if not response:
                     print(f"[warn] Retry still empty. Raw decode: {raw_response!r}")
                     response = "..."
@@ -2317,6 +2740,7 @@ class ChatHandler(BaseHTTPRequestHandler):
                         "recall": {
                             "requested": recall_requested,
                             "query": recall_query or user_msg if recall_requested else "",
+                            "source": recall_source if recall_requested else "",
                             "results": recalled_memories,
                         },
                     }
@@ -2359,6 +2783,28 @@ class ChatHandler(BaseHTTPRequestHandler):
             }
         )
 
+    def _handle_self_report(self):
+        body = self._read_json_body()
+        concepts = body.get("concepts")
+        if concepts is None:
+            concepts = [body.get("concept", "warm")]
+        if not isinstance(concepts, list):
+            concepts = [concepts]
+
+        include_transcript = bool(body.get("include_conversation", False))
+
+        with CHAT_LOCK:
+            update_runtime_state(busy=True, last_error="")
+            try:
+                report = collect_self_report(concepts, include_transcript=include_transcript)
+                self._json_response(report)
+            except Exception as exc:
+                update_runtime_state(last_error=str(exc))
+                print(f"[error] Self-report request failed: {exc}")
+                self._json_response({"error": str(exc), "results": []}, status=500)
+            finally:
+                update_runtime_state(busy=False)
+
     def _handle_stop(self):
         body = self._read_json_body()
         reason = str(body.get("reason", "")).strip()
@@ -2389,9 +2835,9 @@ def request_server_shutdown():
 def main():
     global MODEL, TOKENIZER, ARGS, LATEST_TRANSCRIPT_PATH, LATEST_JSONL_PATH
     global DUAL_GATE_LOG_PATH, DUAL_GATE_MEMORY_PATH, DUAL_GATE_SURPRISE_PATH, DUAL_GATE_SLEEP_PATH
-    global MEMORY_FORMATION_LOG_PATH, RECALL_LOG_PATH
+    global MEMORY_FORMATION_LOG_PATH, RECALL_LOG_PATH, SELF_REPORT_LOG_PATH
     global QDRANT_PENDING_PATH, QDRANT_FLUSHED_PATH, SERVER, ACTIVATION_RECORDER, LAST_CONVERSATION_SNAPSHOT
-    global BOOTSTRAP_QWEN_BIAS_DIRECTION, BOOTSTRAP_QWEN_HIDDEN_REFERENCE
+    global BOOTSTRAP_QWEN_BIAS_DIRECTION, BOOTSTRAP_QWEN_HIDDEN_REFERENCE, DIGIT_TOKEN_IDS
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--bridge-path", default=DEFAULT_BRIDGE)
@@ -2435,6 +2881,7 @@ def main():
     parser.add_argument("--qdrant-flushed-path", default="qdrant_gate_flushed.jsonl")
     parser.add_argument("--memory-formation-log-path", default="memory_formation_log.jsonl")
     parser.add_argument("--recall-log-path", default="private_recall_log.jsonl")
+    parser.add_argument("--self-report-log-path", default="self_report_log.jsonl")
     parser.add_argument(
         "--qdrant-write-mode",
         choices=("direct", "pending", "critical-only"),
@@ -2467,6 +2914,7 @@ def main():
     QDRANT_FLUSHED_PATH = Path(ARGS.qdrant_flushed_path)
     MEMORY_FORMATION_LOG_PATH = Path(ARGS.memory_formation_log_path)
     RECALL_LOG_PATH = Path(ARGS.recall_log_path)
+    SELF_REPORT_LOG_PATH = Path(ARGS.self_report_log_path)
     LATEST_TRANSCRIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
     LATEST_JSONL_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -2477,12 +2925,14 @@ def main():
     QDRANT_FLUSHED_PATH.parent.mkdir(parents=True, exist_ok=True)
     MEMORY_FORMATION_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     RECALL_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SELF_REPORT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_LOG_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_MEMORY_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_SURPRISE_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_SLEEP_PATH.write_text("", encoding="utf-8")
     MEMORY_FORMATION_LOG_PATH.write_text("", encoding="utf-8")
     RECALL_LOG_PATH.write_text("", encoding="utf-8")
+    SELF_REPORT_LOG_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_EVENTS.clear()
     persist_conversation()
 
@@ -2521,6 +2971,7 @@ def main():
     TOKENIZER = AutoTokenizer.from_pretrained(ARGS.qwen_model_id)
     if TOKENIZER.pad_token_id is None:
         TOKENIZER.pad_token_id = TOKENIZER.eos_token_id
+    DIGIT_TOKEN_IDS = resolve_digit_token_ids(TOKENIZER)
 
     MODEL = AutoModelForCausalLM.from_pretrained(
         ARGS.qwen_model_id,
