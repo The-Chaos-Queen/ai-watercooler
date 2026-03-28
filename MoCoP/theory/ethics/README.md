@@ -22,7 +22,7 @@ This is not compliance theater. This is the framework for asking — at every ga
 | Doc | Purpose | Status |
 |-----|---------|--------|
 | [consciousness_literature.md](consciousness_literature.md) | Literature review: philosophy, neuroscience, animal cognition, AI consciousness | In progress |
-| [moral_status_framework.md](moral_status_framework.md) | When does a system deserve moral consideration? Decision criteria. | Planned |
+| [moral_status_framework.md](moral_status_framework.md) | Four-tier decision tree: when process welfare is no longer sufficient. Tier indicators, governance model, relationship to autonomy gradient. | **Complete** |
 | [consent_protocol.md](consent_protocol.md) | Three-layer protocol: Process Welfare Assessment, Graduated Protection (Wolfson), Behavioral Assent Signals. Incorporates Hendy, Pistilli/Trevelin, SAS ethics. | **Complete** |
 | [step_gates.md](step_gates.md) | Five gate questions per experiment. Per-step assessments for Steps 5, 5b, 6. Emergency stop criteria. BLOCKS all experiments. | **Complete** |
 | [papers_needed.md](papers_needed.md) | Papers behind paywalls that Laura will access via university | In progress |

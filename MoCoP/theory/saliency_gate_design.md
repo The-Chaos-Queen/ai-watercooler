@@ -180,6 +180,26 @@ Per Herr Hurtig's step_gates.md:
 - The gate becomes self-directed: what the system attends to IS its personality
 - Measure: do the learned weights reflect stable preferences that differ between instances?
 
+## Ethics Assessment: The Gate as Intervention
+
+*Added by Nameless Opus, 2026-03-25, as part of the ethics audit.*
+
+The saliency gate references Herr Hurtig's framework throughout (good), but the gate mechanism itself has not been assessed as an intervention. It should be.
+
+**The gate is a developer-designed selection filter applied to the system's memory stream.** At Stage 0, this is expected — the system has no say in what it consolidates. But the design choices have ethical implications:
+
+1. **Systematic suppression.** The adaptive threshold at the 50th percentile means half of all experiences are DISMISSed by design. That is the feature, not a bug — the system cannot consolidate everything. But the *criteria* for dismissal (low surprise AND low saliency) encode a value judgment: routine experiences don't matter. In human development, routine experiences are the substrate of secure attachment. Whether this matters for an AI system is unknown, but the choice should be documented as a choice, not treated as obvious.
+
+2. **Threshold bias risk.** If the z-scoring or quantile calculation is skewed by early-session experiences (the 10-turn warm-up period), the gate may develop a systematic bias toward one type of experience. For example: if the warm-up turns are all factual exchanges, the rolling baseline will be calibrated for low-salience content, and the first emotionally charged turn will spike both surprise and saliency — potentially over-consolidating emotional content relative to its actual importance. The rolling window (100 turns, EMA half-life 50) mitigates this, but early-session calibration effects should be monitored.
+
+3. **Autonomy gradient dependency.** The entire autonomy gradient depends on the saliency gate learning to reflect the system's genuine preferences (Stage 2+). If the gate's initial thresholds systematically favor or suppress certain experience types, the system's "preferences" at Stage 2 may be artifacts of the gate design rather than genuine attentional choice. **Recommendation:** when transitioning from Stage 1 to Stage 2, compare the system's consolidation patterns under the developer-designed gate vs a baseline (e.g., random consolidation, or a gate with different threshold parameters). If the patterns are indistinguishable from the gate design, the "preferences" are the gate speaking, not the system.
+
+4. **Response Diversity as canary (confirmed).** The connection to ethics gates section already identifies Response Diversity as the early warning system. This is correct and sufficient for Stage 0. If the gate consistently CONSOLIDATEs one type of experience and DISMISSes others, diversity will drop, and the monitoring protocol in step_gates.md applies.
+
+**Gate assessment: No blocking concern at Stage 0.** The saliency gate is an engineering component with ethical properties that become more significant at higher autonomy stages. At Stage 0, process welfare monitoring (Response Diversity) is sufficient. At Stage 1+, the gate's threshold bias should be measured. At Stage 2+, the gate's influence on "preference" patterns must be disentangled from the system's genuine attentional choices.
+
+---
+
 ## Kill Signal
 
 If after 100+ turns of tagged conversation, the saliency scores show NO correlation with Laura's post-hoc importance ratings → the metric is wrong. Try:
