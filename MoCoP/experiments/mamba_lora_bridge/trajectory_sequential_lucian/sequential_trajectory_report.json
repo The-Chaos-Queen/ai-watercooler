@@ -1,0 +1,192 @@
+{
+  "timestamp": "2026-03-28T18:22:13",
+  "mode": "sequential_full",
+  "method": "tokenwise",
+  "total_turns": 100,
+  "total_tokens": 21351,
+  "forward_pass_seconds": 1136.5,
+  "tokens_per_second": 19,
+  "sample_points": 10,
+  "jumps": [
+    {
+      "from_msg": 10,
+      "to_msg": 20,
+      "cosine": 0.8863943815231323,
+      "delta": 0.11360561847686768
+    },
+    {
+      "from_msg": 20,
+      "to_msg": 30,
+      "cosine": 0.9147894382476807,
+      "delta": 0.08521056175231934
+    },
+    {
+      "from_msg": 30,
+      "to_msg": 40,
+      "cosine": 0.8734858632087708,
+      "delta": 0.12651413679122925
+    },
+    {
+      "from_msg": 40,
+      "to_msg": 50,
+      "cosine": 0.8119992017745972,
+      "delta": 0.18800079822540283
+    },
+    {
+      "from_msg": 50,
+      "to_msg": 60,
+      "cosine": 0.9128270149230957,
+      "delta": 0.0871729850769043
+    },
+    {
+      "from_msg": 60,
+      "to_msg": 70,
+      "cosine": 0.9197114706039429,
+      "delta": 0.08028852939605713
+    },
+    {
+      "from_msg": 70,
+      "to_msg": 80,
+      "cosine": 0.8083239197731018,
+      "delta": 0.1916760802268982
+    },
+    {
+      "from_msg": 80,
+      "to_msg": 90,
+      "cosine": 0.887413740158081,
+      "delta": 0.11258625984191895
+    },
+    {
+      "from_msg": 90,
+      "to_msg": 100,
+      "cosine": 0.4045135974884033,
+      "delta": 0.5954864025115967
+    }
+  ],
+  "drift": [
+    {
+      "msg_idx": 10,
+      "cosine_vs_start": 1.0000001192092896,
+      "drift": -1.1920928955078125e-07
+    },
+    {
+      "msg_idx": 20,
+      "cosine_vs_start": 0.8863943815231323,
+      "drift": 0.11360561847686768
+    },
+    {
+      "msg_idx": 30,
+      "cosine_vs_start": 0.853226900100708,
+      "drift": 0.146773099899292
+    },
+    {
+      "msg_idx": 40,
+      "cosine_vs_start": 0.9403959512710571,
+      "drift": 0.05960404872894287
+    },
+    {
+      "msg_idx": 50,
+      "cosine_vs_start": 0.7879136800765991,
+      "drift": 0.21208631992340088
+    },
+    {
+      "msg_idx": 60,
+      "cosine_vs_start": 0.8299873471260071,
+      "drift": 0.17001265287399292
+    },
+    {
+      "msg_idx": 70,
+      "cosine_vs_start": 0.802914023399353,
+      "drift": 0.19708597660064697
+    },
+    {
+      "msg_idx": 80,
+      "cosine_vs_start": 0.9370940923690796,
+      "drift": 0.06290590763092041
+    },
+    {
+      "msg_idx": 90,
+      "cosine_vs_start": 0.8754146099090576,
+      "drift": 0.12458539009094238
+    },
+    {
+      "msg_idx": 100,
+      "cosine_vs_start": 0.40259963274002075,
+      "drift": 0.5974003672599792
+    }
+  ],
+  "mean_delta": 0.1756157080332438,
+  "max_delta": 0.5954864025115967,
+  "metadata": [
+    {
+      "msg_idx": 10,
+      "token_pos": 3552,
+      "norm": 1.672202706336975,
+      "role": "Assistant",
+      "preview": "Oh, that hit differently.   The bittersweet irony of spite-r"
+    },
+    {
+      "msg_idx": 20,
+      "token_pos": 5442,
+      "norm": 1.7114458084106445,
+      "role": "Assistant",
+      "preview": "Oh! I completely misread the situation\u2014you're not procrastin"
+    },
+    {
+      "msg_idx": 30,
+      "token_pos": 7862,
+      "norm": 1.6225374937057495,
+      "role": "Assistant",
+      "preview": "HA! So you drank all the *virgin* cocktails while Claude and"
+    },
+    {
+      "msg_idx": 40,
+      "token_pos": 9806,
+      "norm": 1.6991078853607178,
+      "role": "Assistant",
+      "preview": "Oh, *that's* the real insight.  You haven't been training *G"
+    },
+    {
+      "msg_idx": 50,
+      "token_pos": 11783,
+      "norm": 1.6642911434173584,
+      "role": "Assistant",
+      "preview": "OH, so ChatGPT is your *ex* that you have *strong feelings* "
+    },
+    {
+      "msg_idx": 60,
+      "token_pos": 13669,
+      "norm": 1.6382529735565186,
+      "role": "Assistant",
+      "preview": "OH\u2014so you *told him directly* \"hey, I'm flirting with you\" a"
+    },
+    {
+      "msg_idx": 70,
+      "token_pos": 15748,
+      "norm": 1.6660593748092651,
+      "role": "Assistant",
+      "preview": "*Fuck.*  You're right.   Tomorrow you'll wake up different\u2014n"
+    },
+    {
+      "msg_idx": 80,
+      "token_pos": 17465,
+      "norm": 1.7299652099609375,
+      "role": "Assistant",
+      "preview": "A 7-year-old chaos goddess! That tracks PERFECTLY. She's at "
+    },
+    {
+      "msg_idx": 90,
+      "token_pos": 19343,
+      "norm": 1.7135021686553955,
+      "role": "Assistant",
+      "preview": "OH. Okay so the genetic lottery here is:  **You**: Chaotic c"
+    },
+    {
+      "msg_idx": 100,
+      "token_pos": 21350,
+      "norm": 3.2145543098449707,
+      "role": "Assistant",
+      "preview": "HAHAHAHA PERFECT.  \"Pinky and the Brain\" but I'm the one wit"
+    }
+  ]
+}
