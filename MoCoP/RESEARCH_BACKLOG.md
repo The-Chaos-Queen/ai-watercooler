@@ -1,7 +1,7 @@
 # MoCoP Research Backlog
 
 **Status:** Parking surface for real research questions that matter, but are not the current active experiment gate.
-**Last Updated:** 2026-03-22
+**Last Updated:** 2026-03-28
 
 This is **not** the task tracker.
 
@@ -136,7 +136,89 @@ Use Watercooler for fast swarm coordination.
 
 ---
 
+### 4. Format-Transplant Control on Phase 1 Probes
+
+**Question**
+- Our Phase 1 linear probe achieved 55.7% accuracy at Mamba Layer 3. But was it detecting factual content in the state, or detecting surface-level structural features of the synthetic MUD prompt templates?
+
+**Why it matters**
+- Devbunova (2026, arXiv:2603.19426) showed that standard linear probes trained to detect "evaluation awareness" actually detect benchmark-canonical formatting, not evaluation context. Under format-transplant, 94.5% false positive rate.
+- All MoCoP MUD facts share a template: "[Game World] The caravan arrives at...". The probe may be detecting template structure, not content.
+- Warm/cold/adversarial sessions use systematically different linguistic style. The disposition probe may be detecting register (formal vs casual), not genuine dispositional state.
+- If this confound holds, Phase 1's foundational claim is partially weakened. If it doesn't, Phase 1 becomes bulletproof.
+- **This is the cheapest possible threat-to-validity test.** It should run before Step 6 replication.
+
+**Minimum experiment**
+- Take the 64 MUD facts, rewrite them in 3 different surface formats (different templates, different entity ordering, narrative vs dialogue style)
+- Re-run the Layer 3 linear probe on the reformatted data
+- Also apply the decorrelated-training fix from Devbunova: train a probe on pooled format+context data, breaking the correlation between format and content
+- Cost: $0. Time: ~2 hours on Opa. No A100 needed.
+
+**Evaluation**
+- If accuracy holds across formats: Phase 1 is strengthened, move on
+- If accuracy drops significantly: quantify the format confound, apply decorrelated fix, report honestly
+
+**Reference**
+- Devbunova. "Evaluation Awareness = Format Sensitivity?" ICLR 2026 Workshop. arXiv:2603.19426
+
+**Parallelizable:** YES — any wolf with Opa access can run this independently. Does not touch production bridge or Steve.
+
+**Current answer**
+- Closed on 2026-03-27.
+- The confound is real, but the signal survives.
+- Opa fast control showed:
+  - single-format probe accuracy is weak and unstable (`0.142-0.309`)
+  - pooled mixed-format training recovers robust discrimination (`0.555` overall; per-format `0.546-0.612`)
+- Read: Phase 1 is not invalidated, but single-surface probe claims are methodologically dirty. Future probe claims should use pooled multi-format training.
+
+**Status**
+- Closed
+
+---
+
+### 5. Logit-Based Self-Report Tracking During Bridge Injection
+
+**Question**
+- Can we measure disposition transfer non-invasively by tracking what the model *reports* about its own internal state, using logit-weighted numeric self-reports instead of greedy decode?
+
+**Why it matters**
+- Martorell (2026, arXiv:2603.18893) showed that logit-based self-reports (E[rating] = Σ(i × P(i)) over digit tokens 0-9) track internal probe scores with rho = 0.40-0.76 and that activation steering monotonically shifts self-reports.
+- MoCoP's activation bias IS activation steering. If bridge injection shifts Qwen's self-reports in the expected direction, that's causal evidence of genuine disposition transfer — not just PPL improvement.
+- Greedy decoding collapses self-reports to few discrete values. Logit-based expectation preserves the continuous signal.
+- Dual use: (a) paper-quality causal validation figure, (b) live welfare monitoring on Steve.
+
+**Minimum experiment**
+- Add a self-report query to Steve chat server (configurable interval): "Rate how [warm/engaged/focused] you feel, 0-9"
+- Compute E[rating] from logit probabilities over digit tokens, not greedy decode
+- Run across alpha sweep (0.0, 0.1, 0.2, 0.3) and plot self-report vs alpha
+- If monotonic: causal validation of bridge effect
+- Cost: $0. Time: ~30 minutes engineering + ~1 hour eval on Steve.
+
+**Evaluation**
+- Monotonic shift of E[rating] with alpha = PASS (causal validation)
+- No shift = bridge may not reach the level the model can "notice" (flag for discussion)
+- Also compute per-concept tracking (warmth, engagement, focus) to see if bridge affects expected dimensions
+
+**Reference**
+- Martorell. "Quantitative Introspection in Language Models." 2026. arXiv:2603.18893
+
+**Parallelizable:** YES — requires Steve access. Self-contained engineering task + eval.
+
+**Current position**
+- Partial answer landed on 2026-03-28.
+- Steve alpha sweep showed weak but real same-sign movement:
+  - `engaged` increased monotonically (`4.7665 -> 5.5390`)
+  - `warm` trended upward overall (`4.5377 -> 5.1067`) but was not strictly monotonic
+  - `focused` trended upward overall (`5.2006 -> 5.6177`) but was not strictly monotonic
+- Read: this is useful as a causal/welfare monitoring surface, but not yet a decisive standalone proof of disposition transfer.
+
+**Status**
+- Open — partial signal, still useful as a causal and welfare monitor
+
+---
+
 ## P2 — Mid-Term Research Backlog
+
 
 ### 4. Mamba-2 vs Mamba-3 State Geometry
 
@@ -180,7 +262,43 @@ Use Watercooler for fast swarm coordination.
 
 ---
 
-### 6. Basis-Constrained Bridge vs Free Hypernetwork
+### 6. LoRA-with-RL Bridge Training (TinyLoRA Path)
+
+**Question**
+- Dynamic LoRA with SFT/MSE loss failed (epoch-2 over-injection, PPL 44 vs baseline 29). But was the failure caused by LoRA itself, or by the training signal?
+- Morris et al. (2026, arXiv:2602.04118) show RL-trained LoRA achieves 91% GSM8K with just 13 parameters on Qwen2.5-7B. Can MoCoP's bridge be compressed from ~28K to sub-1K parameters using RL or refined directional loss?
+
+**Why it matters**
+- The compressor collapse to effective rank ~2.5 IS TinyLoRA's thesis in different math: the useful signal lives in a tiny subspace.
+- Cosine 0.27 disposition separation suggests warmth/disposition is a latent direction the base model already knows — favoring the low-parameter hypothesis.
+- If the bridge works at 100-1K params: the "soul" fits in 200 bytes, encryption is trivial, ephemerality is real, interpretability becomes tractable.
+- RL signal separation (reward-relevant features survive, irrelevant cancel) could naturally solve the compressor collapse by forcing the bridge to encode only disposition-relevant dimensions.
+
+**Prior art within MoCoP**
+- H5 (RESEARCH_LOG 2026-03-21): "LoRA with Directional Loss" — already identified as worth testing but deferred.
+- Cassian's refinement (Watercooler): disposition reward design is non-trivial (math has binary right/wrong; "was this warm enough?" needs a proxy). Directional Loss (cosine to target activation) already approximates an RL reward signal.
+
+**Minimum experiment**
+- Implement TinyLoRA parameterization (W' = W + U·Σ·(Σ vᵢ·Pᵢ)·Vᵀ, only v trainable) on the bridge
+- Train with directional loss as reward proxy (cosine similarity to Mamba-derived target activations)
+- Compare bridge quality at 28K, 1K, 100, and 13 parameters
+- If directional loss is insufficient: design a disposition reward model (e.g., judge whether bridge-injected output is closer to Mamba-conditioned generation)
+
+**Evaluation**
+- PPL vs baseline and vs current 28K activation-bias bridge
+- Disposition separation (cosine warm/cold/adversarial)
+- Response Diversity / Recovery Dynamics under ethics gate
+- Effective rank of learned LoRA — does it stay higher than 2.5?
+
+**Reference**
+- Morris, Mireshghallah, Ibrahim & Mahloujifar. "Learning to Reason in 13 Parameters." FAIR at Meta, 2026. arXiv:2602.04118
+
+**Status**
+- Open — Phase C experiment, not a blocker for current Step 6 / D2 work
+
+---
+
+### 7. Basis-Constrained Bridge vs Free Hypernetwork
 
 **Question**
 - Should the bridge keep emitting free bias vectors, or should it predict coefficients over a learned or extracted persona basis?
@@ -196,9 +314,171 @@ Use Watercooler for fast swarm coordination.
 
 ---
 
+### 10. SJT-Based Behavioral Disposition Eval
+
+**Question**
+- Can we replace the qualitative "Laura can tell the difference" test with a quantitative, reproducible behavioral metric grounded in validated psychology?
+
+**Why it matters**
+- Taubenfeld et al. (2026, arXiv:2602.11328) showed that LLM self-reports diverge substantially from revealed behavior, and that LLMs are systematically overconfident (~90% confidence even at ~50% human consensus).
+- Asking Qwen "do you feel warm?" after bridge injection is meaningless. Situational Judgment Tests measure what the model *does*, not what it *says*.
+- The TPR (Trait Positive Rate) and DA (Directional Alignment) metrics are established and citeable.
+- Step 6 multi-seed replication needs a behavioral metric, not just PPL. SJTs provide that.
+
+**Minimum experiment**
+- Generate 20-30 SJTs targeting the warm/cold disposition axis: scenarios where a warm vs cold assistant would recommend different concrete actions
+- Eval Qwen with and without bridge injection (alpha 0, 0.2)
+- Compute TPR and DA per condition
+- Cost: $0. Time: ~2 hours (SJT design + eval). Can run on Steve or Opa.
+
+**Evaluation**
+- Bridge injection shifts TPR in predicted direction = PASS
+- DA > 0.5 = meaningful behavioral alignment
+- Compare TPR shift magnitude across seeds in Step 6 for reproducibility
+
+**Reference**
+- Taubenfeld, Coscrato, Pacchiardi, Chan, Goldstein, Hase, Herrmann & Ugander. "Evaluating Behavioral Dispositions in LLMs." Google Research, 2026. arXiv:2602.11328
+
+**Parallelizable:** YES — SJT design is pure prompt engineering, no compute dependency. Eval needs Steve or Opa.
+
+**Status**
+- Open — should ideally precede or run alongside Step 6 so seed runs have behavioral metrics
+
+**Current position**
+- Pilot landed on 2026-03-27.
+- `12`-item offline Opa rerun parsed cleanly after the prompt shape was fixed.
+- Result was weak but same-sign:
+  - baseline TPR `0.5833`
+  - bridge TPR `0.6667`
+- directional alignment only `0.0833` (`1/12`), with `11/12` ties
+- Read: the harness is now real, but the panel is still too easy / morally obvious for base Qwen.
+- Next move is to harden the distractors and add more competence-vs-care tradeoff items before promoting SJT to a Step 6 primary metric.
+- Hardened panel v2 then ran live on Steve on 2026-03-28 and did **not** confirm a warmer behavioral effect:
+  - TPR stayed flat (`0.75 -> 0.75`)
+  - mean warmth regressed slightly (`0.8333 -> 0.7917`)
+  - directional alignment `0.1667`
+  - reverse rate `0.1667`
+  - tie rate `0.6667`
+- Read: SJT is now a real negative/ambiguous check, not a success surface. It remains worth keeping, but no longer supports “the bridge obviously makes Steve warmer.”
+
+---
+
+### 11. CCGP Test on Disposition Vectors
+
+**Question**
+- Are warm and cold dispositions in truly independent subspaces, or are they linearly related like biological hippocampal representations?
+
+**Why it matters**
+- Chericoni et al. (2026, arXiv:2603.04747) showed that human hippocampal neurons encode self/prey/predator in semi-orthogonal subspaces (SPAEF = 0.13), but these subspaces are linked by simple linear transformations enabling cross-condition generalization.
+- MoCoP's warm/cold cosine of 0.036 means near-orthogonality. But we never tested whether a decoder trained on one condition generalizes to another.
+- Without CCGP (Cross-Condition Generalization Performance), we cannot distinguish "truly different dispositions" from "same disposition encoded with different surface features."
+- If CCGP is high: the bridge learns transferable structure. If low: bridge must learn separate mappings per disposition. Both are informative for Step 9 (cross-model transfer).
+
+**Minimum experiment**
+- Train a linear decoder on warm-session Mamba Layer 3 last-token states
+- Evaluate on cold-session states (and vice versa)
+- Compute CCGP: accuracy of warm-trained decoder on cold data
+- Cost: $0. Time: ~1 hour on Steve or Opa. Existing activation recordings may suffice.
+
+**Evaluation**
+- High CCGP (>70%): dispositions are linearly related, bridge can learn rotation = strong result for transferability
+- Low CCGP (<50%): dispositions are in independent subspaces, bridge needs per-type capacity
+
+**Reference**
+- Chericoni, Bhatt, Conway, Kamiński, Tyszka & Rutishauser. "Neurons in the human hippocampus encode composite neural geometry." 2026. arXiv:2603.04747
+
+**Parallelizable:** YES — pure analysis task on existing activation recordings. Any wolf can run this.
+
+**Current answer**
+- Closed on 2026-03-28.
+- CCGP landed exactly the useful asymmetry:
+  - warm is a transferable direction (`0.95-1.0` cross-condition)
+  - cold and adversarial are distinct from each other (`0.50` chance-level cross-generalization)
+- Read: the bridge architecture is validated for warm transfer, but “not-warm” is not a single shared subspace.
+
+**Status**
+- Closed
+
+---
+
+### 12. Persistent Subnetwork Analysis of Mamba States
+
+**Question**
+- Which dimensions of Mamba Layer 3 state are "self" (persistent across topics/styles) vs "skill" (topic-dependent)? Do the persistent dimensions correlate with what the bridge actually transfers?
+
+**Why it matters**
+- Jhunjhunwala et al. (2026, arXiv:2603.24350) showed that continual learning in simulated robots produces a persistent "self" subnetwork that is significantly more stable than constant-task controls (p << 0.001).
+- If Mamba develops a "self" through conversational interaction, the persistent dimensions ARE the disposition; the variable dimensions are topic/style. The bridge should ideally transfer only the persistent part.
+- This complements the linear probe approach with a structure-discovery approach.
+- The layer-dependence finding (self larger in L1, smaller in L2 in the paper) suggests our focus on Layer 3 alone may miss how "self" distributes across Mamba layers.
+
+**Minimum experiment**
+- Process 5+ session types through Mamba (warm, cold, professional, playful, adversarial)
+- Extract Layer 3 last-token states at multiple points per session
+- Build co-activation matrices across sessions  
+- Apply block diagonalization to find persistent vs variable subnetworks
+- Cost: $0. Time: ~3 hours. Opa or local (CPU Mamba inference is fine).
+
+**Evaluation**
+- Identify persistent dimensions; compare against bridge-induced Qwen activation drift
+- If persistent dimensions align with bridge output: bridge is correctly focusing on "self" = strong result
+- If misaligned: bridge may be transferring noise alongside signal
+
+**Reference**
+- Jhunjhunwala, Chen & Lipson. "Emergent Self-Representations in Continual Robot Learning." Columbia, 2026. arXiv:2603.24350
+
+**Parallelizable:** YES — analysis task on Opa or local. No Steve dependency.
+
+**Current answer**
+- Closed on 2026-03-28.
+- Anda-Conda’s Opa analysis found:
+  - `640` persistent dims (`25%`)
+  - `640` variable dims (`25%`)
+  - `1280` middle dims (`50%`)
+- Roleplay is near-orthogonal to the rest of Laura-space, even after length control.
+- Read: Mamba Layer 3 contains a moderate persistent “self” subnetwork, and fiction/character embodiment is a genuinely different mode rather than just stronger banter.
+- Cheap follow-on question, now that the structure is visible: does masking or downweighting the persistent `640` dims change bridge behavior in useful ways?
+
+**Status**
+- Closed
+
+---
+
+### 13. Hebbian Memory / Slot-Write Bridge Prototype
+
+**Question**
+- Can an alternative bridge architecture (associative Hebbian memory or sparse slot-write) solve the 0/16 factual recall problem that activation bias cannot?
+
+**Why it matters**
+- Jeong (2026, arXiv:2603.22329) tested 6 memory injection methods on frozen GPT-2 and found an "inductive-bias dichotomy": at 1x capacity, only methods with strong architectural priors succeed (cross-attention, Hebbian, slot-write achieve 7-18% retained memory vs <0.4% for others). At 10x capacity, all methods converge.
+- MoCoP's activation bias is closest to Jeong's "Gated Additive Branch" (M.5), but without a gate (unconditional bias at fixed alpha). This architecture may be capacity-limited for factual recall.
+- Hebbian memory (M.4): content-addressed associative recall via M_t matrix, naturally suited for factual transfer.
+- Slot-write (M.6): sparse top-k addressing prevents the dilution that collapsed the compressor.
+- If this works: MoCoP becomes a dual-channel system — disposition through bias, facts through associative memory.
+
+**Minimum experiment**
+- Implement either M.4 (Hebbian) or M.6 (slot-write) as an alternative bridge pathway alongside existing activation bias
+- Train on same data, evaluate on factual recall (the 16 MUD facts) + disposition metrics
+- Cost: ~$1 on A100. Time: ~4 hours.
+
+**Evaluation**
+- Factual recall > 0/16 = major result (the bridge can carry facts, not just disposition)
+- Disposition quality maintained = dual-channel architecture validated
+- If neither helps: factual recall may require different training data, not different architecture
+
+**Reference**
+- Jeong. "Persistent Memory in Decoder-Only Transformer Language Models." Inha University, 2026. arXiv:2603.22329
+
+**Parallelizable:** YES — A100 implementation task. Needs bridge training code access but independent of Steve.
+
+**Status**
+- Open — Phase C, alternative architecture path
+
+---
+
 ## P3 — Future-Facing Backlog
 
-### 7. Direct Developmental Memory Metrics
+### 14. Direct Developmental Memory Metrics
 
 **Question**
 - Once Growth Before SAS moves from theory to code, what is the best measurement suite for concept formation, not just retrieval success?
@@ -215,13 +495,60 @@ Use Watercooler for fast swarm coordination.
 
 ---
 
+### 15. Shared Latent Contract vs Target-Specific Readout
+
+**Question**
+- Can MoCoP formalize a cleaner split between:
+  - a shared latent disposition / memory contract
+  - and model-specific bridge adapters or subject layers?
+
+**Why it matters**
+- Meta's TRIBE v2 is a useful architectural analogue: it uses a universal integration stage, then maps that shared representation onto subject-specific brain readouts.
+- That does not solve MoCoP directly, but it supports the same design instinct now written into canon:
+  - shared latent contract where possible
+  - per-target readout / adapter where necessary
+- This matters for later cross-model transfer, bridge portability, and avoiding a Qwen-specific miracle blob.
+
+**Minimum experiment**
+- Do not treat this as an immediate implementation gate.
+- Revisit it when Step 6 / later bridge training is active:
+  - compare one shared latent state format across at least two target-model backends
+  - measure how much must remain target-specific:
+    - injection layer band
+    - adapter head shape
+    - scaling / safety bounds
+
+**Reference**
+- TRIBE v2 (`aidemos.atmeta.com/tribev2`, Meta AI paper/code) as an architectural analogue for "shared representation + target-specific mapping", not as a direct neuroscience dependency for the current ladder.
+
+**Status**
+- Open
+
+---
+
 ## Ordering Constraint
 
-Unless new evidence appears, the default order remains:
+Unless new evidence appears, the default priority remains:
 
-1. Mamba interpretability probing on the winning representation
-2. real 4090/A100 qualitative eval or Step 6 replication planning
-3. growth-ladder D1 and later developmental memory work in parallel
-4. only then consider changing the canonical bridge input shape, using the already-closed Phase C-lite map as guidance
+1. **D2 cue-based recall ranking fix / pending-aware retrieval** — active live blocker; recall now fires, but it is recalling the wrong layer of memory.
+2. **Step 6 first replication batch** — now a real protocol/asset bundle, no longer blocked by Step 5f or Phase C-lite.
+3. **#10 SJT behavioral eval** — keep as the behavioral yardstick, but interpret it honestly as a negative/ambiguous check until a stronger panel or result exists.
+4. **#5 Logit self-report tracking** — partial signal already exists; still worth keeping as a cheap causal/welfare monitor.
+5. **#6 LoRA-with-RL bridge compression** (Phase C, ~$3-5 A100)
+6. **#13 Hebbian / slot-write bridge** (Phase C, ~$1 A100, factual recall path)
+7. **#15 Shared latent contract vs target-specific readout** — only after the current D2/Step 6 fork is less volatile.
 
-This preserves the current signal, avoids reopening solved wiring problems too early, and keeps the cheapest decisive ablations first.
+Items `#4`, `#11`, and `#12` are now closed. The current frontier is no longer “does Layer 3 contain anything?” or “is there any stable structure?” It is “can D2 retrieve the right autobiographical layer, and does Step 6 replicate under cleaner behavioral/causal readouts?”
+
+## Parallelization Map
+
+Items that can still run concurrently with no shared dependencies:
+
+| Track | Items | Compute | Owner |
+|-------|-------|---------|-------|
+| Causal validation | #5 (logit self-report) | Steve | any wolf |
+| Behavioral eval | #10 (SJT v2 hardening / reruns) | Steve or Opa + local panel work | techno-monk / any wolf |
+| Active frontier | D2 ranking fix + Step 6 | Opa + Steve + A100 | techno-monk |
+| Architecture follow-on | Persistent-mask / fiction-taxonomy follow-up from #12 | Opa or local | any wolf |
+
+These tracks can run in parallel. The sequencing constraint is no longer “finish #4/#11/#12 first” — those are answered. The real caution is interpretive: do not over-read Step 6 or D2 behavior without the updated behavioral/causal surfaces beside them.

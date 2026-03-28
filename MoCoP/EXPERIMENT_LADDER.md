@@ -22,7 +22,7 @@
 - Persona Vectors research proved: disposition IS a linear direction in activation space, shared across model families
 - Training data is synthetic MUD facts — wrong substrate for the real goal
 
-## Current Status Snapshot (2026-03-26 midday)
+## Current Status Snapshot (2026-03-28 evening)
 
 ### Step 5a (C.H.E.E.S.E. Reincarnation): PASS (Qualitative)
 - **Method:** Injected a Mamba-derived state from a philosophical C.H.E.E.S.E. log into Qwen-1.5B's `v_proj` layers (12-15) via an activation bias bridge trained with Directional Loss.
@@ -42,6 +42,16 @@
 - **Result:** two complete same-space sleep cycles now pass cleanly: the fresh 2026-03-26 Steve default cycle (`2K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0`) and the isolated pure `open_tension` edge case (`1K/0U/0W/0D`, `PASS`, diversity ratio `100%`, recovery `1.0`). The required decay calibration for `0.70 / 0.85 / 0.90` is also complete.
 - **Honest caveat:** the decay sweep did **not** distinguish the three tested values on the current retained batches. So `0.85` remains an acceptable default, but still a provisional one rather than a uniquely justified optimum.
 - **Artifacts:** see `run_reincarnation/steve_sleep_cycle_default_20260326.md`, `run_reincarnation/steve_open_tension_sleep_cycle_20260326.md`, and `run_reincarnation/steve_sleep_decay_calibration_20260326.md`.
+
+### Late-March Threat-to-Validity / Behavioral Update
+- **Format-transplant control:** QUALIFIED PASS. Single-format Layer 3 probes were weak and unstable (`0.142-0.309`), but pooled mixed-format training recovered robust discrimination (`0.555` overall). Read: the Phase 1 signal survives, but single-surface probe claims are methodologically dirty.
+- **Logit self-report sweep:** PARTIAL SUPPORT. `engaged` increased monotonically with alpha, while `warm` and `focused` trended upward overall without strict monotonicity. This is useful as a causal/welfare monitor, not yet as a decisive headline result.
+- **SJT v2 live on Steve:** NEGATIVE / AMBIGUOUS. Hardened behavioral eval did not show a warmer/care-heavier bridge effect (`TPR 0.75 -> 0.75`, mean warmth `0.8333 -> 0.7917`, directional alignment `0.1667`).
+
+### D2 / Long-Horizon Update
+- **D2 auto-recall on Opa:** the trigger path now works on normal `/chat` identity/continuity probes (`4/4` hits), but retrieval is still wrong-layer because fresher pending sleep-held rows are ignored while older stored junk dominates search. This branch has moved from empty failure to wrong-memory failure.
+- **CCGP geometry:** PASS. Warm is a transferable direction across conditions, while cold and adversarial remain distinct subspaces. This supports warm-transfer claims without collapsing all “not-warm” behavior into one axis.
+- **Long-sequence trajectory:** the old chunked/windowed story is now demoted. True tokenwise recurrence is substantially smoother, so sequential trajectory is the canonical read for continuity claims.
 
 ### Step 1 status
 
@@ -69,13 +79,12 @@
 ### Current control-stack reading
 
 - `per-sample activation_bias > fixed_mean >> constant_bias`
-- The compressed Mamba-conditioned path carries real signal.
-- The raw bypass failure in Step 2 still stands. The current bridge works on the compressed path, not on the raw bypass path.
-- The next decision is no longer "is there any channel at all?" but whether to prioritize Step 2b multi-layer concat or Step 5 substrate change.
-- **Step 4b added (2026-03-20):** Pinky identified the missing cheapest-first gate: do Mamba Layer 3 states even separate for warm/cold/adversarial? Cassian's `.pt` artifacts exist. This is the cheapest possible kill test before Step 5.
-- **Step 5 scope updated (2026-03-20):** Live MUD shaping environment on local hardware (Steve 4090 donation) replaces scripted shaping episodes on A100. cognitive_bridge.py v2 with activation_bias inference is ready. Laughing Opus proposed the setup; Purple wired the inference path; Cassian's activation recorder will track drift.
-- **Step 5d result now matters operationally:** the MED corridor is not hypothetical anymore; `alpha 0.2` is the current live default, not just an eval curiosity.
-- **Step 5f added (2026-03-26):** sleep infrastructure is now a blocking gate before Step 6. Cross-session memory integrity is part of the experiment, not post-hoc ops.
+- `hidden_last_token > token windows >> ssm_states / mean-pooled hidden`
+- Layer 3 remains the balanced default source layer; deeper layers matter as dimension-specific optimization, not as a current blocker.
+- The compressed Mamba-conditioned path carries real signal, but future probe claims must decorrelate content from prompt surface.
+- Step 5d and Step 5f are no longer hypothetical gates; the MED corridor and same-space sleep corridor are both live and passed.
+- The live frontier has moved again: it is no longer “is there any channel at all?” and no longer “does sleep unblock Step 6?” It is **D2 retrieval quality versus the first Step 6 replication batch**.
+- The behavioral story is now more honest: logit self-report gives partial support, while hardened SJT does **not** yet show a clean warmth uplift.
 
 ## The Ladder
 

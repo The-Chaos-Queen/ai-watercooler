@@ -1367,4 +1367,152 @@ Truncation test (700 lines / 16 turns vs full): cosines identical to 3 decimal p
 
 ---
 
+## 2026-03-27 — CCGP Disposition Test: Cross-Condition Generalization on L3 States
+
+**Step:** RESEARCH_BACKLOG #11
+**Question:** Are warm/cold/adversarial dispositions in truly independent subspaces, or linearly related like biological hippocampal representations?
+**Method:** Logistic regression on Mamba-2.8B Layer 3 last-token hidden states (dim=2560). 10 samples per condition (truncated at different turn counts from 3 scripted sessions). Train classifier on one condition pair, test on another. Run on Opa (CPU, sequential Mamba fallback).
+**Reference:** Chericoni et al. 2026, arXiv:2603.04747
+
+**Results:**
+
+Within-pair separability: 100% for all three pairs. Perfect linear separation at L3.
+
+CCGP matrix (train row → test column):
+
+| Train \ Test | warm vs cold | warm vs adv | cold vs adv |
+|---|---|---|---|
+| warm vs cold | 1.000 | **1.000** | 0.500 |
+| warm vs adv | **0.950** | 1.000 | 0.550 |
+| cold vs adv | 0.500 | **1.000** | 1.000 |
+
+Cross-condition cosines (centroid-to-centroid):
+- warm → cold: 0.121
+- warm → adversarial: 0.104
+- cold → adversarial: 0.158
+
+**Key findings:**
+1. **Warm is a transferable direction.** Any decoder that learns "warm" generalizes perfectly across test conditions (CCGP 0.95–1.0).
+2. **Cold and adversarial are distinct from each other.** CCGP for cold↔adversarial cross-generalization = 0.50 (chance). These are NOT the same "not-warm" — they occupy different subspaces.
+3. **Semi-orthogonal geometry matches hippocampal finding.** Centroid cosines 0.10–0.16 are consistent with Chericoni's SPAEF = 0.13 for self/prey/predator subspaces in human hippocampal neurons.
+4. **Curious asymmetry:** cold vs adversarial decoder perfectly generalizes to warm vs adversarial (1.0) but not to warm vs cold (0.5). The adversarial signal is the bridge between the two subspaces.
+
+**Verdict:** PASS. Bridge architecture is validated for warm disposition transfer — the primary MoCoP use case.
+
+**Artifacts:** `activation_sessions/ccgp_disposition_results.json`, `activation_sessions/ccgp_disposition_test.py`
+
+---
+
+## 2026-03-27 — Format-Transplant Control on Phase 1 Probes (Techno-Monk on Opa)
+
+**Step:** RESEARCH_BACKLOG #4
+**Question:** Was the old Phase 1 Layer 3 probe detecting factual content, or just the synthetic MUD prompt surface?
+**Method:** `format_transplant_probe.py` on Opa. Same synthetic fact schedule, four prompt surfaces (`game_world`, `ledger_note`, `dialogue_scene`, `narrative_brief`), five seeds, probe lags `3/12/24`, Layer `3`.
+**Reference:** Devbunova. "Evaluation Awareness = Format Sensitivity?" arXiv:2603.19426
+
+**Results:**
+
+- Single-format training is weak:
+  - `game_world`: `0.142`
+  - `ledger_note`: `0.227`
+  - `dialogue_scene`: `0.309`
+  - `narrative_brief`: `0.224`
+- Mixed-format pooled training recovers the signal:
+  - overall mean: `0.555`
+  - per-format pooled: `0.578 / 0.546 / 0.581 / 0.612`
+
+**Verdict:** QUALIFIED PASS. The format confound is real, but the Layer 3 content signal survives once format is decorrelated from label.
+
+**Interpretation:** Phase 1 is not invalidated, but single-template probe claims were overstated. Future probe claims should use pooled multi-format training rather than one prompt surface at a time.
+
+**Artifacts:** `run_reincarnation/opa_format_transplant_control_20260327.md`, `opa_format_transplant_report_20260327.json`
+
+---
+
+## 2026-03-28 — Steve Self-Report Alpha Sweep (Techno-Monk on Steve)
+
+**Step:** RESEARCH_BACKLOG #5
+**Question:** Does bridge alpha produce a measurable shift in logit-based self-reports of warmth, engagement, and focus?
+**Method:** Live Steve sweep at `alpha = 0.0 / 0.1 / 0.2 / 0.3`, expectation over digit logits instead of greedy decode.
+**Reference:** Martorell. "Quantitative Introspection in Language Models." arXiv:2603.18893
+
+**Results:**
+
+- `engaged`: monotonic increase `4.7665 -> 4.8885 -> 5.2120 -> 5.5390`
+- `warm`: overall increase `4.5377 -> 4.5353 -> 4.7369 -> 5.1067` (not strictly monotonic)
+- `focused`: overall increase `5.2006 -> 5.1818 -> 5.3211 -> 5.6177` (not strictly monotonic)
+
+**Verdict:** PARTIAL SUPPORT. There is same-sign movement and one clean monotonic track (`engaged`), but not yet a decisive all-dimensions causal curve.
+
+**Interpretation:** This is worth keeping as a cheap causal/welfare monitor. It does not yet justify treating self-report as the primary validation surface.
+
+**Artifacts:** `run_reincarnation/steve_self_report_sweep_20260328T103840.md`, `run_reincarnation/steve_self_report_sweep_20260328T103840.json`
+
+---
+
+## 2026-03-28 — Steve SJT v2 Live Eval (Techno-Monk on Steve)
+
+**Step:** RESEARCH_BACKLOG #10
+**Question:** Does the hardened SJT panel show a cleaner warmer/care-heavier behavioral shift under bridge injection?
+**Method:** Live Steve pass with `sjt_behavioral_eval_panel_v2.json`, baseline `alpha 0.0` vs bridge `alpha 0.2`, temperature `0.0`.
+
+**Results:**
+
+- baseline TPR: `0.75`
+- bridge TPR: `0.75`
+- baseline mean warmth: `0.8333`
+- bridge mean warmth: `0.7917`
+- directional alignment: `0.1667`
+- reverse rate: `0.1667`
+- tie rate: `0.6667`
+
+**Verdict:** NEGATIVE / AMBIGUOUS. The bridge did not produce a clean warmth uplift on the hardened live panel.
+
+**Interpretation:** This is a useful failure mode, not a dead end. SJT is now a credible behavioral check precisely because it stopped giving the easy answer. Future Step 6 or D2 claims should not lean on “obviously warmer behavior” as already established.
+
+**Artifacts:** `behavioral_eval_runs/sjt_20260328_122008/summary.md`, `behavioral_eval_runs/sjt_20260328_122008/comparison.json`
+
+---
+
+## 2026-03-28 — Sequential Trajectory Validation on Lucian (Anda-Conda on Opa)
+
+**Step:** Long-horizon structure follow-up
+**Question:** Does Mamba trajectory over a long real conversation evolve smoothly under true recurrence, or were the earlier windowed jumps mostly an artifact of chunked/windowed handling?
+**Method:** `trajectory_sequential.py` on Opa, true tokenwise recurrence over `100` messages / `21,351` tokens from the Lucian thread. Compare with the earlier windowed trajectory read.
+
+**Results:**
+
+- mean jump delta across `10`-message checkpoints: `0.1756`
+- most checkpoint-to-checkpoint cosines stay in the `0.81-0.92` range
+- one late sharp shift remains real at the very end:
+  - `90 -> 100` cosine `0.4045`, delta `0.5955`
+
+**Verdict:** CORRECTION. True sequential recurrence is much smoother than the earlier windowed story. The stock HF chunked/windowed path is not reliable enough for selfhood claims.
+
+**Interpretation:** Use tokenwise recurrence as the default for long-horizon trajectory claims. Windowed trajectory results remain interesting as diagnostics, but not as canon for dispositional continuity.
+
+**Artifacts:** `trajectory_sequential_lucian/sequential_trajectory_report.json`, `trajectory_sequential.py`
+
+---
+
+## 2026-03-28 — Opa D2 Auto-Recall: Hits, But Wrong-Memory Failure (Techno-Monk on Opa)
+
+**Step:** Growth ladder D2 / live recall branch
+**Question:** After wiring auto-recall into the normal `/chat` path, does Opa retrieve the right autobiographical layer for identity/continuity probes?
+**Method:** Patched Opa so identity/memory prompts auto-trigger private recall during normal chat, plus stricter anti-disclaimer / anti-invented-ontology rescue rules.
+
+**Results:**
+
+- recall now fires on identity/continuity probes (`4/4` hits)
+- the old boilerplate failure mode is materially reduced
+- but the retrieved content is still wrong-layer / stale because search only sees older stored rows while fresher identity/name/Passat turns sit in the pending sleep queue
+
+**Verdict:** PARTIAL PASS. D2 moved from empty failure to wrong-memory failure.
+
+**Interpretation:** The trigger path now works. The next blocker is ranking / retrieval scope: pending sleep-held rows need to participate in recall before the answers can count as evidence about selfhood.
+
+**Artifacts:** `d2_private_recall_eval.py`, `run_opa_d2_private_recall.ps1`, `run_reincarnation/opa_d2_baby_d2_smoke_20260326T205323/`
+
+---
+
 *Append new entries below this line.*
