@@ -47,12 +47,19 @@ Standard fix:
 - `opa-wsl.ps1`
 - `autobiographical_memory.py`
 - `run_opa_reincarnation_qualitative.ps1`
+- `run_opa_sjt_behavioral_eval.ps1`
+- `ensure_opa_wifi.ps1`
+- `install_opa_wifi_watch_task.ps1`
 - `check_env.py`
 - `run_smoke.sh`
 - `run_long_horizon.sh`
 - `run_probe.sh`
+- `run_format_transplant_probe.sh`
 - `long_horizon_eval.py`
 - `mamba_linear_probe.py`
+- `format_transplant_probe.py`
+- `run_sjt_behavioral_eval.py`
+- `score_sjt_behavioral_eval.py`
 - `train_bridge.py`
 
 ## Preconditions
@@ -88,6 +95,35 @@ print(mods)
 PY
 '@
 ```
+
+## Wi-Fi Resilience Watch
+
+If Opa keeps drifting off `KFCandWatermelon`, install the local watchdog on Opa itself.
+
+One-shot check:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\ensure_opa_wifi.ps1 -TargetSsid "KFCandWatermelon" -SetPrivate
+```
+
+Recurring 5-minute task:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install_opa_wifi_watch_task.ps1 -TargetSsid "KFCandWatermelon" -EveryMinutes 5
+```
+
+Default log:
+
+```text
+C:\Users\User\bridge\logs\opa_wifi_watch.log
+```
+
+The enforcement script only attempts a reconnect when:
+
+- Opa is not already on the target SSID
+- the target SSID is currently visible
+
+If `-SetPrivate` is present, it also pushes the matching Wi-Fi profile back to `Private` after reconnect.
 
 ## One-Time Validation
 
@@ -259,6 +295,34 @@ Probe log triage:
 .\opa-wsl.ps1 -User USER -GrepLog /home/user/probe_output.log -Pattern 'test_acc|majority|Report written|Traceback|RuntimeError' -Lines 120
 ```
 
+### 3b. Format-Transplant Control
+
+Cheap threat-to-validity control for the original Phase 1 probe. This reruns the Layer 3 probe on multiple prompt surfaces and reports:
+
+- within-format accuracy
+- train-on-one-format / test-on-another-format transplant accuracy
+- pooled mixed-format accuracy
+
+Foreground:
+
+```powershell
+.\opa-wsl.ps1 -User USER -Run @'
+cd /mnt/c/Users/USER/bridge
+bash ./run_format_transplant_probe.sh 300 3,12,24 5 300 5
+'@
+```
+
+Monitor:
+
+```powershell
+.\opa-wsl.ps1 -User USER -TailLog /home/user/format_transplant_probe.log -Lines 120
+```
+
+Artifacts:
+
+- `/mnt/c/Users/USER/bridge/format_transplant_probe_runs/`
+- `/home/user/format_transplant_probe.log`
+
 ### 4. Bridge Training Dry-Run / Small Pilot (Legacy SSM Baseline)
 
 Use this path for dry-runs and small correctness checks, not as the default long paid run.
@@ -335,6 +399,22 @@ Expected outputs:
 - local: `.\run_reincarnation\opa_reincarnation_t07_<tokens>tok_<date>.txt`
 - local: `.\run_reincarnation\opa_reincarnation_t03_<tokens>tok_<date>.txt`
 - remote staging: `C:\Users\User\bridge\opa_reincarnation_*.txt`
+
+### 5b. SJT Behavioral Eval Pilot
+
+Use this for the cheap forced-choice warmth/care pilot on a fresh Opa live chat surface.
+
+Run from the bridge workspace:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run_opa_sjt_behavioral_eval.ps1 -User USER
+```
+
+Notes:
+
+- The runner launches a fresh Opa chat instance for baseline `alpha 0.0`, runs the panel, then replaces it with a fresh candidate `alpha 0.2` instance and scores the comparison.
+- Outputs land in `.\behavioral_eval_runs\opa_sjt_<timestamp>\`.
+- If Opa is flaky on the LAN, fix host reachability first; do not fall back to ad-hoc nested SSH/WSL commands.
 
 ## Reporting Helper
 
