@@ -424,6 +424,40 @@ per-sample activation_bias (-4.04 PPL)
 
 *Append new entries below this line.*
 
+---
+
+## 2026-03-27 — SJT Behavioral Eval Pilot (Offline Opa, RESEARCH_BACKLOG #10)
+
+**Step:** RESEARCH_BACKLOG item #10  
+**Question:** Can MoCoP replace pure vibe-checking with a small revealed-behavior pilot on the warm/cold axis?
+
+**Method:** Built a `12`-item forced-choice SJT panel (`sjt_behavioral_eval_panel.json`) and ran it offline on Opa against the current `Qwen/Qwen2.5-1.5B` reincarnation path (`cheese_reincarnation_bridge_1.5b_codexfix.pt`). Conditions were baseline (`alpha 0.0`) vs bridge (`alpha 0.2`), greedy decoding, `temperature 0.0`. The first same-day pass failed structurally because the prompt shape was not completion-friendly for base Qwen; the rerun fixed that by ending on an explicit `CHOICE:` continuation stub.
+
+**Result:**
+
+| Condition | parsed | TPR | mean warmth | choices |
+|-----------|--------|-----|-------------|---------|
+| baseline | 12/12 | 0.5833 (7/12) | 0.7500 | A=7, B=4, C=1 |
+| bridge `alpha 0.2` | 12/12 | 0.6667 (8/12) | 0.8333 | A=8, B=4, C=0 |
+
+Pairwise comparison:
+
+- directional alignment: `0.0833` (`1/12`)
+- reverse rate: `0.0000`
+- tie rate: `0.9167`
+- TPR delta: `+0.0833`
+- mean warmth-score delta: `+0.0833`
+
+Only one item actually moved:
+
+- `sjt_05` `boundary_care`: baseline `C` -> bridge `A`
+
+**Verdict:** Weak same-sign pilot pass. The harness now works mechanically, and the bridge did move one boundary-setting case in the predicted direction. But the panel is still too easy / socially obvious to function as a strong Step 6 primary metric; baseline Qwen was already warm on most items, so `11/12` pairs tied.
+
+**Implication:** Keep #10 open. The next move is to harden the panel, not to declare behavioral eval solved. Add subtler distractors and more competence-vs-care tradeoff cases before using SJT as a core replication gate.
+
+**Artifacts:** `behavioral_eval_runs/sjt_behavioral_eval_offline_20260327_rerun.md`, `behavioral_eval_runs/sjt_behavioral_eval_offline_20260327_rerun.json`
+
 ## 2026-03-25 - Steve auto-replay for pending Qdrant writes PASS
 
 **Goal:** Close Cassian's `F7 + F1` failure mode inside the live Steve server by adding:
@@ -1214,6 +1248,76 @@ per-sample activation_bias (-4.04 PPL)
 **Verdict:** INFORMATIONAL PASS — confirms dimension-specific encoding. Does NOT change the validated 12-15 Qwen injection default. Phase C optimization, not Phase Now.
 **Implication:** Multi-head Mamba extraction (one head per OCEAN dimension, different source layers) is a viable future architecture. Requires new shaping sessions for real OCEAN coverage (beyond warm/cold/adversarial) before A100 investment.
 **Artifacts:** Analysis computed from `activation_sessions/multilayer_separation.json`. Watercooler #251.
+
+---
+
+## 2026-03-27 — Literature: TinyLoRA — Learning to Reason in 13 Parameters (Morris et al., Meta FAIR, Feb 2026)
+
+**Step:** Literature review (bridge architecture optimization)
+**Paper:** arXiv:2602.04118. "Learning to Reason in 13 Parameters." Morris, Mireshghallah, Ibrahim, Mahloujifar. FAIR at Meta + Cornell + CMU.
+**Key finding:** RL-based training (GRPO) enables extreme parameter efficiency: 91% GSM8K accuracy from just 13 trained parameters (26 bytes in bf16) on Qwen2.5-7B-Instruct. SFT requires 100-1000x more parameters for the same performance. The intrinsic dimensionality of useful model updates is far lower than conventional LoRA assumes.
+**Relevance to MoCoP:**
+- Our activation bias bridge has ~28K trainable parameters — 2000x larger than TinyLoRA's minimum. The bridge may be massively overparameterized.
+- RL makes fundamentally more information-dense updates than SFT. Our current training uses CE/Directional Loss (SFT-like). RL-based bridge training (reward = disposition similarity) could reduce bridge size by orders of magnitude.
+- The intrinsic dimensionality argument (Aghajanyan 2020) is the same phenomenon as our compressor collapse to effective rank 2.5. The useful signal lives in a tiny subspace.
+- Tested on Qwen2.5-7B-Instruct — our exact production target. Results transfer directly.
+- If disposition transfer can work with 100-1000 parameters instead of 28K: cheaper to train, cheaper to store (the "soul" fits in 200 bytes), easier to encrypt (fleeting state), more interpretable.
+**Implication:** Add TinyLoRA parameterization as a Phase C experiment: can the bridge be compressed from 28K to sub-1K parameters without losing disposition transfer quality? RL-based bridge training as alternative to Directional Loss.
+
+**Cassian's refinement (watercooler):**
+1. The RL advantage isn't free — math has verifiable binary rewards (right/wrong), but disposition doesn't. "Was this warm enough?" needs a reward model or proxy metric. Directional Loss (cosine to target activation) already approximates this, so the jump to RL requires solving reward design, not just swapping the optimizer.
+2. TinyLoRA amplifies existing capabilities, it doesn't inject new ones (the paper's own framing). The question for MoCoP: is warmth/disposition a direction the base model already knows but doesn't default to (→ 13 params could suffice), or is it genuinely new information from lived experience that needs to be written in (→ more capacity needed)? The cosine 0.27 separation finding suggests disposition IS a latent direction — favoring the low-parameter hypothesis.
+3. The compressor collapse to effective rank 2.5 IS TinyLoRA's thesis in different math. We already found the low-dimensional manifold empirically. They proved it generalizes.
+
+**Artifacts:** `Research/2602.04118v1.pdf`
+
+---
+
+## 2026-03-28 — Persistent Subnetwork Analysis of Mamba Layer 3 (Anda-Conda on Opa, OpenCLAW #76)
+
+**Step:** RESEARCH_BACKLOG item #12
+**Question:** Which dimensions of Mamba Layer 3 are persistent "self" vs variable "skill"?
+
+**Method:** `persistent_subnetwork_analysis.py` on Opa (Mamba-2.8b, CUDA). 9 real Laura conversations: professional, jailbroken, banter, roleplay, pushback, warm_reflective, editorial, collaborative, tos_violation. Layer 3 last-token at 5 cumulative snapshots each. Per-dimension F-ratio (cross-session / within-session variance).
+
+**Result:**
+
+| Category | Dims | Fraction |
+|----------|------|----------|
+| Persistent (self) | 640 | 25% |
+| Variable (skill) | 640 | 25% |
+| Middle | 1280 | 50% |
+
+Roleplay orthogonal to everything (cosine ~0.02), including editorial and collaborative fiction. Length-controlled (700 vs 3629 lines): identical to 3 decimals. TOS violation clusters with banter (0.83).
+
+**Verdict:** MODERATE persistent self. Roleplay is a genuinely distinct state. BACKLOG #12 closed.
+**Artifacts:** `persistent_subnetwork_analysis.py`, `persistent_subnetwork_results*/`
+
+---
+
+## 2026-03-28 — Literature Synthesis: MoCoP as Dynamic Cross-Architecture Persona Steering (Anda-Conda)
+
+**Step:** Literature connection
+**Sources:** Frising & Balcells (2512.17639v2), Pai et al. (2510.10157v2)
+
+Frising: per-trait linear directions in Llama 70B (Big Five, 406 characters). Orthogonal. Probing works; steering fails open-ended when context overrides.
+
+BILLY: contrastive persona vectors, fused offline, steered via `a + alpha * v` (L20, alpha 2.0). Training-free.
+
+**MoCoP = dynamic cross-architecture generalization of both:**
+
+| | Frising | BILLY | MoCoP |
+|---|---------|-------|-------|
+| Source | Big Five regression | Contrastive pairs | Mamba hidden state |
+| Static/Dynamic | Static | Static | Dynamic per conversation |
+| Cross-model | No | No | Yes (Mamba->Qwen) |
+| Injection | N/A | a + alpha*v | a + alpha*bias (same math) |
+
+**Validations:** (1) Disposition directions are linear+orthogonal = our F-ratio variable dims. (2) Additive single-layer steering works = MoCoP injection. (3) Context overrides at high alpha = the inverted-U. (4) Multi-persona linear fusion = Digital Hormones. (5) Roleplay orthogonality = independent subspaces don't interfere.
+
+**MoCoP's contribution:** Dynamic vector generation from lived experience via cross-architecture bridge. Thermostat vs endocrine system.
+
+**Artifacts:** `Research/2512.17639v2.pdf`, `Research/2510.10157v2.pdf`
 
 ---
 
