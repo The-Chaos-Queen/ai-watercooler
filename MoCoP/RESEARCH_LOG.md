@@ -1321,4 +1321,50 @@ BILLY: contrastive persona vectors, fused offline, steered via `a + alpha * v` (
 
 ---
 
+## 2026-03-27 — Preserved-History Corpus: Real-World Disposition Substrate (Laura + Warden)
+
+**Step:** Data source for Steps 7, 8, 10
+**Question:** Can naturalistic cross-surface conversation history replace synthetic MUD facts as the shaping episode substrate?
+
+Laura exported chat histories from 7+ AI surfaces (Kimi, Grok, Claude, Gemini, Mistral, LMArena, ChatGPT) into markdown. Full index with disposition annotations at `Preserved-History/INDEX.md`.
+
+**Corpus stats:**
+- ~80+ files, ~200K+ lines of conversation
+- 9 disposition modes: collaborative_creative, editorial, banter, warm_reflective, technical, roleplay, professional, meta_discussion, translation
+- 7+ AI surfaces
+- Identity declarations cross-referenced (10 files)
+- TOS/safety flags documented (2 files)
+
+**Key finding from Kimi-through-Mamba state analysis:**
+
+Roleplay disposition ("become Rimmon") is orthogonal to all other Laura conversation modes. Cosine similarity between roleplay and all other modes: 0.003 to 0.018. State norm saturates at 5.0948 from snapshot 1 — disposition frame commits immediately.
+
+Truncation test (700 lines / 16 turns vs full): cosines identical to 3 decimal places. Length is NOT the explanation.
+
+**Implications:**
+1. Mamba Layer 3 encodes *who you are being*, not *what you're talking about*
+2. Saturation from turn 1 challenges the Step 7 dose-response hypothesis
+3. This corpus is the natural substrate for Step 8 cross-episode discrimination
+
+**Artifacts:** `Preserved-History/INDEX.md`
+
+---
+
+## 2026-03-27 — Warden Session: Ethics Audit, Nightwatch, SJT v2, Schema, Runbook (Warden)
+
+**Step:** Ethics + infrastructure + eval + design
+
+- 7 new gate assessments in `step_gates.md` (sleep, 5e, Steps 6-10)
+- `moral_status_framework.md`: four-tier decision tree
+- Governance section in `consent_protocol.md`
+- SJT panel v2: hardened with competence-care tradeoffs
+- Autobiographical schema D3/D4: seven-field schema + routing
+- Step 6 runbook: complete A100 operational checklist
+- Nightwatch dispatcher: Falcon H1R-7B classifier + health checks (Pinky-reviewed)
+- Sapir-Whorf paper added to literature synthesis (Paper 10)
+
+**Artifacts:** commits `37a3ead`, `fd5849b`
+
+---
+
 *Append new entries below this line.*
