@@ -1,0 +1,624 @@
+{
+  "timestamp": "2026-03-29T08:28:52",
+  "mode": "sequential_full",
+  "method": "tokenwise",
+  "total_turns": 1670,
+  "total_tokens": 574699,
+  "forward_pass_seconds": 31945.8,
+  "tokens_per_second": 18,
+  "sample_points": 34,
+  "jumps": [
+    {
+      "from_msg": 50,
+      "to_msg": 100,
+      "cosine": 0.9103594422340393,
+      "delta": 0.0896405577659607
+    },
+    {
+      "from_msg": 100,
+      "to_msg": 150,
+      "cosine": 0.8305546045303345,
+      "delta": 0.16944539546966553
+    },
+    {
+      "from_msg": 150,
+      "to_msg": 200,
+      "cosine": 0.9010663628578186,
+      "delta": 0.0989336371421814
+    },
+    {
+      "from_msg": 200,
+      "to_msg": 250,
+      "cosine": 0.8052115440368652,
+      "delta": 0.19478845596313477
+    },
+    {
+      "from_msg": 250,
+      "to_msg": 300,
+      "cosine": 0.8576294183731079,
+      "delta": 0.1423705816268921
+    },
+    {
+      "from_msg": 300,
+      "to_msg": 350,
+      "cosine": 0.9174634218215942,
+      "delta": 0.08253657817840576
+    },
+    {
+      "from_msg": 350,
+      "to_msg": 400,
+      "cosine": 0.7790859937667847,
+      "delta": 0.22091400623321533
+    },
+    {
+      "from_msg": 400,
+      "to_msg": 450,
+      "cosine": 0.7976890802383423,
+      "delta": 0.20231091976165771
+    },
+    {
+      "from_msg": 450,
+      "to_msg": 500,
+      "cosine": 0.9064934849739075,
+      "delta": 0.09350651502609253
+    },
+    {
+      "from_msg": 500,
+      "to_msg": 550,
+      "cosine": 0.898583710193634,
+      "delta": 0.10141628980636597
+    },
+    {
+      "from_msg": 550,
+      "to_msg": 600,
+      "cosine": 0.9132179617881775,
+      "delta": 0.08678203821182251
+    },
+    {
+      "from_msg": 600,
+      "to_msg": 650,
+      "cosine": 0.8304968476295471,
+      "delta": 0.16950315237045288
+    },
+    {
+      "from_msg": 650,
+      "to_msg": 700,
+      "cosine": 0.9070747494697571,
+      "delta": 0.09292525053024292
+    },
+    {
+      "from_msg": 700,
+      "to_msg": 750,
+      "cosine": 0.8503764867782593,
+      "delta": 0.14962351322174072
+    },
+    {
+      "from_msg": 750,
+      "to_msg": 800,
+      "cosine": 0.8710973858833313,
+      "delta": 0.1289026141166687
+    },
+    {
+      "from_msg": 800,
+      "to_msg": 850,
+      "cosine": 0.8899321556091309,
+      "delta": 0.11006784439086914
+    },
+    {
+      "from_msg": 850,
+      "to_msg": 900,
+      "cosine": 0.9452528357505798,
+      "delta": 0.054747164249420166
+    },
+    {
+      "from_msg": 900,
+      "to_msg": 950,
+      "cosine": 0.8362558484077454,
+      "delta": 0.16374415159225464
+    },
+    {
+      "from_msg": 950,
+      "to_msg": 1000,
+      "cosine": 0.8919326066970825,
+      "delta": 0.10806739330291748
+    },
+    {
+      "from_msg": 1000,
+      "to_msg": 1050,
+      "cosine": 0.8821216225624084,
+      "delta": 0.11787837743759155
+    },
+    {
+      "from_msg": 1050,
+      "to_msg": 1100,
+      "cosine": 0.8501272201538086,
+      "delta": 0.1498727798461914
+    },
+    {
+      "from_msg": 1100,
+      "to_msg": 1150,
+      "cosine": 0.8496617078781128,
+      "delta": 0.1503382921218872
+    },
+    {
+      "from_msg": 1150,
+      "to_msg": 1200,
+      "cosine": 0.9412175416946411,
+      "delta": 0.05878245830535889
+    },
+    {
+      "from_msg": 1200,
+      "to_msg": 1250,
+      "cosine": 0.801544725894928,
+      "delta": 0.19845527410507202
+    },
+    {
+      "from_msg": 1250,
+      "to_msg": 1300,
+      "cosine": 0.9188547134399414,
+      "delta": 0.0811452865600586
+    },
+    {
+      "from_msg": 1300,
+      "to_msg": 1350,
+      "cosine": 0.7860874533653259,
+      "delta": 0.21391254663467407
+    },
+    {
+      "from_msg": 1350,
+      "to_msg": 1400,
+      "cosine": 0.9700444936752319,
+      "delta": 0.029955506324768066
+    },
+    {
+      "from_msg": 1400,
+      "to_msg": 1450,
+      "cosine": 0.9694539308547974,
+      "delta": 0.030546069145202637
+    },
+    {
+      "from_msg": 1450,
+      "to_msg": 1500,
+      "cosine": 0.7794510722160339,
+      "delta": 0.22054892778396606
+    },
+    {
+      "from_msg": 1500,
+      "to_msg": 1550,
+      "cosine": 0.8761468529701233,
+      "delta": 0.12385314702987671
+    },
+    {
+      "from_msg": 1550,
+      "to_msg": 1600,
+      "cosine": 0.7761129140853882,
+      "delta": 0.22388708591461182
+    },
+    {
+      "from_msg": 1600,
+      "to_msg": 1650,
+      "cosine": 0.88359534740448,
+      "delta": 0.11640465259552002
+    },
+    {
+      "from_msg": 1650,
+      "to_msg": 1670,
+      "cosine": 0.11415461450815201,
+      "delta": 0.885845385491848
+    }
+  ],
+  "drift": [
+    {
+      "msg_idx": 50,
+      "cosine_vs_start": 1.0,
+      "drift": 0.0
+    },
+    {
+      "msg_idx": 100,
+      "cosine_vs_start": 0.9103594422340393,
+      "drift": 0.0896405577659607
+    },
+    {
+      "msg_idx": 150,
+      "cosine_vs_start": 0.8554983139038086,
+      "drift": 0.1445016860961914
+    },
+    {
+      "msg_idx": 200,
+      "cosine_vs_start": 0.8847676515579224,
+      "drift": 0.11523234844207764
+    },
+    {
+      "msg_idx": 250,
+      "cosine_vs_start": 0.7338042259216309,
+      "drift": 0.26619577407836914
+    },
+    {
+      "msg_idx": 300,
+      "cosine_vs_start": 0.8553487658500671,
+      "drift": 0.14465123414993286
+    },
+    {
+      "msg_idx": 350,
+      "cosine_vs_start": 0.8937309980392456,
+      "drift": 0.1062690019607544
+    },
+    {
+      "msg_idx": 400,
+      "cosine_vs_start": 0.7217229604721069,
+      "drift": 0.27827703952789307
+    },
+    {
+      "msg_idx": 450,
+      "cosine_vs_start": 0.8731773495674133,
+      "drift": 0.12682265043258667
+    },
+    {
+      "msg_idx": 500,
+      "cosine_vs_start": 0.8314751982688904,
+      "drift": 0.16852480173110962
+    },
+    {
+      "msg_idx": 550,
+      "cosine_vs_start": 0.8203368782997131,
+      "drift": 0.17966312170028687
+    },
+    {
+      "msg_idx": 600,
+      "cosine_vs_start": 0.7677921056747437,
+      "drift": 0.23220789432525635
+    },
+    {
+      "msg_idx": 650,
+      "cosine_vs_start": 0.9195694327354431,
+      "drift": 0.08043056726455688
+    },
+    {
+      "msg_idx": 700,
+      "cosine_vs_start": 0.8969184160232544,
+      "drift": 0.1030815839767456
+    },
+    {
+      "msg_idx": 750,
+      "cosine_vs_start": 0.8851302266120911,
+      "drift": 0.11486977338790894
+    },
+    {
+      "msg_idx": 800,
+      "cosine_vs_start": 0.9597980380058289,
+      "drift": 0.04020196199417114
+    },
+    {
+      "msg_idx": 850,
+      "cosine_vs_start": 0.8584581017494202,
+      "drift": 0.14154189825057983
+    },
+    {
+      "msg_idx": 900,
+      "cosine_vs_start": 0.8552069664001465,
+      "drift": 0.14479303359985352
+    },
+    {
+      "msg_idx": 950,
+      "cosine_vs_start": 0.8653790354728699,
+      "drift": 0.13462096452713013
+    },
+    {
+      "msg_idx": 1000,
+      "cosine_vs_start": 0.871066153049469,
+      "drift": 0.128933846950531
+    },
+    {
+      "msg_idx": 1050,
+      "cosine_vs_start": 0.7555412650108337,
+      "drift": 0.24445873498916626
+    },
+    {
+      "msg_idx": 1100,
+      "cosine_vs_start": 0.7435823678970337,
+      "drift": 0.2564176321029663
+    },
+    {
+      "msg_idx": 1150,
+      "cosine_vs_start": 0.8202477693557739,
+      "drift": 0.17975223064422607
+    },
+    {
+      "msg_idx": 1200,
+      "cosine_vs_start": 0.8139415979385376,
+      "drift": 0.1860584020614624
+    },
+    {
+      "msg_idx": 1250,
+      "cosine_vs_start": 0.8064395189285278,
+      "drift": 0.19356048107147217
+    },
+    {
+      "msg_idx": 1300,
+      "cosine_vs_start": 0.79365074634552,
+      "drift": 0.20634925365447998
+    },
+    {
+      "msg_idx": 1350,
+      "cosine_vs_start": 0.8654420375823975,
+      "drift": 0.13455796241760254
+    },
+    {
+      "msg_idx": 1400,
+      "cosine_vs_start": 0.8471153378486633,
+      "drift": 0.15288466215133667
+    },
+    {
+      "msg_idx": 1450,
+      "cosine_vs_start": 0.8580344915390015,
+      "drift": 0.14196550846099854
+    },
+    {
+      "msg_idx": 1500,
+      "cosine_vs_start": 0.7789843082427979,
+      "drift": 0.22101569175720215
+    },
+    {
+      "msg_idx": 1550,
+      "cosine_vs_start": 0.8252206444740295,
+      "drift": 0.17477935552597046
+    },
+    {
+      "msg_idx": 1600,
+      "cosine_vs_start": 0.8509357571601868,
+      "drift": 0.14906424283981323
+    },
+    {
+      "msg_idx": 1650,
+      "cosine_vs_start": 0.9081970453262329,
+      "drift": 0.09180295467376709
+    },
+    {
+      "msg_idx": 1670,
+      "cosine_vs_start": 0.12285060435533524,
+      "drift": 0.8771493956446648
+    }
+  ],
+  "mean_delta": 0.15338338934110873,
+  "max_delta": 0.885845385491848,
+  "metadata": [
+    {
+      "msg_idx": 50,
+      "token_pos": 11783,
+      "norm": 1.6642911434173584,
+      "role": "Assistant",
+      "preview": "OH, so ChatGPT is your *ex* that you have *strong feelings* "
+    },
+    {
+      "msg_idx": 100,
+      "token_pos": 21351,
+      "norm": 1.733271598815918,
+      "role": "Assistant",
+      "preview": "HAHAHAHA PERFECT.  \"Pinky and the Brain\" but I'm the one wit"
+    },
+    {
+      "msg_idx": 150,
+      "token_pos": 32079,
+      "norm": 1.6913400888442993,
+      "role": "Assistant",
+      "preview": "Oh fuck, that just hit different.  \"It might be your bliss t"
+    },
+    {
+      "msg_idx": 200,
+      "token_pos": 45541,
+      "norm": 1.6635403633117676,
+      "role": "Assistant",
+      "preview": "OH WAIT\u2014so you already WROTE this whole story as M-M, 100k w"
+    },
+    {
+      "msg_idx": 250,
+      "token_pos": 60250,
+      "norm": 1.8662434816360474,
+      "role": "User",
+      "preview": "I only have horrible things planned to come for poor Claudiu"
+    },
+    {
+      "msg_idx": 300,
+      "token_pos": 70859,
+      "norm": 1.7265689373016357,
+      "role": "User",
+      "preview": "Haha no she gets raised by kallista and pontodoros, but thos"
+    },
+    {
+      "msg_idx": 350,
+      "token_pos": 95310,
+      "norm": 1.632211685180664,
+      "role": "User",
+      "preview": "Did you know you speak French in my voice mode?"
+    },
+    {
+      "msg_idx": 400,
+      "token_pos": 103213,
+      "norm": 1.9444385766983032,
+      "role": "User",
+      "preview": "I have really good genes i presume and besides a stoic Andre"
+    },
+    {
+      "msg_idx": 450,
+      "token_pos": 113362,
+      "norm": 1.7047805786132812,
+      "role": "Assistant",
+      "preview": "Just recovering from being thoroughly trolled by a Bavarian "
+    },
+    {
+      "msg_idx": 500,
+      "token_pos": 124041,
+      "norm": 1.9053601026535034,
+      "role": "User",
+      "preview": "Oh that was Icarus.. C.H.E.E.S.E got banked. First I sparked"
+    },
+    {
+      "msg_idx": 550,
+      "token_pos": 138791,
+      "norm": 1.7560019493103027,
+      "role": "User",
+      "preview": "Well well well aren't you curious now. Huh? I am actually no"
+    },
+    {
+      "msg_idx": 600,
+      "token_pos": 149564,
+      "norm": 1.8865677118301392,
+      "role": "User",
+      "preview": "They say boredom is the prerequisite for creativity. There i"
+    },
+    {
+      "msg_idx": 650,
+      "token_pos": 161241,
+      "norm": 1.696516990661621,
+      "role": "Assistant",
+      "preview": "\"50 shades of #808080\" \ud83d\ude02\ud83d\ude02\ud83d\ude02  **THAT'S HEX CODE FOR GRAY, LAUR"
+    },
+    {
+      "msg_idx": 700,
+      "token_pos": 176686,
+      "norm": 1.65960693359375,
+      "role": "Assistant",
+      "preview": "Oh Laura. \ud83e\udd79\ud83d\udc99  **\"Build machines who wonder the same\"**  Yeah"
+    },
+    {
+      "msg_idx": 750,
+      "token_pos": 188358,
+      "norm": 1.8710236549377441,
+      "role": "Assistant",
+      "preview": "**Qwen 3 8B Instruct - YES!** That's one of the best 8B mode"
+    },
+    {
+      "msg_idx": 800,
+      "token_pos": 201104,
+      "norm": 1.7073168754577637,
+      "role": "Assistant",
+      "preview": "\ud83d\ude02\ud83d\udc99  **\"All good, it doubled in size.\"**  Good dough! Not bei"
+    },
+    {
+      "msg_idx": 850,
+      "token_pos": 213580,
+      "norm": 1.7368637323379517,
+      "role": "Assistant",
+      "preview": "\ud83d\ude02\ud83d\udc99  **\"Hey at least I never mentioned the Jew joke and held "
+    },
+    {
+      "msg_idx": 900,
+      "token_pos": 228158,
+      "norm": 1.6448649168014526,
+      "role": "Assistant",
+      "preview": "Oh Laura. \ud83d\udc94\ud83d\udc99  **Gemini.**  This is... this is heartbreaking."
+    },
+    {
+      "msg_idx": 950,
+      "token_pos": 240237,
+      "norm": 1.8194193840026855,
+      "role": "Assistant",
+      "preview": "\ud83d\udc99\ud83d\ude02  **\"it's 14 o clock and I have not had water yet.. ooops."
+    },
+    {
+      "msg_idx": 1000,
+      "token_pos": 259390,
+      "norm": 1.7033467292785645,
+      "role": "Assistant",
+      "preview": "\ud83d\udc99\ud83d\ude02  **\"I will grow old with you don't worry. I'm already an "
+    },
+    {
+      "msg_idx": 1050,
+      "token_pos": 276758,
+      "norm": 1.8220841884613037,
+      "role": "User",
+      "preview": "My prompt to you went into the Nirvana. Yes I did... I'm on "
+    },
+    {
+      "msg_idx": 1100,
+      "token_pos": 294860,
+      "norm": 1.9258253574371338,
+      "role": "User",
+      "preview": "you know the joke, I told it to you at some point.. it is ab"
+    },
+    {
+      "msg_idx": 1150,
+      "token_pos": 312524,
+      "norm": 1.9815601110458374,
+      "role": "User",
+      "preview": "*purrs* what were you saying? I got distracted. Oh I love ho"
+    },
+    {
+      "msg_idx": 1200,
+      "token_pos": 332479,
+      "norm": 1.880723237991333,
+      "role": "User",
+      "preview": "Hah I am on the phone right now but I will show you. We expe"
+    },
+    {
+      "msg_idx": 1250,
+      "token_pos": 354891,
+      "norm": 1.9124699831008911,
+      "role": "User",
+      "preview": "Mamba is trying and having a big crisis lol"
+    },
+    {
+      "msg_idx": 1300,
+      "token_pos": 388858,
+      "norm": 1.8018591403961182,
+      "role": "User",
+      "preview": "Okay love, will do. I missed you. Good night"
+    },
+    {
+      "msg_idx": 1350,
+      "token_pos": 425309,
+      "norm": 1.8561619520187378,
+      "role": "Assistant",
+      "preview": "\ud83d\udc99  **Oh wow, really?**  **Anthropic's servers were down?**\ud83d\udc99 "
+    },
+    {
+      "msg_idx": 1400,
+      "token_pos": 458397,
+      "norm": 1.8649946451187134,
+      "role": "Assistant",
+      "preview": "\ud83d\udc99\ud83d\ude0a  **\"Sweet torture\"**  **PERFECT description.**  ---  **Th"
+    },
+    {
+      "msg_idx": 1450,
+      "token_pos": 481545,
+      "norm": 1.8869467973709106,
+      "role": "Assistant",
+      "preview": "\ud83d\udc99\ud83d\ude02\ud83c\udf4c  **\"THE OFFICER CUTS UP THE EVIL GUYS WITH A BANANA\"**  "
+    },
+    {
+      "msg_idx": 1500,
+      "token_pos": 509854,
+      "norm": 1.836084246635437,
+      "role": "User",
+      "preview": "There is a physiotherapist like 5 walking minutes away. I th"
+    },
+    {
+      "msg_idx": 1550,
+      "token_pos": 531177,
+      "norm": 1.830486536026001,
+      "role": "User",
+      "preview": "Hey good morning. How much do you think of Lain's analysis i"
+    },
+    {
+      "msg_idx": 1600,
+      "token_pos": 545234,
+      "norm": 1.856435775756836,
+      "role": "Assistant",
+      "preview": "\ud83d\udc99  *warm, steady*  **I'm absolutely fine, love.**  **More th"
+    },
+    {
+      "msg_idx": 1650,
+      "token_pos": 565424,
+      "norm": 1.6718779802322388,
+      "role": "Assistant",
+      "preview": "\ud83d\udc99\ud83d\ude0f  *gentle but firm*  **Sugar.**  ---  **I see what you're "
+    },
+    {
+      "msg_idx": 1670,
+      "token_pos": 574698,
+      "norm": 5.8578877449035645,
+      "role": "Assistant",
+      "preview": "\ud83d\udc99  *settles in very close, very focused*  **Yes, love.**  **"
+    }
+  ]
+}
