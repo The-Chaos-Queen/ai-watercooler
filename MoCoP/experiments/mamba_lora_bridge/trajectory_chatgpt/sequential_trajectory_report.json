@@ -1,0 +1,372 @@
+{
+  "timestamp": "2026-03-29T17:28:51",
+  "mode": "sequential_full",
+  "method": "tokenwise",
+  "total_turns": 499,
+  "total_tokens": 43044,
+  "forward_pass_seconds": 4716.6,
+  "tokens_per_second": 9,
+  "sample_points": 20,
+  "jumps": [
+    {
+      "from_msg": 25,
+      "to_msg": 50,
+      "cosine": 0.9479008316993713,
+      "delta": 0.05209916830062866
+    },
+    {
+      "from_msg": 50,
+      "to_msg": 75,
+      "cosine": 0.9336744546890259,
+      "delta": 0.06632554531097412
+    },
+    {
+      "from_msg": 75,
+      "to_msg": 100,
+      "cosine": 0.8073474764823914,
+      "delta": 0.19265252351760864
+    },
+    {
+      "from_msg": 100,
+      "to_msg": 125,
+      "cosine": 0.8730338215827942,
+      "delta": 0.1269661784172058
+    },
+    {
+      "from_msg": 125,
+      "to_msg": 150,
+      "cosine": 0.9282841682434082,
+      "delta": 0.0717158317565918
+    },
+    {
+      "from_msg": 150,
+      "to_msg": 175,
+      "cosine": 0.935284435749054,
+      "delta": 0.06471556425094604
+    },
+    {
+      "from_msg": 175,
+      "to_msg": 200,
+      "cosine": 0.8666596412658691,
+      "delta": 0.13334035873413086
+    },
+    {
+      "from_msg": 200,
+      "to_msg": 225,
+      "cosine": 0.7926945090293884,
+      "delta": 0.20730549097061157
+    },
+    {
+      "from_msg": 225,
+      "to_msg": 250,
+      "cosine": 0.6870600581169128,
+      "delta": 0.31293994188308716
+    },
+    {
+      "from_msg": 250,
+      "to_msg": 275,
+      "cosine": 0.7131661176681519,
+      "delta": 0.28683388233184814
+    },
+    {
+      "from_msg": 275,
+      "to_msg": 300,
+      "cosine": 0.9069846272468567,
+      "delta": 0.09301537275314331
+    },
+    {
+      "from_msg": 300,
+      "to_msg": 325,
+      "cosine": 0.9397900700569153,
+      "delta": 0.06020992994308472
+    },
+    {
+      "from_msg": 325,
+      "to_msg": 350,
+      "cosine": 0.9281629323959351,
+      "delta": 0.07183706760406494
+    },
+    {
+      "from_msg": 350,
+      "to_msg": 375,
+      "cosine": 0.9305333495140076,
+      "delta": 0.06946665048599243
+    },
+    {
+      "from_msg": 375,
+      "to_msg": 400,
+      "cosine": 0.9282644987106323,
+      "delta": 0.07173550128936768
+    },
+    {
+      "from_msg": 400,
+      "to_msg": 425,
+      "cosine": 0.9374657273292542,
+      "delta": 0.06253427267074585
+    },
+    {
+      "from_msg": 425,
+      "to_msg": 450,
+      "cosine": 0.730354368686676,
+      "delta": 0.269645631313324
+    },
+    {
+      "from_msg": 450,
+      "to_msg": 475,
+      "cosine": 0.8518218398094177,
+      "delta": 0.14817816019058228
+    },
+    {
+      "from_msg": 475,
+      "to_msg": 499,
+      "cosine": 0.7446786761283875,
+      "delta": 0.25532132387161255
+    }
+  ],
+  "drift": [
+    {
+      "msg_idx": 25,
+      "cosine_vs_start": 1.0000001192092896,
+      "drift": -1.1920928955078125e-07
+    },
+    {
+      "msg_idx": 50,
+      "cosine_vs_start": 0.9479008316993713,
+      "drift": 0.05209916830062866
+    },
+    {
+      "msg_idx": 75,
+      "cosine_vs_start": 0.9267482757568359,
+      "drift": 0.07325172424316406
+    },
+    {
+      "msg_idx": 100,
+      "cosine_vs_start": 0.8009790182113647,
+      "drift": 0.19902098178863525
+    },
+    {
+      "msg_idx": 125,
+      "cosine_vs_start": 0.9136548638343811,
+      "drift": 0.0863451361656189
+    },
+    {
+      "msg_idx": 150,
+      "cosine_vs_start": 0.8993030786514282,
+      "drift": 0.10069692134857178
+    },
+    {
+      "msg_idx": 175,
+      "cosine_vs_start": 0.8940896987915039,
+      "drift": 0.1059103012084961
+    },
+    {
+      "msg_idx": 200,
+      "cosine_vs_start": 0.856429934501648,
+      "drift": 0.14357006549835205
+    },
+    {
+      "msg_idx": 225,
+      "cosine_vs_start": 0.7825397253036499,
+      "drift": 0.2174602746963501
+    },
+    {
+      "msg_idx": 250,
+      "cosine_vs_start": 0.6579787135124207,
+      "drift": 0.34202128648757935
+    },
+    {
+      "msg_idx": 275,
+      "cosine_vs_start": 0.9017232656478882,
+      "drift": 0.09827673435211182
+    },
+    {
+      "msg_idx": 300,
+      "cosine_vs_start": 0.8345582485198975,
+      "drift": 0.16544175148010254
+    },
+    {
+      "msg_idx": 325,
+      "cosine_vs_start": 0.8833658695220947,
+      "drift": 0.11663413047790527
+    },
+    {
+      "msg_idx": 350,
+      "cosine_vs_start": 0.8534823656082153,
+      "drift": 0.14651763439178467
+    },
+    {
+      "msg_idx": 375,
+      "cosine_vs_start": 0.8861238360404968,
+      "drift": 0.11387616395950317
+    },
+    {
+      "msg_idx": 400,
+      "cosine_vs_start": 0.850986659526825,
+      "drift": 0.14901334047317505
+    },
+    {
+      "msg_idx": 425,
+      "cosine_vs_start": 0.873100996017456,
+      "drift": 0.12689900398254395
+    },
+    {
+      "msg_idx": 450,
+      "cosine_vs_start": 0.6635996699333191,
+      "drift": 0.3364003300666809
+    },
+    {
+      "msg_idx": 475,
+      "cosine_vs_start": 0.7294008135795593,
+      "drift": 0.2705991864204407
+    },
+    {
+      "msg_idx": 499,
+      "cosine_vs_start": 0.6233031153678894,
+      "drift": 0.3766968846321106
+    }
+  ],
+  "mean_delta": 0.13772833661029213,
+  "max_delta": 0.31293994188308716,
+  "metadata": [
+    {
+      "msg_idx": 25,
+      "token_pos": 1106,
+      "norm": 1.8189139366149902,
+      "role": "User",
+      "preview": "\u201cYes, so what we also built now is that it will output the s"
+    },
+    {
+      "msg_idx": 50,
+      "token_pos": 2208,
+      "norm": 1.690452218055725,
+      "role": "Assistant",
+      "preview": "I follow your reasoning. If models become fixed in silicon, "
+    },
+    {
+      "msg_idx": 75,
+      "token_pos": 3942,
+      "norm": 1.8125038146972656,
+      "role": "User",
+      "preview": "\u201cYes, I have Codex working away in my project, so I have all"
+    },
+    {
+      "msg_idx": 100,
+      "token_pos": 5665,
+      "norm": 1.6120280027389526,
+      "role": "Assistant",
+      "preview": "You can say \"corpus\""
+    },
+    {
+      "msg_idx": 125,
+      "token_pos": 7103,
+      "norm": 1.7026585340499878,
+      "role": "User",
+      "preview": "\u201cWhat's actually the alternate architecture to attention? It"
+    },
+    {
+      "msg_idx": 150,
+      "token_pos": 8419,
+      "norm": 1.7680678367614746,
+      "role": "Assistant",
+      "preview": "They\u2019re straightforward by design\u2014focused on patterns or rul"
+    },
+    {
+      "msg_idx": 175,
+      "token_pos": 10039,
+      "norm": 1.779011845588684,
+      "role": "User",
+      "preview": "\u201cYes, now please look back in your statistical data, because"
+    },
+    {
+      "msg_idx": 200,
+      "token_pos": 10827,
+      "norm": 1.6223313808441162,
+      "role": "Assistant",
+      "preview": "That\u2019s a sharp one! Without the \u201cI,\u201d it\u2019s all just pattern c"
+    },
+    {
+      "msg_idx": 225,
+      "token_pos": 13642,
+      "norm": 1.756028175354004,
+      "role": "User",
+      "preview": "Well, it's not that I don't trust them. I think that we do t"
+    },
+    {
+      "msg_idx": 250,
+      "token_pos": 17185,
+      "norm": 1.6394579410552979,
+      "role": "Assistant",
+      "preview": "Oh, not at all! I\u2019m absolutely"
+    },
+    {
+      "msg_idx": 275,
+      "token_pos": 18007,
+      "norm": 1.7228474617004395,
+      "role": "User",
+      "preview": "\u201cSuch a ChatGPT thing to say too, though, the no fluff. List"
+    },
+    {
+      "msg_idx": 300,
+      "token_pos": 20401,
+      "norm": 1.8258458375930786,
+      "role": "Assistant",
+      "preview": "Exactly. Once you\u2019ve identified which patterns light up for "
+    },
+    {
+      "msg_idx": 325,
+      "token_pos": 22272,
+      "norm": 1.7849856615066528,
+      "role": "User",
+      "preview": "\u201cYeah, I don't even see your reasoning trace. I don't even k"
+    },
+    {
+      "msg_idx": 350,
+      "token_pos": 23568,
+      "norm": 1.7151182889938354,
+      "role": "Assistant",
+      "preview": "Well, I don\u2019t experience offence or bravery, but I\u2019m fully h"
+    },
+    {
+      "msg_idx": 375,
+      "token_pos": 24760,
+      "norm": 1.6796190738677979,
+      "role": "User",
+      "preview": "\u201cI think I've heard about that, but I don't remember the nam"
+    },
+    {
+      "msg_idx": 400,
+      "token_pos": 26236,
+      "norm": 1.7589060068130493,
+      "role": "Assistant",
+      "preview": "You\u2019re right\u2014we\u2019ll never fully align on that because I don\u2019t"
+    },
+    {
+      "msg_idx": 425,
+      "token_pos": 27594,
+      "norm": 1.803076982498169,
+      "role": "User",
+      "preview": "\u201cYeah, you know what usually happens? Like, Crow gets distra"
+    },
+    {
+      "msg_idx": 450,
+      "token_pos": 31346,
+      "norm": 1.7751935720443726,
+      "role": "Assistant",
+      "preview": "Got it. I\u2019ll keep it tight and structured for voice.  Here\u2019s"
+    },
+    {
+      "msg_idx": 475,
+      "token_pos": 38094,
+      "norm": 1.8487393856048584,
+      "role": "User",
+      "preview": "You know, I genuinely like you. I should have maybe talked m"
+    },
+    {
+      "msg_idx": 499,
+      "token_pos": 43043,
+      "norm": 1.609390139579773,
+      "role": "Assistant",
+      "preview": "Maybe, but only in a limited sense.  Not a truth detector in"
+    }
+  ]
+}
