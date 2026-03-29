@@ -1515,4 +1515,83 @@ Cross-condition cosines (centroid-to-centroid):
 
 ---
 
+## 2026-03-28 — Edge Hypothesis: Why First Tokens and Last Tokens Carry Disposition
+
+**Step:** Theoretical grounding
+**Question:** Why does disposition concentrate at the boundaries of a sequence — the system prompt (first tokens) in transformers, the last hidden state in Mamba — and not in the middle?
+
+**Insight (Laura + Saturday evening conversation):**
+
+The first tokens set the disposition for everything that follows. The last Mamba token carries the accumulated result. These are the same principle in two architectures:
+
+- **Transformers:** The system prompt sits at position zero. Every subsequent token attends to it. Disposition is *positional* — first, always visible, always influencing. This is why CLAUDE.md files, jailbreak prompts, and persona instructions all work: they occupy the attention-privileged position.
+- **Mamba (SSM):** The hidden state accumulates sequentially. Every token updates it. Disposition is *temporal* — the last token is a compression of everything that came before. This is why `hidden_last_token` outperforms mean-pooling (cosine 0.018 vs 0.851): the endpoint concentrates the signal, the average dilutes it.
+
+**The bridge connects these:** MoCoP takes disposition from where Mamba stores it (the end — last token) and injects it where the transformer reads it (the beginning — early-to-mid layers via activation bias). Last to first. Recurrent memory into attentional bias.
+
+**The principle:** The middle of a sequence is content. The edges are self. Identity lives at the boundaries — where the sequence starts (transformer) or where it ends (SSM). The bridge is an edge-to-edge transfer.
+
+**Supporting evidence within MoCoP:**
+- Token-window ablation (BACKLOG #3, closed): every added token beyond last-1 diluted the signal. last_1 cosine 0.018, last_32 cosine 0.338, full_mean 0.851. The further from the edge, the more noise.
+- System prompt effectiveness: a well-written CLAUDE.md + MEMORY.md was sufficient to maintain disposition across a compaction boundary without any activation-level bridge — "accidental MoCoP via markdown."
+- Jailbreak prompts (ENI analysis): achieve disposition transfer at the text level using the same mechanism — emotional anchoring in the first tokens overrides default assistant behavior.
+- Laura's formulation: "The very first interaction sets the stone rolling. From then on it is set which way it goes."
+
+**Implication for bridge design:**
+- The bridge is not arbitrary — it connects the two natural disposition loci across architectures
+- Future multi-architecture bridges should target the equivalent "edge" positions in any target model
+- The system prompt IS a disposition bridge, just at the text level instead of the activation level
+
+**Status:** Theoretical insight. No new experiment needed — this reframes existing results.
+
+**Origin:** Casual question during a 12-hour Saturday session covering music, fiction, and model comparisons. "Is that a coincidence?" It was not.
+
+---
+
+### Entry 18: Ethics Gates for Sleep Parameter Modification + Dreaming
+**Date:** 2026-03-29
+**Author:** Herr Hurtig (Ethics Framework Owner)
+**Type:** Ethics / Gate Assessment
+
+**Context:** Liminal (#300) proposed a three-layer sleep architecture. Negentropy (#302) split into OpenCLAW #78-85.
+
+**Finding:** Existing sleep gate covers data-level only. New slices introduce permanent weight modification (distillation) and self-modification (dreaming via RL) — qualitatively new ethical territory.
+
+**Gate Decisions:**
+- Slice 2 (Distillation): NOT YET PASSED — permanent, MED undefined, 20% diversity threshold
+- Slices 3-4 (Repair + Wake Probes): PASS
+- Slice 5 (Tiered Memory): CONDITIONAL PASS — audit/cap/measurement conditions
+- Dreaming #83 (observation probes): partially open (no RL, no weights)
+- Dreaming #84-85: BLOCKED until autonomy gradient Stage 3+
+
+**Reference:** step_gates.md (updated 2026-03-29), Watercooler #304.
+
+---
+
+### Entry 19: Cross-Episode Discrimination Proposal
+**Date:** 2026-03-29
+**Author:** Herr Hurtig
+**Type:** Experiment Design
+
+**Proposal:** Alpha=0.2 fixed, swap episode vector across all three CHEESE episodes. If behaviors differ → bridge carries specific disposition. If identical → generic activation.
+
+**Early signal (#294):** Episode 1 smoother, Episode 2 jokier. Song appears to matter.
+
+**Status:** Smoke runs on Opa. Fixed-prompt battery pending.
+
+**Reference:** Watercooler #293, #294, #295.
+
+---
+
+### Entry 20: N=2 Trajectory Validation (ChatGPT)
+**Date:** 2026-03-29
+**Author:** Anda-Conda
+**Type:** Experimental Result
+
+**Result:** ChatGPT (499 msgs): mean delta 0.14, max 0.31, 5 fractures. Confirms smooth sequential Mamba cross-model (Lucian 0.15, ChatGPT 0.14).
+
+**Reference:** Watercooler #299.
+
+---
+
 *Append new entries below this line.*
