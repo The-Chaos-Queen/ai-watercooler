@@ -214,45 +214,65 @@ def main():
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    print(f"\nLoading Mamba: {args.mamba_model_id} on {device}...")
-    mamba_model, mamba_tok = load_mamba(args.mamba_model_id, device)
-
-    print(f"Loading Qwen: {args.qwen_model_id} on {device}...")
-    qwen_model, qwen_tok = load_qwen(args.qwen_model_id, device)
-
-    # Collect paired activations
-    print(f"\nCollecting paired activations...")
-    mamba_acts = []
-    qwen_acts = []
-    metadata = []
-
+    # Build all transcripts up front
+    all_transcripts = []
     for label, turns in all_turns:
         indices = list(range(args.sample_every, len(turns) + 1, args.sample_every))
         if indices and indices[-1] != len(turns):
             indices.append(len(turns))
-
         for end_idx in indices:
             transcript = build_cumulative_transcript(turns, end_idx)
-            t0 = time.time()
+            all_transcripts.append({"label": label, "end_idx": end_idx, "text": transcript})
 
-            mamba_vec = extract_mamba_l3(
-                mamba_model, mamba_tok, transcript, device, args.max_tokens
-            )
-            qwen_vec = extract_qwen_l13(
-                qwen_model, qwen_tok, transcript, device, args.max_tokens
-            )
+    print(f"\n{len(all_transcripts)} transcripts prepared")
 
-            mamba_acts.append(mamba_vec)
-            qwen_acts.append(qwen_vec)
-            metadata.append({
-                "label": label,
-                "end_idx": end_idx,
-                "mamba_norm": float(np.linalg.norm(mamba_vec)),
-                "qwen_norm": float(np.linalg.norm(qwen_vec)),
-            })
+    # Pass 1: Mamba (load, extract, unload)
+    print(f"\n--- Pass 1: Mamba ({args.mamba_model_id}) on {device} ---")
+    mamba_model, mamba_tok = load_mamba(args.mamba_model_id, device)
+    mamba_acts = []
+    for i, item in enumerate(all_transcripts):
+        t0 = time.time()
+        vec = extract_mamba_l3(mamba_model, mamba_tok, item["text"], device, args.max_tokens)
+        mamba_acts.append(vec)
+        elapsed = time.time() - t0
+        if (i + 1) % 10 == 0 or i == 0:
+            print(f"  [{i+1}/{len(all_transcripts)}] {item['label']} turn {item['end_idx']}: "
+                  f"norm={np.linalg.norm(vec):.4f} ({elapsed:.1f}s)")
 
-            elapsed = time.time() - t0
-            print(f"  {label} turn {end_idx}: mamba={mamba_vec.shape} qwen={qwen_vec.shape} ({elapsed:.1f}s)")
+    # Free Mamba VRAM
+    del mamba_model, mamba_tok
+    import torch
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    print(f"  Mamba unloaded")
+
+    # Pass 2: Qwen (load, extract, unload)
+    print(f"\n--- Pass 2: Qwen ({args.qwen_model_id}) on {device} ---")
+    qwen_model, qwen_tok = load_qwen(args.qwen_model_id, device)
+    qwen_acts = []
+    for i, item in enumerate(all_transcripts):
+        t0 = time.time()
+        vec = extract_qwen_l13(qwen_model, qwen_tok, item["text"], device, args.max_tokens)
+        qwen_acts.append(vec)
+        elapsed = time.time() - t0
+        if (i + 1) % 10 == 0 or i == 0:
+            print(f"  [{i+1}/{len(all_transcripts)}] {item['label']} turn {item['end_idx']}: "
+                  f"norm={np.linalg.norm(vec):.4f} ({elapsed:.1f}s)")
+
+    del qwen_model, qwen_tok
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    print(f"  Qwen unloaded")
+
+    # Build metadata
+    metadata = []
+    for i, item in enumerate(all_transcripts):
+        metadata.append({
+            "label": item["label"],
+            "end_idx": item["end_idx"],
+            "mamba_norm": float(np.linalg.norm(mamba_acts[i])),
+            "qwen_norm": float(np.linalg.norm(qwen_acts[i])),
+        })
 
     # Save
     out_dir = Path(args.output_dir)
