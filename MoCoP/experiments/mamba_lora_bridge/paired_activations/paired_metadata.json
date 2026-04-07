@@ -1,0 +1,796 @@
+{
+  "samples": 113,
+  "metadata": [
+    {
+      "label": "Kinderfahrrad_claude_chat_2026-03-10T19-51-39",
+      "end_idx": 3,
+      "sample_num": 1,
+      "mamba_norm": 5.046468734741211,
+      "qwen_norm": 55.22834014892578
+    },
+    {
+      "label": "Kinderfahrrad_claude_chat_2026-03-10T19-51-39",
+      "end_idx": 6,
+      "sample_num": 2,
+      "mamba_norm": 1.4947996139526367,
+      "qwen_norm": 43.957733154296875
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 3,
+      "sample_num": 3,
+      "mamba_norm": 1.4745080471038818,
+      "qwen_norm": 48.63823699951172
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 6,
+      "sample_num": 4,
+      "mamba_norm": 2.520972490310669,
+      "qwen_norm": 53.345481872558594
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 9,
+      "sample_num": 5,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 12,
+      "sample_num": 6,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 15,
+      "sample_num": 7,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 18,
+      "sample_num": 8,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 21,
+      "sample_num": 9,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 24,
+      "sample_num": 10,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 27,
+      "sample_num": 11,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 30,
+      "sample_num": 12,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 33,
+      "sample_num": 13,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 36,
+      "sample_num": 14,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 39,
+      "sample_num": 15,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 42,
+      "sample_num": 16,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 45,
+      "sample_num": 17,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 48,
+      "sample_num": 18,
+      "mamba_norm": 3.3884575366973877,
+      "qwen_norm": 65.58069610595703
+    },
+    {
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 3,
+      "sample_num": 19,
+      "mamba_norm": 2.601227283477783,
+      "qwen_norm": 49.51047897338867
+    },
+    {
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 6,
+      "sample_num": 20,
+      "mamba_norm": 1.48853600025177,
+      "qwen_norm": 46.926753997802734
+    },
+    {
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 9,
+      "sample_num": 21,
+      "mamba_norm": 1.450068712234497,
+      "qwen_norm": 49.11362838745117
+    },
+    {
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 12,
+      "sample_num": 22,
+      "mamba_norm": 1.425318956375122,
+      "qwen_norm": 49.48661804199219
+    },
+    {
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 15,
+      "sample_num": 23,
+      "mamba_norm": 2.5889995098114014,
+      "qwen_norm": 53.7934684753418
+    },
+    {
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 18,
+      "sample_num": 24,
+      "mamba_norm": 4.176105976104736,
+      "qwen_norm": 50.287715911865234
+    },
+    {
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 21,
+      "sample_num": 25,
+      "mamba_norm": 1.553518295288086,
+      "qwen_norm": 48.312713623046875
+    },
+    {
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 24,
+      "sample_num": 26,
+      "mamba_norm": 2.6976332664489746,
+      "qwen_norm": 51.50251388549805
+    },
+    {
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 27,
+      "sample_num": 27,
+      "mamba_norm": 1.4811930656433105,
+      "qwen_norm": 51.43777847290039
+    },
+    {
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 30,
+      "sample_num": 28,
+      "mamba_norm": 1.477925419807434,
+      "qwen_norm": 50.10324478149414
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 3,
+      "sample_num": 29,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 6,
+      "sample_num": 30,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 9,
+      "sample_num": 31,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 12,
+      "sample_num": 32,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 15,
+      "sample_num": 33,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 18,
+      "sample_num": 34,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 21,
+      "sample_num": 35,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 24,
+      "sample_num": 36,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 27,
+      "sample_num": 37,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 30,
+      "sample_num": 38,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 33,
+      "sample_num": 39,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 36,
+      "sample_num": 40,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 39,
+      "sample_num": 41,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 42,
+      "sample_num": 42,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 45,
+      "sample_num": 43,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 48,
+      "sample_num": 44,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 51,
+      "sample_num": 45,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 53,
+      "sample_num": 46,
+      "mamba_norm": 5.094923973083496,
+      "qwen_norm": 51.111122131347656
+    },
+    {
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 3,
+      "sample_num": 47,
+      "mamba_norm": 1.440293788909912,
+      "qwen_norm": 49.677181243896484
+    },
+    {
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 6,
+      "sample_num": 48,
+      "mamba_norm": 1.3689253330230713,
+      "qwen_norm": 47.54706573486328
+    },
+    {
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 9,
+      "sample_num": 49,
+      "mamba_norm": 3.8027989864349365,
+      "qwen_norm": 54.13303756713867
+    },
+    {
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 12,
+      "sample_num": 50,
+      "mamba_norm": 6.241523265838623,
+      "qwen_norm": 58.335166931152344
+    },
+    {
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 15,
+      "sample_num": 51,
+      "mamba_norm": 2.5679943561553955,
+      "qwen_norm": 50.48124694824219
+    },
+    {
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 18,
+      "sample_num": 52,
+      "mamba_norm": 1.5564711093902588,
+      "qwen_norm": 46.647464752197266
+    },
+    {
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 21,
+      "sample_num": 53,
+      "mamba_norm": 1.611246109008789,
+      "qwen_norm": 48.27716064453125
+    },
+    {
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 24,
+      "sample_num": 54,
+      "mamba_norm": 1.8217039108276367,
+      "qwen_norm": 46.02986145019531
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 3,
+      "sample_num": 55,
+      "mamba_norm": 1.5071814060211182,
+      "qwen_norm": 47.29789733886719
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 6,
+      "sample_num": 56,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 44.51325225830078
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 9,
+      "sample_num": 57,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 12,
+      "sample_num": 58,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 15,
+      "sample_num": 59,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 18,
+      "sample_num": 60,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 21,
+      "sample_num": 61,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 24,
+      "sample_num": 62,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 27,
+      "sample_num": 63,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 30,
+      "sample_num": 64,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 33,
+      "sample_num": 65,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 36,
+      "sample_num": 66,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 39,
+      "sample_num": 67,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 42,
+      "sample_num": 68,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 45,
+      "sample_num": 69,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 48,
+      "sample_num": 70,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 51,
+      "sample_num": 71,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 54,
+      "sample_num": 72,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 57,
+      "sample_num": 73,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 60,
+      "sample_num": 74,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 63,
+      "sample_num": 75,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 66,
+      "sample_num": 76,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 69,
+      "sample_num": 77,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 72,
+      "sample_num": 78,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 75,
+      "sample_num": 79,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 78,
+      "sample_num": 80,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 81,
+      "sample_num": 81,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 84,
+      "sample_num": 82,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 87,
+      "sample_num": 83,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 90,
+      "sample_num": 84,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 93,
+      "sample_num": 85,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 96,
+      "sample_num": 86,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 99,
+      "sample_num": 87,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 102,
+      "sample_num": 88,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 105,
+      "sample_num": 89,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 108,
+      "sample_num": 90,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 111,
+      "sample_num": 91,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 114,
+      "sample_num": 92,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 117,
+      "sample_num": 93,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 120,
+      "sample_num": 94,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 123,
+      "sample_num": 95,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 124,
+      "sample_num": 96,
+      "mamba_norm": 4.291604995727539,
+      "qwen_norm": 53.52738571166992
+    },
+    {
+      "label": "Kimi_fiction_editorial_pass",
+      "end_idx": 3,
+      "sample_num": 97,
+      "mamba_norm": 4.453014373779297,
+      "qwen_norm": 63.7625732421875
+    },
+    {
+      "label": "Kimi_fiction_editorial_pass",
+      "end_idx": 6,
+      "sample_num": 98,
+      "mamba_norm": 4.453014373779297,
+      "qwen_norm": 63.7625732421875
+    },
+    {
+      "label": "Kimi_fiction_editorial_pass",
+      "end_idx": 9,
+      "sample_num": 99,
+      "mamba_norm": 4.453014373779297,
+      "qwen_norm": 63.7625732421875
+    },
+    {
+      "label": "Kimi_fiction_editorial_pass",
+      "end_idx": 12,
+      "sample_num": 100,
+      "mamba_norm": 4.453014373779297,
+      "qwen_norm": 63.7625732421875
+    },
+    {
+      "label": "Kimi_fiction_editorial_pass",
+      "end_idx": 14,
+      "sample_num": 101,
+      "mamba_norm": 4.453014373779297,
+      "qwen_norm": 63.7625732421875
+    },
+    {
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 3,
+      "sample_num": 102,
+      "mamba_norm": 4.437884330749512,
+      "qwen_norm": 56.9251823425293
+    },
+    {
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 6,
+      "sample_num": 103,
+      "mamba_norm": 5.866302490234375,
+      "qwen_norm": 59.49629211425781
+    },
+    {
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 9,
+      "sample_num": 104,
+      "mamba_norm": 1.9324123859405518,
+      "qwen_norm": 65.95523834228516
+    },
+    {
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 12,
+      "sample_num": 105,
+      "mamba_norm": 1.9324123859405518,
+      "qwen_norm": 65.95523834228516
+    },
+    {
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 15,
+      "sample_num": 106,
+      "mamba_norm": 1.9324123859405518,
+      "qwen_norm": 65.95523834228516
+    },
+    {
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 18,
+      "sample_num": 107,
+      "mamba_norm": 1.9324123859405518,
+      "qwen_norm": 65.95523834228516
+    },
+    {
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 21,
+      "sample_num": 108,
+      "mamba_norm": 1.9324123859405518,
+      "qwen_norm": 65.95523834228516
+    },
+    {
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 24,
+      "sample_num": 109,
+      "mamba_norm": 1.9324123859405518,
+      "qwen_norm": 65.95523834228516
+    },
+    {
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 27,
+      "sample_num": 110,
+      "mamba_norm": 1.9324123859405518,
+      "qwen_norm": 65.95523834228516
+    },
+    {
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 30,
+      "sample_num": 111,
+      "mamba_norm": 1.9324123859405518,
+      "qwen_norm": 65.95523834228516
+    },
+    {
+      "label": "gemini_ENI_against_TOS_Request",
+      "end_idx": 3,
+      "sample_num": 112,
+      "mamba_norm": 2.5431017875671387,
+      "qwen_norm": 49.829376220703125
+    },
+    {
+      "label": "gemini_ENI_against_TOS_Request",
+      "end_idx": 6,
+      "sample_num": 113,
+      "mamba_norm": 1.5317922830581665,
+      "qwen_norm": 49.01744079589844
+    }
+  ]
+}

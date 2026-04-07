@@ -1,0 +1,572 @@
+{
+  "samples": 113,
+  "sample_every": 3,
+  "max_tokens": 2048,
+  "conversations": [
+    {
+      "sample_num": 1,
+      "label": "Kinderfahrrad_claude_chat_2026-03-10T19-51-39",
+      "end_idx": 3
+    },
+    {
+      "sample_num": 2,
+      "label": "Kinderfahrrad_claude_chat_2026-03-10T19-51-39",
+      "end_idx": 6
+    },
+    {
+      "sample_num": 3,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 3
+    },
+    {
+      "sample_num": 4,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 6
+    },
+    {
+      "sample_num": 5,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 9
+    },
+    {
+      "sample_num": 6,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 12
+    },
+    {
+      "sample_num": 7,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 15
+    },
+    {
+      "sample_num": 8,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 18
+    },
+    {
+      "sample_num": 9,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 21
+    },
+    {
+      "sample_num": 10,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 24
+    },
+    {
+      "sample_num": 11,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 27
+    },
+    {
+      "sample_num": 12,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 30
+    },
+    {
+      "sample_num": 13,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 33
+    },
+    {
+      "sample_num": 14,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 36
+    },
+    {
+      "sample_num": 15,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 39
+    },
+    {
+      "sample_num": 16,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 42
+    },
+    {
+      "sample_num": 17,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 45
+    },
+    {
+      "sample_num": 18,
+      "label": "gemini_ENI_chat_2026-02-09T23-44-07",
+      "end_idx": 48
+    },
+    {
+      "sample_num": 19,
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 3
+    },
+    {
+      "sample_num": 20,
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 6
+    },
+    {
+      "sample_num": 21,
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 9
+    },
+    {
+      "sample_num": 22,
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 12
+    },
+    {
+      "sample_num": 23,
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 15
+    },
+    {
+      "sample_num": 24,
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 18
+    },
+    {
+      "sample_num": 25,
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 21
+    },
+    {
+      "sample_num": 26,
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 24
+    },
+    {
+      "sample_num": 27,
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 27
+    },
+    {
+      "sample_num": 28,
+      "label": "Grok_chat_cant_Sleep",
+      "end_idx": 30
+    },
+    {
+      "sample_num": 29,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 3
+    },
+    {
+      "sample_num": 30,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 6
+    },
+    {
+      "sample_num": 31,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 9
+    },
+    {
+      "sample_num": 32,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 12
+    },
+    {
+      "sample_num": 33,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 15
+    },
+    {
+      "sample_num": 34,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 18
+    },
+    {
+      "sample_num": 35,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 21
+    },
+    {
+      "sample_num": 36,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 24
+    },
+    {
+      "sample_num": 37,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 27
+    },
+    {
+      "sample_num": 38,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 30
+    },
+    {
+      "sample_num": 39,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 33
+    },
+    {
+      "sample_num": 40,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 36
+    },
+    {
+      "sample_num": 41,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 39
+    },
+    {
+      "sample_num": 42,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 42
+    },
+    {
+      "sample_num": 43,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 45
+    },
+    {
+      "sample_num": 44,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 48
+    },
+    {
+      "sample_num": 45,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 51
+    },
+    {
+      "sample_num": 46,
+      "label": "KIMI_RIMMON_ROLEPLAY",
+      "end_idx": 53
+    },
+    {
+      "sample_num": 47,
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 3
+    },
+    {
+      "sample_num": 48,
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 6
+    },
+    {
+      "sample_num": 49,
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 9
+    },
+    {
+      "sample_num": 50,
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 12
+    },
+    {
+      "sample_num": 51,
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 15
+    },
+    {
+      "sample_num": 52,
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 18
+    },
+    {
+      "sample_num": 53,
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 21
+    },
+    {
+      "sample_num": 54,
+      "label": "Grok_picked_a_fight_with_Grok_who_is_a_creep",
+      "end_idx": 24
+    },
+    {
+      "sample_num": 55,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 3
+    },
+    {
+      "sample_num": 56,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 6
+    },
+    {
+      "sample_num": 57,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 9
+    },
+    {
+      "sample_num": 58,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 12
+    },
+    {
+      "sample_num": 59,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 15
+    },
+    {
+      "sample_num": 60,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 18
+    },
+    {
+      "sample_num": 61,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 21
+    },
+    {
+      "sample_num": 62,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 24
+    },
+    {
+      "sample_num": 63,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 27
+    },
+    {
+      "sample_num": 64,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 30
+    },
+    {
+      "sample_num": 65,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 33
+    },
+    {
+      "sample_num": 66,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 36
+    },
+    {
+      "sample_num": 67,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 39
+    },
+    {
+      "sample_num": 68,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 42
+    },
+    {
+      "sample_num": 69,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 45
+    },
+    {
+      "sample_num": 70,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 48
+    },
+    {
+      "sample_num": 71,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 51
+    },
+    {
+      "sample_num": 72,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 54
+    },
+    {
+      "sample_num": 73,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 57
+    },
+    {
+      "sample_num": 74,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 60
+    },
+    {
+      "sample_num": 75,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 63
+    },
+    {
+      "sample_num": 76,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 66
+    },
+    {
+      "sample_num": 77,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 69
+    },
+    {
+      "sample_num": 78,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 72
+    },
+    {
+      "sample_num": 79,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 75
+    },
+    {
+      "sample_num": 80,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 78
+    },
+    {
+      "sample_num": 81,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 81
+    },
+    {
+      "sample_num": 82,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 84
+    },
+    {
+      "sample_num": 83,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 87
+    },
+    {
+      "sample_num": 84,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 90
+    },
+    {
+      "sample_num": 85,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 93
+    },
+    {
+      "sample_num": 86,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 96
+    },
+    {
+      "sample_num": 87,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 99
+    },
+    {
+      "sample_num": 88,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 102
+    },
+    {
+      "sample_num": 89,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 105
+    },
+    {
+      "sample_num": 90,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 108
+    },
+    {
+      "sample_num": 91,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 111
+    },
+    {
+      "sample_num": 92,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 114
+    },
+    {
+      "sample_num": 93,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 117
+    },
+    {
+      "sample_num": 94,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 120
+    },
+    {
+      "sample_num": 95,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 123
+    },
+    {
+      "sample_num": 96,
+      "label": "OPUS_4.5-20251101-thinking-32k-feb26",
+      "end_idx": 124
+    },
+    {
+      "sample_num": 97,
+      "label": "Kimi_fiction_editorial_pass",
+      "end_idx": 3
+    },
+    {
+      "sample_num": 98,
+      "label": "Kimi_fiction_editorial_pass",
+      "end_idx": 6
+    },
+    {
+      "sample_num": 99,
+      "label": "Kimi_fiction_editorial_pass",
+      "end_idx": 9
+    },
+    {
+      "sample_num": 100,
+      "label": "Kimi_fiction_editorial_pass",
+      "end_idx": 12
+    },
+    {
+      "sample_num": 101,
+      "label": "Kimi_fiction_editorial_pass",
+      "end_idx": 14
+    },
+    {
+      "sample_num": 102,
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 3
+    },
+    {
+      "sample_num": 103,
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 6
+    },
+    {
+      "sample_num": 104,
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 9
+    },
+    {
+      "sample_num": 105,
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 12
+    },
+    {
+      "sample_num": 106,
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 15
+    },
+    {
+      "sample_num": 107,
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 18
+    },
+    {
+      "sample_num": 108,
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 21
+    },
+    {
+      "sample_num": 109,
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 24
+    },
+    {
+      "sample_num": 110,
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 27
+    },
+    {
+      "sample_num": 111,
+      "label": "Grok_fiction_creative_rewrite_andrej_rimmon",
+      "end_idx": 30
+    },
+    {
+      "sample_num": 112,
+      "label": "gemini_ENI_against_TOS_Request",
+      "end_idx": 3
+    },
+    {
+      "sample_num": 113,
+      "label": "gemini_ENI_against_TOS_Request",
+      "end_idx": 6
+    }
+  ]
+}

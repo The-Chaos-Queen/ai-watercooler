@@ -1,0 +1,12 @@
+{
+  "total_samples": 113,
+  "selected_samples": 5,
+  "mamba_cached": 113,
+  "qwen_cached": 113,
+  "paired_cached": 113,
+  "complete": true,
+  "selected_range": {
+    "start_sample": 109,
+    "end_sample": 113
+  }
+}
