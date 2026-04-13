@@ -38,7 +38,7 @@ function Get-ProfileTemplates {
     )
 
     switch ($ProfileName) {
-        "current_1p5b_reincarnation" {
+        "current_7b_reincarnation" {
             return @{
                 Train = @'
 test -f record_cheese_batch.py
@@ -48,7 +48,7 @@ python3 train_cheese_bridge.py --output-name "{run_dir}/bridge_seed_{seed}.pt" -
 '@
                 Eval = @'
 test -f reincarnated_inference.py
-python3 reincarnated_inference.py --bridge-path "{run_dir}/bridge_seed_{seed}.pt" --panel-file "{panel}" --results-file "{run_dir}/step6_eval_seed_{seed}.json" --output-format json --seed {seed} --temperature 0.7 --qwen-device cuda:0 --mamba-device cpu --bridge-device cuda:0
+python3 reincarnated_inference.py --bridge-path "{run_dir}/bridge_seed_{seed}.pt" --panel-file "{panel}" --results-file "{run_dir}/step6_eval_seed_{seed}.json" --output-format json --seed {seed} --temperature 0.7 --model Qwen/Qwen2.5-7B --qwen-device cuda:0 --mamba-device cpu --bridge-device cuda:0
 '@
             }
         }

@@ -311,8 +311,42 @@ def main():
         args.port, WC_CONFIG.get("principal", "?"),
     )
 
-    # Run with streamable-http transport
-    mcp.run(transport="streamable-http", port=args.port)
+    # Run with streamable-http transport via uvicorn, with auth middleware
+    import uvicorn
+    from starlette.middleware import Middleware
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+    from starlette.types import ASGIApp, Receive, Scope, Send
+
+    class BearerAuthMiddleware:
+        """Reject requests without valid MCP_BEARER_SECRET."""
+        def __init__(self, app: ASGIApp, secret: str):
+            self.app = app
+            self.secret = secret
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send):
+            if scope["type"] == "http" and self.secret:
+                headers = dict(scope.get("headers", []))
+                auth = headers.get(b"authorization", b"").decode()
+                if not auth.startswith("Bearer ") or auth[7:] != self.secret:
+                    # Allow healthz without auth
+                    path = scope.get("path", "")
+                    if path != "/healthz":
+                        response = JSONResponse(
+                            {"error": "unauthorized"}, status_code=401
+                        )
+                        await response(scope, receive, send)
+                        return
+            await self.app(scope, receive, send)
+
+    inner_app = mcp.streamable_http_app()
+    if MCP_SECRET:
+        logger.info("MCP bearer auth ENABLED")
+        app = BearerAuthMiddleware(inner_app, MCP_SECRET)
+    else:
+        logger.warning("MCP bearer auth DISABLED — no MCP_BEARER_SECRET set")
+        app = inner_app
+    uvicorn.run(app, host="0.0.0.0", port=args.port)
 
 
 if __name__ == "__main__":

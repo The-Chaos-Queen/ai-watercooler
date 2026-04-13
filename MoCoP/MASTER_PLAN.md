@@ -1,7 +1,7 @@
 # MoCoP -- Master Plan
 
 **Last updated:** 2026-03-25
-**Author:** Laura (concept + direction), multi-agent team (implementation)
+**Author:** Laura (concept + direction), multi-AI team (implementation)
 
 ## Vision
 
@@ -10,6 +10,12 @@ MoCoP is a system for transferring attentional state between AI models without s
 > **Note:** The original design used dynamic LoRA weight injection. This was abandoned after epoch-2 over-injection collapse (PPL 44 vs baseline 29). The current mechanism is **activation bias injection at v_proj layers 12-15** (~5K trainable parameters), which is stable, reversible, and produces the inverted-U dose-response at alpha 0.2. Older references to "LoRA injection" in this document describe the historical design intent, not the current system.
 
 This is not memory retrieval. It is identity continuity. The analogy is hormonal, not archival: we are not building a diary the Transformer reads before each session. We are building an endocrine system that shifts the Transformer's activation thresholds based on accumulated experience. The Transformer does not *read* the memory. It *feels* the memory, the same way adrenaline changes your reaction time without you reading an instruction manual.
+
+**Architecture rule:** Build MoCoP modularly from the start. The memory system, sleep
+logic, and disposition-state schema should stay as target-agnostic as possible. The
+bridge adapter and injection hooks should be treated as model-specific backends. The
+goal is not one universal weight blob for every family; the goal is one shared organism
+with per-model translators.
 
 ## What This Is Not
 
@@ -23,24 +29,27 @@ This is not memory retrieval. It is identity continuity. The analogy is hormonal
 | Phase | Name | Status | Key Output |
 |-------|------|--------|------------|
 | 1 | Linear Probe Validation | Complete | Layer 3 peaks at 55.7% vs 22% noise floor |
-| 2 | Cognitive Bridge Training | Step 5d Complete | Activation bias injection validated. Alpha 0.2 = MED (6/6 recall, entropy UP, recovery 1.0, distress 0). Dual saliency gate live on Steve. Compressor bypass resolved the PCA collapse. |
-| 3 | Ablations + Cloud Scale | Planned | LoRA rank sweep, Mamba-3 path |
+| 2 | Cognitive Bridge Training | Step 5d Complete | Activation bias injection validated. Alpha 0.2 = MED (6/6 disposition-congruent responses, entropy UP, recovery 1.0, distress 0). Dual saliency gate live on Steve. Compressor bypass resolved the PCA collapse. |
+| 3 | Replication + Behavioral Validation | Planned | Multi-seed replication (Step 6), cross-episode discrimination (Step 8). See `EXPERIMENT_LADDER.md`. |
 | 4 | Deployment | Planned | Persistent co-indexed Qdrant + state vectors |
 
 ## Success Criteria
 
 ### Phase 1: Signal Confirmation
-- **Criterion:** Linear probe trained on Mamba hidden states achieves statistically significant accuracy above noise floor for factual recall.
-- **Result:** 55.7% at Layer 3 vs 22% noise floor (p < 0.05 across 5-seed validation). Complete.
+- **Criterion:** Linear probe trained on Mamba hidden states achieves statistically significant accuracy above noise floor for dispositional discrimination (warm vs cold vs adversarial conversation states).
+- **Result:** 55.7% at Layer 3 vs 22% noise floor (p < 0.05 across 5-seed validation). CCGP confirmed warm as a linearly transferable direction across conditions. Complete.
+- **Note (2026-04-07):** The original criterion was phrased as "factual recall," which mischaracterized the measurement. The probe detects accumulated conversational disposition in Mamba's hidden state, not stored facts. Factual retrieval is handled by Qdrant. The criterion has been rewritten to match what was actually measured and what the architecture is designed to transfer.
 
 ### Phase 2: Bridge Viability
-- **Criterion:** Qwen with activation bias injection (from Mamba state via hypernetwork) achieves measurably higher fact retention and response quality than baseline Qwen, while remaining reversible and non-harmful.
-- **Minimum bar:** Higher factual recall than no-injection baseline; entropy must not drop >50%; recovery ≥0.95 after alpha removal; distress markers = 0.
-- **Result:** PASS at alpha 0.2 on Steve/4090 (6/6 recall vs 4/6 baseline, entropy UP, recovery 1.0, distress 0). A100 replication pending (OpenCLAW #41).
+- **Criterion:** Qwen with activation bias injection (from Mamba state via hypernetwork) produces a measurable and causally validated dispositional shift compared to baseline Qwen, while remaining reversible and non-harmful.
+- **Minimum bar:** Behavioral shift distinguishable from baseline via disposition-sensitive evaluation; entropy must not drop >50%; recovery >=0.95 after alpha removal; distress markers = 0.
+- **Result:** PASS at alpha 0.2 on Steve/4090 (6/6 disposition-congruent responses vs 4/6 baseline, entropy UP, recovery 1.0, distress 0). A100 replication pending (OpenCLAW #41).
+- **Measurement framework (2026-04-07):** Future behavioral validation will adopt the crosscoder model-diffing framework (Jiralerspong & Bricken, 2026; arXiv:2602.11729) for exclusivity scoring and causal steering validation, replacing the legacy "factual recall" framing. The bridge produces model-exclusive dispositional features, not retrievable facts. Qdrant handles facts.
 
-### Phase 3: Configuration Optimization
-- **Criterion:** Identify optimal LoRA rank and compressor configuration through systematic ablation. Determine whether Mamba-3 improves bridge quality enough to justify architecture changes.
-- **Minimum bar:** At least one configuration outperforms the Phase 2 baseline by >5% absolute on the same eval set.
+### Phase 3: Replication + Behavioral Validation
+- **Criterion:** Multi-seed replication (Step 6) of the CHEESE/DirectionalLoss bridge on Qwen2.5-7B confirms the behavioral effect is consistent across seeds. Cross-episode discrimination (Step 8) confirms the bridge transfers different dispositions for different episode types.
+- **Minimum bar:** 95% CI for behavioral shift does not cross zero across 3-5 seeds. Bridge discriminates between warm, cold, and adversarial episodes.
+- **Note:** The original Phase 3 plan (LoRA rank sweeps, Mamba-3 migration, $200-500 ablation grid) was superseded by the activation bias + DirectionalLoss pivot. Archived to `archive/phase3_plan_archived_2026-03-31.md`.
 
 ### Phase 4: Live Deployment
 - **Criterion:** End-to-end deployment in at least one target application (MUD NPC memory or Prosthetic hand controller continuity) with measurable improvement in cross-session behavioral consistency.
@@ -69,9 +78,9 @@ This is not memory retrieval. It is identity continuity. The analogy is hormonal
 
 3. **Prompt format generalization.** The bridge is trained on ChatML-formatted data with MUD-flavored facts. Will it generalize to other prompt formats (vanilla completion, GameWorld framing, instruction format)? Unknown until Phase 3 ablation.
 
-4. **LoRA rank sensitivity.** The hypernetwork generates LoRA matrices at rank r=8 by default. The optimal rank is unknown. Too low and the bridge lacks expressivity; too high and the hypernetwork must output more parameters, making it harder to train.
+4. ~~**LoRA rank sensitivity.**~~ Historical: LoRA was abandoned after epoch-2 over-injection collapse. Activation bias injection is the validated mechanism. See RESEARCH_PAPER.md §6.2.
 
-5. **Decay characteristics.** Phase 1 showed signal at 8192 tokens. What happens at 16k? 32k? Mamba's recurrent state theoretically handles infinite context, but the factual signal may decay below the probe threshold at longer horizons.
+5. **Decay characteristics.** Phase 1 showed signal at 8192 tokens. What happens at 16k? 32k? Mamba's recurrent state theoretically handles infinite context, but the dispositional signal may decay below the probe threshold at longer horizons.
 
 6. **Effective dimensionality of bridge signal.** ~~How much information does the hypernetwork actually transfer vs. how much of the LoRA injection is noise? PCA / intrinsic dimensionality analysis on the generated LoRA weights would answer this, but has not been attempted.~~ **ANSWERED (2026-03-16):** PCA on compressed context vectors shows effective rank of 2.53/2048 (train) and 1.62/2048 (eval). The compressor collapses all inputs to near-scalar. This is the primary bottleneck. See `experiments/mamba_lora_bridge/PCA_DIAGNOSTIC_2026-03-16.md`.
 

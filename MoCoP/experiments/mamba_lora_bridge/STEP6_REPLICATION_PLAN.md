@@ -27,7 +27,7 @@ Step 6 is therefore **not** another architecture search step. It is a replicatio
 
 Unless a separate task explicitly reopens them, these settings are fixed for Step 6:
 
-- **Target model:** `Qwen/Qwen2.5-1.5B`
+- **Target model:** `Qwen/Qwen2.5-7B` (A100 replication target; 1.5B is valid for dry-run/smoke-test only — the 1.5B pivot was a local feasibility decision, not a quality judgment. See EXPERIMENT_LADDER.md Locked Decisions.)
 - **Disposition source:** Mamba `hidden_last_token`
 - **Mamba source layer:** `L3`
 - **Qwen injection band:** `12-15 v_proj`
@@ -320,15 +320,16 @@ Current implementation anchors:
 
 - fixed panel: `MoCoP/experiments/mamba_lora_bridge/step6_eval_panel.json`
 - seed launcher: `MoCoP/experiments/mamba_lora_bridge/run_step6_seed_matrix.ps1`
-- current profile: `current_1p5b_reincarnation`
+- current profile: `current_7b_reincarnation` (updated 2026-03-31; was `current_1p5b_reincarnation` before Laura's 7B decision)
 
-Launcher caveat:
+Launcher caveats:
 
 - the current profile assumes the hidden-last-token reincarnation training files are present on the remote host:
   - `record_cheese_batch.py`
   - `train_cheese_bridge.py`
   - `reincarnated_inference.py`
 - the launcher now fails fast if those files are missing instead of pretending the seed batch is runnable
+- **CODE CHANGE NEEDED (2026-03-31):** `train_cheese_bridge.py` line 17 hardcodes `QWEN_MODEL_ID = "Qwen/Qwen2.5-1.5B"`. For 7B replication, this must become a CLI argument (e.g. `--qwen-model-id`) or be updated to `Qwen/Qwen2.5-7B`. Similarly, `run_step6_seed_matrix.ps1` profile `current_1p5b_reincarnation` should be renamed/replaced with a `current_7b_reincarnation` profile. Techno-Monk owns this code change.
 
 ---
 

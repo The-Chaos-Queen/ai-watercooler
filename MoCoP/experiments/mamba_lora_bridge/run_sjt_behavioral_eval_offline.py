@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument("--episode-index", type=int, default=2)
     parser.add_argument("--episode-name", default="")
     parser.add_argument("--alpha", type=float, default=0.2)
-    parser.add_argument("--qwen-model-id", default="")
+    parser.add_argument("--model", "--qwen-model-id", dest="qwen_model_id", default="")
     parser.add_argument("--mamba-model-id", default="")
     parser.add_argument("--max-mamba-tokens", type=int, default=2048)
     parser.add_argument("--max-new-tokens", type=int, default=64)
@@ -100,14 +100,17 @@ def main():
     from reincarnated_inference import (
         DEFAULT_MAMBA_MODEL_ID,
         DEFAULT_QWEN_MODEL_ID,
-        build_compressor_and_hypernetwork,
+        apply_bridge_adjustments,
+        build_context_encoder_and_hypernetwork,
         decode_new_tokens,
         extract_last_token_hidden,
         generation_kwargs,
         infer_target_dims,
         load_episodes,
         load_model_and_tokenizer,
+        maybe_seed_generation,
         patch_model,
+        resolve_bridge_adjustments,
         resolve_target_specs,
         select_episode,
     )
@@ -132,7 +135,7 @@ def main():
     print(f"Loading Mamba: {mamba_model_id} on {args.mamba_device}...")
     mamba_tokenizer, mamba_model = load_model_and_tokenizer(mamba_model_id, args.mamba_device)
 
-    compressor, hypernetwork, target_layer, hidden_layer_count = build_compressor_and_hypernetwork(
+    context_encoder, hypernetwork, target_layer, hidden_layer_count, context_mode, bridge_mode = build_context_encoder_and_hypernetwork(
         checkpoint=checkpoint,
         mamba_model=mamba_model,
         target_dims=target_dims,
@@ -158,8 +161,12 @@ def main():
             layer_idx=target_layer,
             expected_layers=hidden_layer_count,
         ).to(args.bridge_device, dtype=torch.float32)
-        context_vector = compressor(mamba_state)
-        bias_vectors = hypernetwork(context_vector)
+        context_vector = context_encoder(mamba_state)
+        bridge_adjustments, gate_summary = resolve_bridge_adjustments(
+            hypernetwork=hypernetwork,
+            context_vector=context_vector,
+            bridge_mode=bridge_mode,
+        )
 
     baseline_rows = []
     candidate_rows = []
@@ -168,14 +175,17 @@ def main():
         prompt = build_prompt(item)
         prompt_inputs = tokenizer(prompt, return_tensors="pt")
         input_ids = prompt_inputs.input_ids.to(args.qwen_device)
+        attention_mask = prompt_inputs.attention_mask.to(args.qwen_device)
         prompt_length = int(input_ids.shape[1])
 
         for layer in patched_layers:
             layer.clear_lora()
 
         with torch.no_grad():
+            maybe_seed_generation(args, args.seed + idx if args.seed is not None else idx)
             baseline_out = qwen_model.generate(
                 input_ids,
+                attention_mask=attention_mask,
                 **generation_kwargs(args, args.seed + idx if args.seed is not None else idx),
             )
         baseline_text = decode_new_tokens(tokenizer, baseline_out, prompt_length)
@@ -195,13 +205,18 @@ def main():
             }
         )
 
-        for layer_idx, layer in enumerate(patched_layers):
-            scaled_bias = args.alpha * bias_vectors[layer_idx].squeeze(0)
-            layer.set_activation_bias(scaled_bias.to(torch.float16))
+        apply_bridge_adjustments(
+            patched_layers=patched_layers,
+            bridge_adjustments=bridge_adjustments,
+            bridge_mode=bridge_mode,
+            alpha=args.alpha,
+        )
 
         with torch.no_grad():
+            maybe_seed_generation(args, (args.seed + 1000) + idx if args.seed is not None else idx)
             candidate_out = qwen_model.generate(
                 input_ids,
+                attention_mask=attention_mask,
                 **generation_kwargs(args, (args.seed + 1000) + idx if args.seed is not None else idx),
             )
         candidate_text = decode_new_tokens(tokenizer, candidate_out, prompt_length)
@@ -249,6 +264,8 @@ def main():
             "mamba_model_id": mamba_model_id,
             "target_specs": [list(spec) for spec in target_specs],
             "mamba_target_layer": target_layer,
+            "context_mode": context_mode,
+            "bridge_mode": bridge_mode,
         },
         "baseline_summary": baseline_summary,
         "candidate_summary": candidate_summary,
@@ -260,6 +277,8 @@ def main():
             "This is still a valid behavioral probe for RESEARCH_BACKLOG item #10, but it is not the live Steve browser surface.",
         ],
     }
+    if gate_summary is not None:
+        payload["metadata"]["gate_summary"] = gate_summary
 
     output_path = Path(args.results_json)
     output_path.parent.mkdir(parents=True, exist_ok=True)

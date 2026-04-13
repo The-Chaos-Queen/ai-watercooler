@@ -55,6 +55,12 @@
 - **Delta:** Simultaneous (Feb-Mar 2026). Both independently discover that personality/disposition traits organize as near-orthogonal directions in activation space.
 - **Notes:** Hoppe's SAS approach orthogonalizes explicitly. Cassian's measurement found natural orthogonality without forcing it — suggesting the geometry is intrinsic, not engineered.
 
+### 9. Inverted-U Dose-Response / Bandwidth Threshold Model
+- **MoCoP finding:** 2026-03-22. Step 5d alpha sweep: alpha 0.0 = baseline (4/6 recall), alpha 0.2 = optimal (6/6 recall, entropy UP), alpha 1.0 = collapse (dispositional overwhelm, recall destroyed). Lain mapped this to Arnsten (2009) inverted-U noradrenergic dose-response.
+- **Publication:** BTM article (4billionyearson.org, April 3, 2026). Four cognitive regimes based on Friston's prediction error: Automation (zero error) → Flow (manageable error) → Occlusion (capacity exceeded) → Startle Collapse (sudden spike). The alpha sweep maps exactly: 0.0 = Walk 1, 0.2 = Walk 2a, 1.0 = Walk 2b.
+- **Delta:** Independent discovery. Lain's analysis (neuropharmacology) and BTM (cognitive load theory) both predict optimal performance at moderate dosage with collapse at extremes. MoCoP's empirical alpha 0.2 sits at the peak of both curves.
+- **Notes:** Three independent sources converge: (1) MoCoP empirical alpha sweep, (2) Arnsten 2009 inverted-U from neuropharmacology, (3) BTM from Friston/Free Energy cognitive load theory. The counterintuitive shared prediction: under high load, reduce the dose — more injection on an overloaded system causes collapse, not deeper integration.
+
 ---
 
 ## Pattern Analysis

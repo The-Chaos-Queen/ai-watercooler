@@ -1,6 +1,7 @@
-# Steve-PC Experiment Runbook
+﻿# Steve-PC Experiment Runbook
 
 Date: 2026-03-25
+Fastpath Update: 2026-04-09
 Workspace: `MoCoP/experiments/mamba_lora_bridge`
 
 This is the current operational handbook for running MoCoP experiments on Steve-PC.
@@ -155,14 +156,113 @@ powershell -ExecutionPolicy Bypass -File .\steve-wsl.ps1 -RunFile .\some_steve_j
 
 2. **`-RunFile` needs an absolute path.** Relative paths like `./run_foo.sh` resolve against PowerShell's cwd, which may not be the bridge dir. Always use full paths: `powershell -ExecutionPolicy Bypass -File "C:\Users\cerub\...\steve-wsl.ps1" -RunFile "C:\Users\cerub\...\run_foo.sh"`
 
-3. **Both Opa AND Steve OOM on >10K tokens with single-pass Mamba-2.8b (slow path).** The HuggingFace fallback (no `mamba-ssm` kernels) materializes huge intermediate tensors — 20GB+ for 20K tokens. Important correction: on Steve's current stock HF Mamba path (`transformers 5.3.0`), generic multi-token chunked prefill with carried `cache_params` is not a reliable fix even though `cache_position` exists in the API. The cached path effectively behaves like initial prefill plus decode-style updates, not arbitrary 512-token chunk continuation. Treat `trajectory_sequential.py` as experimental until the local Mamba implementation is patched or replaced. Safe options today are shorter full-sequence passes, true token-by-token recurrence, or a custom/patched recurrent loop.
+3. **Very long Mamba-2.8b runs can still OOM.** Fast-path kernels are now available on Steve, but extreme context lengths can still exceed VRAM. Keep long-horizon runs segmented/windowed and verify memory headroom first.
 
-5. **HF model cache locations:**
+4. **HF model cache locations:**
    - Steve WSL: `/root/.cache/huggingface/hub/` (Mamba-2.8b already cached)
    - Opa WSL: `/home/user/.cache/huggingface/`
    - Opa Windows: `C:\Users\User\.cache\huggingface\`
 
-4. **Steve's Python is WSL-only.** No Windows Python. The venv is `/root/mocop_venv/bin/python3`. Use `steve-wsl.ps1`, never raw `ssh steve "python ..."`.
+5. **Steve's Python is WSL-only.** No Windows Python. The venv is `/root/mocop_venv/bin/python3`. Use `steve-wsl.ps1`, never raw `ssh steve "python ..."`.
+
+6. **Fastpath status changed on 2026-04-09.** `/root/mocop_venv` now has compiled `mamba_ssm` + `causal_conv1d` available (see section `Fastpath Rebuild (2026-04-09)` below). Historical notes about the pure slow-path setup are obsolete.
+
+7. **Caching hidden states is still useful for repeated CHEESE runs.** For translator training or other repeated CHEESE runs, do not keep reloading Mamba if you can avoid it.
+   - First pass: compute and save cached Layer 3 `hidden_last_token` states
+   - Subsequent passes: use `--require-cached-mamba-states` so training runs without loading Mamba at all
+   - This path is validated for `train_cheese_bridge.py`
+
+   Example:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\steve-wsl.ps1 -Run @'
+cd /mnt/c/Users/tikii/bridge
+exec /root/mocop_venv/bin/python3 -X utf8 train_cheese_bridge.py \
+  --qwen-model-id Qwen/Qwen2.5-1.5B \
+  --skip-compressor \
+  --mamba-state-cache-dir mvp0_hidden_cache_smoke \
+  --save-mamba-states \
+  --epochs 0
+'@
+```
+
+   Cached-only rerun:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\steve-wsl.ps1 -Run @'
+cd /mnt/c/Users/tikii/bridge
+exec /root/mocop_venv/bin/python3 -X utf8 train_cheese_bridge.py \
+  --qwen-model-id Qwen/Qwen2.5-1.5B \
+  --skip-compressor \
+  --mamba-state-cache-dir mvp0_hidden_cache_smoke \
+  --require-cached-mamba-states \
+  --epochs 100
+'@
+```
+
+## Fastpath Rebuild (2026-04-09)
+
+Goal:
+- enable real `mamba_ssm` / `causal_conv1d` fast kernels on Steve WSL in `/root/mocop_venv`.
+
+What was executed on Steve WSL (`root`):
+
+```bash
+apt-get update -y
+DEBIAN_FRONTEND=noninteractive apt-get install -y nvidia-cuda-toolkit build-essential ninja-build pkg-config
+
+source /root/mocop_venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel packaging ninja cmake
+python -m pip install --no-build-isolation --no-cache-dir causal-conv1d==1.6.1
+export MAMBA_FORCE_BUILD=TRUE
+python -m pip install --no-cache-dir --force-reinstall git+https://github.com/state-spaces/mamba.git --no-build-isolation
+```
+
+Verification (passed):
+- `torch 2.11.0+cu130`, `torch.cuda.is_available() == True`
+- `import mamba_ssm` succeeds
+- `import causal_conv1d` succeeds
+- fast-path preflight checks all `True`:
+  - `selective_state_update`
+  - `selective_scan_fn`
+  - `mamba_inner_fn`
+  - `causal_conv1d_fn`
+  - `causal_conv1d_update`
+
+Important side effect:
+- `pip` upgraded parts of the stack during the build install:
+  - `torch`: `2.10.0+cu128` -> `2.11.0+cu130`
+  - `transformers`: `5.3.0` -> `5.5.1`
+- `torchaudio` / `torchvision` now show version mismatch warnings against torch.
+- `chat_server.py --help` still runs, but do a quick live smoke test before long runs.
+
+Recommended post-rebuild smoke:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\steve-wsl.ps1 -Run @'
+cd /mnt/c/Users/tikii/bridge
+/root/mocop_venv/bin/python3 -X utf8 - <<'PY'
+import importlib
+checks = {
+  "selective_state_update": False,
+  "selective_scan_fn": False,
+  "mamba_inner_fn": False,
+  "causal_conv1d_fn": False,
+  "causal_conv1d_update": False,
+}
+m = importlib.import_module("mamba_ssm.ops.triton.selective_state_update")
+checks["selective_state_update"] = getattr(m, "selective_state_update", None) is not None
+m = importlib.import_module("mamba_ssm.ops.selective_scan_interface")
+checks["selective_scan_fn"] = getattr(m, "selective_scan_fn", None) is not None
+checks["mamba_inner_fn"] = getattr(m, "mamba_inner_fn", None) is not None
+m = importlib.import_module("causal_conv1d")
+checks["causal_conv1d_fn"] = getattr(m, "causal_conv1d_fn", None) is not None
+checks["causal_conv1d_update"] = getattr(m, "causal_conv1d_update", None) is not None
+print(checks)
+print("all_available", all(checks.values()))
+PY
+'@
+```
 
 ## Install / Start / Stop
 
@@ -507,3 +607,4 @@ ssh steve powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\tikii\bri
 - `OPA_RUNBOOK.md` - Opa-PC local validation and experiment runbook
 - `VASTAI_RUNBOOK.md` - paid cloud pilot runbook
 - `step5d_min_dose_protocol.md` - the ethics-gated alpha-sweep protocol
+

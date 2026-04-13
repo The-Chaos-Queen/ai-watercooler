@@ -1,3 +1,5 @@
+> **HISTORICAL.** This debug ladder was the Phase 2 triage plan. Superseded by `EXPERIMENT_LADDER.md`. Kept for provenance.
+
 # Phase 2 Diagnostic and Layer-Targeting Ablation Plan
 
 Current as of 2026-03-16

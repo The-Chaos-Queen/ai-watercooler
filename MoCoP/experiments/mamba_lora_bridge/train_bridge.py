@@ -2116,6 +2116,7 @@ def load_checkpoint(
         "mamba_model_id",
         "context_dim",
         "lora_rank",
+        "mamba_state_source",
         "mamba_target_layer",
     ):
         expected_value = checkpoint_config.get(field_name)
@@ -2392,7 +2393,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dry-run-mamba-context-tokens", type=int, default=128)
     parser.add_argument("--dry-run-max-qwen-tokens", type=int, default=256)
     parser.add_argument("--verbose", action="store_true")
-    parser.add_argument("--qwen-model-id", type=str, default=QWEN_MODEL_ID, help="HuggingFace model ID for the Qwen base model.")
+    parser.add_argument("--model", "--qwen-model-id", dest="qwen_model_id", type=str, default=QWEN_MODEL_ID, help="HuggingFace model ID for the Qwen base model.")
     parser.add_argument("--mamba-model-id", type=str, default=MAMBA_MODEL_ID, help="HuggingFace model ID for the Mamba model.")
     return parser
 

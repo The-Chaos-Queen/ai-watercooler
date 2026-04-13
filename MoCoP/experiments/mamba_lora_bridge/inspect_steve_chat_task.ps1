@@ -3,13 +3,15 @@ $indicatorTaskName = "MoCoP Steve Chat Indicator"
 $bridgeDir = "C:\Users\tikii\bridge"
 $configPath = Join-Path $bridgeDir "steve_chat_config.json"
 $currentAlpha = "0.2 (default)"
-$currentQwenModelId = "Qwen/Qwen2.5-1.5B (default)"
+$currentQwenModelId = "Qwen/Qwen2.5-7B (default)"
 $currentTargetLayers = "12:v_proj,13:v_proj,14:v_proj,15:v_proj (default)"
 $currentTemperature = "0.7 (default)"
 $currentDualGateEnabled = "true (default)"
 $currentDualGateWarmupTurns = "3 (default)"
 $currentDualGateSalienceQuantile = "0.75 (default)"
 $currentDualGateSurpriseQuantile = "0.75 (default)"
+$currentDualGateSupportedTensionEnabled = "false (default)"
+$currentDualGateTensionSalienceSupportRatio = "0.55 (default)"
 
 if (Test-Path $configPath) {
     try {
@@ -38,6 +40,12 @@ if (Test-Path $configPath) {
         if ($null -ne $config.dual_gate_surprise_quantile -and "$($config.dual_gate_surprise_quantile)".Trim()) {
             $currentDualGateSurpriseQuantile = "$($config.dual_gate_surprise_quantile)".Trim()
         }
+        if ($null -ne $config.dual_gate_supported_tension_enabled -and "$($config.dual_gate_supported_tension_enabled)".Trim()) {
+            $currentDualGateSupportedTensionEnabled = "$($config.dual_gate_supported_tension_enabled)".Trim()
+        }
+        if ($null -ne $config.dual_gate_tension_salience_support_ratio -and "$($config.dual_gate_tension_salience_support_ratio)".Trim()) {
+            $currentDualGateTensionSalienceSupportRatio = "$($config.dual_gate_tension_salience_support_ratio)".Trim()
+        }
     } catch {
         $currentAlpha = "invalid config"
         $currentQwenModelId = "invalid config"
@@ -47,6 +55,8 @@ if (Test-Path $configPath) {
         $currentDualGateWarmupTurns = "invalid config"
         $currentDualGateSalienceQuantile = "invalid config"
         $currentDualGateSurpriseQuantile = "invalid config"
+        $currentDualGateSupportedTensionEnabled = "invalid config"
+        $currentDualGateTensionSalienceSupportRatio = "invalid config"
     }
 }
 
@@ -74,6 +84,8 @@ if (Get-ScheduledTask -TaskName $indicatorTaskName -ErrorAction SilentlyContinue
     CurrentDualGateWarmupTurns = $currentDualGateWarmupTurns
     CurrentDualGateSalienceQuantile = $currentDualGateSalienceQuantile
     CurrentDualGateSurpriseQuantile = $currentDualGateSurpriseQuantile
+    CurrentDualGateSupportedTensionEnabled = $currentDualGateSupportedTensionEnabled
+    CurrentDualGateTensionSalienceSupportRatio = $currentDualGateTensionSalienceSupportRatio
     IndicatorTaskName = $indicatorTaskName
     IndicatorState = $indicatorState
 } | Format-List

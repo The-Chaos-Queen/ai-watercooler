@@ -9,6 +9,11 @@ import urllib.error
 import urllib.request
 
 
+class WatercoolerError(Exception):
+    """Raised on watercooler API errors. Does NOT kill the process (unlike SystemExit)."""
+    pass
+
+
 def sanitize_terminal_text(value: Any) -> str:
     text = str(value or "")
     safe_chars = []
@@ -86,9 +91,9 @@ def request_json(
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
-        raise SystemExit(f"{method.upper()} {path} failed with HTTP {exc.code}: {detail}") from exc
+        raise WatercoolerError(f"{method.upper()} {path} failed with HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
-        raise SystemExit(f"{method.upper()} {path} failed: {exc}") from exc
+        raise WatercoolerError(f"{method.upper()} {path} failed: {exc}") from exc
 
 
 def pretty_task(row: Dict[str, Any]) -> str:

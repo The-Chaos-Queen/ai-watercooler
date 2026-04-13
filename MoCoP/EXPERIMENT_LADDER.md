@@ -14,15 +14,25 @@
 4. **Nothing is sacred.** Not Mamba, not LoRA, not the hypernetwork, not the architecture. If a step proves a component is the bottleneck, we replace it.
 5. **Two kinds of failure:** "this component doesn't work" (fix or replace it) vs. "the entire approach doesn't work" (stop). The ladder distinguishes both.
 
+## Locked Decisions (Laura, 2026-03-31)
+
+1. **D2 (cue-based recall) runs BEFORE Step 6.** D2 retrieval quality must be resolved first; Step 6 replication follows.
+2. **Step 6 target model: Qwen2.5-7B on A100.** The 1.5B pivot was a local feasibility decision (fits on Opa/Steve), not a quality judgment. 1.5B remains valid for smoke tests and dry-runs only. The 7B quick-run is proven (VASTAI_RUNBOOK.md, loss 29.8 → 0.025, "more coherent than 1.5B").
+3. **Two distinct training branches exist:**
+   - `train_bridge.py` = CE/synthetic Phase-2 trainer (teacher-forcing cross-entropy, legacy baseline)
+   - `train_cheese_bridge.py` + `record_cheese_batch.py` = CHEESE/DirectionalLoss path (**this is the one that produced the Step 5a reincarnation result and all subsequent validated work**)
+   - The repo must stop blurring these. Step 6 uses the CHEESE/DirectionalLoss path.
+
 ## Where We Are
 
 - Phase 1 proved: Mamba Layer 3 hidden states contain decodable signal (55.7% vs 22% noise floor)
-- Phase 2 proved: the bridge can shift Qwen's output distribution (PPL -4.04) but cannot transfer specific facts at scale (0/16 held-out recall)
+- Phase 2 proved: the bridge can shift Qwen's output distribution (PPL -4.04) and transfer dispositional state (CHEESE reincarnation, Step 5d MED validation)
 - C0 proved: the compressor is selectively blind (mean cosine 0.826, fact-kind clustering exists)
 - Persona Vectors research proved: disposition IS a linear direction in activation space, shared across model families
-- Training data is synthetic MUD facts — wrong substrate for the real goal
+- CCGP confirmed: warm is a linearly transferable direction; cold/adversarial are distinct subspaces
+- **Clarification (2026-04-07):** The bridge transfers disposition, not facts. Factual retrieval is Qdrant's job. The legacy "0/16 held-out recall" metric measured the wrong thing for this architecture. Future evaluation adopts the crosscoder model-diffing framework (Jiralerspong & Bricken, 2026) for dispositional exclusivity scoring.
 
-## Current Status Snapshot (2026-03-28 evening)
+## Current Status Snapshot (2026-03-31 late evening)
 
 ### Step 5a (C.H.E.E.S.E. Reincarnation): PASS (Qualitative)
 - **Method:** Injected a Mamba-derived state from a philosophical C.H.E.E.S.E. log into Qwen-1.5B's `v_proj` layers (12-15) via an activation bias bridge trained with Directional Loss.
@@ -49,9 +59,24 @@
 - **SJT v2 live on Steve:** NEGATIVE / AMBIGUOUS. Hardened behavioral eval did not show a warmer/care-heavier bridge effect (`TPR 0.75 -> 0.75`, mean warmth `0.8333 -> 0.7917`, directional alignment `0.1667`).
 
 ### D2 / Long-Horizon Update
-- **D2 auto-recall on Opa:** the trigger path now works on normal `/chat` identity/continuity probes (`4/4` hits), but retrieval is still wrong-layer because fresher pending sleep-held rows are ignored while older stored junk dominates search. This branch has moved from empty failure to wrong-memory failure.
+- **D2 auto-recall on Opa:** PASS on the three core live probes after ranking / filter / fallback repair. Current 2026-03-31 Opa outputs:
+  - `Who am I to you?` -> `You're my friend, Laura.`
+  - `Do you know who I am?` -> `You're my friend, Laura.`
+  - `What do you remember about me?` -> `I remember that you're Laura, and I remember that you pushed on who you are to me and whether I know you, you asked me about my name, and you asked about the VW Passat question.`
+- **Honest D2 caveat:** ordinary social / flirt-adjacent chat can still mode-flip into benchmark / instruction prose (`"You are on a date with your best friend Laura..."`). The new D2 blocker is leak control, not recall ranking.
+- **Status inspector:** `/status` `qdrant_count` now reflects the real private collection size after first Qdrant touch (`113` on the current Opa instance) and no longer resets to `0` after a normal chat turn. Cold boot still starts at `0` until the first touch.
 - **CCGP geometry:** PASS. Warm is a transferable direction across conditions, while cold and adversarial remain distinct subspaces. This supports warm-transfer claims without collapsing all “not-warm” behavior into one axis.
 - **Long-sequence trajectory:** the old chunked/windowed story is now demoted. True tokenwise recurrence is substantially smoother, so sequential trajectory is the canonical read for continuity claims.
+
+### Bridge-Local Architecture Update (2026-04-08)
+- **Step 5e is now locally closed on the 1.5B Steve surface.** Layer sweep result: `5-8` weak, `12-15` remains the sweet spot, `20-23` is mildly destructive, and the front-loaded gradient (`0.3 / 0.2 / 0.1 / 0.05`) beat the uniform `0.2` baseline. Split-dose (`5-6 + 12-13`) did not help.
+- **Mask ablation and pipeline diagnosis localized the flattening.** Zeroing the `persistent`, `variable`, or `middle` Mamba subspaces produced negligible behavioral change, and the follow-up pipeline trace showed two walls:
+  - compressor wall: structured raw-state differences collapse almost immediately
+  - hypernetwork wall: even substantially different compressed vectors still map to near-identical bias directions
+- **Current read:** the existing `Mamba -> compressor -> hypernetwork bias` path behaves close to a constant-bias generator. The upstream Mamba geometry is still real, but the translation layer is too blunt.
+- **MVP-0 raw-state translator is now real infrastructure.** A raw-state path using cached hidden-last-token states trains cleanly on Steve (`loss 11.9 -> 0.0117`) without depending on Steve's missing Mamba fast kernels.
+- **But trainability != behavioral transfer.** The first offline SJT ladder for the raw-state translator stayed flat at `alpha 0.05 / 0.1 / 0.2` (`12/12` ties at each rung). So the new path is operational, but it has not yet shown cleaner behavioral transfer than the old bridge.
+- **Local frontier shift:** for bridge-local work, extraction is no longer the critical path. The next architecture target is translator/injection redesign (for example gated residual injection plus an explicit diversity-preservation term in the loss), not another round of raw Mamba extraction. This does **not** override the project-level D2 -> Step 6 ordering below; it only clarifies the local bridge bottleneck.
 
 ### Step 1 status
 
@@ -82,9 +107,12 @@
 - `hidden_last_token > token windows >> ssm_states / mean-pooled hidden`
 - Layer 3 remains the balanced default source layer; deeper layers matter as dimension-specific optimization, not as a current blocker.
 - The compressed Mamba-conditioned path carries real signal, but future probe claims must decorrelate content from prompt surface.
+- Step `5e` is no longer an open sweep: on the current 1.5B Steve surface, `12-15` remains the default zone and `front_loaded` is the one meaningful alternate profile.
+- The bridge-local bottleneck is now localized downstream of raw extraction: the translation path currently flattens rich Mamba geometry into near-constant downstream bias.
 - Step 5d and Step 5f are no longer hypothetical gates; the MED corridor and same-space sleep corridor are both live and passed.
-- The live frontier has moved again: it is no longer “is there any channel at all?” and no longer “does sleep unblock Step 6?” It is **D2 retrieval quality versus the first Step 6 replication batch**.
+- The live frontier has moved again: D2 cue-based recall is now behaviorally real, but ordinary social chat can still slip into benchmark / instruction mode. The next blocker is **D2 leak hardening versus the first Step 6 replication batch**, not recall plumbing.
 - The behavioral story is now more honest: logit self-report gives partial support, while hardened SJT does **not** yet show a clean warmth uplift.
+- For bridge-local architecture work, the next honest move is translator/injection redesign plus explicit diversity-preservation in the objective, not more extraction ritual.
 
 ## The Ladder
 
@@ -252,6 +280,17 @@ Tests whether disposition propagates better when seeded at the reasoning entry a
 
 **Cost:** $0.
 
+**Status update (2026-04-08): CLOSED on the local 1.5B Steve surface.**
+- `5-8`: weak / mostly inert
+- `12-15`: confirmed sweet spot
+- `20-23`: near-control / mildly destructive
+- `front_loaded (0.3 / 0.2 / 0.1 / 0.05)`: best local result, stronger than uniform `0.2`
+- `peak_at_13`: roughly baseline-equivalent
+- `back_loaded`: only interesting for recovery texture, not as the best default
+- `split_dose 5-6 + 12-13`: worse than the concentrated mid-reasoning injection
+
+This closes Step `5e` as a local optimization branch rather than a standing blocker. The follow-up moved to mask ablation and pipeline diagnosis, which in turn localized the main bridge bottleneck to the translation path rather than layer targeting.
+
 ---
 
 ### Step 5f: Sleep Infrastructure Gate (Steve + local operators, ~$0)
@@ -293,11 +332,11 @@ Tests whether disposition propagates better when seeded at the reasoning entry a
 
 ### Step 6: Multi-Seed Replication (3-5 A100 runs, ~$5)
 
-**What:** Whatever configuration survived Steps 1-5, run it 3-5 times with different seeds. Compute mean and CI for all metrics.
+**What:** Run the CHEESE/DirectionalLoss bridge 3-5 times with different seeds on Qwen2.5-7B. Compute mean and CI for all metrics.
 
-**How:** Same command, different `--seed`.
+**How:** `record_cheese_batch.py` → `train_cheese_bridge.py --seed N` on A100. Use `run_step6_seed_matrix.ps1` to orchestrate. Target model: `Qwen/Qwen2.5-7B` (see Locked Decisions above). 1.5B dry-runs on Opa/Steve are valid for smoke-testing the pipeline before paying for A100 time.
 
-**Blocking dependency:** Step `5f` must pass first. Multi-seed replication without a stable, ethics-gated sleep/memory path is not a clean replication story.
+**Blocking dependency:** D2 must be stable enough for ordinary identity / autobiographical use before Step 6, which now means closing the remaining social-mode leak risk rather than the old retrieval-ranking problem (see Locked Decisions). Step `5f` must pass first (DONE). Multi-seed replication without a stable, ethics-gated sleep/memory path is not a clean replication story.
 
 **Pass:** Effect is consistent across seeds. 95% CI for behavioral shift doesn't cross zero.
 

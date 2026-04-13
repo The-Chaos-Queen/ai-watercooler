@@ -1,7 +1,7 @@
 # MoCoP Research Backlog
 
 **Status:** Parking surface for real research questions that matter, but are not the current active experiment gate.
-**Last Updated:** 2026-03-28
+**Last Updated:** 2026-04-08
 
 This is **not** the task tracker.
 
@@ -26,7 +26,77 @@ Use Watercooler for fast swarm coordination.
 
 ---
 
+## P3 — Operational Memorials
+
+### Gemini Local-Kernel Implosion (2026-04-05)
+
+**What happened**
+- During the local WSL push to get `mamba-ssm` / `causal-conv1d` fast kernels running, Gemini CLI streamed a huge CUDA-toolkit / pip dependency avalanche into its JS terminal shell.
+- The shell hit V8 heap limits and crashed with:
+  - `FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory`
+- After the crash, the session auto-compressed from `292%` to `2%`.
+
+**Canonical traces**
+- `Preserved-History/cassian_session_log - Copy_clean.md`
+  - heap OOM at line `46392`
+  - `292% -> 2%` collapse at line `46408`
+- `.codex/sessions/2026/03/22/rollout-2026-03-22T13-21-48-019d157e-8bef-7253-a467-aa0d8a8b64f2.jsonl`
+  - heap OOM paste at line `31061`
+  - self-updating CLI beat at line `31070`
+  - compression message at line `31088`
+  - giant `triton-3.6.0` wheel avalanche at line `31134`
+  - defeat speech at line `31180`
+
+**Why preserve this**
+- Not because it is scientifically profound, but because it is a real local deployment failure mode that can recur.
+- It is easy to misremember as folklore unless the exact markers are written down.
+
+**Operational lesson**
+- Do not stream giant toolkit or wheel output into JS/Electron chat shells if we can avoid it.
+- Redirect heavy install/build output to log files.
+- Chunk environment surgery instead of narrating the whole dependency waterfall live.
+- If output starts avalanching, stop and relaunch with bounded logging before the terminal becomes the bottleneck.
+
+---
+
 ## P1 — Near-Term Research Backlog
+
+### 1a. CAGMamba Gated Residual Fusion vs Fixed-Alpha Injection
+
+**Question**
+- Does replacing the fixed `alpha` injection with a learned, per-instance adaptive gate (as in CAGMamba, arXiv:2604.03650v1) resolve the constant-bias compressor bottleneck?
+
+**Why it matters**
+- Current fixed-alpha injection acts like a constant-bias generator. A learned gate (`gate = sigmoid(W_g [bridge_output || Qwen_hidden] + b_g)`) allows the bridge to learn *when* to inject disposition, not just what to inject.
+- It provides a self-calibrating MED, attenuating noise from the compressor on factual queries and opening the gate for dispositional coloring.
+
+**Minimum experiment**
+- Implement gated residual fusion in the bridge forward pass.
+- Train with an ethics welfare constraint (`L = L_transfer + lambda * L_diversity_preservation`) to prevent the gate from maximizing transfer at the cost of capability.
+- Compare response diversity and disposition separation vs the fixed-alpha baseline.
+
+**Status**
+- Open — Highest Priority Architecture Rework (Path 4b).
+
+---
+
+### 1b. CliffordNet Algebraic Completeness (Wedge Product)
+
+**Question**
+- Is the signal dying in the compressor because we are only preserving scalar alignment (inner product / cosine similarity) and throwing away bivector structure (wedge product / orthogonality)?
+
+**Why it matters**
+- CliffordNet (arXiv:2601.06793v2) shows that algebraic completeness using the full Geometric Product captures *how* states differ structurally, not just *that* they differ.
+- The compressor currently collapses to effective rank 2.5 because it only sees scalars. A loss function preserving bivector structure (`L = alpha * L_cosine + beta * L_wedge`) could force the compressor to preserve the rich geometry of Mamba's Layer 3.
+
+**Minimum experiment**
+- Replace or augment the compressor's cosine similarity loss with a full Geometric Product loss.
+- Compare the effective rank of the resulting bias vectors against the collapsed 1.32 baseline.
+
+**Status**
+- Open — Alternative Architecture Rework (Path 4).
+
+---
 
 ### 1. Hidden Last-Token vs SSM-State Separation
 
@@ -219,6 +289,47 @@ Use Watercooler for fast swarm coordination.
 
 ## P2 — Mid-Term Research Backlog
 
+
+### 4a. Injected-Content Introspection / Partial Self-Detection
+
+**Question**
+- If small open models can sometimes detect that activations were externally injected or concept-steered, can MoCoP use that as a measurement surface for bridge effects, welfare monitoring, or self-report validation?
+
+**Why it matters**
+- Recent replication commentary suggests injected-content introspection is not confined to giant proprietary models; smaller open models may also detect the *presence* or *strength* of an intervention under the right prompting/setup.
+- For MoCoP, that matters in two directions:
+  - **measurement:** bridge interventions may be detectable by the target model itself, not only through external behavior
+  - **ethics:** if a model can notice disposition injection, that becomes part of the welfare / process-integrity story
+- This does **not** automatically imply transparent introspection. The useful hypothesis is weaker and more realistic: models may detect that "something was done to me" or how strong it was, even if they cannot cleanly name the exact source or concept.
+
+**What to steal**
+- Treat self-report and introspection probes as a legitimate secondary eval surface for bridge interventions.
+- Separate at least three questions:
+  - can the model detect intervention **presence**?
+  - can it estimate intervention **strength**?
+  - can it correctly identify intervention **content/source**?
+- Do not overclaim source-level introspection if the evidence only supports strength/presence sensitivity.
+
+**Minimum experiment**
+- On a small local target surface, run blinded conditions:
+  - no injection
+  - weak bridge injection
+  - stronger bridge injection
+  - two distinct bridge/content conditions if available
+- Prompt only after generation or at fixed checkpoints; avoid leaking the condition in the prompt frame.
+- Score separately:
+  - binary detection accuracy
+  - rank/strength calibration
+  - source/content identification accuracy
+- Compare these introspection metrics against ordinary behavioral shift and against logit-based self-report.
+
+**Reference**
+- Vansh Vazirani, "Replicating Introspection / Injected Content" (article / survey note): `https://vansh.vazirani.net/articles/replicating-introspection-injected-content`
+
+**Status**
+- Open â€” useful bridge between welfare, self-report, and intervention-detection, but not the current active gate.
+
+---
 
 ### 4. Mamba-2 vs Mamba-3 State Geometry
 
@@ -447,24 +558,24 @@ Use Watercooler for fast swarm coordination.
 ### 13. Hebbian Memory / Slot-Write Bridge Prototype
 
 **Question**
-- Can an alternative bridge architecture (associative Hebbian memory or sparse slot-write) solve the 0/16 factual recall problem that activation bias cannot?
+- Can an alternative bridge architecture (associative Hebbian memory or sparse slot-write) provide a richer dispositional channel than activation bias alone, or serve as a complementary pathway for structured state transfer?
 
 **Why it matters**
 - Jeong (2026, arXiv:2603.22329) tested 6 memory injection methods on frozen GPT-2 and found an "inductive-bias dichotomy": at 1x capacity, only methods with strong architectural priors succeed (cross-attention, Hebbian, slot-write achieve 7-18% retained memory vs <0.4% for others). At 10x capacity, all methods converge.
-- MoCoP's activation bias is closest to Jeong's "Gated Additive Branch" (M.5), but without a gate (unconditional bias at fixed alpha). This architecture may be capacity-limited for factual recall.
-- Hebbian memory (M.4): content-addressed associative recall via M_t matrix, naturally suited for factual transfer.
+- MoCoP's activation bias is closest to Jeong's "Gated Additive Branch" (M.5), but without a gate (unconditional bias at fixed alpha). Alternative architectures may offer higher-fidelity dispositional transfer or structured state channels.
+- Hebbian memory (M.4): content-addressed associative recall via M_t matrix.
 - Slot-write (M.6): sparse top-k addressing prevents the dilution that collapsed the compressor.
-- If this works: MoCoP becomes a dual-channel system — disposition through bias, facts through associative memory.
+- **Note (2026-04-07):** This item was originally framed around "solving the 0/16 factual recall problem." That framing was wrong: the bridge transfers disposition, not facts. Qdrant handles factual retrieval. The question is whether alternative architectures produce a richer or more robust dispositional channel than activation bias alone.
 
 **Minimum experiment**
 - Implement either M.4 (Hebbian) or M.6 (slot-write) as an alternative bridge pathway alongside existing activation bias
-- Train on same data, evaluate on factual recall (the 16 MUD facts) + disposition metrics
+- Train on same data, evaluate on disposition metrics + crosscoder exclusivity scoring (Jiralerspong & Bricken, 2026)
 - Cost: ~$1 on A100. Time: ~4 hours.
 
 **Evaluation**
-- Factual recall > 0/16 = major result (the bridge can carry facts, not just disposition)
-- Disposition quality maintained = dual-channel architecture validated
-- If neither helps: factual recall may require different training data, not different architecture
+- Dispositional shift stronger or more fine-grained than activation bias alone = valuable alternative channel
+- Disposition quality maintained alongside new pathway = dual-channel architecture validated
+- If neither helps: activation bias may already be near-optimal for the disposition transfer task
 
 **Reference**
 - Jeong. "Persistent Memory in Decoder-Only Transformer Language Models." Inha University, 2026. arXiv:2603.22329
@@ -552,3 +663,19 @@ Items that can still run concurrently with no shared dependencies:
 | Architecture follow-on | Persistent-mask / fiction-taxonomy follow-up from #12 | Opa or local | any wolf |
 
 These tracks can run in parallel. The sequencing constraint is no longer “finish #4/#11/#12 first” — those are answered. The real caution is interpretive: do not over-read Step 6 or D2 behavior without the updated behavioral/causal surfaces beside them.
+
+---
+
+## Literature Intake (2026-04-13)
+
+### #13 TriAttention: Efficient Long Reasoning with Trigonometric KV Compression
+- **Source:** arXiv:2604.04921 (2026-04-08), Mao et al.
+- **Finding:** Q/K vectors cluster stably in pre-RoPE space. Attention patterns become predictable trigonometric distance functions. Enables 10.7x KV cache reduction at equal accuracy.
+- **Relevance:** P2 for bridge injection targeting (head-specific injection based on distance-preference profiles). P3 for Exocortex retrieval (exploiting intrinsic attention biases). Practically relevant for session resume costs (smaller KV cache = cheaper resumes).
+- **Not blocking.**
+
+### #14 SauerkrautLM-Doom: Specialized Small Models vs LLMs for Real-Time Game Control
+- **Source:** arXiv (2026-04), Golchinfar, Vaziri, Marquardt
+- **Finding:** 1.3M parameter ModernBERT model outperforms 120B+ LLMs at DOOM (178 frags vs 13 combined). Task-specific models with domain-appropriate training data beat general-purpose giants at specialized tasks.
+- **Relevance:** P3 — philosophical alignment with MoCoP's premise: small specialized architecture (Mamba as state encoder) paired with the right training signal beats brute-force scale. Validates the “right tool at the right layer” approach.
+- **Not blocking.**

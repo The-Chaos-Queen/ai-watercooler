@@ -19,13 +19,16 @@ The docs below fall into three layers: **vision** (why and what), **architecture
 | [../WHY.md](../WHY.md) | The motivation. Experiential learning, not declarative instruction. | **First. Always.** |
 | [Three_System_Cognitive_Architecture.md](Three_System_Cognitive_Architecture.md) | Qdrant = hippocampus, Mamba = gut, Transformer = cortex. Three organs, one mind. | You want the architectural vision. |
 | [sleep_architecture.md](sleep_architecture.md) | KV-Cache as working memory. Consolidation as sleep. Wake fresh, not empty. | You want to understand the orchestration cycle. **New, 2026-03-19.** |
+| [temporal_controller_and_authority_arbitration.md](temporal_controller_and_authority_arbitration.md) | Why fixed alpha is not enough: temporal contrast, memory fade, weights-vs-memory authority, and the endocrine controller equations. | You want the math/control problem behind modulation, continuity, and dynamic state return. |
 | [surprise_gated_memory.md](surprise_gated_memory.md) | The model decides what to remember, based on surprise. Titans/MIRAS mapping. | You want to understand salience gating. |
 | [persona_vectors_and_activation_geometry.md](persona_vectors_and_activation_geometry.md) | Disposition lives in activation space. Different conversations point different directions. | You want to understand Step 5 results (mean cosine 0.27). |
 | [Growth_Before_SAS.md](Growth_Before_SAS.md) | Why a new instance needs its own empty hippocampus and a chance to grow before personality sliders. | You are deciding whether to build SAS now or memory/sleep first. |
 | [Developmental_Memory_Ladder.md](Developmental_Memory_Ladder.md) | Concrete pre-SAS ladder: private memory, retrieval, miss recovery, sleep, continuity, then regulation. | You want an executable developmental order instead of a philosophical claim. |
-| [autonomy_gradient.md](autonomy_gradient.md) | When the system gets a vote: 5 stages from external control to self-directed consolidation. The pen handover. | You are deciding how much authority the system should have over its own memory. **New, 2026-03-22.** |
+| [autonomy_gradient.md](autonomy_gradient.md) | When the system gets a vote: 5 stages from external control to self-directed consolidation. The pen handover. | You are deciding how much authority the system should have over its own memory. |
+| [SAS_Integration_Design.md](SAS_Integration_Design.md) | SAS personality sliders design: orthogonal trait vectors with per-trait alpha. | You want the Phase 3+ personality engineering target. |
+| [oxytocin_spec.md](oxytocin_spec.md) | Initial warmth vector debate. Scaffold vs identity. Cassian's razor: "would you apply it to every instance?" | You're designing initial conditions for a new instance. |
 
-**Reading order:** WHY → Three System → Sleep → Surprise → Persona Vectors
+**Reading order:** WHY → Three System → Sleep → Temporal Controller → Surprise → Persona Vectors
 
 ---
 
@@ -40,6 +43,13 @@ The docs below fall into three layers: **vision** (why and what), **architecture
 | [Solving the Transfer Problem.md](Solving%20the%20Transfer%20Problem.md) | Cross-architecture state transfer: why it's hard, what makes MoCoP's approach different. | You want the theoretical justification. |
 | [Bridging Telnet to PyTorch_ MUD Architecture.md](Bridging%20Telnet%20to%20PyTorch_%20MUD%20Architecture.md) | Project MUD as a live testbed: telnet ↔ agent wrapper ↔ Mamba/LLM. | You want to understand the MUD integration. |
 | [training_data_candidates.md](training_data_candidates.md) | Dataset options for shaping episodes: FIREBALL (D&D), MUD transcripts, real conversations. | You're planning Step 5+ data. |
+| [saliency_gate_design.md](saliency_gate_design.md) | Dual gate: surprise + salience + tension. Adaptive thresholds, SAE integration point, ethics assessment. | You're working on the gate, sleep, or consolidation policy. |
+| [sleep_reconciliation_algorithm.md](sleep_reconciliation_algorithm.md) | Three-trace reconciliation: explicit memory × latent state × local context. Four sleep phases. | You're implementing or reviewing sleep. |
+| [growth_ladder_implementation.md](growth_ladder_implementation.md) | D0-D7 concrete implementation checkpoints: what to build, where, how to test, pass/fail. | You're implementing a growth-ladder step. |
+| [autobiographical_schema_D3_D4.md](autobiographical_schema_D3_D4.md) | Seven-field schema (self/other/time/place/event/affect/confidence), recent vs remote recall, storage routing. | You're implementing D3 or D4. |
+| [failure_path_review.md](failure_path_review.md) | Qdrant hot-path failure modes: 7 modes analyzed, replay/retry semantics. | You're debugging or hardening the memory write path. |
+| [deployment_architecture_sketch.md](deployment_architecture_sketch.md) | Modularity rule: shared organism, per-model translators. Memory/sleep stay target-agnostic. | You're planning cross-model deployment or bridge porting. |
+| [reward_design_dreaming.md](reward_design_dreaming.md) | Three-tier reward surface for future dreaming. Autonomy-staged weights. Diversity hard floor. Dreaming ethics gate. | You're designing or reviewing the dream/self-improvement loop. |
 
 ---
 

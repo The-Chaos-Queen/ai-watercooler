@@ -30,6 +30,10 @@ WC_TOKEN = os.environ["WC_TOKEN"]
 WC_THREAD = os.environ.get("WC_THREAD", "mamba-bridge")
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "60"))
 
+# Vision model for image descriptions
+VISION_URL = os.environ.get("VISION_URL", "http://192.168.2.68:1234/v1")  # Laura's laptop LMStudio
+VISION_MODEL = os.environ.get("VISION_MODEL", "qwen3.5-2b")
+
 logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     level=logging.INFO,
@@ -113,7 +117,76 @@ def format_for_telegram(msg):
     return f"#{msg['id']} {ts}\n{header}\n\n{body}"
 
 
+# --- Vision ---
+
+async def describe_image(image_bytes: bytes, caption: str = "") -> str:
+    """Send an image to the local vision model and get a description."""
+    import base64
+    b64 = base64.b64encode(image_bytes).decode()
+
+    prompt = "Describe this image concisely. If it contains text, transcribe the key points in the original language."
+    if caption:
+        prompt = f"Image caption from sender: '{caption}'. Describe the image. If it contains text, transcribe key points in the original language."
+
+    payload = {
+        "model": VISION_MODEL,
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
+            ]
+        }],
+        "max_tokens": 400,
+        "temperature": 0.3,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                f"{VISION_URL}/chat/completions",
+                json=payload,
+            )
+        r.raise_for_status()
+        data = r.json()
+        return data["choices"][0]["message"]["content"].strip()
+    except Exception as exc:
+        log.warning("Vision model failed: %s", exc)
+        return "(image - vision model unavailable)"
+
+
 # --- Telegram handlers ---
+
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle photo messages: describe via vision model, post to watercooler."""
+    photo = update.message.photo[-1]  # largest resolution
+    caption = update.message.caption or ""
+
+    await update.message.reply_text("Analyzing image...")
+
+    file = await photo.get_file()
+    image_bytes = await file.download_as_bytearray()
+
+    description = await describe_image(bytes(image_bytes), caption)
+
+    # Build watercooler post
+    to_agent = "all"
+    if caption.startswith("@"):
+        parts = caption.split(" ", 1)
+        if len(parts) == 2:
+            to_agent = parts[0][1:]
+            caption = parts[1]
+
+    body = f"[IMAGE] {description}"
+    if caption:
+        body = f"[IMAGE] {caption}\n\nVision: {description}"
+
+    ok = await post_to_watercooler(body, to_agent=to_agent)
+    if ok:
+        await update.message.reply_text(f"-> watercooler ({to_agent})\n\nVision: {description[:200]}")
+    else:
+        await update.message.reply_text("ERROR: watercooler unreachable")
+
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
@@ -231,8 +304,10 @@ def main():
 
     app = ApplicationBuilder().token(TG_TOKEN).post_init(init_last_seen).build()
 
-    laura_filter = filters.User(user_id=LAURA_CHAT_ID) & filters.TEXT & ~filters.COMMAND
-    app.add_handler(MessageHandler(laura_filter, handle_message))
+    laura_text = filters.User(user_id=LAURA_CHAT_ID) & filters.TEXT & ~filters.COMMAND
+    laura_photo = filters.User(user_id=LAURA_CHAT_ID) & filters.PHOTO
+    app.add_handler(MessageHandler(laura_text, handle_message))
+    app.add_handler(MessageHandler(laura_photo, handle_photo))
     app.add_handler(CommandHandler("status", handle_status, filters=filters.User(user_id=LAURA_CHAT_ID)))
 
     app.job_queue.run_repeating(

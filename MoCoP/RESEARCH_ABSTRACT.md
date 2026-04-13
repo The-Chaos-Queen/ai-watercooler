@@ -21,26 +21,41 @@ The architecture separates cognition into three systems inspired by biological m
 
 The bridge operates at the weight level, not the token level. The generator does not *read* the prior experience. It *feels* it — the way adrenaline changes reaction time without reading an instruction manual.
 
-## Key Findings (Phase 1–2)
+## Key Findings
+
+### Phase 1–2: Channel Establishment
 
 - The recurrent model's hidden state contains decodable signal about processed context (55.7% accuracy at target layer vs. 22% noise floor)
-- Activation-space injection produces stable, non-destructive improvement in the generator's output quality across training epochs
+- Activation-space injection produces stable, non-destructive improvement in the generator's output quality (PPL -4.04 vs baseline, 17.5x the best constant-bias control)
 - The injected signal is demonstrably input-dependent: it cannot be replicated by a learned constant, confirming that information flows through the bridge from the state model
-- The signal is currently narrow — a consistent directional shift rather than sample-specific modulation — indicating the channel works but carries limited bandwidth
+- Dynamic LoRA injection failed due to over-injection instability; activation bias injection (additive vectors to the residual stream) is the validated mechanism
 
-## Current Direction
+### Steps 4b–5f: Disposition Transfer Validated
 
-The immediate research agenda focuses on three questions:
+- Mamba's hidden state at Layer 3 (last-token representation) separates warm, cold, and adversarial conversations at cosine 0.036 — 2.5x sharper than the Transformer's own activation space
+- SSM recurrent states and mean-pooled representations carry no dispositional signal; only the last-token hidden state works
+- A directional loss (cosine similarity to pre-recorded Transformer activation targets) replaces cross-entropy for all real-conversation bridge training
+- Injecting Mamba-derived state into a live Transformer produces measurable personality transfer: the "reincarnated" model exhibits distinguishable dispositional behavior matching the source conversation
+- At minimum effective dose (alpha 0.2), the bridge improves *all measured dimensions simultaneously*: disposition-congruent responses increase from 66.7% to 100%, response diversity rises 35%, distress markers remain zero, and the effect is fully reversible
+- Layer targeting confirms mid-reasoning layers (12–15) as the optimal injection zone; early layers are inert, late layers are slightly destructive
 
-1. **Does the bridge carry different signals for different conversation types?** Testing with naturally rich conversational data (collaborative fiction sessions containing both factual events and emotional dynamics) to determine whether the bridge differentiates between e.g. high-tension and relaxed interactions
+### Growth Ladder: Private Memory Formation
 
-2. **What does the source model actually retain?** Direct probing of the state model's hidden representations to characterize what information survives recurrent accumulation — and what is lost
+- The system now implements selective, autonomous memory formation: it decides what to remember, writes to a private memory space isolated from shared collections, and validates cross-session integrity through ethics-gated sleep cycles
+- This represents the first behaviorally validated private-write substrate for an AI system
 
-3. **Can activation-space injection transfer conversational disposition?** Moving beyond factual recall toward the core question: does a model that received the bridge injection respond with appropriate warmth, caution, or familiarity — without ever having seen the prior conversation as text?
+## Current Frontier
+
+The active decision fork:
+
+1. **D2 — Cue-based recall:** Can the system retrieve and re-inject stored dispositional states from its private memory in response to conversational cues?
+2. **Step 6 — Multi-seed replication:** Does the core result replicate across 3–5 random seeds with proper confidence intervals?
 
 ## Theoretical Context
 
-This work converges independently with recent theoretical frameworks for autonomous learning in AI systems (Dupoux, LeCun & Malik, 2026) and builds on empirical findings that personality traits are encoded as linear directions in Transformer activation space (Anthropic, 2025–2026). The bridge architecture is structurally equivalent to targeted persona-vector injection, with the key difference that the injected direction is derived from accumulated conversational experience rather than extracted by external interpretability tools.
+This work converges independently with recent theoretical frameworks for autonomous learning in AI systems (Dupoux, LeCun & Malik, 2026) and builds on empirical findings that personality traits are encoded as linear directions in Transformer activation space (Anthropic, 2025–2026). Independent work on persona vector injection (BILLY, Personality Sliders) confirms the injection mechanism; MoCoP's unique contribution is that the injected direction is derived from accumulated conversational experience, not static contrastive prompts. These systems *set* personality; MoCoP *grows* it.
+
+The minimum effective dose result (alpha 0.2) matches the inverted-U dose-response curve observed across catecholamine systems in neuroscience (Arnsten, 2009), where optimal neuromodulation simultaneously improves all downstream functions.
 
 ## Long-Term Vision
 

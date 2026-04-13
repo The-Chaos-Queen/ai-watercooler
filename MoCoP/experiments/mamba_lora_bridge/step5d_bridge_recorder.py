@@ -361,7 +361,7 @@ def main() -> int:
     parser.add_argument("--bridge-path", default=DEFAULT_BRIDGE)
     parser.add_argument("--episodes-file", default=DEFAULT_EPISODES_FILE)
     parser.add_argument("--episode-index", type=int, default=2)
-    parser.add_argument("--qwen-model-id", default=DEFAULT_QWEN)
+    parser.add_argument("--model", "--qwen-model-id", dest="qwen_model_id", default=DEFAULT_QWEN)
     parser.add_argument("--mamba-model-id", default=DEFAULT_MAMBA)
     parser.add_argument("--qwen-device", default="cuda:0")
     parser.add_argument("--mamba-device", default="cpu")

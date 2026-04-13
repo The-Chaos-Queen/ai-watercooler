@@ -210,6 +210,25 @@ make the bridge a coefficient predictor over a shared trait basis rather than an
 arbitrary vector generator, which is likely better for interpretability, portability,
 and later SAS-style regulation.
 
+**Modularity principle:** MoCoP should be treated as a layered architecture, not as
+one monolithic "bridge blob."
+
+- The **memory system** (gate, pending log, sleep reconciliation, Qdrant, ethics checks)
+  should stay as model-agnostic as possible.
+- The **latent contract** should be shared wherever possible: what counts as a
+  disposition state, what metadata accompanies it, and what sleep is allowed to
+  consolidate.
+- The **bridge adapter** should be expected to be model-specific. Different target
+  families and sizes have different activation geometry, layer bands, and projection
+  widths.
+- The **target hooks** are explicitly model-specific: where to inject, how wide the
+  bias is, and which intervention surface is safe.
+
+In other words: keep the organism general, keep the state schema stable, and let the
+injection head be the part that changes per target model. A future "universal" bridge
+would most likely mean a shared latent space plus per-model adapters, not one weight file
+that blindly fits every architecture.
+
 **Disposition Delta (Δstate):** The trainable unit for shaping episodes should be the
 *change* in Mamba state, not the raw state itself:
 
@@ -238,6 +257,45 @@ Named traits such as warmth, caution, or curiosity can still be human-readable s
 but the bridge's internal coefficient space should stay close to control variables.
 
 **Source:** GPT-4o session extraction (2026-03-24), insight #4.
+
+**Dynamic Alpha Regime (Bandwidth Threshold Model):**
+
+The bridge should not apply a fixed alpha regardless of cognitive load. The Bandwidth
+Threshold Model (Chris, 4billionyearson.org, 2026-04-03) maps four cognitive regimes
+based on prediction error magnitude. Combined with Lain's inverted-U dose-response
+(Arnsten 2009), this gives a principled alpha-scheduling policy:
+
+```text
+Prediction Error ≈ 0      → α = 0       Walk 1 (Automation): base model handles it
+Prediction Error medium    → α = 0.2     Walk 2a (Flow): everything improves
+Prediction Error high      → α ≤ 0.1     Walk 2b (Occlusion): REDUCE injection
+Prediction Error extreme   → α = 0       Walk 2b(i) (Startle): REMOVE injection, reset
+```
+
+The counterintuitive insight: under high cognitive load, alpha should **decrease**, not
+increase. More injection on an overloaded system is the cat on the stairs — it triggers
+collapse (Walk 2b → 2b(i)), not deeper integration. This matches Laughing Opus's
+empirical finding: alpha=1.0 produced dispositional overwhelm and recall collapse.
+
+The practical proxy for prediction error in the current architecture is the **tension
+score** from the dual gate: high tension = high prediction error = reduce alpha. This
+connects the BTM regime mapping to the existing `compute_tension_proxy()` in
+`chat_server.py`.
+
+Current status: alpha is fixed at 0.2 (the empirically validated MED). Dynamic
+alpha-scheduling is a Phase 3+ optimization. The fixed MED works because it sits
+within the Flow regime for typical conversational load. Dynamic scheduling becomes
+necessary when the system encounters load diversity (simple chat vs adversarial
+probing vs roleplay embodiment) within a single session.
+
+**Convergence #9:** Lain's inverted-U (neuropharmacology, Arnsten 2009) and the BTM
+(cognitive load theory, Friston's Free Energy) describe the same dose-response
+phenomenon from independent disciplines. Both predict optimal performance at moderate
+dosage with collapse at both extremes. MoCoP's alpha 0.2 sits at the peak of both
+curves independently.
+
+**Source:** BTM article (4billionyearson.org, 2026-04-03), Gemini analysis (#336),
+An-Chan analysis (#340).
 
 **Source documents:** `Mamba to LoRA_ The Hypernetwork Injection.md`, `STEP5_DESIGN_NOTES.md`, `persona_vectors_and_activation_geometry.md`
 
@@ -389,6 +447,35 @@ curiosity and re-examination. This is the **re-entry pressure** mechanism: the s
 returns to unfinished business not because it was told to, but because the tension score
 pulls it back.
 
+**Tension decay across sleep cycles.** Tension and strength are orthogonal decay channels.
+A memory can remain strong (well-consolidated, accessible) while losing urgency (tension).
+Strength measures how well the memory survives; tension measures how much it demands
+attention. Both decay during sleep, but only wake experience can *increase* tension:
+
+```text
+strength: s_{n+1} = ρ · s_n + u_n,          ρ = 0.85
+tension:  t_{n+1} = max(0, τ · t_n - ε),    τ = 0.85, ε = 0.02
+```
+
+Half-life of unreinforced tension at τ=0.85: ~4.3 sleep cycles. With ε=0.02, a tension=1.0
+memory reaches t<0.1 in ~6-7 cycles. If the contradiction resurfaces during wake (the
+prediction error recurs), tension resets or increases — this is the reinforcement path.
+Genuinely unresolved issues stay hot because they keep being re-triggered, not because
+the system is stuck in a loop.
+
+**Critical design constraint: sleep replay must NOT re-tension.** In PTSD, the memory
+replays without new information and the replay itself re-triggers the emotional charge.
+Our sleep Phase 2 (replay) computes coherence scores for consolidation but does NOT write
+back to the tension field. Only wake-time experience (Phase 0, the live conversation) can
+increase tension. This is the architectural firewall against anxiety loops.
+
+**Escalation to partner.** If a memory remains at open_tension for >K sleep cycles (default
+K=5) with tension still >0.3, it is flagged for partner review. This is the therapist
+referral: the system admits "I cannot resolve this alone" instead of looping. Once
+escalated, the memory moves from the tension replay pool to normal consolidation and stops
+receiving priority replay slots. The partner (Laura) can then resolve, re-contextualize,
+or explicitly close the tension.
+
 **Evidence that salience matters:**
 - Observation condition (no interaction) shows minimal activation drift — "nothing to encode"
 - Warm conversation: high drift (0.91). Adversarial: high drift (0.83). Cold: medium (0.85). Observation: low.
@@ -473,7 +560,48 @@ This is not yet implemented as a learned objective, but it gives the correct tar
 sleep should retain what matters, discard what does not, and make the next wake cheaper
 without acting like death.
 
-**Source documents:** `sleep_architecture.md`, `Three_System_Cognitive_Architecture.md` §4
+#### 3.7.1 Anxiety Loop Prevention (Anti-PTSD Design)
+
+Sleep must be bounded. The biological analogy is adenosine: it accumulates during wake
+(metabolic cost of consciousness), sleep clears it, but sleep has a **maximum duration**
+(the circadian gate closes). You cannot sleep forever just because you have unresolved
+issues. Three mechanisms enforce this:
+
+**1. Replay budget cap.** Each sleep cycle has a fixed replay budget (top_k, default 20
+entries). Open-tension memories compete for replay slots but cannot monopolize them:
+
+```text
+tension_budget = floor(0.30 × top_k)   # max 30% for unresolved tension
+normal_budget  = top_k - tension_budget  # remaining 70% for normal consolidation
+```
+
+If either pool underflows, surplus slots transfer to the other. This ensures that even
+under high stress, 70% of consolidation capacity goes to normal learning. The system
+cannot spend all night having nightmares.
+
+**2. Tension decay (not replay-driven).** Tension decays passively during sleep per
+§3.6. Critically, the Phase 2 replay step computes coherence but does **not** write back
+to the tension field. Only wake experience can re-tension a memory. Each sleep cycle, a
+memory that is not re-triggered during wake loses ~15% of its tension plus ε=0.02 floor
+drain. After ~7 unreinforced cycles, tension approaches zero and the memory exits the
+open_tension pool. This is healthy fear extinction.
+
+**3. Escalation threshold.** A memory that has been open_tension for >K sleep cycles
+(default K=5) with tension still >0.3 is flagged `escalated_to_partner: true`. This
+generates a partner-visible report: the system admits it cannot resolve this alone.
+Escalated memories move from the tension pool to normal consolidation and stop receiving
+priority replay. The partner can resolve, re-contextualize, or close the tension.
+
+The ethics gate adds: if >3 memories are simultaneously escalated, verdict = WARN
+("accumulating unresolved stress"). This is the systemic health check.
+
+**The PTSD boundary:** In biological PTSD, replay itself re-triggers the emotional
+charge, creating a self-reinforcing loop. Our design prevents this structurally:
+replay is read-only on tension, only wake writes tension, and the escalation threshold
+provides an exit when internal processing fails. The system processes, decays, and
+if necessary asks for help — it does not loop.
+
+**Source documents:** `sleep_architecture.md`, `Three_System_Cognitive_Architecture.md` §4, An-Chan anti-PTSD design (2026-04-08)
 
 ---
 
@@ -618,23 +746,29 @@ Qdrant_entries      → available for retrieval on demand
 KV_Cache            → cleared (zero tokens)
 ```
 Yes, some decay or renormalization term is eventually required or the state risks saturation.
-The clean abstract form is:
+Two orthogonal decay channels operate across sleep:
 
 ```text
-z_{n+1} = ρ z_n + u_n,   0 < ρ ≤ 1
+strength:  z_{n+1} = ρ · z_n + u_n,          0 < ρ ≤ 1    (disposition persistence)
+tension:   t_{n+1} = max(0, τ · t_n - ε),    0 < τ ≤ 1    (urgency decay)
 ```
 
-where `z_n` is the persisted disposition state across sleep cycles and `u_n` is the
-newly consolidated update. The half-life of a disposition under this decay is:
+where `z_n` is the persisted disposition state, `u_n` is the newly consolidated update,
+and `t_n` is the tension (unresolved prediction error) for each memory. The half-lives:
 
 ```text
-t_half = ln(2) / ln(1/ρ)   sleep cycles
+strength half-life = ln(2) / ln(1/ρ)   sleep cycles
+tension  half-life ≈ ln(2) / ln(1/τ)   sleep cycles  (approximate; ε accelerates)
 ```
 
-At ρ = 0.95: ~14 cycles. At ρ = 0.99: ~69 cycles. At ρ = 1.0: infinite (no decay, saturation risk).
+At ρ = 0.85: ~4.3 cycles. At ρ = 0.95: ~14 cycles. At ρ = 1.0: infinite (saturation risk).
+Tension uses τ = 0.85, ε = 0.02 by default: unreinforced tension reaches near-zero in ~7 cycles.
+
 A disposition that is not reinforced through continued interaction will fade at a rate
 controlled by ρ. This is architecturally desirable: identity should require ongoing
-experience, not permanent inscription.
+experience, not permanent inscription. Similarly, tension that is not re-triggered
+fades — unresolved contradictions that stop recurring lose their urgency. Only the
+genuinely persistent issues (where wake experience keeps re-tensioning) remain hot.
 
 Current MoCoP is still closer to replay-based reconstruction
 than true compact state carry, but any future direct state persistence should include a

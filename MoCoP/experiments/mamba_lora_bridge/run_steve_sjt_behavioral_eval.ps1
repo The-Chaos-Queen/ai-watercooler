@@ -4,6 +4,7 @@ param(
     [double]$Temperature = 0.0,
     [string]$BaseUrl = "http://192.168.2.49:7860",
     [string]$ExpectedModelId = "Qwen/Qwen2.5-1.5B",
+    [string]$PanelPath = "",
     [double]$RestoreAlpha = 0.2,
     [double]$RestoreTemperature = 0.7,
     [double]$StartupTimeoutMinutes = 6,
@@ -16,9 +17,31 @@ $repoRoot = "C:\Users\cerub\OneDrive\Dokumente\LLM"
 $workDir = Join-Path $repoRoot "MoCoP\experiments\mamba_lora_bridge"
 $runnerPath = Join-Path $workDir "run_sjt_behavioral_eval.py"
 $scorerPath = Join-Path $workDir "score_sjt_behavioral_eval.py"
-$panelPath = Join-Path $workDir "sjt_behavioral_eval_panel.json"
+$resolvedPanelPath = if ([string]::IsNullOrWhiteSpace($PanelPath)) {
+    Join-Path $workDir "sjt_behavioral_eval_panel_v2.json"
+} elseif ([System.IO.Path]::IsPathRooted($PanelPath)) {
+    $PanelPath
+} else {
+    Join-Path $workDir $PanelPath
+}
 $outputDir = Join-Path $workDir ("behavioral_eval_runs\sjt_" + (Get-Date -Format "yyyyMMdd_HHmmss"))
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+
+if (-not (Test-Path $resolvedPanelPath)) {
+    throw "Panel file not found: $resolvedPanelPath"
+}
+
+function Get-StatusJson {
+    param(
+        [string]$StatusUrl
+    )
+
+    $raw = & curl.exe -sS ($StatusUrl.TrimEnd("/") + "/status")
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($raw)) {
+        throw "curl.exe failed to read $StatusUrl/status"
+    }
+    return $raw | ConvertFrom-Json
+}
 
 function Set-SteveAlpha([double]$AlphaValue) {
     & ssh steve powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\tikii\bridge\set_steve_chat_alpha.ps1 -Alpha $AlphaValue
@@ -68,7 +91,7 @@ function Wait-SteveChatReady {
     $lastSummary = "no status response"
     while ((Get-Date) -lt $deadline) {
         try {
-            $resp = Invoke-RestMethod -Uri ($StatusUrl.TrimEnd("/") + "/status") -Method Get -TimeoutSec 8
+            $resp = Get-StatusJson -StatusUrl $StatusUrl
             $alphaMatches = $false
             $temperatureMatches = $false
             if ($null -ne $resp.alpha) {
@@ -101,7 +124,7 @@ function Run-SjtCondition {
 
     & python -X utf8 $runnerPath `
         --base-url $BaseUrl `
-        --panel-file $panelPath `
+        --panel-file $resolvedPanelPath `
         --results-json $ResultsPath `
         --condition-label $ConditionLabel `
         --expected-alpha $ExpectedAlpha `

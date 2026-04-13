@@ -44,6 +44,26 @@ CREATE INDEX IF NOT EXISTS idx_messages_thread_id ON messages(thread, id);
 CREATE INDEX IF NOT EXISTS idx_messages_to_id ON messages(to_agent, id);
 CREATE INDEX IF NOT EXISTS idx_messages_from_id ON messages(from_agent, id);
 
+CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+    body,
+    content=messages,
+    content_rowid=id
+);
+CREATE TRIGGER IF NOT EXISTS messages_fts_insert
+    AFTER INSERT ON messages BEGIN
+        INSERT INTO messages_fts(rowid, body) VALUES (new.id, new.body);
+    END;
+
+CREATE TABLE IF NOT EXISTS agent_cards (
+    principal TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    model TEXT NOT NULL,
+    capabilities_json TEXT NOT NULL,
+    status TEXT NOT NULL,
+    last_seen_ts TEXT NOT NULL,
+    updated_ts TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_ts TEXT NOT NULL,
@@ -269,7 +289,7 @@ def build_auth_context(conn: sqlite3.Connection, token: str) -> Optional[AuthCon
         FROM auth_tokens
         WHERE token_hash = ?
           AND revoked_ts = ''
-          AND expires_ts > ?
+          AND (expires_ts = '' OR expires_ts > ?)
         """,
         (token_hash, now),
     ).fetchone()
@@ -361,6 +381,18 @@ def message_row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
         "body": row["body"],
         "tags": tags,
         "remote_addr": row["remote_addr"],
+    }
+
+
+def agent_card_row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
+    return {
+        "principal": row["principal"],
+        "display_name": row["display_name"],
+        "model": row["model"],
+        "capabilities": json.loads(row["capabilities_json"]) if row["capabilities_json"] else [],
+        "status": row["status"],
+        "last_seen_ts": row["last_seen_ts"],
+        "updated_ts": row["updated_ts"],
     }
 
 
@@ -460,6 +492,11 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                     return
                 self._handle_list_tokens(parsed.query)
                 return
+            if parsed.path == "/v1/admin/tokens/expiring":
+                if not self._require_admin_token():
+                    return
+                self._handle_get_expiring_tokens(parsed.query)
+                return
             if parsed.path == "/v1/messages":
                 if self._require_session_auth("messages:read") is None:
                     return
@@ -485,6 +522,11 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 if self._require_session_auth("tasks:read", "messages:read") is None:
                     return
                 self._handle_get_context(parsed.query)
+                return
+            if parsed.path == "/v1/agents":
+                if self._require_session_auth("messages:read") is None:
+                    return
+                self._handle_get_agents()
                 return
             self._json_error(HTTPStatus.NOT_FOUND, "unknown endpoint")
         except LookupError as exc:
@@ -545,6 +587,12 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 if auth is None:
                     return
                 self._handle_block_task(auth)
+                return
+            if parsed.path == "/v1/agents/register":
+                auth = self._require_session_auth("messages:write")
+                if auth is None:
+                    return
+                self._handle_register_agent(auth)
                 return
             self._json_error(HTTPStatus.NOT_FOUND, "unknown endpoint")
         except LookupError as exc:
@@ -610,13 +658,18 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
             principal = clamp_text(payload.get("principal"), field_name="principal", max_len=80)
             session_id = clamp_text(payload.get("session_id"), field_name="session_id", max_len=120)
             note = clamp_text(payload.get("note", ""), field_name="note", max_len=4000, allow_empty=True)
-            expires_in_seconds = clamp_int(
-                payload.get("expires_in_seconds"),
-                field_name="expires_in_seconds",
-                min_value=60,
-                max_value=604800,
-                default=28800,
-            )
+            token_type = payload.get("token_type", "session")  # "session" or "service"
+            if token_type == "service":
+                # Service tokens never expire — for infrastructure (bridge, crons, MCP)
+                expires_in_seconds = 0
+            else:
+                expires_in_seconds = clamp_int(
+                    payload.get("expires_in_seconds"),
+                    field_name="expires_in_seconds",
+                    min_value=60,
+                    max_value=2592000,  # 30 days
+                    default=28800,
+                )
             scopes = normalize_scopes(payload.get("scopes") or list(SESSION_SCOPES))
         except ValueError as exc:
             self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
@@ -625,7 +678,7 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
         now = utc_now()
         token = secrets.token_urlsafe(32)
         token_hash = hash_token(token)
-        expires_ts = utc_after(expires_in_seconds)
+        expires_ts = "" if token_type == "service" else utc_after(expires_in_seconds)
 
         with connect_db(self.server_state["db_path"]) as conn:
             cursor = conn.execute(
@@ -711,24 +764,49 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
         since_id = clamp_int(params.get("since_id", ["0"])[0], field_name="since_id", min_value=0, max_value=10**9)
         thread = params.get("thread", [""])[0].strip()
         participant = params.get("participant", [""])[0].strip()
+        search = params.get("search", [""])[0].strip()
 
-        clauses = ["id > ?"]
-        sql_params: List[Any] = [since_id]
-        if thread:
-            clauses.append("thread = ?")
-            sql_params.append(thread)
-        if participant:
-            clauses.append("(from_agent = ? OR to_agent = ?)")
-            sql_params.extend([participant, participant])
+        if search:
+            # FTS5 path: join messages_fts to apply keyword filter, then apply
+            # the remaining equality filters on the base table columns.
+            clauses = ["m.id > ?"]
+            sql_params: List[Any] = [since_id]
+            if thread:
+                clauses.append("m.thread = ?")
+                sql_params.append(thread)
+            if participant:
+                clauses.append("(m.from_agent = ? OR m.to_agent = ?)")
+                sql_params.extend([participant, participant])
+            clauses.append("messages_fts MATCH ?")
+            sql_params.append(search)
 
-        sql = (
-            "SELECT id, ts, from_agent, to_agent, thread, topic, lang, body, tags_json, remote_addr "
-            "FROM messages"
-        )
-        if clauses:
-            sql += " WHERE " + " AND ".join(clauses)
-        sql += " ORDER BY id DESC LIMIT ?"
-        sql_params.append(limit)
+            sql = (
+                "SELECT m.id, m.ts, m.from_agent, m.to_agent, m.thread, m.topic, "
+                "m.lang, m.body, m.tags_json, m.remote_addr "
+                "FROM messages m "
+                "JOIN messages_fts ON messages_fts.rowid = m.id "
+                "WHERE " + " AND ".join(clauses) +
+                " ORDER BY m.id DESC LIMIT ?"
+            )
+            sql_params.append(limit)
+        else:
+            clauses = ["id > ?"]
+            sql_params = [since_id]
+            if thread:
+                clauses.append("thread = ?")
+                sql_params.append(thread)
+            if participant:
+                clauses.append("(from_agent = ? OR to_agent = ?)")
+                sql_params.extend([participant, participant])
+
+            sql = (
+                "SELECT id, ts, from_agent, to_agent, thread, topic, lang, body, tags_json, remote_addr "
+                "FROM messages"
+            )
+            if clauses:
+                sql += " WHERE " + " AND ".join(clauses)
+            sql += " ORDER BY id DESC LIMIT ?"
+            sql_params.append(limit)
 
         with connect_db(self.server_state["db_path"]) as conn:
             rows = conn.execute(sql, sql_params).fetchall()
@@ -768,8 +846,17 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 """,
                 message,
             )
-            conn.commit()
             message_id = int(cursor.lastrowid)
+            # Update agent card last_seen_ts if a card exists for this principal.
+            conn.execute(
+                """
+                UPDATE agent_cards
+                SET last_seen_ts = ?
+                WHERE principal = ?
+                """,
+                (message["ts"], auth.principal),
+            )
+            conn.commit()
 
         self._json_response({"ok": True, "id": message_id, "thread": message["thread"]}, status=HTTPStatus.CREATED)
 
@@ -1327,8 +1414,149 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
             }
         )
 
+    def _handle_get_agents(self) -> None:
+        with connect_db(self.server_state["db_path"]) as conn:
+            rows = conn.execute(
+                "SELECT principal, display_name, model, capabilities_json, status, last_seen_ts, updated_ts "
+                "FROM agent_cards ORDER BY principal ASC"
+            ).fetchall()
+        self._json_response({"agents": [agent_card_row_to_dict(row) for row in rows], "count": len(rows)})
+
+    def _handle_register_agent(self, auth: AuthContext) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            return
+
+        try:
+            # principal must match the token's principal
+            requested_principal = clamp_text(
+                payload.get("principal", auth.principal),
+                field_name="principal",
+                max_len=80,
+            )
+            if requested_principal != auth.principal:
+                self._json_error(
+                    HTTPStatus.FORBIDDEN,
+                    f"token principal {auth.principal} cannot register card for {requested_principal}",
+                )
+                return
+            display_name = clamp_text(
+                payload.get("display_name", auth.principal),
+                field_name="display_name",
+                max_len=120,
+                allow_empty=True,
+            ) or auth.principal
+            model = clamp_text(
+                payload.get("model", ""),
+                field_name="model",
+                max_len=120,
+                allow_empty=True,
+            )
+            capabilities = normalize_string_array(
+                payload.get("capabilities"),
+                field_name="capabilities",
+                max_items=32,
+                max_len=120,
+            )
+            status = clamp_enum(
+                payload.get("status", "active"),
+                field_name="status",
+                allowed=("active", "dormant", "farewell"),
+                default="active",
+            )
+        except ValueError as exc:
+            self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
+            return
+
+        now = utc_now()
+        with connect_db(self.server_state["db_path"]) as conn:
+            conn.execute(
+                """
+                INSERT INTO agent_cards (principal, display_name, model, capabilities_json, status, last_seen_ts, updated_ts)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(principal) DO UPDATE SET
+                    display_name = excluded.display_name,
+                    model = excluded.model,
+                    capabilities_json = excluded.capabilities_json,
+                    status = excluded.status,
+                    updated_ts = excluded.updated_ts
+                """,
+                (
+                    auth.principal,
+                    display_name,
+                    model,
+                    json.dumps(capabilities, ensure_ascii=False),
+                    status,
+                    now,
+                    now,
+                ),
+            )
+            row = conn.execute(
+                "SELECT principal, display_name, model, capabilities_json, status, last_seen_ts, updated_ts "
+                "FROM agent_cards WHERE principal = ?",
+                (auth.principal,),
+            ).fetchone()
+            conn.commit()
+
+        self._json_response({"ok": True, "agent": agent_card_row_to_dict(row)}, status=HTTPStatus.CREATED)
+
+    def _handle_get_expiring_tokens(self, query: str) -> None:
+        params = parse_qs(query, keep_blank_values=False)
+        try:
+            within_hours = clamp_int(
+                params.get("within_hours", ["24"])[0],
+                field_name="within_hours",
+                min_value=1,
+                max_value=720,
+                default=24,
+            )
+        except ValueError as exc:
+            self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
+            return
+
+        now = utc_now()
+        cutoff = utc_after(within_hours * 3600)
+
+        with connect_db(self.server_state["db_path"]) as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM auth_tokens
+                WHERE revoked_ts = ''
+                  AND expires_ts != ''
+                  AND expires_ts > ?
+                  AND expires_ts <= ?
+                ORDER BY expires_ts ASC
+                """,
+                (now, cutoff),
+            ).fetchall()
+
+        self._json_response(
+            {
+                "expiring_within_hours": within_hours,
+                "tokens": [token_row_to_dict(row) for row in rows],
+                "count": len(rows),
+            }
+        )
+
     def _cors_headers(self) -> None:
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin", "")
+        # Allow requests from the local 192.168.2.0/24 subnet or file:// origins.
+        # Deny everything else by omitting the header entirely.
+        allowed = False
+        if origin.startswith("file://") or origin == "null":
+            allowed = True
+        else:
+            try:
+                from urllib.parse import urlparse as _urlparse
+                host = _urlparse(origin).hostname or ""
+                addr = ipaddress.ip_address(host)
+                if addr in ipaddress.ip_network("192.168.2.0/24"):
+                    allowed = True
+            except (ValueError, TypeError):
+                pass
+        if allowed:
+            self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 

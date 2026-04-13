@@ -1,22 +1,9 @@
 # MoCoP Contributing Rules (Hausregeln)
 ## Rule 1: One Working Directory
 
-**`C:\Users\cerub\OneDrive\Dokumente\MoCoP\` (Git) IS the canonical working copy.**
+**`C:\Users\cerub\OneDrive\Dokumente\LLM\MoCoP\` IS the canonical working copy. There is no second repo.**
 
-`LLM\MoCoP\` is a read-through mirror. If you need to work in LLM\ for path reasons, sync TO Git before session close. Not after. Not eventually. Before the session log is written.
-
-Reality check: sessions end at midnight, exhausted, cloud still billing, "just terminate." Willpower-based sync will break on the worst nights — exactly when drift matters most. So the real enforcement is automated, not aspirational:
-
-**Startup drift check (every session boot):**
-```bash
-# Run at session start. If LLM/MoCoP has files newer than Git MoCoP, warn immediately.
-find "C:\Users\cerub\OneDrive\Dokumente\LLM\MoCoP" -newer "C:\Users\cerub\OneDrive\Dokumente\MoCoP\.git/HEAD" \
-  -name "*.py" -o -name "*.md" 2>/dev/null | head -20
-```
-
-If this produces output, the FIRST task of the session is to sync — before any new work. No exceptions. The AI that finds drift owns the sync, not the AI that caused it.
-
-*Fallback:* If a session ends without syncing (it will happen), the next session's startup check catches it. The drift is bounded to one session, not unbounded.
+The old standalone `Dokumente\MoCoP\` repo is archived as `MoCoP_legacy_standalone`. A junction link at the old path points to `LLM\MoCoP\` for backward compatibility. Do not create a separate MoCoP repo. Do not sync between two copies. One repo, one path, no drift.
 
 ## Rule 2: Commit at Session End
 
@@ -90,7 +77,22 @@ The existing checklist in `00_HANDOFF.md` should be extended to:
 - [ ] **All watercooler findings from this session reflected in docs**
 - [ ] **No P0 bugs left unfixed**
 - [ ] **`grep` for stale model IDs in docs (if model changed)**
+- [ ] **No dated files left in MoCoP root (Rule 8)**
 - [ ] Blocking risks called out
+
+## Rule 8: Root Hygiene
+
+**The MoCoP root directory contains only living documents. See [README.md](README.md) for the canonical list.**
+
+If your output has a date in the filename, it goes in `archive/` or the relevant subfolder — not root. War boards, drift scans, literature notes, synthesis docs, side-ladder plans, and reframe proposals all have a home that is not the top level.
+
+The test is simple: *will this file be updated in place, or is it a point-in-time snapshot?* If it's a snapshot, it doesn't belong in root.
+
+*Enforcement:* Session close checklist item. Before commit, run:
+```bash
+ls MoCoP/*.md | grep -E '[0-9]{4}-[0-9]{2}'
+```
+If any dated files are in root, move them before committing.
 
 ## What This Does NOT Prescribe
 

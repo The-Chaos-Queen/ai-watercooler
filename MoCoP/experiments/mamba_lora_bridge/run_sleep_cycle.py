@@ -34,8 +34,8 @@ def run_cycle(args):
 
     # --- Import components ---
     from sleep_reconcile import (
-        load_pending, load_mamba_state,
-        phase1_decay, phase2_replay, phase3_classify, phase4_flush,
+        load_pending, load_failure_packets, attach_failure_packets, load_mamba_state,
+        phase1_decay, phase2_replay, phase3_classify, phase5_flush,
         load_mamba_replay_stack, rotate_log,
         KEEP, UNCERTAIN, WEAKEN, DISCARD,
     )
@@ -47,6 +47,14 @@ def run_cycle(args):
         print("[cycle] No pending entries. Nothing to do.")
         print(format_rubric_line(0, {}, "SKIP", "no entries"))
         return 0
+
+    failure_packets = load_failure_packets(Path(args.failure_path))
+    entries, failure_attached = attach_failure_packets(entries, failure_packets)
+    if failure_packets:
+        print(
+            f"[cycle] Loaded {len(failure_packets)} failure packets "
+            f"({failure_attached} matched to pending entries)"
+        )
 
     print(f"[cycle] Starting sleep cycle: {len(entries)} entries")
     print(f"[cycle] dry_run={args.dry_run}, skip_qdrant={args.skip_qdrant}")
@@ -122,11 +130,13 @@ def run_cycle(args):
     # Determine snapshot output path
     ts = datetime.now().strftime("%Y%m%dT%H%M%S")
     cycle_snapshot_path = snapshot_dir / f"disposition_snapshot_cycle_{ts}.json"
+    cycle_residue_path = snapshot_dir / f"sleep_residue_cycle_{ts}.jsonl"
 
     # Run flush
-    recon_snapshot = phase4_flush(
+    recon_snapshot = phase5_flush(
         entries, sink_fn, cycle_snapshot_path,
         mamba_state_path=args.mamba_state,
+        residue_path=cycle_residue_path,
         dry_run=args.dry_run,
     )
 
@@ -201,6 +211,8 @@ def run_cycle(args):
     cycle_report = {
         "timestamp": datetime.now().isoformat(),
         "entries_processed": len(entries),
+        "failure_packets_loaded": len(failure_packets),
+        "failure_packets_attached": failure_attached,
         "classification": classification,
         "entries_written": recon_snapshot.get("entries_written", 0),
         "entries_failed": failed,
@@ -249,6 +261,7 @@ def main():
         description="Complete sleep cycle: ethics pre-check -> reconcile -> ethics post-check"
     )
     parser.add_argument("--pending-path", required=True)
+    parser.add_argument("--failure-path", default="failure_log.jsonl")
     parser.add_argument("--mamba-state", default="mamba_bootstrap_state_latest.pt")
     parser.add_argument("--snapshot-dir", default="snapshots/")
     parser.add_argument("--snapshot-path", default="disposition_snapshot_latest.json")

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
 trajectory_analysis.py — Track Mamba state evolution within a single
-long conversation. Detect compaction fractures (discontinuous jumps).
+long conversation. Detect state/alignment fractures (discontinuous jumps).
 
 Feeds cumulative transcripts at regular intervals through Mamba and
-measures consecutive cosine distance. Large jumps = state discontinuities
-= possible compaction fractures where context was silently compressed.
+measures consecutive cosine distance. Large jumps = state discontinuities.
+They may correspond to compaction, hidden reminders, cache/session boundary
+effects, topic shocks, or other runtime/product changes; the probe does not
+assign cause by itself.
 
 Usage:
   python -X utf8 trajectory_analysis.py \\

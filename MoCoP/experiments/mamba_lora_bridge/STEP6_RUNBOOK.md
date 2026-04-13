@@ -15,7 +15,7 @@ The same bridge configuration that passed Step 5d produces consistent behavioral
 
 **Primary metric:** SJT panel TPR delta (bridge vs baseline) and mean warmth-score delta across seeds. 95% CI must not cross zero.
 
-**Secondary metrics:** Response diversity entropy, factual recall, recovery dynamics from `step6_eval_panel.json` open probes.
+**Secondary metrics:** Response diversity entropy, disposition-congruent response rate, recovery dynamics from `step6_eval_panel.json` open probes.
 
 ---
 

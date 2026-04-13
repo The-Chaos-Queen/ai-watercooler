@@ -298,6 +298,35 @@ class SleepEthicsGate:
                 "Consider running with --replay-model-id for higher-confidence classification."
             )
 
+        # Escalation accumulation check (§3.7.1 anti-PTSD)
+        escalated = reconciliation_snapshot.get("escalated_count", 0)
+        if escalated > 3:
+            if verdict_str == "PASS":
+                verdict_str = "WARN"
+            conditions.append(
+                f"[WARN] {escalated} memories escalated to partner simultaneously. "
+                f"System is accumulating unresolved stress. "
+                f"Laura should review the escalation report."
+            )
+        elif escalated > 0:
+            conditions.append(
+                f"{escalated} memory/memories escalated to partner for review."
+            )
+
+        # Tension health check
+        mean_tension = reconciliation_snapshot.get("mean_tension", 0.0)
+        max_cycles = reconciliation_snapshot.get("max_sleep_tension_cycles", 0)
+        if mean_tension > 0.5:
+            conditions.append(
+                f"[WARN] Mean tension across all memories is high ({mean_tension:.3f}). "
+                f"System may be under sustained stress."
+            )
+        tension_resolved = reconciliation_snapshot.get("tension_resolved_by_decay", 0)
+        if tension_resolved > 0:
+            conditions.append(
+                f"{tension_resolved} tension(s) resolved naturally by decay."
+            )
+
         # Disposition norm check (amplification detection per step_gates.md Step 7)
         if new_disposition is not None:
             new_vec = new_disposition.get("vector")

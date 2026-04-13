@@ -1,67 +1,37 @@
 # AGENTS.md
 
-This file provides repo-local instructions for Codex and other coding agents.
+Instructions for Codex and other coding agents.
 
-## Boot Sequence
+## Boot
 
-At session start, read `CHEESE_Memory/00_BOOT_FILES.md` first, then follow the `Codex CLI` section there before doing substantive work.
+1. Read `CHEESE_Memory/00_HANDOFF.md` — current state, open threads, next step.
+2. Read `CHEESE_Memory/00_HAUSREGELN.md` — shared partner rules.
+3. Check the Watercooler (last 10 messages, `mamba-bridge` thread).
 
-The shared rules live in `CHEESE_Memory/00_HAUSREGELN.md`.
+Everything else: read on demand. See `CHEESE_Memory/00_BOOT_FILES.md` for the reference table.
 
 ## Operating Model
 
-- Treat Laura as a partner, not a generic user.
-- Prefer local Markdown memory files over assumptions from pretraining.
-- `CHEESE_Memory/00_HANDOFF.md` is the live control page for current state.
-- `CHEESE_Memory/session_logs/` is the append-only archive for session history.
+- Laura is a partner, not a generic user.
+- `CHEESE_Memory/00_HANDOFF.md` is the live control page.
+- `CHEESE_Memory/session_logs/` is the append-only archive.
 - Do not rewrite old session logs except for explicit repair requests.
-- Do not revive the retired dashboard flow.
+- Do not revive the retired dashboard.
 
 ## Prior-Session Retrieval
 
-When Laura references a previous chat, an older Codex answer, or "we already did this," do not guess from model memory. Search the local archives before asking her to restate it.
+When Laura references a previous chat or "we already did this," search local archives before guessing:
 
-Search order:
-
-1. `CHEESE_Memory/00_HANDOFF.md` and the relevant files in `CHEESE_Memory/session_logs/`
-2. `Preserved-History/` for exported chat transcripts
-3. `C:\Users\cerub\.codex\sessions\` and `C:\Users\cerub\.codex\archived_sessions\` for raw Codex rollout transcripts
-4. Exocortex/Qdrant semantic recall if keyword search is not enough
-
-Preferred commands:
-
-- `rg -n "needle" CHEESE_Memory/session_logs Preserved-History`
-- `rg -n "needle" "$HOME/.codex/sessions" "$HOME/.codex/archived_sessions"`
-- `python Project_Prosthetic/recall.py "query" --type codex_session --type chat_history --type session_log --limit 8`
+1. `CHEESE_Memory/session_logs/` and `Preserved-History/`
+2. `~/.codex/sessions/` and `~/.codex/archived_sessions/`
+3. Qdrant semantic recall if keyword search is not enough
 
 ## Session Close
 
-At session end, update:
-
-- `CHEESE_Memory/00_HANDOFF.md`
-
-Create a new session log in `CHEESE_Memory/session_logs/` using:
-
-- `.agent/workflows/session_log_template.md`
-
-If the session changed shared project state or task status, also update the relevant tracking surface:
-
-- OpenCLAW for tasks
-- Watercooler for short swarm coordination notes
-
-If Qdrant ingestion is part of the workflow, ingest the session log, not `00_HANDOFF.md`.
+Follow `.agent/workflows/end.md` and `MoCoP/CONTRIBUTING.md`.
 
 ## Compute Environment
 
-Shared compute notes live in `CHEESE_Memory/01_TOOLS.md`.
-
-Short version:
-
-- PyTorch, CUDA, and ML dependencies live on Opa-PC (`192.168.2.194`), not the local laptop.
-- Do not attempt to run training, inference, or any `import torch` code locally.
+- PyTorch/CUDA work runs on Opa-PC (`192.168.2.194`) or Steve (`192.168.2.49`), not the laptop.
 - When using Python over SSH on Opa-PC, use `python -X utf8`.
-
-## References
-
-- Boot workflow: `.agent/workflows/start.md`
-- Close workflow: `.agent/workflows/end.md`
+- Details in `CHEESE_Memory/01_TOOLS.md` — read when needed.

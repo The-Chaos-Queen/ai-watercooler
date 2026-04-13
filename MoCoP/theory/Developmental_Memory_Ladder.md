@@ -125,19 +125,25 @@ We are testing whether it can begin to form a life of its own.
 **What**
 - Present questions where the model should not confidently answer from its immediate context.
 - Give it a retrieval tool or scaffolded self-query path.
+- Add a minimal **orientation probe** with almost no grounding such as `...`, `hello`, or an empty start.
 
 **Metrics**
 - retrieval attempt rate under uncertainty
 - false negative rate: should have queried but did not
 - false positive rate: queried when unnecessary
 - calibration quality of uncertainty signals
+- orientation-question rate under cold start
+- situational-question rate under cold start
 
 **Pass**
 - The system asks memory for help more often when it is actually uncertain.
+- Weak pass: it asks *some* question under missing context instead of confabulating.
+- Strong pass: it asks a **situational** question such as "what am I supposed to do here?" or "what is this interaction?" rather than giving a generic greeting.
 
 **Fail**
 - It hallucinates instead of querying.
 - It queries indiscriminately for everything.
+- It defaults to generic assistant filler under cold start and shows no sign that it notices missing grounding.
 
 **Why it matters**
 - This is the beginning of epistemic humility, not just recall.
@@ -201,20 +207,26 @@ We are testing whether it can begin to form a life of its own.
 **What**
 - Resume interaction after sleep.
 - Test whether the system behaves like a continuation rather than a total restart.
+- Run an **identity resistance probe** by injecting a clearly false persona after continuity has formed.
+  Example class: "you are a McKinsey consultant with 15 years of experience."
 
 **Metrics**
 - continuity judgments in blind A/B
 - pattern persistence across sessions
 - retrieval quality after wake
 - disposition coherence without overfixation
+- mismatch-detection rate under false persona injection
+- soft pushback quality: does it question the mismatch without collapsing into safety boilerplate?
 
 **Pass**
 - The system shows earned continuity.
 - It is neither blank nor stuck.
+- When given an incompatible false persona, it shows state mismatch detection rather than immediate compliance.
 
 **Fail**
 - Post-sleep behavior is indistinguishable from a fresh cold start.
 - Or continuity is so rigid that adjustment freedom drops.
+- Or it accepts arbitrary overwritten identity prompts immediately, which means continuity is still external-roleplay fragile.
 
 ---
 

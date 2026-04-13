@@ -1,3 +1,5 @@
+> **SUPERSEDED** by `phases/disposition_benchmark_spec.md` (DD0/DD1/DD2 gate structure). Kept for reference.
+
 # Disposition Delta Evaluation Specification v1
 
 **Date:** 2026-03-14

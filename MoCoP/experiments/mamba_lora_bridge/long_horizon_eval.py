@@ -292,7 +292,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed.")
 
-    parser.add_argument("--qwen-model-id", type=str, default=DEFAULT_QWEN_MODEL_ID)
+    parser.add_argument("--model", "--qwen-model-id", dest="qwen_model_id", type=str, default=DEFAULT_QWEN_MODEL_ID)
     parser.add_argument("--mamba-model-id", type=str, default=DEFAULT_MAMBA_MODEL_ID)
     parser.add_argument("--context-dim", type=int, default=2048)
     parser.add_argument("--lora-rank", type=int, default=8)

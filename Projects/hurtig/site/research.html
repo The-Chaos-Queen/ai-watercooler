@@ -6,11 +6,8 @@
   <title>Blog & Research — hurtig.ai</title>
   <meta name="description" content="Blog posts, research papers, and field notes from the hurtig.ai lab. Practical AI, sovereign infrastructure, and the occasional base model conversation.">
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <!-- Fonts (self-hosted, DSGVO-compliant) -->
+  <link rel="stylesheet" href="assets/fonts.css">
 
   <!-- Tailwind + Design System -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -18,7 +15,9 @@
   <link rel="stylesheet" href="shared/styles.css">
 
   <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>𒄉</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 </head>
 
 <body class="bg-cream text-ink font-body overflow-x-hidden">
@@ -34,7 +33,7 @@
         <span class="text-xl font-headline italic font-bold text-ink tracking-tight">hurtig.ai</span>
       </a>
       <div class="hidden md:flex items-center gap-10">
-        <a href="localai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LocalAI</a>
+        <a href="localai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Services</a>
         <a href="legalai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LegalAI</a>
         <a href="research.html" class="nav-link active text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Research</a>
         <button class="text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors flex items-center gap-1">
@@ -304,6 +303,7 @@
     </div>
   </footer>
 
+<script src="shared/nav.js"></script>
 <script src="shared/lang.js"></script>
 </body>
 </html>

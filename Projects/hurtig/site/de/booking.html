@@ -15,24 +15,11 @@
   <link rel="stylesheet" href="../shared/styles.css">
 
   <!-- Favicon (cuneiform glyph) -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23a03f28'>𒄉</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 
   <style>
-    /* Calendar day hover state */
-    .cal-day {
-      transition: background-color 0.15s ease, color 0.15s ease;
-    }
-    .cal-day:hover:not(.cal-selected):not(.cal-empty) {
-      background-color: #ffdad2;
-      color: #a03f28;
-      border-radius: 0.375rem;
-      cursor: pointer;
-    }
-    /* Time slot button transitions */
-    .time-slot {
-      transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
-    }
-    /* Form input focus line */
     .form-field:focus {
       outline: none;
       border-bottom-color: #a03f28;
@@ -57,7 +44,7 @@
 
       <!-- Desktop links -->
       <div class="hidden md:flex items-center gap-10">
-        <a href="localai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LocalAI</a>
+        <a href="localai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Leistungen</a>
         <a href="legalai.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">LegalAI</a>
         <a href="research.html" class="nav-link text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors">Forschung</a>
         <button class="text-ink-light font-medium text-sm tracking-wide hover:text-kiln transition-colors flex items-center gap-1">
@@ -77,10 +64,9 @@
   <main class="relative z-10">
 
     <!-- ════════════════════════════════════════
-         HERO — Expertin kennenlernen
+         HERO
          ════════════════════════════════════════ -->
     <section class="relative py-24 md:py-32 px-6 md:px-16 overflow-hidden">
-      <!-- Cuneiform watermark -->
       <div class="watermark top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[28rem] text-kiln opacity-[0.025] font-serif leading-none">
         𒄉
       </div>
@@ -88,21 +74,21 @@
       <div class="max-w-7xl mx-auto relative z-10">
         <div class="flex flex-col md:flex-row items-center md:items-start gap-12 md:gap-16">
 
-          <!-- Portrait placeholder -->
+          <!-- Portrait -->
           <div class="shrink-0">
-            <div class="w-28 h-28 md:w-32 md:h-32 bg-cream-400 rounded-full border border-clay/20 shadow-sm flex items-center justify-center overflow-hidden">
-              <span class="material-symbols-outlined text-5xl text-ink-muted opacity-30">person</span>
+            <div class="w-28 h-28 md:w-32 md:h-32 rounded-full border border-clay/20 shadow-sm overflow-hidden">
+              <img src="../assets/laura.jpg" alt="Laura Isabell Turner" class="w-full h-full object-cover object-top">
             </div>
           </div>
 
           <!-- Headline block -->
           <div>
-            <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Beratungsgespräch vereinbaren</span>
+            <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Kontakt aufnehmen</span>
             <h1 class="text-5xl md:text-7xl font-headline italic font-bold tracking-tight text-ink mb-6 leading-[0.95]">
-              Expertin kennenlernen
+              Lassen Sie uns reden
             </h1>
             <p class="text-lg md:text-xl text-ink-light max-w-xl leading-relaxed">
-              Vereinbaren Sie ein Beratungsgespräch über <span class="font-semibold text-ink">souveräne LocalAI</span>-Deployments und spezialisierte <span class="font-semibold text-ink">LegalAI</span> — präzise auf Ihre Infrastruktur und Branche zugeschnitten.
+              Vereinbaren Sie ein Gespräch oder schreiben Sie uns. Jedes Gespräch beginnt damit, Ihre Situation zu verstehen &mdash; kein Pitch, kein Druck.
             </p>
           </div>
 
@@ -112,230 +98,114 @@
 
 
     <!-- ════════════════════════════════════════
-         BUCHUNGSMASKE
+         TERMIN BUCHEN (Cal.com)
          ════════════════════════════════════════ -->
-    <section class="py-8 pb-24 md:pb-32 px-6 md:px-16">
-      <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-start">
+    <section class="py-8 pb-16 px-6 md:px-16">
+      <div class="max-w-7xl mx-auto">
+        <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-6 block">Termin buchen</span>
+        <h2 class="text-3xl md:text-4xl font-headline italic font-bold text-ink mb-8">Zeitfenster wählen</h2>
 
-        <!-- LEFT COLUMN: Kalender + Zeitfenster -->
-        <div class="md:col-span-7 space-y-8">
-
-          <!-- Calendar widget -->
-          <div class="bg-cream-100 rounded-xl p-8">
-            <!-- Calendar header -->
-            <div class="flex items-center justify-between mb-6">
-              <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-cream-300 transition-colors text-ink-muted hover:text-ink" aria-label="Vorheriger Monat">
-                <span class="material-symbols-outlined text-lg">chevron_left</span>
-              </button>
-              <h3 class="font-headline italic font-bold text-ink text-lg tracking-wide">März 2026</h3>
-              <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-cream-300 transition-colors text-ink-muted hover:text-ink" aria-label="Nächster Monat">
-                <span class="material-symbols-outlined text-lg">chevron_right</span>
-              </button>
-            </div>
-
-            <!-- Day headers -->
-            <div class="grid grid-cols-7 mb-2">
-              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Mo</div>
-              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Di</div>
-              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Mi</div>
-              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Do</div>
-              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Fr</div>
-              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">Sa</div>
-              <div class="text-center text-[10px] font-bold uppercase tracking-[0.12em] text-ink-muted py-2">So</div>
-            </div>
-
-            <!-- Date grid — März 2026 starts on a Sunday, so Mon col = empty -->
-            <!-- Week row structure: Mo Di Mi Do Fr Sa So                      -->
-            <!-- Feb spillover: 23 24 25 26 27 28                              -->
-            <!-- Mär: 1 starts on Sunday (col 7)                               -->
-            <div class="grid grid-cols-7 gap-y-1">
-
-              <!-- Week 1: Feb spillover Mo-Sa, then Mär 1 on So -->
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">23</div>
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">24</div>
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">25</div>
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">26</div>
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">27</div>
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">28</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">1</div>
-
-              <!-- Week 2: Mär 2–8 -->
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">2</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">3</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">4</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">5</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">6</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">7</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">8</div>
-
-              <!-- Week 3: Mär 9–15 -->
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">9</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">10</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">11</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">12</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">13</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">14</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">15</div>
-
-              <!-- Week 4: Mär 16–22 -->
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">16</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">17</div>
-              <!-- Tag 18: ausgewählt -->
-              <div class="cal-day cal-selected text-center py-2 px-1 text-sm font-bold font-body rounded kiln-gradient text-white ring-4 ring-kiln/10">18</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">19</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">20</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">21</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">22</div>
-
-              <!-- Week 5: Mär 23–29 -->
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">23</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">24</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">25</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">26</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">27</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">28</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink-muted font-body rounded">29</div>
-
-              <!-- Week 6: Mär 30–31 + Apr spillover -->
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">30</div>
-              <div class="cal-day text-center py-2 px-1 text-sm text-ink font-body rounded">31</div>
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">1</div>
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">2</div>
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">3</div>
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">4</div>
-              <div class="cal-day cal-empty text-center py-2 px-1 text-xs text-clay font-body">5</div>
-
-            </div>
-          </div>
-
-          <!-- Available time slots -->
-          <div>
-            <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-5 block">Verfügbare Zeiten — Mi. 18. März</span>
-            <div class="grid grid-cols-4 gap-3">
-
-              <!-- 09:00 -->
-              <button class="time-slot border border-clay/40 rounded-lg py-3 px-4 text-sm font-body text-ink-light hover:border-kiln hover:text-kiln text-center">
-                <span class="block font-semibold">09:00</span>
-                <span class="block text-[10px] text-ink-muted mt-0.5 tracking-wide">1 Std.</span>
-              </button>
-
-              <!-- 11:30 — ausgewählt -->
-              <button class="time-slot border-b-2 border-kiln border border-kiln/30 bg-kiln/5 rounded-lg py-3 px-4 text-sm font-body text-kiln font-bold text-center">
-                <span class="block">11:30</span>
-                <span class="block text-[10px] text-kiln/60 mt-0.5 tracking-wide">1 Std.</span>
-              </button>
-
-              <!-- 14:00 -->
-              <button class="time-slot border border-clay/40 rounded-lg py-3 px-4 text-sm font-body text-ink-light hover:border-kiln hover:text-kiln text-center">
-                <span class="block font-semibold">14:00</span>
-                <span class="block text-[10px] text-ink-muted mt-0.5 tracking-wide">1 Std.</span>
-              </button>
-
-              <!-- 16:30 -->
-              <button class="time-slot border border-clay/40 rounded-lg py-3 px-4 text-sm font-body text-ink-light hover:border-kiln hover:text-kiln text-center">
-                <span class="block font-semibold">16:30</span>
-                <span class="block text-[10px] text-ink-muted mt-0.5 tracking-wide">1 Std.</span>
-              </button>
-
-            </div>
-          </div>
-
-        </div>
-
-        <!-- RIGHT COLUMN: Beratungsformular -->
-        <div class="md:col-span-5">
-          <div class="bg-cream-400 rounded-xl p-8 md:p-10 relative overflow-hidden">
-
-            <!-- Subtle cuneiform watermark in corner -->
-            <div class="watermark bottom-4 right-6 text-[5rem] text-kiln opacity-[0.06] font-serif select-none pointer-events-none">𒄉</div>
-
-            <div class="relative z-10">
-              <h2 class="text-2xl md:text-3xl font-headline italic font-bold text-ink mb-8">Beratungsdetails</h2>
-
-              <form class="space-y-7" onsubmit="return false;">
-
-                <!-- Vollständiger Name -->
-                <div>
-                  <label for="name" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Vollständiger Name</label>
-                  <input
-                    id="name"
-                    type="text"
-                    placeholder="Laura Hurtig"
-                    class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink placeholder:text-clay font-body"
-                  >
-                </div>
-
-                <!-- Geschäftliche E-Mail -->
-                <div>
-                  <label for="email" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Geschäftliche E-Mail</label>
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="sie@organisation.de"
-                    class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink placeholder:text-clay font-body"
-                  >
-                </div>
-
-                <!-- Thema der Anfrage -->
-                <div>
-                  <label for="topic" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Thema der Anfrage</label>
-                  <select
-                    id="topic"
-                    class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink font-body appearance-none cursor-pointer"
-                  >
-                    <option value="" disabled selected class="text-clay">Thema wählen …</option>
-                    <option value="local-llm">Lokales LLM-Deployment</option>
-                    <option value="legal-docs">Automatisierung juristischer Dokumente</option>
-                    <option value="privacy">Datenschutz- &amp; Souveränitätsstrategie</option>
-                    <option value="research">Individuelle Forschung</option>
-                  </select>
-                </div>
-
-                <!-- Erzählen Sie uns mehr -->
-                <div>
-                  <label for="message" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Erzählen Sie uns mehr</label>
-                  <textarea
-                    id="message"
-                    rows="4"
-                    placeholder="Beschreiben Sie Ihre Infrastruktur, Ihren Anwendungsfall oder Ihre Frage …"
-                    class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink placeholder:text-clay font-body resize-none"
-                  ></textarea>
-                </div>
-
-                <!-- Absenden -->
-                <div class="pt-2">
-                  <button type="submit" class="kiln-gradient btn-primary text-white w-full py-4 rounded-lg font-bold text-sm shadow-sm">
-                    Beratung bestätigen
-                  </button>
-                  <p class="text-xs text-ink-muted italic text-center mt-4 leading-relaxed">
-                    Alle Beratungsgespräche sind Ende-zu-Ende-verschlüsselt.
-                  </p>
-                </div>
-
-              </form>
+        <!-- Cal.com Embed — TODO_CALCOM_EMBED_URL durch Cal.com-Link ersetzen -->
+        <div class="bg-cream-100 rounded-xl p-8 md:p-12 border border-clay/10 min-h-[400px] flex items-center justify-center">
+          <div id="cal-embed" class="w-full">
+            <div class="text-center py-16">
+              <span class="material-symbols-outlined text-kiln text-5xl mb-6 block" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+              <h3 class="text-xl font-headline italic font-bold text-ink mb-3">Online-Terminbuchung bald verfügbar</h3>
+              <p class="text-ink-light text-sm mb-6 max-w-md mx-auto leading-relaxed">
+                Die direkte Kalenderbuchung wird eingerichtet. Nutzen Sie in der Zwischenzeit das Kontaktformular unten oder schreiben Sie uns direkt.
+              </p>
+              <a href="mailto:contact@hurtig.ai" class="kiln-gradient btn-primary text-white px-8 py-3 rounded-lg font-bold text-sm shadow-sm inline-flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">mail</span>
+                contact@hurtig.ai
+              </a>
             </div>
           </div>
         </div>
-
       </div>
     </section>
 
 
     <!-- ════════════════════════════════════════
-         DIREKTER KONTAKT
+         KONTAKTFORMULAR (Formspree)
          ════════════════════════════════════════ -->
-    <section class="py-20 md:py-28 px-6 md:px-16 bg-cream-100 border-t border-clay/10">
-      <div class="max-w-7xl mx-auto">
+    <section class="py-16 pb-24 md:pb-32 px-6 md:px-16">
+      <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-start">
 
-        <div class="max-w-xl mb-12">
-          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-4 block">Direkter Kontakt</span>
-          <h2 class="text-3xl md:text-4xl font-headline italic font-bold text-ink">Direkt Kontakt aufnehmen</h2>
+        <!-- LEFT: Formular -->
+        <div class="md:col-span-7">
+          <span class="text-kiln font-body text-xs font-bold tracking-[0.2em] uppercase mb-6 block">Nachricht senden</span>
+          <h2 class="text-3xl md:text-4xl font-headline italic font-bold text-ink mb-8">Kontaktformular</h2>
+
+          <form action="https://hurtig.ai/api/contact" method="POST" class="space-y-7">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-7">
+              <!-- Name -->
+              <div>
+                <label for="name" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Name</label>
+                <input
+                  id="name" name="name" type="text" required
+                  placeholder="Ihr Name"
+                  class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink placeholder:text-clay font-body"
+                >
+              </div>
+
+              <!-- E-Mail -->
+              <div>
+                <label for="email" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">E-Mail</label>
+                <input
+                  id="email" name="email" type="email" required
+                  placeholder="sie@organisation.de"
+                  class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink placeholder:text-clay font-body"
+                >
+              </div>
+            </div>
+
+            <!-- Thema -->
+            <div>
+              <label for="topic" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Thema</label>
+              <select
+                id="topic" name="topic"
+                class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink font-body appearance-none cursor-pointer"
+              >
+                <option value="" disabled selected class="text-clay">Thema wählen&hellip;</option>
+                <option value="local-llm">Lokales LLM-Deployment</option>
+                <option value="legal-ai">LegalAI / Medizinstrafrecht</option>
+                <option value="strategy">KI-Strategie &amp; Ideenfindung</option>
+                <option value="shadowing">AI Shadowing (1:1 Coaching)</option>
+                <option value="support">Wartung &amp; Support</option>
+                <option value="research">Forschungskooperation</option>
+                <option value="other">Sonstiges</option>
+              </select>
+            </div>
+
+            <!-- Nachricht -->
+            <div>
+              <label for="message" class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted block mb-2">Nachricht</label>
+              <textarea
+                id="message" name="message" rows="5" required
+                placeholder="Beschreiben Sie Ihre Infrastruktur, Ihren Anwendungsfall oder Ihre Frage&hellip;"
+                class="form-field w-full bg-transparent border-0 border-b border-clay focus:border-kiln focus:ring-0 py-2 text-sm text-ink placeholder:text-clay font-body resize-none"
+              ></textarea>
+            </div>
+
+            <!-- Honeypot (Spam-Schutz für Formspree) -->
+            <input type="text" name="_gotcha" style="display:none">
+
+            <!-- Absenden -->
+            <div class="pt-2">
+              <button type="submit" class="kiln-gradient btn-primary text-white px-10 py-4 rounded-lg font-bold text-sm shadow-sm">
+                Nachricht senden
+              </button>
+            </div>
+
+          </form>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- RIGHT: Kontaktinfo-Karten -->
+        <div class="md:col-span-5 space-y-6 md:sticky md:top-28">
 
           <!-- E-Mail -->
-          <div class="bg-cream rounded-xl p-8 border border-clay/10 card-lift">
+          <div class="bg-cream-100 rounded-xl p-8 border border-clay/10 card-lift">
             <div class="mb-5">
               <span class="material-symbols-outlined text-kiln text-2xl" style="font-variation-settings: 'FILL' 1;">mail</span>
             </div>
@@ -346,21 +216,30 @@
           </div>
 
           <!-- Standort -->
-          <div class="bg-cream rounded-xl p-8 border border-clay/10 card-lift">
+          <div class="bg-cream-100 rounded-xl p-8 border border-clay/10 card-lift">
             <div class="mb-5">
               <span class="material-symbols-outlined text-kiln text-2xl" style="font-variation-settings: 'FILL' 1;">location_on</span>
             </div>
             <p class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted mb-2">Standort</p>
-            <span class="font-body text-sm text-ink">Stadt, Deutschland</span>
+            <span class="font-body text-sm text-ink">Bayern, Deutschland</span>
           </div>
 
           <!-- Antwortzeit -->
-          <div class="bg-cream rounded-xl p-8 border border-clay/10 card-lift">
+          <div class="bg-cream-100 rounded-xl p-8 border border-clay/10 card-lift">
             <div class="mb-5">
               <span class="material-symbols-outlined text-kiln text-2xl" style="font-variation-settings: 'FILL' 1;">schedule</span>
             </div>
             <p class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted mb-2">Antwortzeit</p>
-            <span class="font-body text-sm text-ink">Wir antworten in der Regel innerhalb von 24 Stunden</span>
+            <span class="font-body text-sm text-ink">In der Regel innerhalb von 24 Stunden</span>
+          </div>
+
+          <!-- Sprachen -->
+          <div class="bg-cream-100 rounded-xl p-8 border border-clay/10 card-lift">
+            <div class="mb-5">
+              <span class="material-symbols-outlined text-kiln text-2xl" style="font-variation-settings: 'FILL' 1;">language</span>
+            </div>
+            <p class="font-body text-xs font-bold uppercase tracking-[0.2em] text-ink-muted mb-2">Sprachen</p>
+            <span class="font-body text-sm text-ink">Deutsch &amp; Englisch</span>
           </div>
 
         </div>
@@ -391,6 +270,17 @@
     </div>
   </footer>
 
+<script>
+if (new URLSearchParams(location.search).get('sent') === '1') {
+  var b = document.createElement('div');
+  b.className = 'fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-sage text-white px-8 py-4 rounded-xl shadow-lg text-sm font-bold flex items-center gap-3';
+  b.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Nachricht gesendet! Wir melden uns innerhalb von 24 Stunden.';
+  document.body.appendChild(b);
+  setTimeout(function() { b.style.opacity = '0'; b.style.transition = 'opacity 0.5s'; }, 4000);
+  setTimeout(function() { b.remove(); }, 4500);
+}
+</script>
+<script src="../shared/nav.js"></script>
 <script src="../shared/lang.js"></script>
 </body>
 </html>

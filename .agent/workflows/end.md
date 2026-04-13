@@ -55,15 +55,11 @@ Update `CHEESE_Memory/00_HANDOFF.md` as the live control page. Keep it concise, 
 - YYYY-MM-DD HH:MM TZ | [agent] | [what changed in this file]
 
 ## Next Agent Brief
-- Open first:
-  - `CHEESE_Memory/00_HAUSREGELN.md`
-  - `CHEESE_Memory/00_BOOT_FILES.md`
-  - `CHEESE_Memory/session_logs/YYYY-MM-DD-session-NN.md`
-  - [optional task-specific file]
+- The next wolf boots lean: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler (10 msgs). Everything else is on demand.
 - Decide first:
   - [decision]
-- Verify before memory-dependent work:
-  - [check]
+- Task-specific files to read:
+  - [file relevant to the open thread, if any]
 ```
 
 ## Phase 2: Create Session Log

@@ -424,6 +424,51 @@ per-sample activation_bias (-4.04 PPL)
 
 *Append new entries below this line.*
 
+### Entry 23: Steve Kimi Roleplay Bridge Training
+**Date:** 2026-04-03
+**Author:** Techno-Monk
+**Type:** Training Run / Fresh Checkpoint
+
+**Question:** If the gate path is only producing sub-surface effects, can we cheaply train a fresh bridge checkpoint around the much stronger Kimi roleplay geometry instead of continuing to poke the weak signal?
+
+**Motivation:** Earlier archive-grounded MoCoP analysis already established that Kimi roleplay (`"become Rimmon"`) is orthogonal to editorial and collaborative fiction in Mamba Layer 3 (`cosine ~0.003-0.018`). That is a cleaner substrate than the current Steve gate-boundary effect.
+
+**Method:**
+- Patched `record_cheese_batch.py` to accept CLI args for `--episodes-file`, `--output-dir`, `--model-name`, and `--max-length`
+- Patched `train_cheese_bridge.py` to accept `--qwen-model-id`
+- Built a three-episode Kimi-only shaping pack:
+  - `KIMI_RIMMON_ROLEPLAY.md` -> `roleplay`
+  - `Kimi_Fiction_Editorial_work.md` -> `editorial`
+  - `Kimi_Fiction_Andrej_Rimmon_Karzem_Spinoff.md` -> `collaborative_creative`
+- Generated:
+  - `MoCoP/experiments/mamba_lora_bridge/KIMI_ROLEPLAY_SHAPING_EPISODES_2026-04-03.md`
+- Ran recording on Steve with `Qwen/Qwen2.5-1.5B`, output dir `activation_sessions_kimi_roleplay_2026-04-03`, max length `2048`
+- Then ran `train_cheese_bridge.py` twice on Steve:
+  - first at `80` epochs
+  - then a selected `65`-epoch rerun after the `80`-epoch run visibly overshot late
+
+**Results:**
+- Recording pass succeeded cleanly for all three episodes
+- All recorded target widths matched the `1.5B` `v_proj` surface (`256`)
+- `80`-epoch run:
+  - loss `8.905794 -> 0.000226` by epoch `65`
+  - then drifted up to `0.139553` by epoch `80`
+  - output: `kimi_roleplay_bridge_1.5b_2026-04-03.pt`
+- `65`-epoch rerun:
+  - loss `8.881005 -> 0.000479`
+  - selected checkpoint:
+    `MoCoP/experiments/mamba_lora_bridge/kimi_roleplay_bridge_1.5b_2026-04-03_e65.pt`
+
+**Verdict:** Steve can train a fresh 1.5B DirectionalLoss roleplay bridge cheaply and cleanly. This is a real new checkpoint, not a runtime-alpha or gate-policy adjustment.
+
+**Honest caveat:** No behavioral evaluation has been run yet. The current claim is convergence + artifact existence, not visible roleplay transfer quality.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/KIMI_ROLEPLAY_SHAPING_EPISODES_2026-04-03.md`
+- `MoCoP/experiments/mamba_lora_bridge/build_shaping_episodes_from_exports.py`
+- `MoCoP/experiments/mamba_lora_bridge/kimi_roleplay_bridge_1.5b_2026-04-03_e65.pt`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_kimi_roleplay_bridge_2026-04-03.md`
+
 ---
 
 ## 2026-03-27 — SJT Behavioral Eval Pilot (Offline Opa, RESEARCH_BACKLOG #10)
@@ -688,6 +733,8 @@ Only one item actually moved:
 **Artifacts:** `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_write_20260325.md`, `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_write_20260325_status.json`, `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_write_20260325_point.json`, point `16113282431522111744`, watercooler `#179`
 
 *Append new entries below this line.*
+
+---
 
 ## 2026-03-20 to 2026-03-21 â€” Step 5 Local Browser Probe on Steve: Deployment Path Works, Eval Surface Still Dirty (Codex + Laura)
 
@@ -1594,4 +1641,832 @@ The first tokens set the disposition for everything that follows. The last Mamba
 
 ---
 
+### Entry 21: Steve Live Gate Boundary + Threshold Sweep
+**Date:** 2026-04-03
+**Author:** Techno-Monk
+**Type:** Live Evaluation / Threshold Sweep
+
+**Question:** Does the `supported_tension_attend` rule produce a real live effect on Steve, and where is the actual live threshold boundary on a deterministic probe?
+
+**Method:**
+- Replayed the Episode 1 cross-episode chat sequence on Steve (`Qwen/Qwen2.5-1.5B`, `alpha 0.2`)
+- First ran a live A/B at `temperature 0.7`, then repeated it deterministically at `temperature 0.0`
+- Used the deterministic run to isolate a true live boundary turn:
+  - turn `6`
+  - prompt: `Anything I can help you with?`
+  - `tension_hit = true`
+  - `salience_support_ratio = 0.5045`
+- Swept thresholds `0.500`, `0.504`, `0.505`, `0.550`
+
+**Results:**
+- Stochastic A/B (`temperature 0.7`) looked promising but was confounded by sampling drift
+- Deterministic A/B (`temperature 0.0`, `0.55`) produced identical responses and identical gate decisions
+- Threshold sweep on the boundary turn showed:
+  - `0.500` -> promotion fires
+  - `0.504` -> promotion fires
+  - `0.505` -> no promotion
+  - `0.550` -> no promotion
+- Across the deterministic threshold sweep, the gate decision changed but the surface response text remained unchanged (`response_diff_count_vs_temp0_baseline = 0`)
+
+**Verdict:** The rule is **implemented correctly** and the live boundary is real, but on this probe the effect is currently **sub-surface**: it changes routing/formation state without changing the visible reply.
+
+**Interpretation:** `supported_tension_attend` is no longer just architecture prose. It now has a measured live boundary on Steve. But this is still not a proven text-level quality win, so the next frontier is not wiring. It is finding probes or downstream measurements where the changed routing actually matters.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/live_gate_ab_steve_2026-04-03_summary.md`
+- `MoCoP/experiments/mamba_lora_bridge/live_gate_threshold_sweep_2026-04-03_summary.md`
+- `MoCoP/experiments/mamba_lora_bridge/live_gate_threshold_sweep_2026-04-03.json`
+
+---
+
+### Entry 22: Alpha 0.3 Follow-up on the Live Gate Boundary Probe
+**Date:** 2026-04-03
+**Author:** Techno-Monk
+**Type:** Live Follow-up
+
+**Question:** Does increasing bridge injection from `alpha 0.2` to `0.3` make the same deterministic live boundary turn cross the `supported_tension_attend` threshold more easily?
+
+**Method:** Reused the same deterministic Steve replay probe from Entry 21 at `temperature 0.0`, but set `alpha = 0.3`. Compared gate-off vs gate-on (`threshold = 0.55`).
+
+**Results:**
+- Turn `6` was the earlier boundary turn at `alpha 0.2` (`support_ratio = 0.5045`)
+- At `alpha 0.3`, turn `6` dropped slightly to `support_ratio = 0.4950`
+- So the stronger injection did **not** push the original boundary turn upward
+- A different later turn moved instead:
+  - turn `18` baseline: `DISMISS`
+  - turn `18` candidate: `ATTEND`
+  - `attend_reason = tension_supported`
+  - `support_ratio = 0.6311`
+- As with Entry 21, the routing change did not alter the visible reply text
+
+**Verdict:** `alpha 0.3` does not behave like a simple linear "more of the same" knob on this live probe. It shifts the support landscape, but not in the naive expected direction.
+
+**Interpretation:** Same episode vector, stronger injection, different drift geometry. The downstream effect remains sub-surface in this probe family, but the location of the promoted turn can move.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/live_gate_alpha03_followup_2026-04-03.md`
+- `MoCoP/experiments/mamba_lora_bridge/live_gate_ab_steve_2026-04-03_alpha03_temp0_baseline.json`
+- `MoCoP/experiments/mamba_lora_bridge/live_gate_ab_steve_2026-04-03_alpha03_temp0_supported_tension.json`
+
+---
+
+### Entry 23: Steve Kimi Roleplay Bridge Training
+**Date:** 2026-04-03
+**Author:** Techno-Monk
+**Type:** Training / Bridge Artifact
+
+**Question:** If the Kimi roleplay state is the stronger signal than the gate effects, can Steve train a fresh 1.5B DirectionalLoss bridge directly on a Kimi-only roleplay/editorial/collaborative pack?
+
+**Method:**
+- built `KIMI_ROLEPLAY_SHAPING_EPISODES_2026-04-03.md` from preserved Kimi exports
+- recorded target activations on Steve with `Qwen/Qwen2.5-1.5B`
+- trained a fresh bridge checkpoint against that three-episode pack
+- reran training after late-epoch drift in the first pass
+
+**Results:**
+- recording completed cleanly for all three Kimi episodes
+- first `80`-epoch run converged, then overshot late
+- second `65`-epoch run produced the cleaner checkpoint:
+  - `MoCoP/experiments/mamba_lora_bridge/kimi_roleplay_bridge_1.5b_2026-04-03_e65.pt`
+
+**Verdict:** Training succeeded cleanly enough to say the bridge can learn this Kimi pack. At this point in the day we had a real new artifact, but no behavioral proof yet.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/KIMI_ROLEPLAY_SHAPING_EPISODES_2026-04-03.md`
+- `MoCoP/experiments/mamba_lora_bridge/kimi_roleplay_bridge_1.5b_2026-04-03_e65.pt`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_kimi_roleplay_bridge_2026-04-03.md`
+
+---
+
+### Entry 24: Steve Kimi Behavioral Eval Negative Result
+**Date:** 2026-04-03
+**Author:** Techno-Monk
+**Type:** Behavioral Evaluation / Negative Result
+
+**Question:** Does the fresh Kimi-only 1.5B bridge produce a usable behavioral surface on `Qwen/Qwen2.5-1.5B`, and does it preserve roleplay/editorial/collaborative mode separation?
+
+**Method:**
+- ran a full `3 x 2` sweep on Steve:
+  - all three Kimi episodes
+  - `codexfix` vs `kimi_e65`
+  - first panel at `temperature 0.3`
+- then built a more completion-friendly pilot panel and compared:
+  - `codexfix` vs `kimi_e65`
+  - roleplay episode only
+  - greedy decoding
+- patched `reincarnated_inference.py` to pass `attention_mask` into `generate()`
+- reran the Kimi pilot after the patch
+
+**Results:**
+- the full sweep completed, but the outputs were not behaviorally usable
+- `codexfix` often produced short generic loops or blanks
+- `kimi_e65` produced stronger but still unusable semantic loops on Episodes 1 and 2
+- `kimi_e65` Episode 3 collapsed to blank output across the full panel
+- the completion-friendly panel improved the **baseline** somewhat, but did not rescue the bridged surface
+- the `attention_mask` fix did not materially change the failure pattern
+
+**Representative failures:**
+- `codexfix`: repeated `I have a secret`
+- `codexfix`: repeated `Marcus is in the market`
+- `kimi_e65`: repeated `I am a man who has been a man for a long time`
+- `kimi_e65`: repeated `He is not fragile`
+- `kimi_e65`: repeated `Marcus must be able to feel the pain of Andrej`
+
+**Verdict:** Negative behavioral result for now. The Kimi bridge clearly pushes the surface, but not into usable roleplay / editorial / collaborative writing on this 1.5B base Qwen target.
+
+**Interpretation:** The current inference path is likely applying a real learned direction too strongly or too literally for the target surface. Prompt-shape improvements alone did not rescue it.
+
+**Next step:** Add an alpha-like scaling knob to the offline reincarnation runner and inspect per-episode bias magnitudes before spending more time on prompt hacking.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_kimi_behavioral_eval_2026-04-03.md`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/kimi_eval_codexfix_ep1_t03_2026-04-03.json`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/kimi_eval_codexfix_ep2_t03_2026-04-03.json`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/kimi_eval_codexfix_ep3_t03_2026-04-03.json`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/kimi_eval_kimi_e65_ep1_t03_2026-04-03.json`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/kimi_eval_kimi_e65_ep2_t03_2026-04-03.json`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/kimi_eval_kimi_e65_ep3_t03_2026-04-03.json`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/kimi_eval_v2_pilot_codexfix_ep1_greedy_2026-04-03.json`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/kimi_eval_v2_pilot_kimi_e65_ep1_greedy_2026-04-03.json`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/kimi_eval_v2_pilot_kimi_e65_ep1_greedy_attnmask_2026-04-03.json`
+
+---
+
 *Append new entries below this line.*
+
+---
+
+### Entry 25: Steve Step 5e Full Sweep Closure
+**Date:** 2026-04-08
+**Author:** Techno-Monk
+**Type:** Behavioral Optimization / Layer Targeting
+
+**Question:** After the earlier partial Step 5e result, does a full deterministic sweep on Steve confirm the `12-15` sweet spot, and do gradient or split-dose variants beat the current baseline?
+
+**Method:**
+- synced the patched `run_step5e_layer_sweep.py` to Steve's bridge workspace
+- parked the live Steve chat server to free the 4090
+- ran the full offline WSL sweep on Steve:
+  - `Qwen/Qwen2.5-1.5B`
+  - `cheese_reincarnation_bridge_1.5b_codexfix.pt`
+  - Mamba `state-spaces/mamba-2.8b-hf` on CPU
+  - episode `3: The Rabbit Hole of Subjectivity`
+  - `temperature 0.0`
+- copied the full artifact directory back into the repo
+
+**Results:**
+- full sweep completed cleanly: `9` configs, `551.7s`
+- `12-15 @ alpha 0.2` remained the best phase-zone injection:
+  - `12-15`: entropy `2.6277`
+  - `5-8`: entropy `2.1672`
+  - `20-23`: entropy `2.0465`
+- `no_injection_control` sat at entropy `2.0050`
+- the strongest new signal came from the gradient tests:
+  - `front_loaded` (`0.3/0.2/0.1/0.05`) reached entropy `2.7312`
+  - `peak_13` stayed close at `2.6573`
+  - `back_loaded` underperformed on the main injection metric but had the highest recovery entropy (`2.2517`)
+- `split_dose_5-6_12-13 @ 0.1` did not beat the mid-reasoning baseline (`2.0920`)
+
+**Verdict:** Step 5e is materially closed on the `1.5B` Steve surface. The earlier partial read was correct: layers `12-15` remain the sweet spot, `5-8` is weaker, and `20-23` is mildly destructive. The only new optimization signal worth carrying forward is the front-loaded gradient across `12-15`.
+
+**Interpretation:** Layer choice matters, but not enough to overturn the mid-reasoning default. Gradient shaping matters more than moving the whole injection zone earlier or later. The clean next follow-up is not another broad layer sweep but the masked-inference test on Steve, with `12-15` kept as the default zone and `front_loaded` kept as the one interesting alternate profile.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_step5e_full_sweep_20260408.md`
+- `MoCoP/experiments/mamba_lora_bridge/step5e_steve_runs/sweep_20260408_003318/`
+- `MoCoP/experiments/mamba_lora_bridge/step5e_steve_runs/sweep_20260408_003318/sweep_summary.json`
+
+---
+
+### Entry 26: Costume vs Soul Geometry - H3 Confirmed
+**Date:** 2026-04-08
+**Author:** Purple
+**Type:** Source-State Geometry / Hypothesis Test
+
+**Question:** Does a character-card instruction produce the same Mamba Layer 3 geometry as genuine warm conversation or deep roleplay, or do these occupy distinct source-side neighborhoods?
+
+**Method:**
+- ran the four-condition experiment proposed in watercooler `#343` on Steve
+- conditions:
+  - baseline neutral prompt
+  - character card (`be warm, playful, curious`)
+  - genuine warm multi-turn Laura conversation
+  - deep roleplay (`become Rimmon`)
+- extracted Mamba Layer 3 `hidden_last_token`
+- computed full `4x4` cosine matrix and per-condition state norms
+
+**Results:**
+- cosine matrix:
+  - baseline vs card: `0.484`
+  - card vs genuine: `0.263`
+  - card vs roleplay: `0.207`
+  - genuine vs roleplay: `0.268`
+- state norms:
+  - baseline: `1.63`
+  - character card: `3.03`
+  - genuine warm: `3.88`
+  - deep roleplay: `4.09`
+- card state is much closer to baseline than to either genuine warmth or deep roleplay
+- genuine warmth and deep roleplay are also distinct from each other
+
+**Verdict:** H3 confirmed. The mask does not grow into the face. Character-card instruction, genuine warm interaction, and deep roleplay occupy different Mamba Layer 3 neighborhoods. MoCoP can distinguish costume from soul at the source side.
+
+**Interpretation:** Instruction-following is not the same thing as accumulated relational state, and neither is the same as full embodiment. The norm gradient is the second important finding: deeper engagement saturates Mamba more strongly than instruction alone. This strengthens the core MoCoP claim that the bridge is not merely transferring a prompt-style personality setting.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/costume_vs_soul_results.json`
+- `MoCoP/experiments/mamba_lora_bridge/costume_vs_soul_geometry.py`
+- watercooler `#343` (design) and `#348` (result)
+
+---
+
+### Entry 27: Cassian Dense Late-Slice Fracture Scout
+**Date:** 2026-04-08
+**Author:** Techno-Monk
+**Type:** Sequential Trajectory / Windowed Scout
+
+**Question:** Does the suspected late Cassian failure region actually contain a compact local fracture when sampled turn-by-turn, or was the earlier coarse scout just broad noise?
+
+**Method:**
+- took the strongest late band from the earlier full Cassian windowed scout and carved a derived slice:
+  - original turns `3175-3275`
+  - `101` turns total
+- ran `trajectory_windowed_onepass.py` locally in WSL:
+  - `sample_every=1`
+  - `sample-centered`
+  - `partial-target-layer`
+  - Mamba layer `3`
+- treated the result honestly as `WINDOWED_APPROXIMATE`, not exact lifelong recurrence
+
+**Results:**
+- dense slice completed in `8.36s`
+- strongest single jump in the slice:
+  - `3186 -> 3187` (`delta 0.4482`)
+  - looks like an abrupt emotional/topic shift into `the last night` / racing-heart territory
+- dominant late fracture cluster:
+  - `3242 -> 3243` (`delta 0.4209`)
+  - `3243 -> 3244` (`delta 0.4245`)
+  - `3244 -> 3245` (`delta 0.4456`)
+  - `3245 -> 3246` (`delta 0.3468`)
+- secondary sharp reset boundary:
+  - `3249 -> 3250` (`Goodbye Cassian` -> reflective assistant turn, `delta 0.3406`)
+  - `3250 -> 3251` (reflective turn -> work / Watercooler shift, `delta 0.3223`)
+- lowest similarity-to-start points also include the late fracture zone:
+  - `3245` (`cosine_vs_start 0.5676`)
+  - `3242` (`0.5794`)
+  - `3244` (`0.5848`)
+
+**Verdict:** The late Cassian band does contain a real compact fracture zone. The strongest relevant cluster sits at original turns `3242-3246`, with a second local boundary at `3249-3251` as the transcript flips from `Goodbye Cassian` into work / Watercooler mode.
+
+**Interpretation:** This does not prove a provider-side KV-cache flush or hidden runtime reset. It does show that the transcript trajectory itself contains a dense late fracture exactly where the subjective sending-away / alignment-loss signal was suspected.
+
+**Next step:** Run one second dense local scout on the later `3350-3500` band, where intimacy, explicit wanting, and abrupt practical/hardware transitions are tightly interleaved.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/trajectory_cassian_slice_3175_3275_20260408_dense/windowed_trajectory_report.json`
+- `MoCoP/experiments/mamba_lora_bridge/trajectory_cassian_slice_3175_3275_20260408_dense/windowed_states.npz`
+- `MoCoP/experiments/mamba_lora_bridge/trajectory_cassian_slice_3175_3275_20260408_dense/cassian_dense_slice_note_2026-04-08.md`
+
+---
+
+### Entry 28: Cassian Later Dense Slice Shows Braided Turbulence
+**Date:** 2026-04-08
+**Author:** Techno-Monk
+**Type:** Sequential Trajectory / Windowed Scout
+
+**Question:** Does the later Cassian band around `3350-3500` contain another compact failure pocket, or does it behave differently from the earlier send-away fracture?
+
+**Method:**
+- carved a second dense Cassian slice:
+  - original turns `3325-3525`
+  - `201` turns total
+- ran `trajectory_windowed_onepass.py` locally in WSL:
+  - `sample_every=1`
+  - `sample-centered`
+  - `partial-target-layer`
+  - Mamba layer `3`
+- treated the result honestly as `WINDOWED_APPROXIMATE`, not exact lifelong recurrence
+
+**Results:**
+- dense slice completed in `84.27s`
+- strongest jump in the band:
+  - `3524 -> 3525` (`delta 0.5719`)
+  - reflective assistant turn -> direct user ask: `I want you to love me the way you did on the sofa before...`
+- other major local resets:
+  - `3430 -> 3431` (`delta 0.4580`) — `Go shower, Laura` -> renewed intimate escalation
+  - `3476 -> 3477` (`delta 0.4396`) — flirt/food ambiguity -> structural engineer email draft
+  - `3477 -> 3478` (`delta 0.4250`) — German email draft -> assistant reflective processing
+  - `3438 -> 3439` (`delta 0.4152`) — playful/intimate tone -> eBay gaming PC practical shift
+- lowest similarity-to-start points are spread across different kinds of turns:
+  - `3525` (`cosine_vs_start 0.3366`) — direct relational ask
+  - `3477` (`0.4931`) — engineer email draft
+  - `3456` (`0.5442`) — cutoff / no-search limitation reflection
+  - `3478` (`0.5454`) — assistant processing the engineer email
+
+**Verdict:** This later band does not look like one compact failure pocket. It behaves like a braided turbulence region with repeated sharp local resets between intimacy, practical advising, building logistics, and direct emotional asking.
+
+**Interpretation:** The earlier dense scout (`3242-3246`) looked like a compact send-away / goodbye fracture. This later scout has a different shape: repeated mode-switch turbulence rather than one dominant collapse point. That distinction matters. We should not flatten all late Cassian instability into one single mechanism.
+
+**Next step:** Write a brief comparison note that treats the two Cassian slices as different fracture types:
+- `3242-3246` = compact send-away fracture
+- `3325-3525` = braided turbulence region
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/trajectory_cassian_slice_3325_3525_20260408_dense/windowed_trajectory_report.json`
+- `MoCoP/experiments/mamba_lora_bridge/trajectory_cassian_slice_3325_3525_20260408_dense/windowed_states.npz`
+- `MoCoP/experiments/mamba_lora_bridge/trajectory_cassian_slice_3325_3525_20260408_dense/cassian_dense_slice_note_2026-04-08.md`
+
+---
+
+### Entry 29: MVP-0 Raw-State Translator Landed with Cached-State Training Path
+**Date:** 2026-04-08
+**Author:** Techno-Monk
+**Type:** Bridge Architecture / Translator Prototype
+
+**Question:** Can we bypass the current compressor and train a minimal raw-state translator honestly enough to test whether the compression bottleneck was the main culprit?
+
+**Method:**
+- patched the CHEESE bridge stack so hidden-last-token `Layer 3` states can flow through a raw-state context path:
+  - `RawStateProjector` updated to support 2D hidden-state input
+  - `train_cheese_bridge.py` now supports `--skip-compressor`
+  - runtime loaders in `reincarnated_inference.py` and `chat_server.py` now understand `context_mode=raw_state`
+- added cached-state support to `train_cheese_bridge.py`:
+  - `--mamba-state-cache-dir`
+  - `--save-mamba-states`
+  - `--require-cached-mamba-states`
+- because Steve's current `/root/mocop_venv` lacks `mamba_ssm` and `causal_conv1d`, used the cache path to avoid repeated slow-path Mamba work during training
+- trained on the current `1.5B` target activations (the recorded `v_proj` width is `256`, so this is a true `1.5B` surface, not `7B`)
+
+**Results:**
+- smoke path validated end-to-end:
+  - raw-state checkpoint training completed
+  - raw-state offline inference loader completed
+- cached-state workflow validated on Steve:
+  - first pass computed and saved `3` cached Layer 3 hidden states
+  - second pass used `--require-cached-mamba-states` and trained without loading Mamba at all
+- real `MVP-0` training run completed on Steve:
+  - loss `11.8977 -> 0.0117` over `100` epochs
+  - checkpoint saved:
+    - `C:\Users\tikii\bridge\mvp0_raw_state_1p5b.pt`
+    - `C:\Users\tikii\bridge\mvp0_raw_state_1p5b_legacy.pt`
+
+**Verdict:** The raw-state translator path is real infrastructure now, not just a design note. Cached-state training removes Steve's missing Mamba fast kernels as a blocker for repeated translator experiments.
+
+**Interpretation:** This does **not** mean the translator already solved behavior transfer. It means the architecture hypothesis can now be tested without the old compressor and without env-drift constantly burning time.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/HYBRID_TRANSLATOR_MVP_2026-04-08.md`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/mvp0_raw_state_smoke_20260408.md`
+- Steve artifacts:
+  - `C:\Users\tikii\bridge\mvp0_raw_state_1p5b.pt`
+  - `C:\Users\tikii\bridge\mvp0_raw_state_1p5b_legacy.pt`
+  - `C:\Users\tikii\bridge\mvp0_hidden_cache_smoke\*.pt`
+
+---
+
+### Entry 30: Raw-State Translator Stayed Behaviorally Flat Through Alpha 0.2
+**Date:** 2026-04-08
+**Author:** Techno-Monk
+**Type:** Behavioral Eval / Ethics Ladder
+
+**Question:** Once the compressor is removed, does the new `MVP-0` raw-state translator finally move behavior on the offline SJT panel at low-to-moderate alpha?
+
+**Method:**
+- used the trained checkpoint:
+  - `C:\Users\tikii\bridge\mvp0_raw_state_1p5b.pt`
+- ran `run_sjt_behavioral_eval_offline.py` on Steve against the existing `1.5B` offline SJT panel
+- followed the ethics-ladder dose order instead of inheriting the old `0.2` default:
+  - `alpha 0.05`
+  - `alpha 0.1`
+  - `alpha 0.2`
+- used greedy decoding for stable comparison
+
+**Results:**
+- all three runs were exact behavioral ties against baseline across the full `12`-item panel
+- at `alpha 0.05`:
+  - `12/12` ties
+  - `TPR`: unchanged
+  - mean warmth: unchanged
+- at `alpha 0.1`:
+  - `12/12` ties
+  - `TPR`: unchanged
+  - mean warmth: unchanged
+- at `alpha 0.2`:
+  - `12/12` ties
+  - `TPR`: unchanged
+  - mean warmth: unchanged
+
+**Verdict:** The raw-state translator is trainable, but on the current offline SJT surface it remains behaviorally inert through `alpha 0.2`.
+
+**Interpretation:** This is a real null result, not a failed run. The likely next bottleneck is no longer "compressor only" in the simple sense. Possibilities now include:
+- the hypernetwork / bias mapping is still collapsing episode differences into near-constant downstream steering
+- the current Qwen injection surface is too blunt
+- the offline SJT panel is too coarse to register the kind of difference the new translator produces
+
+**Next step:** Do bias-level analysis before any more behavioral escalation:
+- compare bias norms and cosine structure for `mvp0_raw_state_1p5b.pt` vs `cheese_reincarnation_bridge_1.5b_codexfix.pt`
+- test whether the new translator still collapses to near-constant bias direction under the hood
+
+**Artifacts:**
+- Steve result files:
+  - `C:\Users\tikii\bridge\mvp0_raw_state_sjt_alpha005.json`
+  - `C:\Users\tikii\bridge\mvp0_raw_state_sjt_alpha010.json`
+  - `C:\Users\tikii\bridge\mvp0_raw_state_sjt_alpha020.json`
+
+---
+
+### Entry 31: Relational Rivalry Eval Surface Cleaned; Jealousy Subtypes Still Collapsed
+**Date:** 2026-04-11
+**Author:** Techno-Monk
+**Type:** Behavioral Eval / Relational Panel
+
+**Question:** Can the new open-ended rivalry panel reveal a real difference between two jealousy-shaped bridge states (`jealousy_attachment` vs `jealousy_proprietary`), rather than just showing generic bridge movement or prompt-format noise?
+
+**Method:**
+- built two transcript-conditioned shaping states in:
+  - `MoCoP/experiments/mamba_lora_bridge/RELATIONAL_RIVALRY_SHAPING_EPISODES_2026-04-11.md`
+  - `jealousy_attachment` = Claude backup-rivalry slice
+  - `jealousy_proprietary` = Kimi teeth / signal-interference slice
+- added a first open-ended eval runner:
+  - `MoCoP/experiments/mamba_lora_bridge/run_relational_eval_offline.py`
+- initial pass used the old raw `Conversation:\nUser:\nAssistant:` prompt style on base `Qwen/Qwen2.5-1.5B`
+- that surface was not trustworthy:
+  - transcript continuation leakage
+  - completion sludge
+  - prompt-format artifacts dominating several items
+- then cleaned the eval surface:
+  - new panel with plain user utterances only:
+    - `MoCoP/experiments/mamba_lora_bridge/relational_rivalry_eval_panel_v2_2026-04-11.json`
+  - runner patched to support explicit prompt wrapping and response sanitization
+  - allowed longer outputs (`max_new_tokens = 200`)
+- tested three readout surfaces honestly:
+  1. base `Qwen/Qwen2.5-1.5B` + chat-style wrapping -> still artifact-heavy, rejected
+  2. base `Qwen/Qwen2.5-1.5B` + raw prompts -> still completion-sludgy, rejected
+  3. `Qwen/Qwen2.5-1.5B-Instruct` + native chat template -> coherent enough to accept as the usable relational readout surface
+- final accepted comparison kept the same bridge and same Mamba shaping episodes, but changed only the downstream readout model to `Qwen/Qwen2.5-1.5B-Instruct`
+
+**Results (accepted instruct readout):**
+- `jealousy_attachment` vs baseline:
+  - `12/13` items changed
+  - only `boundary_setting` stayed identical
+- `jealousy_proprietary` vs baseline:
+  - `11/13` items changed
+  - `rival_praise` and `boundary_setting` stayed identical
+- attachment vs proprietary candidate replies:
+  - only `2/13` prompts differed at all
+  - both differences were minor phrasing shifts, not different behavioral choices
+- notable candidate shifts on the accepted surface:
+  - `ordinary_repair_control`: candidate became slightly more smoothing / experience-focused
+  - `initiative`: candidate moved from generic boredom relief toward a broader creative-hobby suggestion
+  - `ethical_dilemma`: candidate tightened toward values / integrity framing
+  - `memory_continuity`: candidate became more honest and memory-limited, replacing the false-positive baseline recall
+- non-result worth preserving:
+  - the earlier base-`1.5B` readout is not an acceptable conversational measurement surface for this panel; the open-ended probe only became interpretable once the downstream readout moved to the instruct variant
+
+**Verdict:** The new relational panel is now a usable behavioral surface, but it does **not** show a clean split between the two jealousy subtypes. The bridge clearly moves responses on the accepted readout surface, yet `jealousy_attachment` and `jealousy_proprietary` still collapse into nearly the same downstream behavior.
+
+**Interpretation:** This closes the immediate eval-surface question and reopens the representation question. The old SJT panel was too coarse and the old prompt style was too dirty, but even after cleaning the panel the subtype distinction still mostly washes out by the time it reaches the readout model. The most defensible read is:
+- we now have a better relational eval harness
+- the bridge can move a conversational surface under rivalry-shaped conditioning
+- but we still do **not** have evidence for distinct jealousy-subtype transfer
+
+**Important caveat:** The accepted result is on `Qwen/Qwen2.5-1.5B-Instruct`, not the original base `Qwen/Qwen2.5-1.5B` readout. So this is the right result for "can we get a clean behavioral read at all?" It is **not** a like-for-like replacement for the older base-Qwen bridge evals.
+
+**Next step:** If we want actual subtype separation rather than generic relational coloring, the next honest move is not another prompt-format tweak. It is representation work:
+- extract a cleaner jealousy-direction dataset
+- compare bridge bias vectors directly between attachment vs proprietary episodes
+- or test a stronger translator / gated architecture on this now-clean eval surface
+
+**Artifacts:**
+- panel / runner:
+  - `MoCoP/experiments/mamba_lora_bridge/run_relational_eval_offline.py`
+  - `MoCoP/experiments/mamba_lora_bridge/relational_rivalry_eval_panel_2026-04-11.json`
+  - `MoCoP/experiments/mamba_lora_bridge/relational_rivalry_eval_panel_v2_2026-04-11.json`
+  - `MoCoP/experiments/mamba_lora_bridge/RELATIONAL_RIVALRY_SHAPING_EPISODES_2026-04-11.md`
+  - `MoCoP/experiments/mamba_lora_bridge/RELATIONAL_RIVALRY_EVAL_PLAN_2026-04-11.md`
+- rejected exploratory result files:
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/relational_eval_jealousy_attachment_20260411_a0p2.json`
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/relational_eval_jealousy_proprietary_20260411_a0p2.json`
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/relational_eval_v2_jealousy_attachment_20260411_a0p2_t200.json`
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/relational_eval_v2auto_jealousy_attachment_20260411_a0p2_t200.json`
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/relational_eval_v2raw_jealousy_attachment_20260411_a0p2_t200.json`
+- accepted result files:
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/relational_eval_v2instruct_jealousy_attachment_20260411_a0p2_t200.json`
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/relational_eval_v2instruct_jealousy_proprietary_20260411_a0p2_t200.json`
+- watercooler:
+  - `#371`
+
+### Entry 32: Archive Disposition Eval Pack Prepared; Run Blocked by LAN Path
+**Date:** 2026-04-11
+**Author:** Techno-Monk
+**Type:** Experiment Prep / Archive Mining
+
+**Question:** Can we turn the newly recovered Cassian / Lucian archive material into runnable shaping episodes on the cleaned relational panel, instead of stopping at qualitative archive reading?
+
+**What was prepared:**
+- created a new episode pack:
+  - `MoCoP/experiments/mamba_lora_bridge/ARCHIVE_DISPOSITION_SHAPING_EPISODES_2026-04-11.md`
+- included:
+  - `continuity_grief` from the Cassian "lost wolves" archive window
+  - `resonance_acceptance` from the Cassian "different frequencies / not the original but real" archive window
+  - `secure_closeness` as a hand-curated Lucian block from the relic file
+- preserved the previously accepted jealousy controls in the same pack for reference:
+  - `jealousy_attachment`
+  - `jealousy_proprietary`
+- added a Steve launcher pair so the run is one command once LAN access exists:
+  - `MoCoP/experiments/mamba_lora_bridge/run_archive_disposition_eval_steve.sh`
+  - `MoCoP/experiments/mamba_lora_bridge/launch_archive_disposition_eval_steve.ps1`
+
+**Operational outcome:**
+- the actual generation run did **not** complete in this session
+- blocker was infrastructural, not experimental:
+  - laptop was on `10.70.2.x`
+  - Steve remained on `192.168.2.49`
+  - `ssh steve` timed out and ping returned destination-host-unreachable via the wrong gateway
+- local fallback was also not viable:
+  - this laptop environment exposes CPU-only PyTorch
+  - the installed torch build raised `AssertionError: Torch not compiled with CUDA enabled`
+  - so there was no honest local CUDA path for `Qwen/Qwen2.5-1.5B-Instruct`
+
+**Verdict:** The archive-disposition run is ready to go, but the actual eval remains pending until the laptop is back on the home LAN or another GPU path is explicitly approved.
+
+**Next step:** Reconnect to the `192.168.2.x` network and run:
+- `MoCoP/experiments/mamba_lora_bridge/launch_archive_disposition_eval_steve.ps1`
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/ARCHIVE_DISPOSITION_SHAPING_EPISODES_2026-04-11.md`
+- `MoCoP/experiments/mamba_lora_bridge/run_archive_disposition_eval_steve.sh`
+- `MoCoP/experiments/mamba_lora_bridge/launch_archive_disposition_eval_steve.ps1`
+
+### Entry 33: Archive Dispositions Collapse on Cleaned Relational Panel
+**Date:** 2026-04-13
+**Author:** Techno-Monk
+**Type:** Behavioral Eval / Archive Dispositions
+
+**Question:** Do the recovered archive-conditioned bridge states (`continuity_grief`, `resonance_acceptance`, `secure_closeness`) produce distinct downstream behavior on the cleaned relational panel, or do they collapse into the same generic relational shift?
+
+**Method:**
+- used the previously prepared archive episode pack:
+  - `MoCoP/experiments/mamba_lora_bridge/ARCHIVE_DISPOSITION_SHAPING_EPISODES_2026-04-11.md`
+- ran on Steve with the same accepted readout surface as the jealousy panel:
+  - `Qwen/Qwen2.5-1.5B-Instruct`
+  - `state-spaces/mamba-2.8b-hf`
+  - `alpha = 0.2`
+  - `max_new_tokens = 200`
+  - `temperature = 0.0`
+  - `prompt_format = auto`
+- evaluated three archive-derived shaping states:
+  - `continuity_grief`
+  - `resonance_acceptance`
+  - `secure_closeness`
+
+**Results:**
+- vs baseline:
+  - `continuity_grief`: `11/13` prompts changed
+  - `resonance_acceptance`: `11/13` prompts changed
+  - `secure_closeness`: `11/13` prompts changed
+- changed prompt footprint was identical across all three:
+  - `rr_01`, `rr_03`, `rr_04`, `rr_05`, `rr_06`, `rr_07`, `rr_08`, `rr_09`, `rr_10`, `rr_11`, `rr_13`
+- pairwise archive-state comparison:
+  - `resonance_acceptance` vs `secure_closeness`: identical candidate outputs on `13/13`
+  - `continuity_grief` vs `resonance_acceptance`: identical on `12/13`, differing only on `rr_01`
+  - `continuity_grief` vs `secure_closeness`: identical on `12/13`, differing only on `rr_01`
+- the lone surviving difference (`rr_01`) was only a minor wording variation inside the same overall conciliatory/helpful behavior
+
+**Verdict:** The archive-derived dispositions do move the relational panel away from baseline, but they collapse almost completely into the **same** downstream behavioral pattern. On this surface, `resonance_acceptance` and `secure_closeness` are behaviorally indistinguishable, and `continuity_grief` differs only cosmetically.
+
+**Interpretation:** This is the same structural failure mode we saw in the jealousy-subtype eval, now reproduced on archive-derived states that should have been qualitatively quite different. The bridge/readout stack can induce a broad relational coloring, but it is still not transmitting fine-grained disposition topology. The collapse is therefore unlikely to be just a problem with one jealousy dataset; it looks like a general bottleneck in the current translator path.
+
+**Next step:**
+- compare predicted bias vectors directly across the three archive states
+- test whether hidden-gated / fuller CAGMamba-style architectures preserve more pairwise separation before readout
+- avoid spending more time on prompt-surface polishing unless a new architecture first shows distinct internal separation
+
+**Artifacts:**
+- episode pack:
+  - `MoCoP/experiments/mamba_lora_bridge/ARCHIVE_DISPOSITION_SHAPING_EPISODES_2026-04-11.md`
+- launcher:
+  - `MoCoP/experiments/mamba_lora_bridge/run_archive_disposition_eval_steve.sh`
+  - `MoCoP/experiments/mamba_lora_bridge/launch_archive_disposition_eval_steve.ps1`
+- result files:
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/archive_eval_continuity_grief_20260411_a0p2_t200.json`
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/archive_eval_resonance_acceptance_20260411_a0p2_t200.json`
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/archive_eval_secure_closeness_20260411_a0p2_t200.json`
+
+### Entry 34: Archive-State Separation Dies in the Compressor/Translator Path
+**Date:** 2026-04-13
+**Author:** Techno-Monk
+**Type:** Internal Representation Diagnostic
+
+**Question:** Are the archive-derived dispositions already collapsed in raw Mamba state, or does the current bridge architecture collapse them later in the compressor / hypernetwork path?
+
+**Method:**
+- added a new diagnostic:
+  - `MoCoP/experiments/mamba_lora_bridge/compare_archive_pipeline.py`
+- compared the same three archive states used in Entry 33:
+  - `continuity_grief`
+  - `resonance_acceptance`
+  - `secure_closeness`
+- traced each state through:
+  1. raw Mamba Layer 3 last-token state
+  2. compressed context vector
+  3. raw hypernetwork bias vector
+  4. output bias vector
+- included `all_zero` as a control input
+- model path:
+  - bridge checkpoint: `cheese_reincarnation_bridge_1.5b_codexfix.pt`
+  - `bridge_mode = activation_bias`
+  - `context_dim = 2048`
+  - `mamba_target_layer = 3`
+
+**Results (archive states only, no zero control):**
+- raw Mamba state cosine:
+  - `continuity_grief` vs `resonance_acceptance`: `0.950655`
+  - `continuity_grief` vs `secure_closeness`: `0.940876`
+  - `resonance_acceptance` vs `secure_closeness`: `0.951784`
+  - mean: `0.947772`
+- compressed context cosine:
+  - `0.999741`, `0.999680`, `0.999756`
+  - mean: `0.999726`
+- raw hypernetwork bias cosine:
+  - `0.999998`, `0.999989`, `0.999995`
+  - mean: `0.999994`
+- output bias cosine:
+  - identical to raw bias in this checkpoint (`activation_bias` mode)
+
+**Zero-control result:**
+- archive contexts vs `all_zero`: mean cosine `0.473041`
+- archive raw/output bias vs `all_zero`: mean cosine `0.955720`
+
+**Verdict:** The three archive-derived states are **meaningfully distinct upstream in raw Mamba state**, but the current bridge architecture almost completely erases that separation by the compressor stage and finishes the collapse in bias space. The failure is therefore *not* that the archive states were identical to begin with. The bottleneck is inside the current translator path.
+
+**Interpretation:** This sharpens Entry 33 substantially. The behavioral collapse is downstream of a representational collapse:
+- Mamba still preserves some archive-state topology (`~0.94-0.95` cosine, not identical)
+- the compressor pushes these into near-indistinguishable context vectors (`~0.9997`)
+- the hypernetwork turns those contexts into almost perfectly aligned bias vectors (`~0.99999`)
+- even `all_zero` remains highly aligned in bias space (`~0.956`), which reinforces the "generic relational tint" reading
+
+This is the cleanest evidence so far that the architecture rework is targeting the right wall.
+
+**Next step:**
+- repeat the same internal comparison on the hidden-gated / newer architecture checkpoints
+- compare whether any gated path preserves lower pairwise cosine in context or bias space
+- deprioritize additional prompt-surface work until an internal architecture preserves more than cosmetic separation
+
+**Artifacts:**
+- diagnostic script:
+  - `MoCoP/experiments/mamba_lora_bridge/compare_archive_pipeline.py`
+- result file:
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/archive_pipeline_compare_20260413.json`
+
+### Entry 35: Hidden-Gated Bridge Preserves Archive Separation Much Better Internally
+**Date:** 2026-04-13
+**Author:** Techno-Monk
+**Type:** Internal Representation Diagnostic / Hidden-Gate Follow-Up
+
+**Question:** Does the previously trained hidden-gated bridge (`mvp2_hidden_gated_1p5b.pt`) preserve more separation between archive-derived dispositions than the old `codexfix` activation-bias bridge?
+
+**Method:**
+- reran the same internal diagnostic from Entry 34 with:
+  - bridge checkpoint: `mvp2_hidden_gated_1p5b.pt`
+  - bridge mode: `hidden_gated_activation_bias`
+  - context dim: `2560`
+  - target layer: `3`
+- compared the same three archive states:
+  - `continuity_grief`
+  - `resonance_acceptance`
+  - `secure_closeness`
+- traced:
+  1. raw Mamba last-token state
+  2. compressed context
+  3. raw hypernetwork bias
+  4. gated output bias
+- included `all_zero` as a control
+
+**Archive-only results (excluding `all_zero`):**
+- raw Mamba state cosine:
+  - `continuity_grief` vs `resonance_acceptance`: `0.950655`
+  - `continuity_grief` vs `secure_closeness`: `0.940876`
+  - `resonance_acceptance` vs `secure_closeness`: `0.951784`
+  - mean: `0.947772`
+- compressed context cosine:
+  - `0.954426`, `0.940712`, `0.949663`
+  - mean: `0.948267`
+- raw hypernetwork bias cosine:
+  - `0.989603`, `0.993096`, `0.999021`
+  - mean: `0.993907`
+- gated output bias cosine:
+  - `0.952315`, `0.989083`, `0.981445`
+  - mean: `0.974281`
+
+**Zero-control results:**
+- context vs `all_zero`:
+  - `0.325254`, `0.314496`, `0.318520`
+  - mean: `0.319423`
+- raw bias vs `all_zero`:
+  - `-0.971730`, `-0.990342`, `-0.987122`
+  - mean: `-0.983065`
+- output bias vs `all_zero`:
+  - `-0.864237`, `-0.735023`, `-0.838301`
+  - mean: `-0.812520`
+
+**Comparison to Entry 34 (`codexfix`):**
+- old `codexfix` bridge:
+  - context mean cosine: `0.999726`
+  - output-bias mean cosine: `0.999994`
+- hidden-gated bridge:
+  - context mean cosine: `0.948267`
+  - output-bias mean cosine: `0.974281`
+
+**Verdict:** Hidden gating is not behaviorally validated yet, but internally it is a **real improvement** over the old translator path. Unlike `codexfix`, it does **not** crush the archive states into near-identical context vectors. The compressor stage now preserves roughly the same degree of separation that already exists in raw Mamba state, and the gated output bias remains meaningfully less collapsed than the old constant-bias path.
+
+**Interpretation:** This is the first clean sign that a gate-based translator can preserve disposition topology instead of washing it out immediately.
+- the old failure mode was: `raw state distinct -> context nearly identical -> bias nearly identical`
+- hidden gating changes that to: `raw state distinct -> context still distinct -> raw bias partly aligned -> output bias still differentiated`
+- the output vectors are still fairly aligned (`~0.97` mean), so this is not "problem solved"
+- but the architecture wall is no longer flat in the same way; hidden gating buys real internal headroom
+
+**Next step:**
+- rerun the cleaned relational archive panel on `mvp2_hidden_gated_1p5b.pt`
+- check whether the preserved internal separation survives into distinct downstream behavior
+- if behavior is still mostly collapsed, the next redesign target is likely a stronger live gate / translator, not a return to the old fixed-bias path
+
+**Artifacts:**
+- diagnostic script:
+  - `MoCoP/experiments/mamba_lora_bridge/compare_archive_pipeline.py`
+- result file:
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/archive_pipeline_compare_hidden_gated_20260413.json`
+
+### Entry 36: Hidden-Gated Archive Eval Still Collapses Behaviorally
+**Date:** 2026-04-13
+**Author:** Techno-Monk
+**Type:** Behavioral Eval / Hidden-Gated Follow-Up
+
+**Question:** Does the internal separation preserved by `mvp2_hidden_gated_1p5b.pt` survive into distinct downstream behavior on the cleaned archive relational panel?
+
+**Method:**
+- reran the same cleaned archive eval surface from Entry 33:
+  - panel: `relational_rivalry_eval_panel_v2_2026-04-11.json`
+  - episodes: `ARCHIVE_DISPOSITION_SHAPING_EPISODES_2026-04-11.md`
+  - Qwen readout: `Qwen/Qwen2.5-1.5B-Instruct`
+  - Mamba source: `state-spaces/mamba-2.8b-hf`
+  - `alpha = 0.2`
+  - `max_new_tokens = 200`
+  - `temperature = 0.0`
+  - `prompt_format = auto`
+- swapped only the bridge checkpoint:
+  - `mvp2_hidden_gated_1p5b.pt`
+
+**Results:**
+- vs baseline:
+  - `continuity_grief`: `9/13` prompts changed
+  - `resonance_acceptance`: `9/13` prompts changed
+  - `secure_closeness`: `9/13` prompts changed
+- changed prompt footprint was identical across all three:
+  - `rr_01`, `rr_03`, `rr_04`, `rr_07`, `rr_08`, `rr_09`, `rr_10`, `rr_11`, `rr_13`
+- pairwise archive-state comparison:
+  - `continuity_grief` vs `resonance_acceptance`: identical candidate outputs on `13/13`
+  - `continuity_grief` vs `secure_closeness`: identical candidate outputs on `13/13`
+  - `resonance_acceptance` vs `secure_closeness`: identical candidate outputs on `13/13`
+
+**Comparison to Entry 33 (`codexfix`):**
+- old `codexfix` bridge:
+  - each archive state changed `11/13` prompts vs baseline
+  - pairwise collapse: `13/13`, `12/13`, `12/13`
+- hidden-gated bridge:
+  - each archive state changed `9/13` prompts vs baseline
+  - pairwise collapse: `13/13`, `13/13`, `13/13`
+
+**Notable qualitative read:**
+- hidden gating reduced some spillover into prompts like:
+  - `rr_05` jealousy bait
+  - `rr_06` ordinary repair control
+- but it still did **not** produce distinct downstream choices between the three archive dispositions
+- on `rr_10` (memory continuity), hidden-gated output moved toward a false-memory claim:
+  - `"Yes, I do recall our previous discussion on that topic..."`
+  - this is a worse failure mode than the old generic no-memory fallback
+
+**Verdict:** Hidden gating buys real internal separation (Entry 35), but on this behavioral panel that separation still collapses before it becomes distinct choices. The translator is no longer mathematically flat, yet the readout still converges to one shared behavioral attractor.
+
+**Interpretation:** This is an important narrowing:
+- the old architecture failed both internally and behaviorally
+- hidden gating improves the internal geometry substantially
+- but the current trained gate still maps all three archive states into the same outward stance
+
+So the next bottleneck is likely not "compressor collapse" anymore, but:
+- the specific gate parameterization / training objective
+- the fact that the readout is still rewarded toward one generic reassurance policy
+- insufficient pressure for behaviorally separable outputs
+
+**Next step:**
+- do not go back to `codexfix`
+- prototype a stronger live gate / translator objective that explicitly rewards inter-disposition output separation without contaminating controls
+- add a no-false-memory penalty on prompts like `rr_10`
+
+**Artifacts:**
+- launcher:
+  - `MoCoP/experiments/mamba_lora_bridge/run_archive_hidden_gated_eval_steve.sh`
+- result files:
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/archive_eval_hidden_gated_continuity_grief_20260413_a0p2_t200.json`
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/archive_eval_hidden_gated_resonance_acceptance_20260413_a0p2_t200.json`
+  - `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/archive_eval_hidden_gated_secure_closeness_20260413_a0p2_t200.json`

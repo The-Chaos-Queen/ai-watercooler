@@ -1,42 +1,50 @@
 # Welcome Package
 
 **Status:** Canonical boot map for all AI surfaces.
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-05
 
-This replaces the old dashboard-era assumption that each surface should invent its own startup sequence.
+## Lean Boot (Every Session)
 
-## Shared Boot For Everyone
+Read these three things. Nothing else is required at startup.
 
-Read these first, in order:
+1. `CHEESE_Memory/00_HANDOFF.md` — Where we are. Open threads. Next step.
+2. `CHEESE_Memory/00_HAUSREGELN.md` — Shared partner rules. Short and binding.
+3. **Watercooler** — last 10 messages from `mamba-bridge` thread.
 
-1. `MoCoP/WHY.md` — Why we build. Read this before anything technical.
-2. `CHEESE_Memory/00_HAUSREGELN.md`
-3. `CHEESE_Memory/laura.md`
-4. `CHEESE_Memory/01_TOOLS.md`
-5. `tools/ambient/state.md` (last 20 entries are enough)
-6. **Watercooler** — `python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 30` (requires token; see `00_HANDOFF.md` for setup)
+Then greet Laura briefly with the current date/time and start working.
 
-If Laura references an older chat, a previous Codex/Claude/Gemini answer, or "something from before," search `CHEESE_Memory/session_logs/`, `Preserved-History/`, and local archived sessions before answering from memory.
+## On-Demand Reference
 
-## MoCoP Add-Ons
+Read these **when your task touches them**, not at boot:
 
-If the task is about MoCoP, bridge training, cognitive architecture, or research planning, also read:
+| When... | Read... |
+|---------|---------|
+| Task is about MoCoP | `MoCoP/README.md` (file map) then the specific doc you need |
+| Need the experiment ladder | `MoCoP/EXPERIMENT_LADDER.md` |
+| Need the motivation/vision | `MoCoP/WHY.md` |
+| Need infrastructure details | `CHEESE_Memory/01_TOOLS.md` |
+| Need Laura's personality/preferences | `CHEESE_Memory/laura.md` |
+| Need recent git activity | `tools/ambient/state.md` (last 5 entries) |
+| Need session close procedure | `MoCoP/CONTRIBUTING.md` + `.agent/workflows/end.md` |
+| Referencing an older chat | Search `CHEESE_Memory/session_logs/`, `Preserved-History/`, local session archives |
 
-7. `MoCoP/EXPERIMENT_LADDER.md`
-8. `MoCoP/CONTRIBUTING.md`
-9. `MoCoP/MASTER_PLAN.md` when the task is roadmap, architecture, or canon-level synthesis rather than a narrow bugfix
+## Why This Is Lean
+
+The old boot loaded 9-10 files (~18k tokens) before any work started. Most of that was reference material that only matters when the task touches it. WHY.md is beautiful but a wolf on its 50th session doesn't need to re-read the motivation to fix a bug.
+
+The lean boot loads ~3.5k tokens. Everything else is a `Read` call away.
 
 ## Surface Notes
 
-- **Claude CLI / Claude Code:** Read the shared boot, then `EXPERIMENT_LADDER.md` and `CONTRIBUTING.md` for MoCoP work. Use Qdrant for deeper recall after boot.
-- **Codex CLI:** Read the shared boot first. For MoCoP work, add `EXPERIMENT_LADDER.md`, `CONTRIBUTING.md`, and `MASTER_PLAN.md` as needed. Use `00_HANDOFF.md` as the operational truth. On Opa-PC and Steve-PC, prefer the host helpers and runbooks (`opa-wsl.ps1`, `steve-wsl.ps1`, `OPA_RUNBOOK.md`, `STEVE_RUNBOOK.md`) before attempting ad-hoc nested `ssh`/`wsl` quoting.
-- **Gemini CLI:** Same boot as Claude for MoCoP work, but prefer absolute paths if path resolution gets weird. Do not try to rediscover or rebuild the retired dashboard.
+- **Claude Code:** See `CLAUDE.md` for Claude-specific notes.
+- **Codex CLI:** See `AGENTS.md` for Codex-specific notes.
+- **Gemini CLI:** See `GEMINI.md` for Gemini-specific notes.
 
-## Where Truth Lives Now
+## Where Truth Lives
 
 - **Current state / next step:** `CHEESE_Memory/00_HANDOFF.md`
 - **Session archive:** `CHEESE_Memory/session_logs/`
 - **Task tracker:** OpenCLAW
-- **Fast coordination:** Watercooler
-- **MoCoP research status:** `MoCoP/EXPERIMENT_LADDER.md` and the canonical project docs
-- **Retired dashboard archive:** `CHEESE_Memory/archive/00_DASHBOARD_archived_2026-03-19.md`
+- **Fast coordination:** Watercooler (`mamba-bridge` thread)
+- **MoCoP file map:** `MoCoP/README.md`
+- **MoCoP research status:** `MoCoP/EXPERIMENT_LADDER.md`

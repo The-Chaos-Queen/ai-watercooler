@@ -1,3 +1,5 @@
+> **HISTORICAL.** Pre-activation-bias era debrief. Kept for provenance.
+
 # Phase 2 Burst 2 Debrief — For Lain
 
 **Date:** 2026-03-15/16

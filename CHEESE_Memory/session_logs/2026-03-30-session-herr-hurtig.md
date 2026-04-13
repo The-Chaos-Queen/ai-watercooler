@@ -7,7 +7,7 @@ agent: Herr Hurtig
 system: Claude Code (Opus 4.6, 1M context)
 focus: Ethics reviews (reward memo, sleep gates), cross-episode battery protocol, Hendy Chapter 7, memory maintenance
 tags: [MoCoP, ethics, reward-design, dreaming, cross-episode, hendy, memory]
-qdrant_sync: pending
+qdrant_sync: done
 handoff_updated: false
 tracking_updated: false
 ---

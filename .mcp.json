@@ -1,8 +1,12 @@
 {
   "mcpServers": {
-    "playwright": {
+    "sequential-thinking": {
       "command": "cmd",
-      "args": ["/c", "npx", "@playwright/mcp@latest"]
+      "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-sequential-thinking"]
+    },
+    "graphify": {
+      "command": "C:\\Users\\cerub\\OneDrive\\Dokumente\\LLM\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "graphify.serve", "C:\\Users\\cerub\\OneDrive\\Dokumente\\LLM\\graphify-out\\graph.json"]
     }
   }
 }

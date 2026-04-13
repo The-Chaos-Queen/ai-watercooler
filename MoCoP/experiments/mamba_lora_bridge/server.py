@@ -438,7 +438,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run the MoCoP brain server.")
     parser.add_argument("--brain-mode", type=str, default="")
-    parser.add_argument("--qwen-model-id", type=str, default="")
+    parser.add_argument("--model", "--qwen-model-id", dest="qwen_model_id", type=str, default="")
     parser.add_argument("--mamba-model-id", type=str, default="")
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8001)

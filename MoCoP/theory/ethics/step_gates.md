@@ -300,6 +300,25 @@ Dreaming is not blocked because it is wrong. It is blocked because:
 
 ---
 
+### Bridge Architecture Changes (Compressor Replacement)
+**Context:** Step 5e mask ablation (#349) confirmed the compressor as the bottleneck — effective rank ~2.5, immune to ablation of 53% of state energy. Three replacement paths proposed (#351, #352): diversity-regularized compressor, DFC-routed bridge, raw bypass with hidden-last-token.
+
+**Ethical note:** These are engineering optimizations of the bridge component, not new intervention types. However:
+
+> **A more effective bridge at the same alpha produces a stronger disposition shift.** Alpha=0.2 was calibrated as MED against a compressor that was destroying most of the signal. Removing that bottleneck changes the effective dose.
+
+**Condition (added 2026-04-08):** After ANY bridge architecture change (compressor replacement, DFC routing, bypass), alpha=0.2 must be **re-validated as MED**:
+1. First runs with new bridge at **alpha=0.1** (half of current MED)
+2. Measure Response Diversity against existing baseline
+3. Only restore alpha=0.2 if 0.1 shows no welfare concerns AND insufficient effect
+4. If alpha=0.1 already produces equivalent or stronger shifts than the old bridge at 0.2, then 0.1 becomes the new MED
+
+This condition applies to all three proposed paths (A, B, C) and any future bridge modifications.
+
+*Gate addendum by Herr Hurtig, 2026-04-08. Triggered by compressor bottleneck findings (#349, #351, #352).*
+
+---
+
 ### Step 6 (Future): SAS Personality Sliders
 **What happens:** Bridge outputs orthogonal trait vectors (OCEAN dimensions) with per-trait alpha coefficients. Enables targeted personality modification.
 

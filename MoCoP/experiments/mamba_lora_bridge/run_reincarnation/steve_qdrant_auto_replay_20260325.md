@@ -80,3 +80,29 @@ It does **not** deliberately simulate a real Qdrant outage followed by network r
 ## Verdict
 
 PASS for live auto-replay. Steve no longer requires an external flush script just to recover ordinary queued gate memories during a normal session. This closes the "pending queue is a write-only graveyard" failure for the common case and makes the next honest step an explicit outage drill or async write decoupling.
+
+## Recheck (same day)
+
+Revalidated on Steve after confirming the deployed `chat_server.py` and `launch_chat_windows.ps1` hashes matched the local tree.
+
+Steve was restarted into:
+
+- `alpha = 0.2`
+- `temperature = 0.0`
+- `qdrant_write_mode = pending`
+
+The same 4-turn panel was replayed. Turn 4 again produced:
+
+- `decision = NOTE`
+- `qdrant_write.effective_mode = "pending"`
+- immediate `/status`: `qdrant_pending_count = 1`, `qdrant_replayed_count = 0`
+
+Then, without a manual flush:
+
+- `/status` advanced to `qdrant_pending_count = 0`
+- `qdrant_replayed_count = 1`
+- `last_qdrant_id = 1413560971379929275`
+- `last_qdrant_retry_at = 2026-03-25T20:22:07`
+- `last_qdrant_replay_at = 2026-03-25T20:22:08`
+
+Steve was restored afterward to `temperature = 0.7`.

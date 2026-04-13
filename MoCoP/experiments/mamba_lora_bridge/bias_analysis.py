@@ -31,7 +31,7 @@ import numpy as np
 
 # Add parent dir so we can import models.py
 sys.path.insert(0, str(Path(__file__).parent))
-from models import ActivationBiasHypernetwork
+from models import build_activation_bias_hypernetwork
 
 
 def load_hypernetwork_from_checkpoint(checkpoint_path: Path) -> tuple:
@@ -43,9 +43,9 @@ def load_hypernetwork_from_checkpoint(checkpoint_path: Path) -> tuple:
     target_specs = ckpt["target_specs"]
     bridge_mode = ckpt.get("bridge_mode", "lora")
 
-    if bridge_mode != "activation_bias":
-        print(f"WARNING: checkpoint bridge_mode is '{bridge_mode}', not 'activation_bias'.")
-        print("Bias analysis may not be meaningful for LoRA checkpoints.")
+    if bridge_mode not in {"activation_bias", "gated_activation_bias"}:
+        print(f"WARNING: checkpoint bridge_mode is '{bridge_mode}', not an activation-bias mode.")
+        print("Bias analysis may not be meaningful for this checkpoint.")
 
     # Reconstruct target_dims from the hypernetwork state dict
     # ActivationBiasHypernetwork uses (in_dim, out_dim) tuples but only reads out_dim
@@ -57,10 +57,13 @@ def load_hypernetwork_from_checkpoint(checkpoint_path: Path) -> tuple:
     context_dim = bridge_config.get("context_dim", 2048)
     hidden_dim = bridge_config.get("hyper_hidden_dim", 1024)
 
-    hypernet = ActivationBiasHypernetwork(
+    hypernet = build_activation_bias_hypernetwork(
+        bridge_mode=bridge_mode,
         context_dim=context_dim,
         target_dims=target_dims,
         hidden_dim=hidden_dim,
+        gate_kind=bridge_config.get("gate_kind", "vector"),
+        initial_gate=float(bridge_config.get("initial_gate", 0.1)),
     )
     hypernet.load_state_dict(ckpt["hypernetwork_state_dict"])
     hypernet.eval()
@@ -114,7 +117,7 @@ def load_contexts_and_predictions(run_dir: Path, epoch: int) -> tuple:
     return train_ctx, eval_ctx, predictions, train_kinds, eval_kinds
 
 
-def get_bias_vectors(hypernet: ActivationBiasHypernetwork, contexts: torch.Tensor) -> torch.Tensor:
+def get_bias_vectors(hypernet, contexts: torch.Tensor) -> torch.Tensor:
     """Forward contexts through hypernetwork, concatenate all layer biases into one vector per sample."""
     with torch.no_grad():
         biases_per_layer = hypernet(contexts)

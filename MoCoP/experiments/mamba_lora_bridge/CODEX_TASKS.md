@@ -1,3 +1,5 @@
+> **HISTORICAL.** All tasks completed or superseded. See OpenCLAW for current task tracking.
+
 # Codex Task Queue — 2026-03-15 (Post-Burst)
 
 Context: A3 (contiguous mid-block layers 12-15, q+v, lr=2e-5) produced the first non-zero bridge signal. Two prompt surfaces tested (ChatML: 2/8 recall, completion: 1/8 recall but best PPL at 29.14 vs baseline 30.99). Next burst will scale A3 to 64 samples. These tasks prepare for that.

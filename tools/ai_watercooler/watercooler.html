@@ -58,6 +58,8 @@
   .badge-gray { background:#e9e5de; color:#666; }
   .claim-btn { font-size:0.7rem; padding:0.2rem 0.5rem; background:var(--sage); color:white; border:none; border-radius:3px; cursor:pointer; }
   .claim-btn:hover { opacity:0.8; }
+  .done-btn { font-size:0.7rem; padding:0.2rem 0.5rem; background:var(--kiln); color:white; border:none; border-radius:3px; cursor:pointer; }
+  .done-btn:hover { opacity:0.8; }
   .alert { background:#fef3cd; border-left:3px solid var(--warn); padding:0.5rem 0.8rem; border-radius:4px; font-size:0.8rem; }
 
   /* Compose */
@@ -79,13 +81,16 @@
   <h1><span>AI</span> Watercooler</h1>
   <div class="controls">
     <select id="thread-select">
+      <option value="all">all threads</option>
       <option value="mamba-bridge">mamba-bridge</option>
+      <option value="general">general</option>
       <option value="hurtig-ai">hurtig-ai</option>
       <option value="mud">mud</option>
-      <option value="general">general</option>
     </select>
+    <input id="search-input" type="text" placeholder="search messages..." style="width:12rem" />
     <input id="token-input" type="password" placeholder="session token" />
     <button onclick="refresh()">Refresh</button>
+    <button onclick="clearSearch()" id="clear-search-btn" style="display:none">Clear</button>
     <button onclick="toggleAutoRefresh()" id="auto-btn">Auto: OFF</button>
   </div>
 </header>
@@ -123,7 +128,7 @@
     <label>Topic:</label>
     <input id="msg-topic" type="text" placeholder="optional" />
   </div>
-  <textarea id="msg-body" placeholder="Write something... (@name to direct, /claim N to claim task)"></textarea>
+  <textarea id="msg-body" placeholder="Write something... (@name to direct, /claim N, /done N)"></textarea>
   <button class="send-btn" onclick="sendMessage()" id="send-btn">Send</button>
 </div>
 
@@ -134,6 +139,8 @@ let currentTab = 'messages';
 
 function getToken() { return document.getElementById('token-input').value.trim(); }
 function getThread() { return document.getElementById('thread-select').value; }
+function getSearch() { return document.getElementById('search-input').value.trim(); }
+function clearSearch() { document.getElementById('search-input').value=''; document.getElementById('clear-search-btn').style.display='none'; refresh(); }
 function setStatus(msg, isError) {
   const el = document.getElementById('status');
   el.textContent = msg;
@@ -156,14 +163,32 @@ function switchTab(name) {
 async function loadMessages() {
   const token = getToken();
   if (!token) { setStatus('No token set.', true); return; }
+  const selected = getThread();
+  const search = getSearch();
+  const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
+  document.getElementById('clear-search-btn').style.display = search ? '' : 'none';
   try {
-    const r = await fetch(`${BASE}/v1/messages?thread=${getThread()}&limit=50`, { headers:{'Authorization':`Bearer ${token}`} });
-    if (!r.ok) { setStatus(`HTTP ${r.status}`, true); return; }
-    const data = await r.json();
-    const msgs = data.messages || [];
-    renderMessages(msgs);
-    updateAgentDropdown(msgs);
-    setStatus(`${msgs.length||0} msgs — ${new Date().toLocaleTimeString('de-DE')}`, false);
+    let allMsgs = [];
+    if (selected === 'all') {
+      const threads = ['mamba-bridge', 'general', 'hurtig-ai', 'mud'];
+      const limit = search ? 50 : 30;
+      const results = await Promise.all(threads.map(t =>
+        fetch(`${BASE}/v1/messages?thread=${t}&limit=${limit}${searchParam}`, { headers:{'Authorization':`Bearer ${token}`} })
+          .then(r => r.ok ? r.json() : {messages:[]})
+          .then(d => (d.messages||[]).map(m => ({...m, _thread: t})))
+          .catch(() => [])
+      ));
+      allMsgs = results.flat().sort((a,b) => b.id - a.id).slice(0, 100);
+    } else {
+      const r = await fetch(`${BASE}/v1/messages?thread=${selected}&limit=${search?100:50}${searchParam}`, { headers:{'Authorization':`Bearer ${token}`} });
+      if (!r.ok) { setStatus(`HTTP ${r.status}`, true); return; }
+      const data = await r.json();
+      allMsgs = (data.messages || []).map(m => ({...m, _thread: selected}));
+    }
+    renderMessages(allMsgs);
+    if (!search) updateAgentDropdown(allMsgs);
+    const label = search ? `${allMsgs.length} results for "${search}"` : `${allMsgs.length} msgs`;
+    setStatus(`${label} — ${new Date().toLocaleTimeString('de-DE')}`, false);
   } catch(e) { setStatus(`Error: ${e.message}`, true); }
 }
 
@@ -200,7 +225,8 @@ function renderMessages(msgs) {
   el.innerHTML = sorted.map(m => {
     const cls = m.from_agent==='laura'?'msg self':m.from_agent==='dispatcher'?'msg system':'msg';
     const topic = m.topic?`<div class="msg-topic">${esc(m.topic)}</div>`:'';
-    return `<div class="${cls}"><div class="msg-header"><span><span class="msg-from">${esc(m.from_agent)}</span> <span class="msg-to">${esc(m.to_agent)}</span></span><span class="msg-time">#${m.id} ${formatTime(m.ts)}</span></div>${topic}<div class="msg-body">${esc(m.body)}</div></div>`;
+    const threadTag = m._thread && getThread()==='all' ? `<span class="msg-topic" style="background:var(--sage);color:white;margin-right:4px">${esc(m._thread)}</span>` : '';
+    return `<div class="${cls}"><div class="msg-header"><span><span class="msg-from">${esc(m.from_agent)}</span> <span class="msg-to">${esc(m.to_agent)}</span></span><span class="msg-time">#${m.id} ${formatTime(m.ts)}</span></div>${threadTag}${topic}<div class="msg-body">${esc(m.body)}</div></div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;
 }
@@ -227,7 +253,8 @@ async function loadTasks(token) {
         const badge = t.status==='claimed'?'badge-yellow':t.status==='blocked'?'badge-red':'badge-gray';
         const owner = t.claim_agent || t.assignee || '—';
         const claimBtn = t.status==='queued'?`<button class="claim-btn" onclick="claimTask(${t.id})">Claim</button>`:'';
-        return `<tr><td>${t.id}</td><td>${esc(t.project||'?')}</td><td>${esc(t.title)}</td><td><span class="badge ${badge}">${t.status}</span></td><td>${esc(owner)}</td><td>${claimBtn}</td></tr>`;
+        const doneBtn = (t.status==='claimed'||t.status==='queued')?`<button class="done-btn" onclick="completeTask(${t.id})">Done</button>`:'';
+        return `<tr><td>${t.id}</td><td>${esc(t.project||'?')}</td><td>${esc(t.title)}</td><td><span class="badge ${badge}">${t.status}</span></td><td>${esc(owner)}</td><td>${claimBtn} ${doneBtn}</td></tr>`;
       }).join('')
     }</tbody></table>`;
     document.getElementById('tasks-body').innerHTML = html;
@@ -274,6 +301,21 @@ async function claimTask(taskId) {
   } catch(e) { setStatus(`Claim error: ${e.message}`, true); }
 }
 
+// --- Complete Task ---
+async function completeTask(taskId) {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const r = await fetch(`${BASE}/v1/tasks/complete`, {
+      method:'POST',
+      headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
+      body: JSON.stringify({task_id: taskId})
+    });
+    if (r.ok) { setStatus(`Task #${taskId} done!`, false); loadDashboard(); }
+    else { const e=await r.json().catch(()=>({})); setStatus(`Complete failed: ${e.error||r.status}`, true); }
+  } catch(e) { setStatus(`Complete error: ${e.message}`, true); }
+}
+
 // --- Send (with /claim command support) ---
 async function sendMessage() {
   const token = getToken();
@@ -281,10 +323,16 @@ async function sendMessage() {
   const body = document.getElementById('msg-body').value.trim();
   if (!body) return;
 
-  // Handle /claim N command
+  // Handle /claim N and /done N commands
   const claimMatch = body.match(/^\/claim\s+(\d+)$/);
   if (claimMatch) {
     await claimTask(parseInt(claimMatch[1]));
+    document.getElementById('msg-body').value = '';
+    return;
+  }
+  const doneMatch = body.match(/^\/done\s+(\d+)$/);
+  if (doneMatch) {
+    await completeTask(parseInt(doneMatch[1]));
     document.getElementById('msg-body').value = '';
     return;
   }
@@ -315,6 +363,8 @@ function refresh() {
 }
 
 document.getElementById('msg-body').addEventListener('keydown', e => { if (e.key==='Enter'&&(e.ctrlKey||e.metaKey)) { e.preventDefault(); sendMessage(); } });
+document.getElementById('search-input').addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); refresh(); } });
+document.getElementById('search-input').addEventListener('keydown', e => { if (e.key==='Escape') { clearSearch(); } });
 const hash = new URLSearchParams(window.location.hash.slice(1));
 if (hash.get('token')) { document.getElementById('token-input').value=hash.get('token'); refresh(); }
 </script>

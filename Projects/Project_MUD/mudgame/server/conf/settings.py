@@ -35,7 +35,7 @@ from evennia.settings_default import *
 SERVERNAME = "mudgame"
 
 # Set the default home location for new characters
-DEFAULT_HOME = "#80"  # Town Square
+DEFAULT_HOME = "#2"  # The Village Well
 
 ######################################################################
 # Settings given in secret_settings.py override those in this file.

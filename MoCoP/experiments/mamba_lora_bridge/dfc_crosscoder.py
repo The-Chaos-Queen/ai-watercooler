@@ -15,7 +15,7 @@ The crosscoder enables interpretable bridge transfer: instead of mapping
 opaque 2560-dim vectors, we map named sparse features.
 
 Training data: paired activations from the same conversation processed
-through both Mamba-2.8b (Layer 3 last-token) and Qwen-1.5B (Layer 13 v_proj output).
+through both Mamba-2.8b (Layer 3 last-token) and Qwen-1.5B (Layer 13 hidden state).
 
 OpenCLAW #86
 Author: Anda-Conda
@@ -52,7 +52,7 @@ class DedicatedFeatureCrosscoder(nn.Module):
     def __init__(
         self,
         mamba_dim: int = 2560,
-        qwen_dim: int = 1280,       # Qwen 1.5B v_proj at Layer 13
+        qwen_dim: int = 1536,       # Qwen 1.5B hidden state at Layer 13
         n_shared: int = 128,
         n_mamba_exclusive: int = 64,
         n_qwen_exclusive: int = 64,
@@ -198,6 +198,28 @@ def load_paired_data(mamba_path: str, qwen_path: str):
     return mamba_data, qwen_data
 
 
+def paired_data_quality(mamba_data, qwen_data, min_unique_ratio: float):
+    """Basic preflight for repeated-row collapse before DFC training."""
+    n_samples = int(mamba_data.shape[0])
+    mamba_unique = int(torch.unique(mamba_data, dim=0).shape[0])
+    qwen_unique = int(torch.unique(qwen_data, dim=0).shape[0])
+    finite = bool(torch.isfinite(mamba_data).all().item() and torch.isfinite(qwen_data).all().item())
+    mamba_ratio = mamba_unique / n_samples if n_samples else 0.0
+    qwen_ratio = qwen_unique / n_samples if n_samples else 0.0
+    return {
+        "n_samples": n_samples,
+        "finite": finite,
+        "min_unique_ratio": min_unique_ratio,
+        "passes": finite and mamba_ratio >= min_unique_ratio and qwen_ratio >= min_unique_ratio,
+        "unique": {
+            "mamba": mamba_unique,
+            "qwen": qwen_unique,
+            "mamba_ratio": mamba_ratio,
+            "qwen_ratio": qwen_ratio,
+        },
+    }
+
+
 def analyze_features(model: DedicatedFeatureCrosscoder, mamba_data, qwen_data, top_k: int = 20):
     """Analyze learned features after training."""
     model.eval()
@@ -260,6 +282,19 @@ def train(args):
     print(f"Loading paired data...")
     mamba_data, qwen_data = load_paired_data(args.mamba_data, args.qwen_data)
     print(f"  Mamba: {mamba_data.shape}, Qwen: {qwen_data.shape}")
+
+    quality = paired_data_quality(mamba_data, qwen_data, args.min_unique_ratio)
+    unique = quality["unique"]
+    print(
+        f"  Quality: finite={quality['finite']} "
+        f"mamba_unique={unique['mamba']}/{quality['n_samples']} ({unique['mamba_ratio']:.3f}) "
+        f"qwen_unique={unique['qwen']}/{quality['n_samples']} ({unique['qwen_ratio']:.3f})"
+    )
+    if not quality["passes"] and not args.allow_low_uniqueness:
+        raise SystemExit(
+            "Refusing to train DFC on low-uniqueness or non-finite activations. "
+            "Inspect data_quality_report.json or pass --allow-low-uniqueness for explicit diagnostic runs."
+        )
 
     mamba_dim = mamba_data.shape[1]
     qwen_dim = qwen_data.shape[1]
@@ -336,9 +371,14 @@ def train(args):
     elapsed = time.time() - t0
     print(f"\nTraining complete: {elapsed:.1f}s, best loss={best_loss:.6f}")
 
+    # Restore best model before analysis and save so the report matches the artifact.
+    if best_state is not None:
+        model.load_state_dict(best_state)
+
     # Analysis
     print(f"\nAnalyzing features...")
     analysis = analyze_features(model, mamba_data, qwen_data)
+    analysis["input_quality"] = quality
 
     alive = analysis["alive_features"]
     print(f"  Alive features: {alive['shared']} shared, "
@@ -351,10 +391,6 @@ def train(args):
     # Save
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-
-    # Restore best model
-    if best_state is not None:
-        model.load_state_dict(best_state)
 
     torch.save({
         "model_state_dict": model.state_dict(),
@@ -396,6 +432,9 @@ def main():
     parser.add_argument("--log-every", type=int, default=100)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--output-dir", default="dfc_results")
+    parser.add_argument("--min-unique-ratio", type=float, default=0.5)
+    parser.add_argument("--allow-low-uniqueness", action="store_true",
+                        help="Allow diagnostic training even when repeated activation rows indicate bad sampling")
     args = parser.parse_args()
     train(args)
 

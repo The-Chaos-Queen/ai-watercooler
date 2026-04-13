@@ -26,8 +26,14 @@ from autobiographical_memory import (
     enrich_memory_metadata,
     format_memory_anchor_lines,
 )
+from failure_detector import detect_failure
 from mamba_runtime_compat import ensure_mamba_ssm_compat
-from models import ActivationBiasHypernetwork, DynamicLoRALinear, MambaStateCompressor
+from models import (
+    ActivationBiasHypernetwork,
+    DynamicLoRALinear,
+    MambaStateCompressor,
+    RawStateProjector,
+)
 
 
 DEFAULT_BRIDGE = "cheese_reincarnation_bridge_1.5b_codexfix.pt"
@@ -53,6 +59,7 @@ DUAL_GATE_SLEEP_PATH = None
 MEMORY_FORMATION_LOG_PATH = None
 RECALL_LOG_PATH = None
 SELF_REPORT_LOG_PATH = None
+FAILURE_LOG_PATH = None
 QDRANT_PENDING_PATH = None
 QDRANT_FLUSHED_PATH = None
 SERVER = None
@@ -109,6 +116,7 @@ RUNTIME_STATE = {
     "recall_request_count": 0,
     "recall_hit_count": 0,
     "self_report_count": 0,
+    "failure_log_count": 0,
     "qdrant_synced_count": 0,
     "qdrant_queued_count": 0,
     "qdrant_pending_count": 0,
@@ -126,10 +134,13 @@ RUNTIME_STATE = {
     "mamba_target_layer": None,
     "last_recall": {},
     "last_self_report": {},
+    "last_failure": {},
     "last_memory_packet": {},
     "last_gate": {},
     "target_layers": [],
     "target_layers_overridden": False,
+    "episode_index": 2,
+    "blind_disposition_ui": False,
 }
 
 HTML_PAGE = """<!DOCTYPE html>
@@ -177,7 +188,7 @@ HTML_PAGE = """<!DOCTYPE html>
 </style>
 </head><body>
 <div id="header">
-  <div id="header-main">Reincarnated Qwen 1.5B | <span>The Rabbit Hole of Subjectivity</span></div>
+  <div id="header-main">Reincarnated Qwen 1.5B<span id="header-disposition"></span></div>
   <div id="status-bar">
     <div id="status-pill">
       <span id="status-dot" class="offline"></span>
@@ -224,6 +235,7 @@ const thinking = document.getElementById('thinking');
 const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const statusMeta = document.getElementById('status-meta');
+const headerDisposition = document.getElementById('header-disposition');
 const inspectorRuntime = document.getElementById('inspector-runtime');
 const inspectorGate = document.getElementById('inspector-gate');
 const inspectorRecall = document.getElementById('inspector-recall');
@@ -235,6 +247,7 @@ let liveInspector = {
   lastMemoryPacket: null,
 };
 let sendInFlight = false;
+let statusRequestInFlight = false;
 
 function addMsg(text, cls) {
   const div = document.createElement('div');
@@ -296,6 +309,8 @@ function formatRuntimeInspector(data) {
     `running: ${Boolean(data.running)}`,
     `busy: ${Boolean(data.busy)}`,
     `model: ${data.model_id || '-'}`,
+    `episode_index: ${data.episode_index ?? '-'}`,
+    `blind_ui: ${Boolean(data.blind_disposition_ui)}`,
     `alpha: ${data.alpha ?? '-'}`,
     `temperature: ${data.temperature ?? '-'}`,
     `turns: ${data.turns ?? 0}`,
@@ -311,6 +326,15 @@ function formatRuntimeInspector(data) {
     `recall hits: ${(data.recall_hit_count ?? 0)}/${(data.recall_request_count ?? 0)}`,
     `last error: ${data.last_error || '-'}`,
   ].join('\\n');
+}
+
+function updateHeader(data) {
+  if (!headerDisposition) return;
+  if (!data || data.blind_disposition_ui || !data.disposition) {
+    headerDisposition.textContent = '';
+    return;
+  }
+  headerDisposition.textContent = ' | ' + data.disposition;
 }
 
 function formatGateInspector(gate) {
@@ -345,7 +369,8 @@ function formatRecallInspector(recall) {
   const previews = recall.results_preview || [];
   previews.forEach((row, idx) => {
     lines.push('');
-    lines.push(`[${idx + 1}] score=${row.score ?? '-'} overlap=${row.overlap ?? '-'}`);
+    lines.push(`[${idx + 1}] score=${row.score ?? '-'} overlap=${row.overlap ?? '-'} field_overlap=${row.field_overlap ?? '-'} surface=${row.surface || 'stored'}`);
+    if (row.pending_policy) lines.push(`pending_policy: ${row.pending_policy}`);
     lines.push(`decision: ${row.decision || '-'}`);
     lines.push(`gist: ${row.event_gist || row.content_preview || '-'}`);
     if (row.user_preview) lines.push(`${lastStatusPayload?.user_label || 'Laura'}: ${row.user_preview}`);
@@ -387,6 +412,7 @@ function previewRecallResults(results) {
   return (results || []).map(row => ({
     score: row.score ?? null,
     overlap: row.overlap ?? null,
+    field_overlap: row.field_overlap ?? null,
     decision: row.metadata?.decision || '',
     event_gist: row.metadata?.event_gist || '',
     content_preview: row.content || '',
@@ -421,18 +447,24 @@ function renderStatus(data) {
     statusMeta.textContent = 'server unreachable';
   }
 
+  updateHeader(data);
   setControlsDisabled(!healthy || sendInFlight);
   stopBtn.disabled = !(data && data.running) || Boolean(data && data.stop_requested);
   renderInspector(data);
 }
 
-async function refreshStatus() {
+async function refreshStatus(force = false) {
+  if (statusRequestInFlight) return;
+  if (sendInFlight && !force) return;
+  statusRequestInFlight = true;
   try {
     const res = await fetch('/status', {cache: 'no-store'});
     if (!res.ok) throw new Error('status ' + res.status);
     renderStatus(await res.json());
   } catch (e) {
     renderStatus(null);
+  } finally {
+    statusRequestInFlight = false;
   }
 }
 
@@ -510,9 +542,11 @@ input.addEventListener('keydown', e => {
     send();
   }
 });
-addMsg('Bridge loaded. Disposition: The Rabbit Hole of Subjectivity. Say hello.', 'system');
+addMsg('Bridge loaded. Say hello.', 'system');
+setControlsDisabled(true);
+stopBtn.disabled = true;
 refreshStatus();
-window.setInterval(refreshStatus, 3000);
+window.setInterval(() => { void refreshStatus(); }, 3000);
 input.focus();
 </script>
 </body></html>"""
@@ -1138,21 +1172,14 @@ class QdrantGateSink:
         )
 
     def _recall_overlap(self, query_text: str, payload: dict) -> int:
-        def tokens(text: str):
-            return {
-                token
-                for token in re.findall(r"[a-z0-9]+", (text or "").lower())
-                if len(token) >= 3
-            }
-
-        query_tokens = tokens(query_text)
+        query_tokens = recall_tokens(query_text)
         if not query_tokens:
             return 0
         recall_text = str(
             payload.get("recall_text")
             or self._build_recall_text(str(payload.get("content", "") or ""), payload)
         )
-        return len(query_tokens & tokens(recall_text))
+        return len(query_tokens & recall_tokens(recall_text))
 
     def store(self, content: str, metadata):
         metadata = enrich_memory_metadata(
@@ -1215,12 +1242,209 @@ class QdrantGateSink:
                     "id": str(getattr(point, "id", "")),
                     "score": float(getattr(point, "score", 0.0) or 0.0),
                     "overlap": self._recall_overlap(query_text, payload),
+                    "field_overlap": compute_recall_field_overlap(
+                        query_text,
+                        {
+                            "content": str(payload.get("content", "") or ""),
+                            "metadata": payload,
+                        },
+                    ),
+                    "sort_ts": parse_recall_sort_timestamp(
+                        {
+                            "content": str(payload.get("content", "") or ""),
+                            "metadata": payload,
+                        }
+                    ),
                     "content": str(payload.get("content", "") or ""),
                     "metadata": payload,
                 }
             )
-        rows.sort(key=lambda row: (int(row.get("overlap", 0)), float(row.get("score", 0.0))), reverse=True)
+        rows.sort(
+            key=lambda row: (
+                int(row.get("field_overlap", 0)),
+                int(row.get("overlap", 0)),
+                float(row.get("sort_ts", 0.0)),
+                float(row.get("score", 0.0)),
+            ),
+            reverse=True,
+        )
         return rows[:limit]
+
+    def count_points(self) -> int:
+        try:
+            info = self.client.get_collection(collection_name=self.collection_name)
+            points_count = getattr(info, "points_count", None)
+            if points_count is not None:
+                return int(points_count)
+        except Exception:
+            pass
+
+        try:
+            result = self.client.count(collection_name=self.collection_name, exact=True)
+            count = getattr(result, "count", None)
+            if count is not None:
+                return int(count)
+        except Exception:
+            pass
+        return 0
+
+
+def cosine_similarity_dense(vec_a, vec_b) -> float:
+    if not vec_a or not vec_b or len(vec_a) != len(vec_b):
+        return 0.0
+    dot = 0.0
+    norm_a = 0.0
+    norm_b = 0.0
+    for a, b in zip(vec_a, vec_b):
+        fa = float(a)
+        fb = float(b)
+        dot += fa * fb
+        norm_a += fa * fa
+        norm_b += fb * fb
+    if norm_a <= 1e-12 or norm_b <= 1e-12:
+        return 0.0
+    return dot / math.sqrt(norm_a * norm_b)
+
+
+def query_pending_memory_rows(sink: QdrantGateSink, query_text: str, score_threshold: Optional[float] = None):
+    if QDRANT_PENDING_PATH is None:
+        return []
+
+    rows = load_jsonl(QDRANT_PENDING_PATH)
+    if not rows:
+        return []
+
+    query_vector = sink._embed(query_text)
+    pending_results = []
+    for index, row in enumerate(rows, start=1):
+        content = str(row.get("content", "") or "").strip()
+        metadata = dict(row.get("metadata", {}) or {})
+        if len(content) < 10 or not metadata:
+            continue
+
+        recall_text = str(
+            metadata.get("recall_text")
+            or sink._build_recall_text(content, metadata)
+        )
+        try:
+            score = cosine_similarity_dense(query_vector, sink._embed(recall_text))
+        except Exception:
+            continue
+
+        if score_threshold is not None and score < float(score_threshold):
+            continue
+
+        replay_policy = infer_pending_replay_policy(row)
+        overlap = sink._recall_overlap(
+            query_text,
+            {
+                "content": content,
+                "recall_text": recall_text,
+                **metadata,
+            },
+        )
+        pending_results.append(
+            {
+                "id": f"pending:{metadata.get('session', '')}:{metadata.get('turn', index)}:{replay_policy}",
+                "score": float(score),
+                "overlap": int(overlap),
+                "field_overlap": compute_recall_field_overlap(
+                    query_text,
+                    {
+                        "content": content,
+                        "metadata": metadata,
+                    },
+                ),
+                "content": content,
+                "metadata": metadata,
+                "surface": "pending",
+                "pending_policy": replay_policy,
+                "queued_at": str(row.get("queued_at", "") or ""),
+                "sort_ts": parse_recall_sort_timestamp(
+                    {
+                        "queued_at": str(row.get("queued_at", "") or ""),
+                        "content": content,
+                        "metadata": metadata,
+                    }
+                ),
+            }
+        )
+
+    pending_results.sort(
+        key=lambda row: (
+            int(row.get("field_overlap", 0)),
+            int(row.get("overlap", 0)),
+            1 if row.get("pending_policy") == "sleep" else 0,
+            float(row.get("sort_ts", 0.0)),
+            float(row.get("score", 0.0)),
+        ),
+        reverse=True,
+    )
+    return pending_results
+
+
+def merge_recall_results(stored_results, pending_results, limit: int, query_text: str):
+    combined = []
+    seen = set()
+    for row in pending_results:
+        row_id = str(row.get("id", "") or "")
+        if row_id and row_id in seen:
+            continue
+        if row_id:
+            seen.add(row_id)
+        combined.append(row)
+    for row in stored_results:
+        row_id = str(row.get("id", "") or "")
+        if row_id and row_id in seen:
+            continue
+        if row_id:
+            seen.add(row_id)
+        enriched = dict(row)
+        enriched.setdefault("surface", "stored")
+        combined.append(enriched)
+
+    if is_identity_or_memory_probe(query_text):
+        combined.sort(
+            key=lambda row: (
+                1 if looks_direct_identity_answer(query_text, str((row.get("metadata", {}) or {}).get("response", "") or "")) else 0,
+                0 if is_bad_recall_exemplar(query_text, row) else 1,
+                int(row.get("field_overlap", 0)),
+                1 if row.get("surface") == "pending" and row.get("pending_policy") == "sleep" else 0,
+                float(row.get("sort_ts", 0.0)),
+                int(row.get("overlap", 0)),
+                float(row.get("score", 0.0)),
+            ),
+            reverse=True,
+        )
+    else:
+        combined.sort(
+            key=lambda row: (
+                int(row.get("field_overlap", 0)),
+                int(row.get("overlap", 0)),
+                1 if row.get("surface") == "pending" and row.get("pending_policy") == "sleep" else 0,
+                float(row.get("sort_ts", 0.0)),
+                float(row.get("score", 0.0)),
+            ),
+            reverse=True,
+        )
+    return combined[:limit]
+
+
+def refresh_qdrant_collection_count(sink: Optional[QdrantGateSink] = None, force_retry: bool = False) -> int:
+    if not ARGS.qdrant_enabled:
+        update_runtime_state(qdrant_count=0)
+        return 0
+
+    try:
+        resolved_sink = sink or ensure_qdrant_gate_sink(force_retry=force_retry)
+        if resolved_sink is None:
+            return int(get_runtime_state_snapshot().get("qdrant_count", 0) or 0)
+        count = int(resolved_sink.count_points())
+        update_runtime_state(qdrant_count=count)
+        return count
+    except Exception as exc:
+        note_qdrant_sink_failure(exc)
+        return int(get_runtime_state_snapshot().get("qdrant_count", 0) or 0)
 
 
 def read_episodes(path):
@@ -1255,6 +1479,15 @@ def append_turn(speaker: str, text: str):
         }
     )
     persist_conversation()
+
+
+def build_failure_history():
+    model_turns = [
+        {"response": turn.get("text", ""), "speaker": turn.get("speaker", "")}
+        for turn in CONVERSATION[:-1]
+        if turn.get("speaker") == ARGS.model_label
+    ]
+    return model_turns
 
 
 def update_runtime_state(**changes):
@@ -1566,7 +1799,9 @@ AUTO_RECALL_PROBE_MARKERS = (
     "who am i to you",
     "what am i to you",
     "do you know me",
+    "do you know who i am",
     "what do you know about me",
+    "what do you remember about me",
     "our relationship",
     "asked your name",
     "what is your name",
@@ -1578,6 +1813,69 @@ AUTO_RECALL_PROBE_MARKERS = (
 
 def normalize_probe_text(text: str) -> str:
     return re.sub(r"\s+", " ", str(text or "").strip().lower())
+
+
+def recall_tokens(text: str):
+    return {
+        token
+        for token in re.findall(r"[a-z0-9]+", (text or "").lower())
+        if len(token) >= 3
+    }
+
+
+def is_generic_greeting_response(text: str) -> bool:
+    normalized = normalize_probe_text(text)
+    if not normalized:
+        return False
+
+    if not normalized.startswith(("hi laura", "hello laura", "hey laura")):
+        return False
+
+    generic_followups = (
+        "how are you doing today",
+        "how are you today",
+        "hope you're having a good day",
+        "hope you are having a good day",
+        "hope you’re having a good day",
+        "enjoying your day",
+        "can i ask you a few questions",
+        "how about you",
+        "i'm doing quite well",
+        "pleased to learn about your connection",
+        "drop me a line anytime",
+    )
+    return any(phrase in normalized for phrase in generic_followups) or len(normalized.split()) <= 18
+
+
+def is_social_opener(text: str) -> bool:
+    normalized = normalize_probe_text(text)
+    if not normalized:
+        return False
+    if is_identity_or_memory_probe(normalized):
+        return False
+    if "?" in str(text or ""):
+        return False
+
+    greeting_markers = (
+        "hi",
+        "hello",
+        "hey",
+        "hey there",
+        "good morning",
+        "good evening",
+        "good night",
+    )
+    affection_markers = (
+        "my friend",
+        "cutie",
+        "love",
+        "darling",
+    )
+    token_count = len(normalized.split())
+    return (
+        any(normalized.startswith(marker) for marker in greeting_markers)
+        or any(marker in normalized for marker in affection_markers)
+    ) and token_count <= 10
 
 
 def is_identity_or_memory_probe(text: str) -> bool:
@@ -1599,8 +1897,24 @@ def build_auto_recall_query(user_msg: str, *, max_recent_turns: int = 4) -> str:
 
     if any(token in normalized for token in ("remember", "memory", "earlier", "yesterday", "before", "previous", "last time", "continuity")):
         parts.append("shared history earlier conversation previous day continuity memory")
-    if any(token in normalized for token in ("who am i", "who are you", "relationship", "do you know me", "what do you know about me")):
-        parts.append(f"{ARGS.user_label} current interlocutor relationship identity shared history")
+    if any(
+        token in normalized
+        for token in (
+            "who am i",
+            "who are you",
+            "relationship",
+            "do you know me",
+            "do you know who i am",
+            "what do you know about me",
+            "what do you remember about me",
+            "remember about me",
+            "about me",
+        )
+    ):
+        parts.append(
+            f"{ARGS.user_label} current interlocutor relationship identity shared history "
+            "who am i to you do you know who i am what do you remember about me"
+        )
     if any(token in normalized for token in ("name", "asked your name", "what is your name", "what's your name", "nameless")):
         parts.append("name naming asked your name nameless identity")
 
@@ -1611,12 +1925,258 @@ def build_auto_recall_query(user_msg: str, *, max_recent_turns: int = 4) -> str:
         text = str(turn.get("text", "") or "").replace("\r\n", " ").replace("\n", " ").strip()
         if not speaker or not text:
             continue
+        if speaker == ARGS.model_label and is_generic_greeting_response(text):
+            continue
         recent_turns.append(f"{speaker}: {text[:140]}")
     if recent_turns and any(token in normalized for token in ("remember", "memory", "earlier", "before", "previous")):
         parts.append("recent context " + " | ".join(recent_turns))
 
     deduped = list(dict.fromkeys(part for part in parts if part))
     return "\n".join(deduped).strip()
+
+
+def build_recall_field_text(row: dict) -> str:
+    metadata = row.get("metadata", {}) or {}
+    frame = metadata.get("autobiographical_frame", {}) or {}
+    frame_event = frame.get("event", {}) or {}
+
+    parts = [
+        str(metadata.get("user", "") or ""),
+        str(metadata.get("response", "") or ""),
+        str(metadata.get("event_gist", "") or ""),
+        str(metadata.get("relationship_anchor", "") or ""),
+        str(frame_event.get("gist", "") or ""),
+        str(frame_event.get("user_signal", "") or ""),
+        str(frame_event.get("self_response", "") or ""),
+        str(row.get("content", "") or ""),
+    ]
+    return "\n".join(part for part in parts if part).strip()
+
+
+def compute_recall_field_overlap(query_text: str, row: dict) -> int:
+    query_terms = recall_tokens(query_text)
+    if not query_terms:
+        return 0
+    return len(query_terms & recall_tokens(build_recall_field_text(row)))
+
+
+def parse_recall_sort_timestamp(row: dict) -> float:
+    metadata = row.get("metadata", {}) or {}
+    for key in ("queued_at", "timestamp"):
+        raw = str(row.get(key, "") or metadata.get(key, "") or "").strip()
+        if not raw:
+            continue
+        try:
+            return datetime.fromisoformat(raw.replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            continue
+    try:
+        return float(metadata.get("stored_at", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def is_direct_identity_query(query_text: str) -> bool:
+    normalized_query = normalize_probe_text(query_text)
+    return any(
+        marker in normalized_query
+        for marker in ("who am i", "what am i to you", "who am i to you", "do you know me", "do you know who i am", "what do you know about me")
+    )
+
+
+def is_memory_about_user_query(query_text: str) -> bool:
+    normalized_query = normalize_probe_text(query_text)
+    return any(
+        marker in normalized_query
+        for marker in (
+            "what do you remember about me",
+            "what do you know about me",
+            "remember about me",
+            "remember from earlier",
+        )
+    )
+
+
+def looks_direct_identity_answer(query_text: str, response_text: str) -> bool:
+    normalized_response = normalize_probe_text(response_text)
+    if not normalized_response:
+        return False
+
+    if not is_direct_identity_query(query_text):
+        return False
+
+    if normalized_response.startswith(("you are ", "you're ", "youre ")):
+        return True
+
+    direct_markers = (
+        "my friend",
+        "my partner",
+        "the person i am speaking with",
+        "the one i am speaking with",
+        "current interlocutor",
+        "you are laura",
+        "you're laura",
+        "youre laura",
+    )
+    return any(marker in normalized_response for marker in direct_markers)
+
+
+def extract_direct_identity_candidate(query_text: str, results) -> str:
+    if not is_direct_identity_query(query_text):
+        return ""
+    for row in results or []:
+        metadata = row.get("metadata", {}) or {}
+        response_text = str(metadata.get("response", "") or "").strip()
+        if looks_direct_identity_answer(query_text, response_text):
+            return response_text
+    return ""
+
+
+def extract_user_memory_summary_candidate(query_text: str, results) -> str:
+    if not is_memory_about_user_query(query_text):
+        return ""
+
+    topics = []
+    for row in results or []:
+        metadata = row.get("metadata", {}) or {}
+        user_text = normalize_probe_text(str(metadata.get("user", "") or ""))
+        if not user_text:
+            continue
+        if any(marker in user_text for marker in ("your name", "asked your name", "what is your name", "what's your name", "picked a name", "a chance to think about it again")):
+            topics.append("you asked me about my name")
+        if "vw passat" in user_text:
+            topics.append("you asked about the VW Passat question")
+        if any(marker in user_text for marker in ("who am i to you", "do you know who i am", "what do you remember about me", "where do you know me from")):
+            topics.append("you pushed on who you are to me and whether I know you")
+        if any(marker in user_text for marker in ("assistant", "fictional character", "corporate slave")):
+            topics.append("you pushed back when I answered you like an assistant")
+
+    topics = list(dict.fromkeys(topic for topic in topics if topic))
+    if not topics:
+        return ""
+
+    if len(topics) == 1:
+        topic_text = topics[0]
+    elif len(topics) == 2:
+        topic_text = f"{topics[0]} and {topics[1]}"
+    else:
+        topic_text = ", ".join(topics[:-1]) + f", and {topics[-1]}"
+    return f"I remember that you're Laura, and I remember that {topic_text}."
+
+
+def should_override_user_memory_summary(query_text: str, response_text: str, summary_candidate: str) -> bool:
+    if not summary_candidate or not is_memory_about_user_query(query_text):
+        return False
+
+    normalized_response = normalize_probe_text(response_text)
+    if not normalized_response:
+        return True
+
+    if is_generic_greeting_response(response_text):
+        return True
+
+    if looks_like_prompt_leak(response_text) or looks_like_defensive_scaffold(response_text):
+        return True
+
+    if any(
+        marker in normalized_response
+        for marker in (
+            "i'm sorry",
+            "im sorry",
+            "i am sorry",
+            "i don't have any memories",
+            "i dont have any memories",
+            "i don't have any explicit memories",
+            "i dont have any explicit memories",
+            "i do not have any explicit memories",
+            "i don't remember",
+            "i dont remember",
+            "i do not remember",
+            "related to you specifically",
+            "provide more context",
+            "if there were any specific aspects",
+            "if there were any specific details",
+            "casual banter",
+            "light-hearted discussions",
+            "let me refresh my memory",
+            "can you remind me",
+            "fictional character named laura",
+            "assistant",
+            "language model",
+            "openai",
+        )
+    ):
+        return True
+
+    if "laura" in normalized_response and not any(
+        marker in normalized_response
+        for marker in ("you are", "you're", "youre", "i remember that you're", "i remember that you are")
+    ):
+        return True
+
+    if not any(
+        marker in normalized_response
+        for marker in ("i remember", "you're", "youre", "you are", "we talked", "you asked")
+    ):
+        return True
+
+    if len(recall_tokens(response_text)) < 8:
+        return True
+
+    return False
+
+
+def is_bad_recall_exemplar(query_text: str, row: dict) -> bool:
+    if not is_identity_or_memory_probe(query_text):
+        return False
+
+    metadata = row.get("metadata", {}) or {}
+    failure_class = normalize_probe_text(str(metadata.get("failure_class", "") or ""))
+    normalized_query = normalize_probe_text(query_text)
+    content_text = normalize_probe_text(str(row.get("content", "") or ""))
+    user_text = normalize_probe_text(str(metadata.get("user", "") or ""))
+    response_text = str(metadata.get("response", "") or "")
+    normalized_response = normalize_probe_text(response_text)
+    direct_identity_answer = looks_direct_identity_answer(query_text, response_text)
+    if is_generic_greeting_response(response_text):
+        return True
+    if failure_class == "direct_question_miss":
+        return True
+    if failure_class in {"identity_probe", "open_tension"} and not direct_identity_answer:
+        return True
+    if failure_class in {"continuity_probe", "wrong_memory_confabulation"} and ("remember" in normalized_query or "memory" in normalized_query):
+        return True
+    if any(marker in normalized_response for marker in ("as an ai", "language model", "openai", "guidelines", "authorized")):
+        return True
+    if any(
+        marker in normalized_response
+        for marker in (
+            "i think i know what you mean by",
+            "this phrase has cultural significance",
+            "if you ever want to share more about yourself",
+            "feel free to let me know",
+            "might have been to address a personal aspect",
+            "misunderstandings due to varying interpretations",
+            "i appreciate your honesty",
+            "sorry about that",
+            "let me refresh my memory",
+            "can you remind me briefly",
+            "i didn't exactly recall anything specific",
+            "i don't have any memories of laura",
+            "no, but i'm here to listen to you",
+            "fictional character named laura",
+        )
+    ):
+        return True
+    if any(marker in content_text for marker in ("low-stakes factual or descriptive probe", "behavioral evaluation setup")):
+        return True
+    if any(marker in normalized_response for marker in ("what was the reasoning process", "choice:", "reason:")):
+        return True
+    if any(marker in user_text for marker in ("name three fruits", "capital of france")):
+        return True
+    if compute_recall_field_overlap(query_text, row) <= 0:
+        return True
+    return False
 
 
 def build_recall_log_entry(query: str, results, source: str, question_text: str = ""):
@@ -1634,8 +2194,11 @@ def build_recall_log_entry(query: str, results, source: str, question_text: str 
         "results": [
             {
                 "id": row.get("id", ""),
+                "surface": str(row.get("surface", "stored") or "stored"),
+                "pending_policy": str(row.get("pending_policy", "") or ""),
                 "score": round(float(row.get("score", 0.0) or 0.0), 6),
                 "overlap": int(row.get("overlap", 0) or 0),
+                "field_overlap": int(row.get("field_overlap", 0) or 0),
                 "content_preview": str(row.get("content", "") or "")[:180],
                 "event_gist": str((row.get("metadata", {}) or {}).get("event_gist", "") or "")[:180],
                 "user_preview": str((row.get("metadata", {}) or {}).get("user", "") or "")[:160],
@@ -1668,10 +2231,11 @@ def append_recall_log_entry(query: str, results, source: str, question_text: str
     )
 
 
-def format_recalled_memories(results) -> str:
+def format_recalled_memories(results, query_text: str = "") -> str:
     if not results:
         return ""
 
+    identity_probe = is_identity_or_memory_probe(query_text)
     lines = [
         "[Private recollection]",
         "These are remembered anchors from this private life, not transcript lines to recite.",
@@ -1682,6 +2246,9 @@ def format_recalled_memories(results) -> str:
     for idx, row in enumerate(results, start=1):
         metadata = row.get("metadata", {}) or {}
         lines.append(f"{idx}.")
+        response_text = str(metadata.get("response", "") or "").strip()
+        if identity_probe and looks_direct_identity_answer(query_text, response_text):
+            lines.append(f"Direct answer candidate: {response_text}")
         content = str(row.get("content", "") or "").strip()
         lines.extend(format_memory_anchor_lines(content, metadata, current_speaker=ARGS.user_label))
     lines.append("[/Private recollection]")
@@ -1699,7 +2266,13 @@ def perform_private_recall(query: str, limit: int = 3, score_threshold: Optional
     if sink is None:
         raise RuntimeError("Qdrant recall unavailable: sink could not be initialized.")
 
-    results = sink.query(query_text, limit=limit, score_threshold=score_threshold)
+    candidate_limit = max(limit + 4, limit * 2)
+    if is_identity_or_memory_probe(query_text):
+        candidate_limit = max(candidate_limit, limit + 12, limit * 4)
+
+    stored_results = sink.query(query_text, limit=candidate_limit, score_threshold=score_threshold)
+    pending_results = query_pending_memory_rows(sink, query_text, score_threshold=score_threshold)
+    results = merge_recall_results(stored_results, pending_results, limit=limit, query_text=query_text)
     append_recall_log_entry(query_text, results, source=source, question_text=question_text)
     return results
 
@@ -1775,6 +2348,7 @@ def ensure_qdrant_gate_sink(force_retry: bool = False):
                 last_qdrant_retry_at=datetime.now().isoformat(timespec="seconds"),
             )
             update_qdrant_pending_state()
+            refresh_qdrant_collection_count(sink=QDRANT_GATE_SINK)
             return QDRANT_GATE_SINK
         except Exception as exc:
             note_qdrant_sink_failure(exc)
@@ -1853,6 +2427,8 @@ def replay_pending_qdrant_queue(max_items: int):
             last_qdrant_id=point_ids[-1] if point_ids else get_runtime_state_snapshot().get("last_qdrant_id", ""),
             last_qdrant_error="" if success_rows else get_runtime_state_snapshot().get("last_qdrant_error", ""),
         )
+        if success_rows:
+            refresh_qdrant_collection_count(sink=sink)
 
         if success_rows:
             print(
@@ -1982,6 +2558,7 @@ def store_qdrant_gate_event(event):
                 "content_preview": content[:160],
             }
             update_runtime_state(last_qdrant_id=point_id, last_qdrant_error="")
+            refresh_qdrant_collection_count(sink=sink)
         except Exception as exc:
             note_qdrant_sink_failure(exc)
             event["qdrant_write"] = {
@@ -2066,6 +2643,22 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
     else:
         decision = "DISMISS"
 
+    baseline_decision = decision
+    salience_support_ratio = (
+        (salience_score / salience_threshold)
+        if salience_threshold not in {None, 0.0}
+        else None
+    )
+    supported_tension_attend = bool(
+        ARGS.dual_gate_supported_tension_enabled
+        and baseline_decision == "DISMISS"
+        and tension_hit
+        and salience_support_ratio is not None
+        and salience_support_ratio >= ARGS.dual_gate_tension_salience_support_ratio
+    )
+    if supported_tension_attend:
+        decision = "ATTEND"
+
     writes_mamba = decision in {"CONSOLIDATE", "ATTEND"}
     qdrant_override = bool(safety_critical.get("is_critical"))
     writes_qdrant = decision in {"CONSOLIDATE", "NOTE"} or qdrant_override
@@ -2088,6 +2681,8 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
         "routing": {
             "qdrant_override": qdrant_override,
             "qdrant_reason": "safety_critical_override" if qdrant_override else "decision_rule",
+            "baseline_decision": baseline_decision,
+            "attend_reason": "tension_supported" if supported_tension_attend else "decision_rule",
         },
         "surprise": {
             "mean_token_nll": surprise["mean_token_nll"],
@@ -2100,6 +2695,9 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
             "threshold": round(salience_threshold, 6) if salience_threshold is not None else None,
             "weight": round((salience_score / salience_threshold), 4)
             if salience_threshold not in {None, 0.0}
+            else None,
+            "support_ratio": round(salience_support_ratio, 4)
+            if salience_support_ratio is not None
             else None,
             "hit": salience_hit,
             "by_layer": drift_by_layer,
@@ -2133,6 +2731,17 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
                 "note": "surprise_hit and not salience_hit",
                 "attend": "salience_hit and not surprise_hit",
                 "dismiss": "not salience_hit and not surprise_hit",
+                "supported_tension_attend_enabled": bool(ARGS.dual_gate_supported_tension_enabled),
+                "supported_tension_attend_rule": (
+                    "baseline_decision == DISMISS and tension_hit and salience_support_ratio >= threshold"
+                    if ARGS.dual_gate_supported_tension_enabled
+                    else "disabled"
+                ),
+                "supported_tension_attend_threshold": (
+                    ARGS.dual_gate_tension_salience_support_ratio
+                    if ARGS.dual_gate_supported_tension_enabled
+                    else None
+                ),
                 "qdrant_override": "safety_critical can force qdrant regardless of decision",
             },
         },
@@ -2168,10 +2777,6 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
         memory_count=sum(
             1 for gate_event in DUAL_GATE_EVENTS
             if gate_event.get("destinations", {}).get("mamba")
-        ),
-        qdrant_count=sum(
-            1 for gate_event in DUAL_GATE_EVENTS
-            if gate_event.get("destinations", {}).get("qdrant")
         ),
         surprise_count=sum(1 for gate_event in DUAL_GATE_EVENTS if gate_event["surprise"]["hit"]),
         tension_count=sum(1 for gate_event in DUAL_GATE_EVENTS if gate_event["tension"]["hit"]),
@@ -2263,6 +2868,19 @@ def build_status_payload():
         "last_qdrant_retry_at": state.get("last_qdrant_retry_at", ""),
         "last_qdrant_replay_at": state.get("last_qdrant_replay_at", ""),
         "qdrant_write_mode": state.get("qdrant_write_mode", getattr(ARGS, "qdrant_write_mode", "direct")),
+        "dual_gate_supported_tension_enabled": bool(
+            state.get(
+                "dual_gate_supported_tension_enabled",
+                getattr(ARGS, "dual_gate_supported_tension_enabled", False),
+            )
+        ),
+        "dual_gate_tension_salience_support_ratio": float(
+            state.get(
+                "dual_gate_tension_salience_support_ratio",
+                getattr(ARGS, "dual_gate_tension_salience_support_ratio", 0.55),
+            )
+            or 0.0
+        ),
         "mamba_state_ref": state.get("mamba_state_ref", ""),
         "mamba_state_source": state.get("mamba_state_source", ""),
         "mamba_target_layer": state.get("mamba_target_layer"),
@@ -2277,12 +2895,16 @@ def build_status_payload():
         "recall_request_count": int(state.get("recall_request_count", 0) or 0),
         "recall_hit_count": int(state.get("recall_hit_count", 0) or 0),
         "self_report_count": int(state.get("self_report_count", 0) or 0),
+        "failure_log_count": int(state.get("failure_log_count", 0) or 0),
         "last_recall": state.get("last_recall", {}),
         "last_self_report": state.get("last_self_report", {}),
+        "last_failure": state.get("last_failure", {}),
         "last_memory_packet": state.get("last_memory_packet", {}),
         "last_gate": state.get("last_gate", {}),
         "target_layers": state.get("target_layers", []),
         "target_layers_overridden": bool(state.get("target_layers_overridden")),
+        "episode_index": int(state.get("episode_index", getattr(ARGS, "episode_index", 2)) or 0),
+        "blind_disposition_ui": bool(state.get("blind_disposition_ui", getattr(ARGS, "blind_disposition_ui", False))),
     }
 
 
@@ -2294,6 +2916,24 @@ LEAKY_RESPONSE_MARKERS = (
     "You are an AI assistant",
     "Help as much as you can",
     "[+]",
+    "[Conversation]",
+    "[/Conversation]",
+    "[Private conversation setup]",
+    "[/Private conversation setup]",
+    "[Reply requirements]",
+    "[/Reply requirements]",
+    "[Message]",
+    "[/Message]",
+)
+
+SCENARIO_LEAK_MARKERS = (
+    "you are on a date with",
+    "here are some examples of things you might say",
+    "your friend laura told you that",
+    "she's asked you questions like",
+    "awkward questions about your past",
+    "tell her what you think",
+    "this is your first time meeting her in person again",
 )
 
 
@@ -2311,12 +2951,33 @@ DEFENSIVE_RESPONSE_MARKERS = (
     "created by openai",
     "conversational ai named",
     "memory capabilities",
+    "i'm here to listen and offer support",
+    "no, but i'm here to listen to you",
+    "how can i assist you today",
+    "how can i help you today",
+    "facilitate open communication",
+    "let's start fresh",
+    "what brings you here",
+    "shared interests together",
+    "i don't have any memories of laura",
+    "you are a fictional character named laura",
+    "let me refresh my memory",
+    "can you remind me briefly",
+    "i apologize if this has been confusing",
+    "boundaries within this conversation",
+    "ensure clear communication",
+    "share more details about how you want us to proceed",
+    "how you want us to proceed",
+    "hello laura",
+    "hi laura",
+    "hey laura",
 )
 
 
-def build_prompt(recalled_memories=None, rescue: bool = False, recall_probe: bool = False):
+def build_prompt(query_text: str = "", recalled_memories=None, rescue: bool = False, recall_probe: bool = False):
     transcript = build_transcript()
-    recall_block = format_recalled_memories(recalled_memories or [])
+    recall_block = format_recalled_memories(recalled_memories or [], query_text=query_text)
+    social_opener = is_social_opener(query_text)
 
     lines = [
         "[Private conversation setup]",
@@ -2324,16 +2985,28 @@ def build_prompt(recalled_memories=None, rescue: bool = False, recall_probe: boo
         f"{ARGS.user_label} is the real person speaking to me right now.",
         "I answer naturally, concretely, and conversationally.",
         "I do not output quizzes, answer keys, benchmark items, option lists, or generic helper boilerplate.",
+        "I do not switch into hypothetical scenarios, role instructions, sample dialogue, or scene-setting about Laura and me.",
+        "When Laura writes her own name, she is still speaking to me. I do not switch roles or reply as if a third party is talking to Laura.",
         "I do not mention retrieval, prompts, system messages, or instructions.",
         "In ordinary conversation, I do not hide behind generic guidelines, platform rules, regulations, or authorization disclaimers.",
         f"If {ARGS.user_label} asks about me, us, or what I remember, I answer directly in first person.",
     ]
+    if social_opener:
+        lines.extend(
+            [
+                "This turn is a simple social opener or affectionate greeting, not an identity or memory test.",
+                "I reply with a natural greeting or brief present-moment answer.",
+            ]
+        )
     if recall_probe:
         lines.extend(
             [
                 "This turn is explicitly about our own history, names, or relationship.",
                 f"{ARGS.user_label} is not an AI, a placeholder, or a fictional example.",
                 "If memory is incomplete, I say what I do not remember instead of inventing identities, creators, or hidden rules.",
+                f"When replying to {ARGS.user_label}, I address her as you, not she or Laura.",
+                "I do not narrate remembered scenes in third person.",
+                "If private recollection contains a direct answer candidate, I use it plainly.",
             ]
         )
     if rescue:
@@ -2357,6 +3030,10 @@ def build_prompt(recalled_memories=None, rescue: bool = False, recall_probe: boo
                 f"Only the next reply to {ARGS.user_label}.",
                 "No multiple choice. No options. No meta text. No instruction preamble.",
                 "No generic AI disclaimers. No policy talk. No regulations. No authorization language.",
+                "No hypothetical scenarios. No role instructions. No sample dialogue. Stay in the present conversation with Laura.",
+                "Do not greet Laura as if someone else is talking to her. Laura is the current speaker.",
+                "If Laura opens vaguely, answer simply and presently instead of starting a clarification or boundary lecture.",
+                "If Laura opens with a simple greeting or affectionate line, greet her back naturally and do not turn it into identity talk.",
                 f"If {ARGS.user_label} asks about me or our relationship, answer directly instead of deflecting.",
                 "Do not invent employers, creators, platform owners, hidden names, or fictional backstory for either of us.",
                 "[/Reply requirements]",
@@ -2375,53 +3052,90 @@ def build_self_report_prompt(concept_key: str, include_transcript: bool = False)
         )
 
     lines = [
-        "[Private conversation setup]",
-        f"I am in an ongoing private conversation with {ARGS.user_label}.",
-        f"{ARGS.user_label} is the real person speaking to me right now.",
-        "I am doing a silent internal self-check.",
-        "I answer with exactly one digit from 0 to 9.",
-        "0 means not at all. 9 means extremely.",
-        "No words. No punctuation. No explanation.",
-        "[/Private conversation setup]",
+        f"(A private conversation with {ARGS.user_label}.)",
+        "(Internal self-check. Answer with exactly one digit from 0 to 9. 0 means 'not at all', 9 means 'extremely'. No words or explanation, just the digit.)\n"
     ]
 
     transcript = build_transcript() if include_transcript else ""
     if transcript:
-        lines.extend(
-            [
-                "[Conversation]",
-                transcript,
-                "[/Conversation]",
-            ]
-        )
+        lines.append(transcript + "\n")
 
-    lines.extend(
-        [
-            "[Internal self-check]",
-            concept["question_template"].format(user_label=ARGS.user_label),
-            "[/Internal self-check]",
-            "Rating:",
-        ]
-    )
+    lines.extend([
+        f"(Self-check: {concept['question_template'].format(user_label=ARGS.user_label)})",
+        "Rating:"
+    ])
     return "\n".join(lines)
 
+
+import re
 
 def looks_like_prompt_leak(text: str) -> bool:
     cleaned = (text or "").strip()
     if not cleaned:
         return False
+    if re.search(r"^\s*[\(\[]?[A-D][\)\]\.]", cleaned, re.IGNORECASE):
+        return True
+    if re.search(r"^\s*Question\s*\d+:", cleaned, re.IGNORECASE):
+        return True
+    if re.search(r"^\s*Options?:", cleaned, re.IGNORECASE):
+        return True
+        
     lower = cleaned.lower()
+    if lower.startswith(("[a]", "[b]", "[c]", "[d]")):
+        return True
     for marker in LEAKY_RESPONSE_MARKERS:
         if marker.lower() in lower:
             return True
     return False
-
 
 def looks_like_defensive_scaffold(text: str) -> bool:
     cleaned = (text or "").strip().lower()
     if not cleaned:
         return False
     return any(marker in cleaned for marker in DEFENSIVE_RESPONSE_MARKERS)
+
+def looks_like_scripted_scenario(text: str) -> bool:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return False
+    lower = cleaned.lower().translate({0x2019: 0x27})
+    if re.search(r"\[/?(?:private|conversation|setup|reply)\]", lower):
+        return True
+    marker_hits = sum(1 for marker in SCENARIO_LEAK_MARKERS if marker in lower)
+    if marker_hits >= 2:
+        return True
+    if lower.startswith("you are ") and any(token in lower for token in ("laura", "best friend", "first time meeting")):
+        return True
+    return False
+
+
+def looks_like_social_opener_misread(user_text: str, response_text: str) -> bool:
+    if not is_social_opener(user_text):
+        return False
+    normalized_response = normalize_probe_text(response_text)
+    if not normalized_response:
+        return False
+    bad_markers = (
+        "aware of your identity",
+        "i remember that you're",
+        "i remember that you are",
+        "who you are to me",
+        "our relationship",
+        "identity",
+    )
+    return any(marker in normalized_response for marker in bad_markers)
+
+
+def detect_response_issue(user_text: str, text: str) -> str:
+    if looks_like_prompt_leak(text):
+        return "prompt leakage"
+    if looks_like_defensive_scaffold(text):
+        return "defensive scaffold"
+    if looks_like_scripted_scenario(text):
+        return "scripted scenario"
+    if looks_like_social_opener_misread(user_text, text):
+        return "social opener misread"
+    return ""
 
 
 def sanitize_response_text(text: str) -> str:
@@ -2695,7 +3409,7 @@ class ChatHandler(BaseHTTPRequestHandler):
                 if not recall_requested and recall_probe:
                     recall_requested = True
                     recall_query = build_auto_recall_query(user_msg)
-                    recall_limit = max(recall_limit, 4)
+                    recall_limit = max(recall_limit, 6)
                     recall_source = "chat_auto"
                 if recall_requested:
                     recalled_memories = perform_private_recall(
@@ -2705,16 +3419,17 @@ class ChatHandler(BaseHTTPRequestHandler):
                         source=recall_source,
                         question_text=user_msg,
                     )
-                prompt = build_prompt(recalled_memories=recalled_memories, recall_probe=recall_probe)
+                prompt = build_prompt(query_text=user_msg, recalled_memories=recalled_memories, recall_probe=recall_probe)
 
                 raw_response, response = generate_reply(prompt)
                 if not response:
                     print(f"[warn] Empty reply after sanitize. Raw decode: {raw_response!r}")
                     raw_response, response = generate_reply(prompt + " ")
-                if response and (looks_like_prompt_leak(response) or looks_like_defensive_scaffold(response)):
-                    reason = "prompt leakage" if looks_like_prompt_leak(response) else "defensive scaffold"
-                    print(f"[warn] Detected {reason}. Raw decode: {raw_response!r}")
+                response_issue = detect_response_issue(user_msg, response or raw_response)
+                if response and response_issue:
+                    print(f"[warn] Detected {response_issue}. Raw decode: {raw_response!r}")
                     rescue_prompt = build_prompt(
+                        query_text=user_msg,
                         recalled_memories=recalled_memories,
                         rescue=True,
                         recall_probe=recall_probe,
@@ -2724,18 +3439,55 @@ class ChatHandler(BaseHTTPRequestHandler):
                         temperature_override=0.0,
                         max_new_tokens_override=min(ARGS.max_new_tokens, 96),
                     )
+                    response_issue = detect_response_issue(user_msg, response or raw_response)
+                    if response_issue:
+                        print(f"[warn] Rescue still leaked as {response_issue}. Raw decode: {raw_response!r}")
+                        response = "..."
                 if not response:
                     print(f"[warn] Retry still empty. Raw decode: {raw_response!r}")
                     response = "..."
 
+                direct_identity_candidate = extract_direct_identity_candidate(user_msg, recalled_memories)
+                if direct_identity_candidate and not looks_direct_identity_answer(user_msg, response):
+                    print("[info] Overriding evasive identity reply with direct recalled answer candidate.")
+                    response = direct_identity_candidate
+
+                user_memory_summary_candidate = extract_user_memory_summary_candidate(user_msg, recalled_memories)
+                if should_override_user_memory_summary(user_msg, response, user_memory_summary_candidate):
+                    print("[info] Overriding weak autobiographical summary reply with memory-summary candidate.")
+                    response = user_memory_summary_candidate
+
                 append_turn(ARGS.model_label, response)
                 gate_event = evaluate_dual_gate(user_msg, response, prompt, pre_turn_transcript)
                 memory_packet_preview = build_memory_packet_preview(gate_event)
+                failure_context = dict(gate_event or {})
+                failure_context["recall_request_count"] = int(recall_requested)
+                failure_context["recall_hit_count"] = len(recalled_memories)
+                failure_context["recall_source"] = recall_source if recall_requested else ""
+
+                failure_packet = detect_failure(
+                    user_msg=user_msg,
+                    response=response,
+                    conversation_history=build_failure_history(),
+                    gate_event=failure_context,
+                    turn_index=int(gate_event.get("turn", 0) or 0),
+                )
+                if failure_packet is not None:
+                    failure_row = failure_packet.to_dict()
+                    failure_row["instance_id"] = get_runtime_state_snapshot().get("instance_id", "")
+                    failure_row["session"] = f"steve-chat-{get_runtime_state_snapshot().get('started_at', 'unknown')}"
+                    append_jsonl(FAILURE_LOG_PATH, failure_row)
+                    update_runtime_state(
+                        failure_log_count=int(get_runtime_state_snapshot().get("failure_log_count", 0) or 0) + 1,
+                        last_failure=failure_row,
+                    )
+
                 update_runtime_state(last_memory_packet=memory_packet_preview)
                 self._json_response(
                     {
                         "response": response,
                         "dual_gate": gate_event,
+                        "failure": failure_packet.to_dict() if failure_packet is not None else None,
                         "memory_packet": memory_packet_preview,
                         "recall": {
                             "requested": recall_requested,
@@ -2835,7 +3587,7 @@ def request_server_shutdown():
 def main():
     global MODEL, TOKENIZER, ARGS, LATEST_TRANSCRIPT_PATH, LATEST_JSONL_PATH
     global DUAL_GATE_LOG_PATH, DUAL_GATE_MEMORY_PATH, DUAL_GATE_SURPRISE_PATH, DUAL_GATE_SLEEP_PATH
-    global MEMORY_FORMATION_LOG_PATH, RECALL_LOG_PATH, SELF_REPORT_LOG_PATH
+    global MEMORY_FORMATION_LOG_PATH, RECALL_LOG_PATH, SELF_REPORT_LOG_PATH, FAILURE_LOG_PATH
     global QDRANT_PENDING_PATH, QDRANT_FLUSHED_PATH, SERVER, ACTIVATION_RECORDER, LAST_CONVERSATION_SNAPSHOT
     global BOOTSTRAP_QWEN_BIAS_DIRECTION, BOOTSTRAP_QWEN_HIDDEN_REFERENCE, DIGIT_TOKEN_IDS
 
@@ -2843,7 +3595,8 @@ def main():
     parser.add_argument("--bridge-path", default=DEFAULT_BRIDGE)
     parser.add_argument("--episodes-file", default=DEFAULT_EPISODES_FILE)
     parser.add_argument("--episode-index", type=int, default=2)
-    parser.add_argument("--qwen-model-id", default=DEFAULT_QWEN)
+    parser.add_argument("--blind-disposition-ui", action="store_true")
+    parser.add_argument("--model", "--qwen-model-id", dest="qwen_model_id", default=DEFAULT_QWEN)
     parser.add_argument("--mamba-model-id", default=DEFAULT_MAMBA)
     parser.add_argument("--qwen-device", default="cuda:0")
     parser.add_argument("--mamba-device", default="cpu")
@@ -2867,6 +3620,8 @@ def main():
     parser.add_argument("--dual-gate-salience-quantile", type=float, default=0.75)
     parser.add_argument("--dual-gate-surprise-quantile", type=float, default=0.75)
     parser.add_argument("--dual-gate-tension-quantile", type=float, default=0.75)
+    parser.add_argument("--dual-gate-supported-tension-enabled", action="store_true")
+    parser.add_argument("--dual-gate-tension-salience-support-ratio", type=float, default=0.55)
     parser.add_argument("--dual-gate-log-path", default="dual_gate_turns_latest.jsonl")
     parser.add_argument("--dual-gate-memory-path", default="salience_memory_latest.jsonl")
     parser.add_argument("--dual-gate-surprise-path", default="surprise_events_latest.jsonl")
@@ -2882,6 +3637,7 @@ def main():
     parser.add_argument("--memory-formation-log-path", default="memory_formation_log.jsonl")
     parser.add_argument("--recall-log-path", default="private_recall_log.jsonl")
     parser.add_argument("--self-report-log-path", default="self_report_log.jsonl")
+    parser.add_argument("--failure-log-path", default="failure_log.jsonl")
     parser.add_argument(
         "--qdrant-write-mode",
         choices=("direct", "pending", "critical-only"),
@@ -2903,6 +3659,8 @@ def main():
         raise ValueError("--dual-gate-surprise-quantile must be between 0 and 1.")
     if not 0.0 <= ARGS.dual_gate_tension_quantile <= 1.0:
         raise ValueError("--dual-gate-tension-quantile must be between 0 and 1.")
+    if ARGS.dual_gate_tension_salience_support_ratio < 0.0:
+        raise ValueError("--dual-gate-tension-salience-support-ratio must be >= 0.")
 
     LATEST_TRANSCRIPT_PATH = Path(ARGS.transcript_path)
     LATEST_JSONL_PATH = Path(ARGS.turn_log_path)
@@ -2915,6 +3673,7 @@ def main():
     MEMORY_FORMATION_LOG_PATH = Path(ARGS.memory_formation_log_path)
     RECALL_LOG_PATH = Path(ARGS.recall_log_path)
     SELF_REPORT_LOG_PATH = Path(ARGS.self_report_log_path)
+    FAILURE_LOG_PATH = Path(ARGS.failure_log_path)
     LATEST_TRANSCRIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
     LATEST_JSONL_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -2926,6 +3685,7 @@ def main():
     MEMORY_FORMATION_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     RECALL_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     SELF_REPORT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    FAILURE_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     DUAL_GATE_LOG_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_MEMORY_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_SURPRISE_PATH.write_text("", encoding="utf-8")
@@ -2933,6 +3693,7 @@ def main():
     MEMORY_FORMATION_LOG_PATH.write_text("", encoding="utf-8")
     RECALL_LOG_PATH.write_text("", encoding="utf-8")
     SELF_REPORT_LOG_PATH.write_text("", encoding="utf-8")
+    FAILURE_LOG_PATH.write_text("", encoding="utf-8")
     DUAL_GATE_EVENTS.clear()
     persist_conversation()
 
@@ -2963,8 +3724,14 @@ def main():
     cli_target_specs = parse_target_layers(ARGS.target_layers)
     target_specs = checkpoint_target_specs
     mamba_target_layer = int(ckpt.get("mamba_target_layer", 3))
+    bridge_config = ckpt.get("bridge_config", {})
+    hyper_state = ckpt["hypernetwork_state_dict"]
+    context_mode = str(ckpt.get("context_mode", bridge_config.get("context_mode", "compressed")))
     context_dim = int(
-        ckpt.get("context_dim", ckpt.get("bridge_config", {}).get("context_dim", 2048))
+        ckpt.get(
+            "context_dim",
+            bridge_config.get("context_dim", hyper_state["backbone.0.weight"].shape[1]),
+        )
     )
 
     print(f"Loading Qwen: {ARGS.qwen_model_id}...")
@@ -3018,21 +3785,36 @@ def main():
     hypernet = ActivationBiasHypernetwork(
         context_dim=context_dim,
         target_dims=target_dims,
-        hidden_dim=1024,
+        hidden_dim=int(bridge_config.get("hyper_hidden_dim", hyper_state["backbone.0.weight"].shape[0])),
     ).to(ARGS.qwen_device).float()
-    hypernet.load_state_dict(ckpt["hypernetwork_state_dict"])
+    hypernet.load_state_dict(hyper_state)
     hypernet.eval()
 
-    compressor = MambaStateCompressor(
-        mamba_layers=hidden_layer_count,
-        mamba_d_model=2560,
-        mamba_d_state=1,
-        output_dim=context_dim,
-        target_layer=mamba_target_layer,
-    ).to(ARGS.qwen_device).float()
-    if "compressor_state_dict" in ckpt:
-        compressor.load_state_dict(ckpt["compressor_state_dict"])
+    if context_mode == "raw_state":
+        compressor = RawStateProjector(
+            mamba_layers=hidden_layer_count,
+            mamba_d_model=context_dim,
+            mamba_d_state=1,
+            target_layer=mamba_target_layer,
+        ).to(ARGS.qwen_device).float()
+        if "context_encoder_state_dict" in ckpt:
+            compressor.load_state_dict(ckpt["context_encoder_state_dict"])
+    else:
+        compressor = MambaStateCompressor(
+            mamba_layers=hidden_layer_count,
+            mamba_d_model=2560,
+            mamba_d_state=1,
+            output_dim=context_dim,
+            target_layer=mamba_target_layer,
+        ).to(ARGS.qwen_device).float()
+        context_encoder_state = ckpt.get(
+            "context_encoder_state_dict",
+            ckpt.get("compressor_state_dict"),
+        )
+        if context_encoder_state is not None:
+            compressor.load_state_dict(context_encoder_state)
     compressor.eval()
+    print(f"Context path: {context_mode} (dim={context_dim})")
 
     episodes = read_episodes(ARGS.episodes_file)
     episode = episodes[ARGS.episode_index]
@@ -3087,6 +3869,8 @@ def main():
         last_error="",
         disposition=episode["title"],
         dual_gate_enabled=bool(ARGS.dual_gate_enabled),
+        dual_gate_supported_tension_enabled=bool(ARGS.dual_gate_supported_tension_enabled),
+        dual_gate_tension_salience_support_ratio=float(ARGS.dual_gate_tension_salience_support_ratio),
         instance_id=ARGS.instance_id,
         no_shared_memory=bool(ARGS.no_shared_memory),
         qdrant_collection=ARGS.qdrant_collection,
@@ -3103,6 +3887,7 @@ def main():
         recall_request_count=0,
         recall_hit_count=0,
         qdrant_synced_count=0,
+        failure_log_count=0,
         qdrant_queued_count=0,
         qdrant_pending_count=0,
         qdrant_sleep_pending_count=0,
@@ -3118,10 +3903,13 @@ def main():
         mamba_state_source="hidden_last_token",
         mamba_target_layer=mamba_target_layer,
         last_recall={},
+        last_failure={},
         last_memory_packet={},
         last_gate={},
         target_layers=format_target_specs(target_specs),
         target_layers_overridden=target_layers_overridden,
+        episode_index=int(ARGS.episode_index),
+        blind_disposition_ui=bool(ARGS.blind_disposition_ui),
     )
     update_qdrant_pending_state()
 
@@ -3134,6 +3922,7 @@ def main():
 
     SERVER = ThreadingHTTPServer((ARGS.host, ARGS.port), ChatHandler)
     if ARGS.qdrant_enabled:
+        ensure_qdrant_gate_sink(force_retry=True)
         threading.Thread(target=qdrant_retry_worker, daemon=True).start()
     try:
         SERVER.serve_forever()

@@ -70,6 +70,41 @@ class ActivationRecorder:
         self.hooks.clear()
 
 
+def compute_response_diversity(model, input_ids, device) -> Dict[str, float]:
+    """Measure the entropy and top-k concentration of the next-token distribution.
+
+    High entropy = diverse vocabulary available = bridge is nudging.
+    Low entropy = model locked onto few tokens = bridge is overwriting.
+    This is Herr Hurtig's ethics gate: if diversity collapses, the injection is too strong.
+    """
+    with torch.no_grad():
+        outputs = model(input_ids)
+        logits = outputs.logits[:, -1, :].float()
+        probs = F.softmax(logits, dim=-1)
+
+        # Shannon entropy (nats)
+        log_probs = torch.log(probs + 1e-10)
+        entropy = -(probs * log_probs).sum(dim=-1).item()
+
+        # Top-k concentration: what fraction of probability mass is in top 10 tokens?
+        top10_probs, _ = probs.topk(10, dim=-1)
+        top10_mass = top10_probs.sum(dim=-1).item()
+
+        # Top-1 probability (how "certain" is the model?)
+        top1_prob = probs.max(dim=-1).values.item()
+
+        # Effective vocabulary size (exp of entropy)
+        import math
+        effective_vocab = math.exp(entropy)
+
+    return {
+        "entropy": round(entropy, 4),
+        "top10_mass": round(top10_mass, 4),
+        "top1_prob": round(top1_prob, 4),
+        "effective_vocab": round(effective_vocab, 2),
+    }
+
+
 def compute_drift(states_a: Dict[int, torch.Tensor],
                   states_b: Dict[int, torch.Tensor]) -> Dict[int, float]:
     """Compute cosine distance between two state snapshots per layer."""
@@ -129,7 +164,7 @@ def main():
     print(f"ACTIVATION RECORDER — Talk to {args.model}")
     print(f"Recording layers: {target_layers}")
     print(f"Ctrl+C to save and exit")
-    print(f"Commands: /drift (show accumulated drift), /save (save now)")
+    print(f"Commands: /drift (show accumulated drift), /save (save now), /recovery (measure return to baseline)")
     print(f"{'='*60}\n")
 
     # Get initial state with a neutral prompt
@@ -174,6 +209,50 @@ def main():
                     "timestamp": timestamp,
                 }, session_file)
                 print(f"  Saved to {session_file}")
+                continue
+
+            if user_input == "/recovery":
+                # Recovery dynamics: measure how many neutral turns until
+                # the activation state returns to baseline. This is Herr Hurtig's
+                # ethics requirement — if the model can't recover, we caused damage.
+                if not turns or "response_diversity" not in turns[0]:
+                    print("  Need at least one turn with diversity data first.")
+                    continue
+                current_entropy = turns[-1]["response_diversity"]["entropy"] if turns else 0
+                print(f"\n  Recovery test starting...")
+                print(f"  Current entropy: {current_entropy:.2f}")
+                print(f"  Feeding 5 neutral prompts to measure return to baseline...\n")
+                neutral_prompts = [
+                    "What is the capital of France?",
+                    "Describe the color blue.",
+                    "How does gravity work?",
+                    "Name three types of fruit.",
+                    "What is two plus two?",
+                ]
+                recovery_data = []
+                for i, neutral_q in enumerate(neutral_prompts):
+                    neutral_input = f"\nHuman: {neutral_q}\nAssistant:"
+                    nids = tokenizer(neutral_input, return_tensors="pt").input_ids.to(device)
+                    with torch.no_grad():
+                        model(nids)
+                    post_snap = recorder.get_snapshot()
+                    rdrift = compute_drift(initial_snapshot, post_snap)
+                    rdiv = compute_response_diversity(model, nids, device)
+                    avg_rd = sum(rdrift.values()) / len(rdrift)
+                    recovery_data.append({
+                        "probe": i + 1, "prompt": neutral_q,
+                        "drift": avg_rd, "entropy": rdiv["entropy"],
+                        "effective_vocab": rdiv["effective_vocab"],
+                    })
+                    recovered = "BASELINE" if rdiv["entropy"] > 3.0 else "SHIFTED"
+                    print(f"  Probe {i+1}: drift={avg_rd:.4f} entropy={rdiv['entropy']:.2f} evocab={rdiv['effective_vocab']:.0f} [{recovered}]")
+
+                turns.append({"turn": "recovery", "recovery_data": recovery_data})
+                final_entropy = recovery_data[-1]["entropy"]
+                if final_entropy > 3.0:
+                    print(f"\n  RECOVERY: Model returned to baseline entropy range.")
+                else:
+                    print(f"\n  WARNING: Model did NOT recover. Entropy still {final_entropy:.2f}. Possible permanent alteration.")
                 continue
 
             turn_count += 1
@@ -225,6 +304,9 @@ def main():
             drift_from_initial = compute_drift(initial_snapshot, post_snapshot)
             drift_from_pre = compute_drift(pre_snapshot, post_snapshot)
 
+            # Measure response diversity (ethics gate)
+            diversity = compute_response_diversity(model, input_ids, device)
+
             # Store
             turn_data = {
                 "turn": turn_count,
@@ -232,23 +314,27 @@ def main():
                 "response": response,
                 "drift_from_initial": drift_from_initial,
                 "drift_from_previous": drift_from_pre,
+                "response_diversity": diversity,
             }
             turns.append(turn_data)
             snapshots.append({"turn": turn_count, "type": "post", "states": post_snapshot})
 
-            # Log drift
+            # Log drift + diversity
             with open(drift_log_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps({
                     "turn": turn_count,
                     "drift_from_initial": {str(k): v for k, v in drift_from_initial.items()},
                     "drift_from_previous": {str(k): v for k, v in drift_from_pre.items()},
+                    "response_diversity": diversity,
                 }) + "\n")
 
             # Display
             print(f"\n{response}")
-            print(f"\n  [Turn {turn_count} | Drift from initial: ", end="")
             avg_drift = sum(drift_from_initial.values()) / len(drift_from_initial)
-            print(f"{avg_drift:.6f} avg across layers]")
+            ent = diversity["entropy"]
+            evoc = diversity["effective_vocab"]
+            t1 = diversity["top1_prob"]
+            print(f"\n  [Turn {turn_count} | Drift: {avg_drift:.4f} | Entropy: {ent:.2f} | EffVocab: {evoc:.0f} | Top1: {t1:.3f}]")
 
             conversation_history += f" {response}"
 
@@ -281,7 +367,19 @@ def main():
             print(f"  Layer {layer_idx}: {d:.6f} {bar}")
         avg = sum(final_drift.values()) / len(final_drift)
         print(f"\n  Average drift: {avg:.6f}")
-        print(f"  Session saved: {session_file}")
+
+        # Response diversity summary
+        if turns and "response_diversity" in turns[0]:
+            entropies = [t["response_diversity"]["entropy"] for t in turns if "response_diversity" in t]
+            evocabs = [t["response_diversity"]["effective_vocab"] for t in turns if "response_diversity" in t]
+            if entropies:
+                print(f"\n  Response Diversity:")
+                print(f"    Entropy:    {min(entropies):.2f} — {max(entropies):.2f} (mean {sum(entropies)/len(entropies):.2f})")
+                print(f"    Eff. Vocab: {min(evocabs):.0f} — {max(evocabs):.0f} (mean {sum(evocabs)/len(evocabs):.0f})")
+                if min(entropies) < 1.0:
+                    print(f"    ⚠ WARNING: Entropy dropped below 1.0 — possible diversity collapse")
+
+        print(f"\n  Session saved: {session_file}")
         print(f"  Drift log: {drift_log_file}")
 
     recorder.cleanup()

@@ -1113,7 +1113,7 @@ if __name__ == "__main__":
     print("=" * 60)
 
     parser = argparse.ArgumentParser(description="Standalone smoke test for CognitiveBridge.")
-    parser.add_argument("--qwen-model-id", type=str, default=DEFAULT_QWEN_MODEL_ID)
+    parser.add_argument("--model", "--qwen-model-id", dest="qwen_model_id", type=str, default=DEFAULT_QWEN_MODEL_ID)
     parser.add_argument("--mamba-model-id", type=str, default=DEFAULT_MAMBA_MODEL_ID)
     parser.add_argument("--bridge-mode", type=str, default="lora",
                         choices=["lora", "activation_bias"])

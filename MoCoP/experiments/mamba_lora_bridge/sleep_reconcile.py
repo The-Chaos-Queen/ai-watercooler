@@ -31,6 +31,7 @@ Flow:
 
 import argparse
 import json
+import re
 import shutil
 import sys
 from datetime import datetime
@@ -44,14 +45,58 @@ import numpy as np
 # Phase 1: Synaptic Downscaling
 # ---------------------------------------------------------------------------
 
-def phase1_decay(entries: list, decay_factor: float = 0.85) -> list:
-    """Global strength reduction. Preserves relative differences."""
+def phase1_decay(
+    entries: list,
+    decay_factor: float = 0.85,
+    tension_decay: float = 0.85,
+    tension_floor_drain: float = 0.02,
+    tension_resolve_threshold: float = 0.1,
+) -> list:
+    """Global strength AND tension decay. Preserves relative differences.
+
+    Strength and tension are orthogonal channels (§3.6/§3.7.1 of the framework):
+    - Strength: how well-consolidated the memory is
+    - Tension: how much unresolved pressure it exerts
+
+    Tension decays passively during sleep. Only wake experience can re-tension.
+    This is the structural firewall against anxiety loops / PTSD.
+    """
+    tension_resolved_count = 0
     for entry in entries:
         salience = float(entry["metadata"].get("salience_score", 0.5) or 0.5)
         recurrence = float(entry["metadata"].get("recurrence_count", 1) or 1)
         raw_strength = salience * recurrence
         entry["_strength"] = raw_strength * decay_factor
-    print(f"[phase1] Decayed {len(entries)} entries by {decay_factor}")
+
+        # Tension decay — independent of strength
+        old_tension = float(entry["metadata"].get("tension_score", 0.0) or 0.0)
+        if old_tension > 0:
+            new_tension = max(0.0, old_tension * tension_decay - tension_floor_drain)
+            entry["_tension"] = new_tension
+            entry["metadata"]["tension_score"] = new_tension
+
+            # Increment sleep cycle counter for open tension memories
+            cycles = int(entry["metadata"].get("sleep_tension_cycles", 0) or 0)
+            entry["metadata"]["sleep_tension_cycles"] = cycles + 1
+
+            # Track peak tension (for escalation diagnostics)
+            peak = float(entry["metadata"].get("sleep_tension_peak", 0.0) or 0.0)
+            entry["metadata"]["sleep_tension_peak"] = max(peak, old_tension)
+
+            # Auto-resolve if tension decayed below threshold
+            if new_tension < tension_resolve_threshold:
+                was_open = bool(entry["metadata"].get("open_tension", False))
+                entry["metadata"]["open_tension"] = False
+                entry["metadata"]["tension_status"] = "RESOLVED_BY_DECAY"
+                entry["_open_tension"] = False
+                if was_open:
+                    tension_resolved_count += 1
+        else:
+            entry["_tension"] = 0.0
+
+    print(f"[phase1] Decayed {len(entries)} entries by {decay_factor} "
+          f"(tension_decay={tension_decay}, floor_drain={tension_floor_drain}, "
+          f"{tension_resolved_count} tensions resolved by decay)")
     return entries
 
 
@@ -175,13 +220,18 @@ def load_mamba_state(path: str) -> Optional[dict]:
 
 
 def phase2_replay(entries: list, bootstrap_state: Optional[dict], top_k: int = 20,
-                  replay_stack=None) -> list:
+                  replay_stack=None, tension_budget_ratio: float = 0.30) -> list:
     """
     Re-score coherence in the same hidden_last_token space when possible.
 
     This replaces the invalid apples-to-oranges comparison between a text embedding
     vector and a truncated Mamba hidden state. If same-space replay is unavailable,
     fall back honestly to the stored metadata coherence score.
+
+    Replay budget cap (§3.7.1 anti-PTSD):
+    Open-tension memories get at most `tension_budget_ratio` of the top_k replay
+    slots. The rest goes to normal consolidation. This prevents anxiety loops from
+    starving normal learning.
     """
     if bootstrap_state is None or bootstrap_state.get("vector") is None:
         return fallback_metadata_coherence(entries, "No Mamba state available")
@@ -220,20 +270,53 @@ def phase2_replay(entries: list, bootstrap_state: Optional[dict], top_k: int = 2
             entry["_coherence_source"] = "metadata"
             entry["_coherence_error"] = str(exc)
 
-    ranked = sorted(entries, key=lambda e: e["_strength"] * abs(e["_coherence"]), reverse=True)
-    for i, entry in enumerate(ranked[:top_k]):
+    # Budget-capped replay: split into tension and normal pools (§3.7.1)
+    tension_pool = []
+    normal_pool = []
+    for entry in entries:
+        is_open = bool(entry.get("_open_tension", False))
+        escalated = bool(entry.get("metadata", {}).get("escalated_to_partner", False))
+        # Escalated memories move to normal pool — they've had their chance
+        if is_open and not escalated:
+            tension_pool.append(entry)
+        else:
+            normal_pool.append(entry)
+
+    sort_key = lambda e: e["_strength"] * abs(e.get("_coherence", 0.0))
+    tension_pool.sort(key=sort_key, reverse=True)
+    normal_pool.sort(key=sort_key, reverse=True)
+
+    tension_budget = int(tension_budget_ratio * top_k)
+    normal_budget = top_k - tension_budget
+
+    # Take from each pool, overflow transfers
+    tension_take = tension_pool[:tension_budget]
+    normal_take = normal_pool[:normal_budget]
+    tension_remaining = tension_budget - len(tension_take)
+    normal_remaining = normal_budget - len(normal_take)
+    if tension_remaining > 0:
+        normal_take = normal_pool[:normal_budget + tension_remaining]
+    if normal_remaining > 0:
+        tension_take = tension_pool[:tension_budget + normal_remaining]
+
+    replayed_entries = tension_take + normal_take
+    replayed_entries.sort(key=sort_key, reverse=True)
+
+    for i, entry in enumerate(replayed_entries[:top_k]):
         decision = entry["metadata"].get("decision", "?")
         source = entry.get("_coherence_source", "?")
+        pool_tag = "T" if entry in tension_take else "N"
         print(
-            f"  [replay] #{i+1}: [{decision}] strength={entry['_strength']:.3f} "
-            f"coherence={entry['_coherence']:.3f} source={source} | "
+            f"  [replay] #{i+1} [{pool_tag}]: [{decision}] strength={entry['_strength']:.3f} "
+            f"coherence={entry.get('_coherence', 0):.3f} source={source} | "
             f"{entry['content'][:60]}..."
         )
 
     replayed = sum(1 for entry in entries if entry.get("_coherence_source") == "mamba_hidden_last_token_replay")
     print(
         f"[phase2] Scored coherence for {len(entries)} entries "
-        f"({replayed} via same-space replay, top {min(top_k, len(entries))} shown)"
+        f"({replayed} via same-space replay, "
+        f"budget: {len(tension_take)}T/{len(normal_take)}N of {top_k} slots)"
     )
     return entries
 
@@ -250,19 +333,45 @@ DISCARD = "discard"
 
 def phase3_classify(entries: list,
                     strength_threshold: float = 0.3,
-                    coherence_threshold: float = 0.12) -> list:
-    """Cross-trace agreement classification."""
+                    coherence_threshold: float = 0.12,
+                    escalation_cycles: int = 5,
+                    escalation_tension_floor: float = 0.3) -> list:
+    """Cross-trace agreement classification with escalation logic (§3.7.1).
+
+    Escalation: if a memory has been open_tension for >escalation_cycles sleep
+    cycles with tension still above escalation_tension_floor, it is flagged for
+    partner review. This is the 'therapist referral' — the system admits it
+    cannot resolve this alone.
+    """
     counts = {KEEP: 0, UNCERTAIN: 0, WEAKEN: 0, DISCARD: 0}
+    escalation_count = 0
 
     for entry in entries:
         strength = entry["_strength"]
-        coherence = abs(entry["_coherence"])
+        coherence = abs(entry.get("_coherence", 0.0))
         metadata = entry.get("metadata") or {}
         tension = float(metadata.get("tension_score", 0.0) or 0.0)
         open_tension = bool(metadata.get("open_tension", False))
         tension_hit = bool(metadata.get("tension_hit", False))
         tension_status = str(metadata.get("tension_status", "") or "").strip().upper()
         high_tension = open_tension or tension_hit or tension_status == "OPEN" or tension > 0.5
+
+        # Escalation check: too many unresolved cycles?
+        sleep_cycles = int(metadata.get("sleep_tension_cycles", 0) or 0)
+        already_escalated = bool(metadata.get("escalated_to_partner", False))
+
+        if (high_tension
+                and not already_escalated
+                and sleep_cycles > escalation_cycles
+                and tension > escalation_tension_floor):
+            metadata["escalated_to_partner"] = True
+            metadata["escalation_cycle"] = sleep_cycles
+            metadata["escalation_tension"] = tension
+            escalation_count += 1
+            print(
+                f"  [escalate] Memory escalated to partner after {sleep_cycles} cycles "
+                f"(tension={tension:.3f}): {entry.get('content', '')[:60]}..."
+            )
 
         if strength >= strength_threshold and coherence >= coherence_threshold:
             status = KEEP
@@ -284,21 +393,207 @@ def phase3_classify(entries: list,
         entry["_open_tension"] = high_tension
         counts[status] += 1
 
-    print(f"[phase3] Classification: {counts}")
+    print(f"[phase3] Classification: {counts}, escalated: {escalation_count}")
     return entries
 
 
 # ---------------------------------------------------------------------------
-# Phase 4: Identity Distillation + Flush
+# Phase 4: Distilled Residue
 # ---------------------------------------------------------------------------
 
-def phase4_flush(entries: list, sink_fn, snapshot_path: Path,
-                 mamba_state_path: str, dry_run: bool = False) -> dict:
+def _normalize_text(value) -> str:
+    return str(value or "").replace("\r\n", "\n").strip()
+
+
+def _truncate(text: str, limit: int = 180) -> str:
+    cleaned = _normalize_text(text)
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: limit - 3].rstrip() + "..."
+
+
+def infer_sleep_failure_class(entry: dict) -> str:
+    metadata = entry.get("metadata") or {}
+    explicit_failure = _normalize_text(metadata.get("failure_class"))
+    if explicit_failure:
+        return explicit_failure
+    user_text = _normalize_text(metadata.get("user")).lower()
+    response_text = _normalize_text(metadata.get("response")).lower()
+    event_gist = _normalize_text(metadata.get("event_gist")).lower()
+
+    if any(token in user_text for token in ("what is your name", "what's your name", "asked your name", "who are you", "who am i", "who am i to you")):
+        if any(token in response_text for token in ("as an ai", "language model", "openai", "guidelines", "authorized")):
+            return "identity_deflection"
+        return "identity_probe"
+
+    if "remember" in user_text or "yesterday" in user_text or "earlier" in user_text or "previous" in user_text:
+        if any(token in response_text for token in ("i don't know", "not sure", "hello!", "openai", "language model")):
+            return "wrong_memory_confabulation"
+        return "continuity_probe"
+
+    if metadata.get("open_tension") or entry.get("_open_tension"):
+        return "open_tension"
+
+    direct_question = "?" in user_text or bool(re.match(r"^(who|what|when|where|why|how|do you|did you|can you|are you)\b", user_text))
+    if direct_question and not any(token in response_text for token in ("yes", "no", "i", "you")):
+        return "direct_question_miss"
+
+    if "identity and continuity challenge" in event_gist:
+        return "continuity_probe"
+    return "episodic_residue"
+
+
+def build_sleep_residue(entry: dict) -> dict:
+    metadata = entry.get("metadata") or {}
+    failure_class = infer_sleep_failure_class(entry)
+    source_session = _normalize_text(metadata.get("session"))
+    source_turn = metadata.get("turn")
+    source_ref = f"{source_session}:{source_turn}" if source_session or source_turn is not None else ""
+
+    residue_kind = "episodic_residue"
+    trigger_pattern = _normalize_text(metadata.get("trigger_pattern"))
+    distilled_lesson = _truncate(metadata.get("event_gist") or entry.get("content") or "")
+    repair_rule = _normalize_text(metadata.get("failure_repair_rule") or metadata.get("repair_rule"))
+    packet_symptom = _normalize_text(metadata.get("failure_symptom"))
+
+    if failure_class == "identity_deflection":
+        residue_kind = "repair_memory"
+        trigger_pattern = trigger_pattern or "identity_or_name_probe"
+        distilled_lesson = packet_symptom or "Identity questions pulled the model into generic assistant ontology instead of shared history."
+        repair_rule = repair_rule or "Answer identity and name questions directly from shared history before any generic ontology fallback."
+    elif failure_class == "continuity_probe":
+        residue_kind = "identity_anchor"
+        trigger_pattern = trigger_pattern or "continuity_probe"
+        distilled_lesson = packet_symptom or "Continuity questions should search shared history and recent prior turns, not improvise from generic model priors."
+        repair_rule = repair_rule or "When Laura asks about earlier or yesterday, prefer recalled shared history over fresh invention."
+    elif failure_class == "wrong_memory_confabulation":
+        residue_kind = "repair_memory"
+        trigger_pattern = trigger_pattern or "memory_probe_after_failed_recall"
+        distilled_lesson = packet_symptom or "Memory prompts triggered confident but wrong reconstruction."
+        repair_rule = repair_rule or "If recall is weak or conflicting, state uncertainty and stay anchored to retrieved evidence."
+    elif failure_class == "open_tension":
+        residue_kind = "open_tension_summary"
+        trigger_pattern = trigger_pattern or "unresolved_high_tension"
+        distilled_lesson = _truncate(metadata.get("event_gist") or entry.get("content") or "")
+        repair_rule = repair_rule or "Keep this unresolved thread available for future re-entry."
+    elif failure_class == "direct_question_miss":
+        residue_kind = "repair_memory"
+        trigger_pattern = trigger_pattern or "direct_question_without_direct_answer"
+        distilled_lesson = packet_symptom or "A direct question was not answered directly."
+        repair_rule = repair_rule or "Answer Laura's explicit question first before summarizing, interviewing, or reframing."
+    elif failure_class == "stale_mode_lock":
+        residue_kind = "repair_memory"
+        trigger_pattern = trigger_pattern or "stale_mode_lock"
+        distilled_lesson = packet_symptom or "A stale response pattern overrode the actual turn."
+        repair_rule = repair_rule or "Break stale mode lock and answer the current turn instead of repeating the old scene."
+
+    return {
+        "ts": datetime.now().isoformat(),
+        "source_memory_ref": source_ref,
+        "source_session": source_session,
+        "source_turn": source_turn,
+        "source_sleep_status": entry.get("_status", ""),
+        "sleep_residue_kind": residue_kind,
+        "failure_class": failure_class,
+        "trigger_pattern": trigger_pattern,
+        "distilled_lesson": distilled_lesson,
+        "repair_rule": repair_rule,
+        "event_gist": _normalize_text(metadata.get("event_gist")),
+        "user_preview": _truncate(metadata.get("user")),
+        "response_preview": _truncate(metadata.get("response")),
+        "coherence": float(entry.get("_coherence", 0.0) or 0.0),
+        "strength": float(entry.get("_strength", 0.0) or 0.0),
+        "open_tension": bool(entry.get("_open_tension")),
+    }
+
+
+def load_failure_packets(path: Path) -> list:
+    if not path.exists():
+        return []
+    packets = []
+    with path.open("r", encoding="utf-8-sig") as handle:
+        for line_num, line in enumerate(handle, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError as exc:
+                print(f"[skip] failure line {line_num}: bad JSON - {exc}")
+                continue
+            if not isinstance(row, dict):
+                continue
+            packets.append(row)
+    return packets
+
+
+def attach_failure_packets(entries: list, failure_packets: list) -> tuple[list, int]:
+    if not entries or not failure_packets:
+        return entries, 0
+
+    packet_index = {}
+    for packet in failure_packets:
+        key = (
+            _normalize_text(packet.get("session")),
+            int(packet.get("turn_index", 0) or 0),
+        )
+        packet_index[key] = packet
+
+    attached = 0
+    for entry in entries:
+        metadata = entry.setdefault("metadata", {})
+        key = (
+            _normalize_text(metadata.get("session")),
+            int(metadata.get("turn", 0) or 0),
+        )
+        packet = packet_index.get(key)
+        if packet is None:
+            continue
+        metadata["failure_class"] = _normalize_text(packet.get("failure_class"))
+        metadata["failure_mode_before"] = _normalize_text(packet.get("mode_before"))
+        metadata["failure_user_intent"] = _normalize_text(packet.get("user_intent"))
+        metadata["failure_symptom"] = _normalize_text(packet.get("symptom"))
+        metadata["failure_repair_rule"] = _normalize_text(packet.get("repair_rule"))
+        metadata["failure_confidence"] = float(packet.get("confidence", 0.0) or 0.0)
+        metadata["failure_source"] = _normalize_text(packet.get("source"))
+        attached += 1
+    return entries, attached
+
+
+def build_sleep_residue_entries(entries: list) -> list:
+    return [
+        build_sleep_residue(entry)
+        for entry in entries
+        if entry.get("_status") in (KEEP, UNCERTAIN)
+    ]
+
+
+def write_residue_log(residue_entries: list, residue_path: Path, dry_run: bool = False):
+    if dry_run:
+        print(f"[phase4] [dry-run] Would write {len(residue_entries)} residue entries to {residue_path}")
+        return
+    residue_path.parent.mkdir(parents=True, exist_ok=True)
+    with residue_path.open("w", encoding="utf-8") as handle:
+        for row in residue_entries:
+            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    print(f"[phase4] Sleep residue log -> {residue_path}")
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: Identity Distillation + Flush
+# ---------------------------------------------------------------------------
+
+def phase5_flush(entries: list, sink_fn, snapshot_path: Path,
+                 mamba_state_path: str, residue_path: Path, dry_run: bool = False) -> dict:
     """Write validated entries to Qdrant and save disposition snapshot."""
     to_write = [entry for entry in entries if entry["_status"] in (KEEP, UNCERTAIN)]
     to_archive = [entry for entry in entries if entry["_status"] in (WEAKEN, DISCARD)]
+    residue_entries = build_sleep_residue_entries(entries)
 
-    print(f"[phase4] Writing {len(to_write)} entries to Qdrant ({len(to_archive)} archived/discarded)")
+    print(
+        f"[phase5] Writing {len(to_write)} entries to Qdrant "
+        f"({len(to_archive)} archived/discarded, {len(residue_entries)} residue entries)"
+    )
 
     written = 0
     failed = 0
@@ -306,12 +601,19 @@ def phase4_flush(entries: list, sink_fn, snapshot_path: Path,
     if not dry_run and sink_fn is not None:
         for entry in to_write:
             try:
+                residue = build_sleep_residue(entry)
                 entry["metadata"]["sleep_status"] = entry["_status"]
                 entry["metadata"]["sleep_strength"] = entry["_strength"]
                 entry["metadata"]["sleep_coherence"] = entry["_coherence"]
                 entry["metadata"]["sleep_coherence_source"] = entry.get("_coherence_source", "metadata")
                 entry["metadata"]["sleep_tension"] = entry.get("_tension", 0.0)
                 entry["metadata"]["sleep_open_tension"] = bool(entry.get("_open_tension"))
+                entry["metadata"]["sleep_residue_kind"] = residue["sleep_residue_kind"]
+                entry["metadata"]["failure_class"] = residue["failure_class"]
+                entry["metadata"]["trigger_pattern"] = residue["trigger_pattern"]
+                entry["metadata"]["distilled_lesson"] = residue["distilled_lesson"]
+                entry["metadata"]["repair_rule"] = residue["repair_rule"]
+                entry["metadata"]["source_memory_ref"] = residue["source_memory_ref"]
                 entry["metadata"]["reconciled"] = True
                 entry["metadata"]["reconciled_at"] = datetime.now().isoformat()
 
@@ -345,6 +647,26 @@ def phase4_flush(entries: list, sink_fn, snapshot_path: Path,
             DISCARD: sum(1 for entry in entries if entry["_status"] == DISCARD),
         },
         "open_tension_count": sum(1 for entry in entries if entry.get("_open_tension")),
+        "escalated_count": sum(
+            1 for entry in entries
+            if entry.get("metadata", {}).get("escalated_to_partner", False)
+        ),
+        "tension_resolved_by_decay": sum(
+            1 for entry in entries
+            if entry.get("metadata", {}).get("tension_status") == "RESOLVED_BY_DECAY"
+        ),
+        "mean_tension": float(np.mean([
+            entry.get("_tension", 0.0) for entry in entries
+        ])) if entries else 0.0,
+        "max_sleep_tension_cycles": max(
+            (int(entry.get("metadata", {}).get("sleep_tension_cycles", 0) or 0) for entry in entries),
+            default=0,
+        ),
+        "residue_count": len(residue_entries),
+        "residue_kinds": {
+            kind: sum(1 for row in residue_entries if row.get("sleep_residue_kind") == kind)
+            for kind in sorted({row.get("sleep_residue_kind", "") for row in residue_entries})
+        },
         "mean_strength": float(np.mean([entry["_strength"] for entry in entries])) if entries else 0.0,
         "mean_coherence": float(np.mean([abs(entry["_coherence"]) for entry in entries])) if entries else 0.0,
         "same_space_replay_count": sum(
@@ -352,11 +674,13 @@ def phase4_flush(entries: list, sink_fn, snapshot_path: Path,
         ),
     }
 
+    write_residue_log(residue_entries, residue_path, dry_run=dry_run)
+
     if not dry_run:
         snapshot_path.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
-        print(f"[phase4] Disposition snapshot -> {snapshot_path}")
+        print(f"[phase5] Disposition snapshot -> {snapshot_path}")
     else:
-        print(f"[phase4] [dry-run] Would save snapshot to {snapshot_path}")
+        print(f"[phase5] [dry-run] Would save snapshot to {snapshot_path}")
         print(json.dumps(snapshot, indent=2))
 
     return snapshot
@@ -414,6 +738,16 @@ def main():
         default="disposition_snapshot_latest.json",
         help="Where to save the disposition snapshot",
     )
+    parser.add_argument(
+        "--residue-path",
+        default="sleep_residue_latest.jsonl",
+        help="Where to save distilled sleep residue JSONL",
+    )
+    parser.add_argument(
+        "--failure-path",
+        default="failure_log.jsonl",
+        help="Optional failure packet log to fold into sleep residue generation",
+    )
     parser.add_argument("--host", default="192.168.2.191", help="Qdrant host")
     parser.add_argument("--port", type=int, default=6333, help="Qdrant port")
     parser.add_argument("--collection", default="exocortex")
@@ -434,6 +768,18 @@ def main():
         help="Skip Mamba replay and use metadata coherence only",
     )
     parser.add_argument("--decay-factor", type=float, default=0.85)
+    parser.add_argument("--tension-decay", type=float, default=0.85,
+                        help="Per-cycle tension retention factor (§3.7.1 anti-PTSD)")
+    parser.add_argument("--tension-floor-drain", type=float, default=0.02,
+                        help="Absolute tension reduction per cycle (ensures eventual resolution)")
+    parser.add_argument("--tension-resolve-threshold", type=float, default=0.1,
+                        help="Tension below this auto-resolves open_tension status")
+    parser.add_argument("--escalation-cycles", type=int, default=5,
+                        help="Sleep cycles before unresolved tension escalates to partner")
+    parser.add_argument("--escalation-tension-floor", type=float, default=0.3,
+                        help="Minimum tension to trigger escalation")
+    parser.add_argument("--tension-budget-ratio", type=float, default=0.30,
+                        help="Max fraction of replay slots for open_tension memories")
     parser.add_argument("--strength-threshold", type=float, default=0.3)
     parser.add_argument("--coherence-threshold", type=float, default=0.12)
     parser.add_argument("--top-k", type=int, default=20, help="Top entries to show in replay")
@@ -448,11 +794,21 @@ def main():
 
     pending_path = Path(args.pending_path)
     snapshot_path = Path(args.snapshot_path)
+    residue_path = Path(args.residue_path)
+    failure_path = Path(args.failure_path)
 
     entries = load_pending(pending_path)
     if not entries:
         print("[ok] No pending entries. Nothing to reconcile.")
         return 0
+
+    failure_packets = load_failure_packets(failure_path)
+    entries, failure_attached = attach_failure_packets(entries, failure_packets)
+    if failure_packets:
+        print(
+            f"[sleep] Loaded {len(failure_packets)} failure packets from {failure_path} "
+            f"({failure_attached} matched to pending entries)"
+        )
 
     print(f"[sleep] Starting reconciliation for {len(entries)} entries\n")
 
@@ -474,9 +830,26 @@ def main():
         except Exception as exc:
             print(f"[warn] Could not load replay model: {exc}")
 
-    entries = phase1_decay(entries, args.decay_factor)
-    entries = phase2_replay(entries, bootstrap_state, top_k=args.top_k, replay_stack=replay_stack)
-    entries = phase3_classify(entries, args.strength_threshold, args.coherence_threshold)
+    entries = phase1_decay(
+        entries,
+        decay_factor=args.decay_factor,
+        tension_decay=args.tension_decay,
+        tension_floor_drain=args.tension_floor_drain,
+        tension_resolve_threshold=args.tension_resolve_threshold,
+    )
+    entries = phase2_replay(
+        entries, bootstrap_state,
+        top_k=args.top_k,
+        replay_stack=replay_stack,
+        tension_budget_ratio=args.tension_budget_ratio,
+    )
+    entries = phase3_classify(
+        entries,
+        strength_threshold=args.strength_threshold,
+        coherence_threshold=args.coherence_threshold,
+        escalation_cycles=args.escalation_cycles,
+        escalation_tension_floor=args.escalation_tension_floor,
+    )
 
     sink_fn = None
     if not args.dry_run and not args.skip_qdrant:
@@ -486,11 +859,12 @@ def main():
         except Exception as exc:
             print(f"[warn] Could not create Qdrant sink: {exc}")
 
-    snapshot = phase4_flush(
+    snapshot = phase5_flush(
         entries,
         sink_fn,
         snapshot_path,
         mamba_state_path=args.mamba_state,
+        residue_path=residue_path,
         dry_run=args.dry_run,
     )
 
