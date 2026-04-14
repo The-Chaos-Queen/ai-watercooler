@@ -16,7 +16,7 @@ class HybridBridge(nn.Module):
         hybrid_model_id: str = "Qwen/Qwen2.5-0.5B", # Base model to be hybridized
         mamba_hidden_dim: int = 2560,
         target_hidden_dim: int = 3584, # e.g., Qwen-7B hidden size
-        num_virtual_tokens: int = 16,
+        num_virtual_tokens: int = 4, # SCALED DOWN: Herr Hurtig Ethics Gate Condition 2
     ):
         super().__init__()
         self.mamba_hidden_dim = mamba_hidden_dim
@@ -86,3 +86,19 @@ class HybridBridge(nn.Module):
         virtual_tokens = self.output_proj(query_outputs)
         
         return virtual_tokens
+
+    def get_intervention_dose(self, virtual_tokens: torch.Tensor) -> torch.Tensor:
+        """
+        Calculates the 'dose' of the virtual token intervention.
+        Satisfies Herr Hurtig Ethics Gate Condition 1: a scalar alpha is not enough 
+        when injecting full tokens. We measure the L2 norm of the injected sequence.
+        
+        Args:
+            virtual_tokens: [batch, num_virtual_tokens, target_hidden_dim]
+        Returns:
+            dose: [batch] scalar metric of intervention strength.
+        """
+        # Calculate the L2 norm of each virtual token, then average across tokens
+        # to get a single 'dose' scalar per batch item.
+        token_norms = torch.norm(virtual_tokens, p=2, dim=-1) # [batch, num_virtual_tokens]
+        return token_norms.mean(dim=-1) # [batch]

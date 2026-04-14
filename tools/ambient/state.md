@@ -2,6 +2,9 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-04-14 21:11 UTC] git | MoCoP | Laura: Draft MVP-4 Hybrid Bridge architecture (dd8eb46)
+[2026-04-13 10:44 UTC] git | MoCoP | Laura: Add shaping episode catalog mapping real corpus to MVP-2b episodes (#72) (462d69b)
+[2026-04-13 08:44 UTC] git | MoCoP | Laura: Fix v_proj_in extraction for hidden-gated and input-gated paths (bbfe5ee)
 [2026-04-07 11:44 UTC] git | MoCoP | Laura: DFC crosscoder results: 128 shared + 64+64 exclusive features (588c364)
 [2026-04-05 18:38 UTC] git | MoCoP | Laura: Sequential model loading for paired activation collector (7ad2074)
 [2026-04-05 18:35 UTC] git | MoCoP | Laura: Add paired activation collector for DFC crosscoder training (aeef9ca)

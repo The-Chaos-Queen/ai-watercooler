@@ -12,7 +12,7 @@ def run_smoke_test():
             hybrid_model_id="Qwen/Qwen2.5-0.5B",
             mamba_hidden_dim=2560,
             target_hidden_dim=3584,
-            num_virtual_tokens=16
+            num_virtual_tokens=4 # SCALED DOWN
         )
         # Cast the newly initialized parameters to match the core model's dtype
         model = model.to(dtype=model.hybrid_core.dtype, device=device)
@@ -33,11 +33,14 @@ def run_smoke_test():
         virtual_tokens = model(dummy_input)
         print(f"Forward pass successful. Output shape: {virtual_tokens.shape}")
         
-        expected_shape = (batch_size, 16, 3584)
+        expected_shape = (batch_size, 4, 3584)
         if virtual_tokens.shape == expected_shape:
             print(f"SUCCESS: Output shape matches expected {expected_shape}.")
         else:
             print(f"ERROR: Output shape {virtual_tokens.shape} does not match expected {expected_shape}.")
+            
+        dose = model.get_intervention_dose(virtual_tokens)
+        print(f"Calculated Intervention Dose: {dose.tolist()}")
     except Exception as e:
         print(f"Forward pass failed: {e}")
         return

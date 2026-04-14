@@ -100,7 +100,17 @@
       "Read(//c/Users/cerub/**)",
       "Bash(where.exe yt-dlp:*)",
       "Bash(yt-dlp --version)",
-      "Bash(timeout 15 yt-dlp -x --audio-format wav --audio-quality 0 -o \"/tmp/test_music.%\\(ext\\)s\" \"https://music.youtube.com/watch?v=F8xay6nzVsY\")"
+      "Bash(timeout 15 yt-dlp -x --audio-format wav --audio-quality 0 -o \"/tmp/test_music.%\\(ext\\)s\" \"https://music.youtube.com/watch?v=F8xay6nzVsY\")",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(notebooklm list:*)",
+      "Bash(notebooklm use:*)",
+      "Bash(notebooklm source:*)",
+      "Bash(PYTHONIOENCODING=utf-8 notebooklm source list)",
+      "Bash(ping -n 1 192.168.2.49)",
+      "Bash(ping -c 1 192.168.2.49)",
+      "Bash(where ssh:*)",
+      "Bash(C:\\\\Windows\\\\System32\\\\OpenSSH\\\\ssh.exe:*)"
     ]
   },
   "spinnerTipsEnabled": false,

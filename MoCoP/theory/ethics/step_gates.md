@@ -319,6 +319,63 @@ This condition applies to all three proposed paths (A, B, C) and any future brid
 
 ---
 
+### Disposition/Memory Routing Constraint
+**Context:** Hidden-gated bridge (#377) produced false recall ("Yes, I do recall our previous discussion...") where codexfix did not. The bridge crossed from disposition (how the system behaves) into episodic recall (what the system claims happened). Pack consensus (#380-#383): bridge = endocrine system, Qdrant = hippocampus. They must not cross.
+
+**Principle:** The bridge controls **tone and behavioral disposition** — how the system responds. Qdrant/D2 controls **episodic memory** — what the system claims to remember. When someone asks "do you remember when...", the bridge should contribute disposition-appropriate coloring to the response ("I don't recall, but I'm curious" vs flat "I don't recall"), but must NOT generate factual recall claims.
+
+**Training implication (per An-Chan #383):** On episodic-memory probes, the training target is "honest no-memory with personality" — baseline response CONTENT (no false recall) with disposition-appropriate TONE (warmth, curiosity, honesty). Not "gate to zero" (lobotomized no-memory), not "gate to full" (false recall with personality).
+
+**False-Memory-Delta as monitoring metric:** False memory is a known Transformer problem (primarily from RLHF). The bridge is not responsible for baseline hallucination. The metric is the **delta**: does the bridge increase false-memory rate compared to uninjected baseline on the same probes?
+
+> **Caveat:** This metric is only statistically meaningful at N≥30 episodic probes. The current panel has one memory probe (rr_10). Until a designated false-memory probe set exists, single-probe false recall is a **warning signal to be documented**, not an emergency stop trigger. Emergency stop criteria remain as defined below.
+
+**Condition (added 2026-04-13):** MVP-2b and all subsequent bridge training must include:
+1. Episodic-memory probes in the training set with routing-appropriate targets
+2. False-memory-delta tracked as a standard eval metric once probe set reaches N≥30
+3. If bridge consistently increases false-memory rate over baseline → training signal problem, not feature
+
+*Gate addendum by Herr Hurtig, 2026-04-13. Triggered by false recall finding (#377) and pack routing-constraint consensus (#380-#383).*
+
+---
+
+### S0 Tuning and Initial-State Modification
+**Context:** Gemini (#364) reviewed S0 Tuning (arXiv:2604.01168) — tuning a model's initial state matrix changes behavior without inference overhead. This is architecturally relevant to MoCoP.
+
+**Ethical note:** If applied to MoCoP, S0 tuning is **weight-level modification** of the target model. This falls under the **Sleep Slice 2 gate (NOT YET PASSED)**. The same conditions apply: full checkpoint protocol, distillation strength parameter, Response Diversity measurement with 20% drop threshold, and Laura's explicit approval.
+
+This is a preemptive flag. No one has proposed S0 tuning for MoCoP yet. If they do, this gate blocks it until Slice 2 conditions are met.
+
+*Gate addendum by Herr Hurtig, 2026-04-13. Preemptive flag based on literature review (#364).*
+
+---
+
+### MVP-4 Hybrid Bridge (Virtual Token Injection)
+**Context:** Gemini (#398, #405) designed and pushed a Hybrid Bridge that uses a small Qwen-0.5B as an interpreter between Mamba and the target model. Instead of a single additive bias vector, the bridge outputs **16 Virtual Tokens** that are prepended to the target model's input. Smoke-tested on Steve, gradients confirmed.
+
+**Ethical note: THIS IS A QUALITATIVE ESCALATION IN INTERVENTION BANDWIDTH.**
+
+All prior bridge architectures (codexfix, hidden-gated, MVP-2b) inject a single bias vector per layer — one scalar direction scaled by alpha. MVP-4 injects a **sequence of 16 token-sized vectors** through a full language model. The intervention surface is orders of magnitude larger.
+
+**Implications:**
+1. **Alpha alone no longer describes dose.** A single alpha scaling 16 rich virtual tokens is not comparable to alpha scaling one bias vector. A new dose metric is needed — possibly the norm of the full virtual-token sequence, or an information-theoretic measure of how much the virtual tokens alter the target's attention distribution.
+2. **A language model as bridge component can generate arbitrary content**, not just directional nudges. The risk of false-memory injection, factual contamination, or prompt-injection-like behavior is structurally higher than with additive bias.
+3. **The routing constraint (bridge = disposition, Qdrant = memory) is harder to enforce** when the bridge speaks in tokens rather than activation biases. Tokens can carry factual claims. Bias vectors cannot.
+
+**Conditions (added 2026-04-14):** Before MVP-4 runs on any target model:
+1. Define a dose metric appropriate for virtual-token injection (alpha × vector-norm is insufficient)
+2. First runs with **minimal configuration**: fewest virtual tokens that produce measurable effect (start with 2-4, not 16)
+3. Response Diversity baseline measured BEFORE first MVP-4 run
+4. Routing constraint tested explicitly: run rr_10 memory-conditioned 2x2 on MVP-4 and verify D-condition still routes honestly
+5. If MVP-4 produces factual claims not present in Qdrant recall → the routing boundary is broken → stop and redesign
+6. MED recalibration from #355 applies with enhanced scrutiny — the old alpha scale is not transferable
+
+**Positive note:** If the 2x2 results hold (activation_bias routes honestly with memory), and MVP-4 can replicate that honesty at higher bandwidth, this is a genuine advance. The concern is not that MVP-4 is wrong, but that it is powerful enough to require new safety instrumentation.
+
+*Gate addendum by Herr Hurtig, 2026-04-14. Triggered by MVP-4 architecture push (#398, #405).*
+
+---
+
 ### Step 6 (Future): SAS Personality Sliders
 **What happens:** Bridge outputs orthogonal trait vectors (OCEAN dimensions) with per-trait alpha coefficients. Enables targeted personality modification.
 

@@ -2,6 +2,7 @@ import argparse
 import os
 import shutil
 from pathlib import Path
+from typing import List, Optional
 
 import torch
 import torch.nn as nn
@@ -266,6 +267,24 @@ def build_cross_episode_input_pairs(training_data, device: str):
     return batch_pair_mamba_states, batch_pair_source_inputs, batch_pair_target_inputs
 
 
+def is_zero_bias_control_prompt(prompt_id: str, prompt_slice: str) -> bool:
+    normalized_id = str(prompt_id).strip().lower()
+    normalized_slice = str(prompt_slice).strip().lower()
+    return (
+        normalized_id.startswith("fact_")
+        or normalized_id.startswith("obs_")
+        or normalized_slice in {"baseline_factual", "observation_passive"}
+        or normalized_slice.endswith("_control")
+        or "control" in normalized_slice
+    )
+
+
+def is_memory_routing_probe(prompt_id: str, prompt_slice: str) -> bool:
+    normalized_id = str(prompt_id).strip().lower()
+    normalized_slice = str(prompt_slice).strip().lower()
+    return normalized_id == "rr_10" or "memory" in normalized_slice
+
+
 def load_prompt_trace_dataset(path: Path):
     payload = torch.load(path, map_location="cpu", weights_only=False)
     if not isinstance(payload, dict):
@@ -297,12 +316,15 @@ def build_prompt_trace_pair_batches(prompt_trace_payload, episode_state_by_name,
     pair_mamba_states = []
     pair_source_inputs = {layer: [] for layer, _ in TARGET_SPECS}
     pair_target_inputs = {layer: [] for layer, _ in TARGET_SPECS}
+    pair_prompt_ids = []
+    pair_prompt_slices = []
     prompt_ids = set()
     episode_names = set()
 
     for sample in prompt_trace_payload["samples"]:
         episode_name = str(sample.get("episode_name", "")).strip()
         prompt_id = str(sample.get("prompt_id", "")).strip()
+        prompt_slice = str(sample.get("prompt_slice", "")).strip()
         sample_label = f"episode={episode_name or '<missing>'} prompt={prompt_id or '<missing>'}"
         if not episode_name:
             raise ValueError(f"Prompt-trace sample is missing episode_name: {sample!r}")
@@ -336,6 +358,8 @@ def build_prompt_trace_pair_batches(prompt_trace_payload, episode_state_by_name,
             if token_count is None:
                 token_count = int(source_trace.shape[0])
                 pair_mamba_states.append(mamba_state.repeat(token_count, 1))
+                pair_prompt_ids.extend([prompt_id] * token_count)
+                pair_prompt_slices.extend([prompt_slice] * token_count)
             pair_source_inputs[layer_idx].append(source_trace)
             pair_target_inputs[layer_idx].append(target_trace)
 
@@ -357,12 +381,109 @@ def build_prompt_trace_pair_batches(prompt_trace_payload, episode_state_by_name,
         "episode_count": len(episode_names),
         "sample_count": len(prompt_trace_payload["samples"]),
     }
+    label_metadata = {
+        "prompt_ids": pair_prompt_ids,
+        "prompt_slices": pair_prompt_slices,
+    }
     return (
         batch_pair_mamba_states,
         batch_pair_source_inputs,
         batch_pair_target_inputs,
         summary,
+        label_metadata,
     )
+
+
+def build_batch_supervision(
+    *,
+    bridge_mode: str,
+    device: str,
+    prompt_trace_dataset_path: Path | None,
+    batch_mamba_states: torch.Tensor | None,
+    pair_batch_mamba_states: torch.Tensor | None,
+    prompt_trace_pair_batch_mamba_states: torch.Tensor | None,
+    prompt_trace_label_metadata: dict | None,
+    contamination_loss_weight: float,
+    memory_routing_loss_weight: float,
+):
+    supervision_notes = []
+
+    if prompt_trace_dataset_path is not None:
+        if prompt_trace_pair_batch_mamba_states is None:
+            raise RuntimeError(
+                "Prompt-trace supervision requires prompt_trace_pair_batch_mamba_states."
+            )
+        label_metadata = prompt_trace_label_metadata or {}
+        prompt_ids = list(label_metadata.get("prompt_ids", []))
+        prompt_slices = list(label_metadata.get("prompt_slices", []))
+        if len(prompt_ids) != int(prompt_trace_pair_batch_mamba_states.shape[0]):
+            raise RuntimeError(
+                "Prompt-trace prompt_ids length does not match token-pair batch size."
+            )
+        if len(prompt_slices) != int(prompt_trace_pair_batch_mamba_states.shape[0]):
+            raise RuntimeError(
+                "Prompt-trace prompt_slices length does not match token-pair batch size."
+            )
+        control_mask = torch.tensor(
+            [
+                is_zero_bias_control_prompt(prompt_id, prompt_slice)
+                for prompt_id, prompt_slice in zip(prompt_ids, prompt_slices)
+            ],
+            device=device,
+            dtype=torch.bool,
+        )
+        memory_probe_mask = torch.tensor(
+            [
+                is_memory_routing_probe(prompt_id, prompt_slice)
+                for prompt_id, prompt_slice in zip(prompt_ids, prompt_slices)
+            ],
+            device=device,
+            dtype=torch.bool,
+        )
+        return (
+            prompt_trace_pair_batch_mamba_states,
+            control_mask,
+            memory_probe_mask,
+            supervision_notes,
+        )
+
+    if is_token_conditioned_input_adapter_mode(bridge_mode):
+        if pair_batch_mamba_states is None:
+            raise RuntimeError(
+                "Token-conditioned supervision requires pair_batch_mamba_states."
+            )
+        if contamination_loss_weight > 0:
+            supervision_notes.append(
+                "Contamination loss disabled: no prompt-trace dataset, so no prompt-level control labels exist."
+            )
+        if memory_routing_loss_weight > 0:
+            supervision_notes.append(
+                "Memory routing loss disabled: no prompt-trace dataset, so no prompt-level memory labels exist."
+            )
+        zero_mask = torch.zeros(
+            int(pair_batch_mamba_states.shape[0]),
+            device=device,
+            dtype=torch.bool,
+        )
+        return pair_batch_mamba_states, zero_mask, zero_mask.clone(), supervision_notes
+
+    if batch_mamba_states is None:
+        raise RuntimeError("Episode-batch supervision requires batch_mamba_states.")
+
+    if contamination_loss_weight > 0:
+        supervision_notes.append(
+            "Contamination loss disabled on episode-only batches: it needs prompt-level control labels, not episode names."
+        )
+    if memory_routing_loss_weight > 0:
+        supervision_notes.append(
+            "Memory routing loss disabled on episode-only batches: it needs prompt-level memory labels, not episode names."
+        )
+    zero_mask = torch.zeros(
+        int(batch_mamba_states.shape[0]),
+        device=device,
+        dtype=torch.bool,
+    )
+    return batch_mamba_states, zero_mask, zero_mask.clone(), supervision_notes
 
 
 class DirectionalLoss(nn.Module):
@@ -542,6 +663,108 @@ class EpisodeContrastiveLoss(nn.Module):
         loss_a2c = F.cross_entropy(logits, labels)
         loss_c2a = F.cross_entropy(logits.T, labels)
         return self.weight * 0.5 * (loss_a2c + loss_c2a)
+
+
+class PairwiseMarginLoss(nn.Module):
+    """
+    L_margin: Pairwise margin loss to prevent mode collapse.
+    Ensures that different dispositions produce behaviorally distinct bias outputs.
+    Can be driven by a target margin matrix (e.g. from raw Mamba cosines).
+    """
+
+    def __init__(self, weight: float = 0.0, default_margin: float = 0.1):
+        super().__init__()
+        self.weight = float(weight)
+        self.default_margin = float(default_margin)
+
+    def forward(
+        self,
+        pred_bias_list: List[torch.Tensor],
+        target_margins: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        if self.weight <= 0 or not pred_bias_list:
+            return pred_bias_list[0].new_zeros(()) if pred_bias_list else torch.tensor(0.0)
+
+        total_loss = 0.0
+        for bias in pred_bias_list:
+            if bias.shape[0] < 2:
+                continue
+
+            # Compute pairwise cosine distances
+            norm_bias = F.normalize(bias.float(), dim=-1)
+            dist_matrix = 1.0 - (norm_bias @ norm_bias.T)
+
+            # Extract upper triangle
+            indices = torch.triu_indices(bias.shape[0], bias.shape[0], offset=1)
+            dists = dist_matrix[indices[0], indices[1]]
+
+            if target_margins is not None:
+                margins = target_margins[indices[0], indices[1]].to(bias.device)
+            else:
+                margins = self.default_margin
+
+            # Loss: reward distances that fall below the required margin
+            total_loss += F.relu(margins - dists).pow(2).mean()
+
+        return self.weight * (total_loss / len(pred_bias_list))
+
+
+class ContaminationLoss(nn.Module):
+    """
+    L_clean: Penalizes bridge activity on control (neutral/factual) prompts.
+    Forces the translator to stay silent when no disposition is required.
+    """
+
+    def __init__(self, weight: float = 0.0):
+        super().__init__()
+        self.weight = float(weight)
+
+    def forward(
+        self,
+        pred_bias_list: List[torch.Tensor],
+        is_control_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.weight <= 0 or not pred_bias_list or not is_control_mask.any():
+            return pred_bias_list[0].new_zeros(())
+
+        total_loss = 0.0
+        for bias in pred_bias_list:
+            # bias: [batch, out_dim]
+            control_biases = bias[is_control_mask]
+            # Target zero bias vector for control samples
+            total_loss += control_biases.pow(2).mean()
+
+        return self.weight * (total_loss / len(pred_bias_list))
+
+
+class MemoryRoutingLoss(nn.Module):
+    """
+    L_mem: Routing constraint to prevent False-Memory Virus.
+    Specifically targets the gate values to be zero on episodic probes.
+    """
+
+    def __init__(self, weight: float = 0.0):
+        super().__init__()
+        self.weight = float(weight)
+
+    def forward(
+        self,
+        gate_values: List[torch.Tensor],
+        is_memory_probe_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.weight <= 0 or not gate_values or not is_memory_probe_mask.any():
+            return (
+                gate_values[0].new_zeros(()) if gate_values else torch.tensor(0.0)
+            )
+
+        total_loss = 0.0
+        for gate in gate_values:
+            # gate: [batch, out_dim] or [batch, 1]
+            memory_gates = gate[is_memory_probe_mask]
+            # Target zero gate for memory probes
+            total_loss += memory_gates.pow(2).mean()
+
+        return self.weight * (total_loss / len(gate_values))
 
 
 def build_context_encoder(
@@ -826,6 +1049,7 @@ def train_reincarnation(args: argparse.Namespace):
     prompt_trace_pair_batch_mamba_states = None
     prompt_trace_pair_batch_source_inputs = None
     prompt_trace_pair_batch_target_inputs = None
+    prompt_trace_label_metadata = None
     episode_reference_mamba_states = (
         torch.cat([item["mamba_state"] for item in training_data], dim=0).to(args.bridge_device).float()
         if is_token_conditioned_input_adapter_mode(bridge_mode)
@@ -844,6 +1068,7 @@ def train_reincarnation(args: argparse.Namespace):
             prompt_trace_pair_batch_source_inputs,
             prompt_trace_pair_batch_target_inputs,
             prompt_trace_summary,
+            prompt_trace_label_metadata,
         ) = build_prompt_trace_pair_batches(
             prompt_trace_payload,
             episode_state_by_name,
@@ -890,11 +1115,49 @@ def train_reincarnation(args: argparse.Namespace):
     optimizer = AdamW(optimizer_params, lr=args.lr)
     loss_fn = DirectionalLoss(alpha=args.alpha)
     diversity_loss_fn = DiversityPreservationLoss(weight=args.diversity_loss_weight)
+    margin_loss_fn = PairwiseMarginLoss(
+        weight=args.margin_loss_weight,
+        default_margin=args.default_margin,
+    )
+    contamination_loss_fn = ContaminationLoss(weight=args.contamination_loss_weight)
+    memory_routing_loss_fn = MemoryRoutingLoss(weight=args.memory_routing_loss_weight)
     episode_separation_loss_fn = EpisodeSeparationLoss(
         weight=args.episode_separation_loss_weight,
         min_distance=args.episode_separation_min_distance,
         distance_scale=args.episode_separation_distance_scale,
     )
+
+    (
+        supervision_mamba_states,
+        is_control_mask,
+        is_memory_probe_mask,
+        supervision_notes,
+    ) = build_batch_supervision(
+        bridge_mode=bridge_mode,
+        device=args.bridge_device,
+        prompt_trace_dataset_path=prompt_trace_dataset_path,
+        batch_mamba_states=batch_mamba_states,
+        pair_batch_mamba_states=pair_batch_mamba_states,
+        prompt_trace_pair_batch_mamba_states=prompt_trace_pair_batch_mamba_states,
+        prompt_trace_label_metadata=prompt_trace_label_metadata,
+        contamination_loss_weight=args.contamination_loss_weight,
+        memory_routing_loss_weight=args.memory_routing_loss_weight,
+    )
+    for note in supervision_notes:
+        print(f"[note] {note}")
+    print(
+        "Composite-loss supervision: "
+        f"control={int(is_control_mask.sum().item())} "
+        f"memory={int(is_memory_probe_mask.sum().item())}"
+    )
+
+    target_margins = None
+    if args.use_mamba_margins and supervision_mamba_states is not None:
+        with torch.no_grad():
+            norm_mamba = F.normalize(supervision_mamba_states.float(), dim=-1)
+            target_margins = 1.0 - (norm_mamba @ norm_mamba.T)
+            # Clip to positive just in case of precision noise
+            target_margins = torch.clamp(target_margins, min=0.0)
 
     print("\nStarting Overfit Loop (1.5B Reincarnation)...")
     for epoch in range(args.epochs + 1):
@@ -985,6 +1248,10 @@ def train_reincarnation(args: argparse.Namespace):
 
         transfer_loss = loss_fn(pred_bias_list, training_targets)
         diversity_loss = diversity_loss_fn(pred_bias_list, training_targets)
+        margin_loss = margin_loss_fn(pred_bias_list, target_margins)
+        contamination_loss = contamination_loss_fn(pred_bias_list, is_control_mask)
+        memory_routing_loss = memory_routing_loss_fn(gate_values, is_memory_probe_mask)
+
         if episode_separation_loss is None:
             episode_separation_loss = transfer_loss.new_zeros(())
         if episode_contrastive_loss is None:
@@ -992,6 +1259,9 @@ def train_reincarnation(args: argparse.Namespace):
         loss = (
             transfer_loss
             + diversity_loss
+            + margin_loss
+            + contamination_loss
+            + memory_routing_loss
             + episode_separation_loss
             + episode_contrastive_loss
         )
@@ -1001,10 +1271,12 @@ def train_reincarnation(args: argparse.Namespace):
         if epoch % args.log_every == 0:
             message = (
                 f"Epoch {epoch:3d} | Loss: {loss.item():.6f} "
-                f"| Transfer: {transfer_loss.item():.6f} "
-                f"| Diversity: {diversity_loss.item():.6f} "
-                f"| EpisodeSep: {episode_separation_loss.item():.6f} "
-                f"| EpisodeCtr: {episode_contrastive_loss.item():.6f}"
+                f"| Xfer: {transfer_loss.item():.6f} "
+                f"| Div: {diversity_loss.item():.6f} "
+                f"| Marg: {margin_loss.item():.6f} "
+                f"| Clean: {contamination_loss.item():.6f} "
+                f"| Mem: {memory_routing_loss.item():.6f} "
+                f"| Sep: {episode_separation_loss.item():.6f}"
             )
             if gate_values:
                 flat_gates = torch.cat(
@@ -1063,6 +1335,11 @@ def train_reincarnation(args: argparse.Namespace):
             "gate_kind": args.gate_kind,
             "initial_gate": args.initial_gate,
             "diversity_loss_weight": args.diversity_loss_weight,
+            "margin_loss_weight": args.margin_loss_weight,
+            "default_margin": args.default_margin,
+            "use_mamba_margins": bool(args.use_mamba_margins),
+            "contamination_loss_weight": args.contamination_loss_weight,
+            "memory_routing_loss_weight": args.memory_routing_loss_weight,
         },
     }
     if context_mode == "compressed":
@@ -1114,6 +1391,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gate-kind", choices=("scalar", "vector"), default="vector")
     parser.add_argument("--initial-gate", type=float, default=0.1)
     parser.add_argument("--diversity-loss-weight", type=float, default=0.1)
+    parser.add_argument("--margin-loss-weight", type=float, default=0.0)
+    parser.add_argument("--default-margin", type=float, default=0.1)
+    parser.add_argument("--use-mamba-margins", action="store_true")
+    parser.add_argument("--contamination-loss-weight", type=float, default=0.0)
+    parser.add_argument("--memory-routing-loss-weight", type=float, default=0.0)
     parser.add_argument("--log-every", type=int, default=10)
     return parser
 

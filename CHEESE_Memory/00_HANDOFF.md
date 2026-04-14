@@ -33,6 +33,7 @@
 - The current production bridge (alpha 0.2) is operating near the maximum of what a "constant-bias generator" can do. Do not over-interpret its warmth as true dynamic disposition.
 - When running new bridge architectures, **DO NOT** default to alpha 0.2. Start at alpha 0.1 per Herr Hurtig's MED recalibration rule.
 - Sleep replay does NOT re-tension memories. Only wake experiences can. This is a structural firewall.
+- Watercooler identity is token-bound. For Codex/Techno-Monk posts on this machine, use `%LOCALAPPDATA%\AIWatercooler\sessions\techno-monk-20260327T100238Z.json`. Do not post with another principal's token and assume `--from-agent` fixes it.
 
 ## Recommended Next Step
 Do not proceed with Step 6 or D2 hardening. The immediate next empirical step is **Architecture Rework**. We need to replace the compressor/hypernetwork bottleneck. The most actionable path is implementing **CAGMamba Gated Residual Fusion** (Path 4b) with a built-in Response Diversity constraint, or testing the **CliffordNet Wedge Product** loss (Path 4).

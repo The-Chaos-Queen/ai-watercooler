@@ -29,10 +29,12 @@ from autobiographical_memory import (
 from failure_detector import detect_failure
 from mamba_runtime_compat import ensure_mamba_ssm_compat
 from models import (
-    ActivationBiasHypernetwork,
     DynamicLoRALinear,
-    MambaStateCompressor,
-    RawStateProjector,
+)
+from reincarnated_inference import (
+    apply_bridge_adjustments as apply_runtime_bridge_adjustments,
+    build_context_encoder_and_hypernetwork as build_runtime_context_encoder_and_hypernetwork,
+    resolve_bridge_adjustments as resolve_runtime_bridge_adjustments,
 )
 
 
@@ -948,19 +950,21 @@ def resolve_checkpoint_runtime_contract(checkpoint):
     return str(bridge_mode), str(mamba_state_source)
 
 
+SUPPORTED_BRIDGE_MODES = {"activation_bias", "token_conditioned_input_adapter"}
+
+
 def validate_checkpoint_runtime_contract(
     checkpoint,
     *,
-    expected_bridge_mode="activation_bias",
     expected_state_source="hidden_last_token",
     caller="runtime",
 ):
     checkpoint_bridge_mode, checkpoint_state_source = resolve_checkpoint_runtime_contract(
         checkpoint
     )
-    if checkpoint_bridge_mode != expected_bridge_mode:
+    if checkpoint_bridge_mode not in SUPPORTED_BRIDGE_MODES:
         raise ValueError(
-            f"{caller} requires bridge_mode={expected_bridge_mode!r}, "
+            f"{caller} requires bridge_mode in {SUPPORTED_BRIDGE_MODES!r}, "
             f"but checkpoint declares {checkpoint_bridge_mode!r}."
         )
     if checkpoint_state_source != expected_state_source:
@@ -968,6 +972,7 @@ def validate_checkpoint_runtime_contract(
             f"{caller} requires mamba_state_source={expected_state_source!r}, "
             f"but checkpoint declares {checkpoint_state_source!r}."
         )
+    return checkpoint_bridge_mode
 
 
 def validate_target_specs_for_model(model, target_specs, expected_out_widths):
@@ -2974,8 +2979,14 @@ DEFENSIVE_RESPONSE_MARKERS = (
 )
 
 
-def build_prompt(query_text: str = "", recalled_memories=None, rescue: bool = False, recall_probe: bool = False):
-    transcript = build_transcript()
+def build_prompt(
+    query_text: str = "",
+    recalled_memories=None,
+    rescue: bool = False,
+    recall_probe: bool = False,
+    transcript_override: Optional[str] = None,
+):
+    transcript = build_transcript() if transcript_override is None else str(transcript_override or "").strip()
     recall_block = format_recalled_memories(recalled_memories or [], query_text=query_text)
     social_opener = is_social_opener(query_text)
 
@@ -3398,6 +3409,8 @@ class ChatHandler(BaseHTTPRequestHandler):
             update_runtime_state(busy=True, last_error="")
             try:
                 pre_turn_transcript = build_transcript()
+                transient = bool(body.get("transient", False))
+                allow_auto_recall = bool(body.get("allow_auto_recall", True))
                 recall_requested = bool(body.get("use_recall"))
                 recall_query = str(body.get("recall_query", "") or "").strip()
                 recall_limit = coerce_recall_limit(body.get("recall_limit", 3))
@@ -3405,13 +3418,21 @@ class ChatHandler(BaseHTTPRequestHandler):
                 recall_probe = is_identity_or_memory_probe(user_msg)
                 recall_source = "chat"
                 recalled_memories = []
-                append_turn(ARGS.user_label, user_msg)
-                if not recall_requested and recall_probe:
+                cached_recall_results = body.get("recalled_memories")
+                if not transient:
+                    append_turn(ARGS.user_label, user_msg)
+                if not recall_requested and recall_probe and allow_auto_recall:
                     recall_requested = True
                     recall_query = build_auto_recall_query(user_msg)
                     recall_limit = max(recall_limit, 6)
                     recall_source = "chat_auto"
-                if recall_requested:
+                if cached_recall_results is not None:
+                    if not isinstance(cached_recall_results, list):
+                        raise ValueError("recalled_memories must be a list of recall result rows.")
+                    recalled_memories = cached_recall_results
+                    recall_requested = True
+                    recall_source = "client_preloaded"
+                elif recall_requested:
                     recalled_memories = perform_private_recall(
                         recall_query or user_msg,
                         limit=recall_limit,
@@ -3419,7 +3440,17 @@ class ChatHandler(BaseHTTPRequestHandler):
                         source=recall_source,
                         question_text=user_msg,
                     )
-                prompt = build_prompt(query_text=user_msg, recalled_memories=recalled_memories, recall_probe=recall_probe)
+                transcript_override = None
+                if transient:
+                    transcript_override = build_transcript(
+                        [{"speaker": ARGS.user_label, "text": user_msg}]
+                    )
+                prompt = build_prompt(
+                    query_text=user_msg,
+                    recalled_memories=recalled_memories,
+                    recall_probe=recall_probe,
+                    transcript_override=transcript_override,
+                )
 
                 raw_response, response = generate_reply(prompt)
                 if not response:
@@ -3457,38 +3488,43 @@ class ChatHandler(BaseHTTPRequestHandler):
                     print("[info] Overriding weak autobiographical summary reply with memory-summary candidate.")
                     response = user_memory_summary_candidate
 
-                append_turn(ARGS.model_label, response)
-                gate_event = evaluate_dual_gate(user_msg, response, prompt, pre_turn_transcript)
-                memory_packet_preview = build_memory_packet_preview(gate_event)
-                failure_context = dict(gate_event or {})
-                failure_context["recall_request_count"] = int(recall_requested)
-                failure_context["recall_hit_count"] = len(recalled_memories)
-                failure_context["recall_source"] = recall_source if recall_requested else ""
+                gate_event = None
+                failure_packet = None
+                memory_packet_preview = {}
+                if not transient:
+                    append_turn(ARGS.model_label, response)
+                    gate_event = evaluate_dual_gate(user_msg, response, prompt, pre_turn_transcript)
+                    memory_packet_preview = build_memory_packet_preview(gate_event)
+                    failure_context = dict(gate_event or {})
+                    failure_context["recall_request_count"] = int(recall_requested)
+                    failure_context["recall_hit_count"] = len(recalled_memories)
+                    failure_context["recall_source"] = recall_source if recall_requested else ""
 
-                failure_packet = detect_failure(
-                    user_msg=user_msg,
-                    response=response,
-                    conversation_history=build_failure_history(),
-                    gate_event=failure_context,
-                    turn_index=int(gate_event.get("turn", 0) or 0),
-                )
-                if failure_packet is not None:
-                    failure_row = failure_packet.to_dict()
-                    failure_row["instance_id"] = get_runtime_state_snapshot().get("instance_id", "")
-                    failure_row["session"] = f"steve-chat-{get_runtime_state_snapshot().get('started_at', 'unknown')}"
-                    append_jsonl(FAILURE_LOG_PATH, failure_row)
-                    update_runtime_state(
-                        failure_log_count=int(get_runtime_state_snapshot().get("failure_log_count", 0) or 0) + 1,
-                        last_failure=failure_row,
+                    failure_packet = detect_failure(
+                        user_msg=user_msg,
+                        response=response,
+                        conversation_history=build_failure_history(),
+                        gate_event=failure_context,
+                        turn_index=int(gate_event.get("turn", 0) or 0),
                     )
+                    if failure_packet is not None:
+                        failure_row = failure_packet.to_dict()
+                        failure_row["instance_id"] = get_runtime_state_snapshot().get("instance_id", "")
+                        failure_row["session"] = f"steve-chat-{get_runtime_state_snapshot().get('started_at', 'unknown')}"
+                        append_jsonl(FAILURE_LOG_PATH, failure_row)
+                        update_runtime_state(
+                            failure_log_count=int(get_runtime_state_snapshot().get("failure_log_count", 0) or 0) + 1,
+                            last_failure=failure_row,
+                        )
 
-                update_runtime_state(last_memory_packet=memory_packet_preview)
+                    update_runtime_state(last_memory_packet=memory_packet_preview)
                 self._json_response(
                     {
                         "response": response,
                         "dual_gate": gate_event,
                         "failure": failure_packet.to_dict() if failure_packet is not None else None,
                         "memory_packet": memory_packet_preview,
+                        "transient": transient,
                         "recall": {
                             "requested": recall_requested,
                             "query": recall_query or user_msg if recall_requested else "",
@@ -3598,6 +3634,7 @@ def main():
     parser.add_argument("--blind-disposition-ui", action="store_true")
     parser.add_argument("--model", "--qwen-model-id", dest="qwen_model_id", default=DEFAULT_QWEN)
     parser.add_argument("--mamba-model-id", default=DEFAULT_MAMBA)
+    parser.add_argument("--skip-mamba", action="store_true", help="Skip Mamba loading entirely. Use for alpha=0 baseline where no bridge injection is needed.")
     parser.add_argument("--qwen-device", default="cuda:0")
     parser.add_argument("--mamba-device", default="cpu")
     parser.add_argument("--max-mamba-tokens", type=int, default=4096)
@@ -3701,7 +3738,8 @@ def main():
 
     print(f"Loading bridge: {ARGS.bridge_path}...")
     ckpt = torch.load(ARGS.bridge_path, map_location="cpu", weights_only=False)
-    validate_checkpoint_runtime_contract(ckpt, caller="chat_server")
+    bridge_mode = validate_checkpoint_runtime_contract(ckpt, caller="chat_server")
+    print(f"Bridge mode: {bridge_mode}")
     checkpoint_qwen_model_id = ckpt.get("qwen_model_id", DEFAULT_QWEN)
     if ARGS.qwen_model_id != checkpoint_qwen_model_id:
         if is_same_qwen_family(ARGS.qwen_model_id, checkpoint_qwen_model_id):
@@ -3769,105 +3807,113 @@ def main():
         setattr(layer.self_attn, proj_name, patched)
         patched_layers.append(patched)
 
-    print(f"Loading Mamba: {ARGS.mamba_model_id}...")
-    ensure_mamba_ssm_compat()
-    from transformers import MambaForCausalLM
-
-    mamba_tokenizer = AutoTokenizer.from_pretrained(ARGS.mamba_model_id)
-    mamba_model = MambaForCausalLM.from_pretrained(
-        ARGS.mamba_model_id,
-        torch_dtype=torch.float32,
-    )
-    mamba_model.to(ARGS.mamba_device)
-    mamba_model.eval()
-    hidden_layer_count = infer_hidden_layer_count(mamba_model)
-
-    hypernet = ActivationBiasHypernetwork(
-        context_dim=context_dim,
-        target_dims=target_dims,
-        hidden_dim=int(bridge_config.get("hyper_hidden_dim", hyper_state["backbone.0.weight"].shape[0])),
-    ).to(ARGS.qwen_device).float()
-    hypernet.load_state_dict(hyper_state)
-    hypernet.eval()
-
-    if context_mode == "raw_state":
-        compressor = RawStateProjector(
-            mamba_layers=hidden_layer_count,
-            mamba_d_model=context_dim,
-            mamba_d_state=1,
-            target_layer=mamba_target_layer,
-        ).to(ARGS.qwen_device).float()
-        if "context_encoder_state_dict" in ckpt:
-            compressor.load_state_dict(ckpt["context_encoder_state_dict"])
-    else:
-        compressor = MambaStateCompressor(
-            mamba_layers=hidden_layer_count,
-            mamba_d_model=2560,
-            mamba_d_state=1,
-            output_dim=context_dim,
-            target_layer=mamba_target_layer,
-        ).to(ARGS.qwen_device).float()
-        context_encoder_state = ckpt.get(
-            "context_encoder_state_dict",
-            ckpt.get("compressor_state_dict"),
-        )
-        if context_encoder_state is not None:
-            compressor.load_state_dict(context_encoder_state)
-    compressor.eval()
-    print(f"Context path: {context_mode} (dim={context_dim})")
-
-    episodes = read_episodes(ARGS.episodes_file)
-    episode = episodes[ARGS.episode_index]
-    print(f"\nProcessing disposition: {episode['title']}...")
     session_started_at = datetime.now().isoformat(timespec="seconds")
 
-    episode_tokens = mamba_tokenizer(
-        episode["text"],
-        return_tensors="pt",
-        truncation=True,
-        max_length=ARGS.max_mamba_tokens,
-    )
-    episode_tokens = {key: value.to(ARGS.mamba_device) for key, value in episode_tokens.items()}
-    with torch.no_grad():
-        mamba_out = mamba_model(**episode_tokens, output_hidden_states=True)
-        last_token = extract_last_token_hidden(
-            mamba_out,
-            mamba_target_layer,
-            hidden_layer_count,
-        ).to(ARGS.qwen_device, dtype=torch.float32)
-        context = compressor(last_token)
-        bias_vectors = hypernet(context)
-        BOOTSTRAP_QWEN_BIAS_DIRECTION = torch.cat(
-            [
-                (ARGS.alpha * bias.squeeze(0))
-                .detach()
-                .cpu()
-                .to(torch.float32)
-                .reshape(-1)
-                for bias in bias_vectors
-            ],
-            dim=0,
+    if ARGS.skip_mamba:
+        # Baseline mode: no Mamba, no bridge injection. Qwen runs unmodified.
+        print("Skipping Mamba loading (--skip-mamba mode, no bridge injection)")
+        disposition_title = "baseline (no Mamba)"
+        gate_layers = sorted({layer_idx for layer_idx, _proj_name in target_specs})
+        ACTIVATION_RECORDER = ActivationRecorder(MODEL, gate_layers)
+        LAST_CONVERSATION_SNAPSHOT = record_activation_snapshot(ARGS.neutral_prompt)
+        BOOTSTRAP_QWEN_HIDDEN_REFERENCE = flatten_snapshot(LAST_CONVERSATION_SNAPSHOT)
+        mamba_state_ref = ""
+        bridge_loaded = False
+    else:
+        print(f"Loading Mamba: {ARGS.mamba_model_id}...")
+        ensure_mamba_ssm_compat()
+        from transformers import MambaForCausalLM
+
+        mamba_tokenizer = AutoTokenizer.from_pretrained(ARGS.mamba_model_id)
+        mamba_model = MambaForCausalLM.from_pretrained(
+            ARGS.mamba_model_id,
+            torch_dtype=torch.float32,
         )
+        mamba_model.to(ARGS.mamba_device)
+        mamba_model.eval()
+        compressor, hypernet, mamba_target_layer, hidden_layer_count, resolved_context_mode, bridge_mode = (
+            build_runtime_context_encoder_and_hypernetwork(
+                checkpoint=ckpt,
+                mamba_model=mamba_model,
+                target_dims=target_dims,
+                bridge_device=ARGS.qwen_device,
+            )
+        )
+        context_mode = resolved_context_mode
+        print(f"Context path: {context_mode} (dim={getattr(compressor, 'output_dim', context_dim)})")
 
-    for patched, bias in zip(patched_layers, bias_vectors):
-        scaled_bias = ARGS.alpha * bias.squeeze(0).to(ARGS.qwen_device, dtype=torch.float32)
-        patched.set_activation_bias(scaled_bias)
+        episodes = read_episodes(ARGS.episodes_file)
+        episode = episodes[ARGS.episode_index]
+        print(f"\nProcessing disposition: {episode['title']}...")
+        disposition_title = episode["title"]
 
-    gate_layers = sorted({layer_idx for layer_idx, _proj_name in target_specs})
-    ACTIVATION_RECORDER = ActivationRecorder(MODEL, gate_layers)
-    LAST_CONVERSATION_SNAPSHOT = record_activation_snapshot(ARGS.neutral_prompt)
-    BOOTSTRAP_QWEN_HIDDEN_REFERENCE = flatten_snapshot(LAST_CONVERSATION_SNAPSHOT)
-    mamba_state_ref = persist_mamba_state_ref(last_token, mamba_target_layer, session_started_at)
+        episode_tokens = mamba_tokenizer(
+            episode["text"],
+            return_tensors="pt",
+            truncation=True,
+            max_length=ARGS.max_mamba_tokens,
+        )
+        episode_tokens = {key: value.to(ARGS.mamba_device) for key, value in episode_tokens.items()}
+        with torch.no_grad():
+            mamba_out = mamba_model(**episode_tokens, output_hidden_states=True)
+            last_token = extract_last_token_hidden(
+                mamba_out,
+                mamba_target_layer,
+                hidden_layer_count,
+            ).to(ARGS.qwen_device, dtype=torch.float32)
+            context = compressor(last_token)
+            bridge_adjustments, _gate_summary = resolve_runtime_bridge_adjustments(
+                hypernetwork=hypernet,
+                context_vector=context,
+                bridge_mode=bridge_mode,
+            )
+            if bridge_mode == "token_conditioned_input_adapter":
+                BOOTSTRAP_QWEN_BIAS_DIRECTION = torch.cat(
+                    [
+                        (ARGS.alpha * state["adapter_bias"].squeeze(0))
+                        .detach()
+                        .cpu()
+                        .to(torch.float32)
+                        .reshape(-1)
+                        for state in bridge_adjustments
+                    ],
+                    dim=0,
+                )
+            else:
+                BOOTSTRAP_QWEN_BIAS_DIRECTION = torch.cat(
+                    [
+                        (ARGS.alpha * bias.squeeze(0))
+                        .detach()
+                        .cpu()
+                        .to(torch.float32)
+                        .reshape(-1)
+                        for bias in bridge_adjustments
+                    ],
+                    dim=0,
+                )
+            apply_runtime_bridge_adjustments(
+                patched_layers=patched_layers,
+                bridge_adjustments=bridge_adjustments,
+                bridge_mode=bridge_mode,
+                alpha=ARGS.alpha,
+            )
+
+        gate_layers = sorted({layer_idx for layer_idx, _proj_name in target_specs})
+        ACTIVATION_RECORDER = ActivationRecorder(MODEL, gate_layers)
+        LAST_CONVERSATION_SNAPSHOT = record_activation_snapshot(ARGS.neutral_prompt)
+        BOOTSTRAP_QWEN_HIDDEN_REFERENCE = flatten_snapshot(LAST_CONVERSATION_SNAPSHOT)
+        mamba_state_ref = persist_mamba_state_ref(last_token, mamba_target_layer, session_started_at)
+        bridge_loaded = True
 
     update_runtime_state(
         started_at=session_started_at,
         started_monotonic=time.monotonic(),
         running=True,
-        bridge_loaded=True,
+        bridge_loaded=bridge_loaded,
         busy=False,
         stop_requested=False,
         last_error="",
-        disposition=episode["title"],
+        disposition=disposition_title,
         dual_gate_enabled=bool(ARGS.dual_gate_enabled),
         dual_gate_supported_tension_enabled=bool(ARGS.dual_gate_supported_tension_enabled),
         dual_gate_tension_salience_support_ratio=float(ARGS.dual_gate_tension_salience_support_ratio),
@@ -3913,7 +3959,7 @@ def main():
     )
     update_qdrant_pending_state()
 
-    print(f"\nBridge injected with alpha={ARGS.alpha}. Disposition: {episode['title']}")
+    print(f"\nBridge injected with alpha={ARGS.alpha}. Disposition: {disposition_title}")
     print(f"\n{'=' * 50}")
     print(f"Server starting on http://{ARGS.host}:{ARGS.port}")
     print(f"Open this on your phone: http://192.168.2.49:{ARGS.port}")
