@@ -2783,3 +2783,16 @@ All three checkpoints: A/B/C = 100% false recall.
 - `behavioral_eval_runs/rr10_stats_kimi_fixed_20260414.json` (N=10 statistical)
 - `behavioral_eval_runs/rr10_stats_mvp2b_fixed_20260414.json` (N=10 statistical)
 - Watercooler: #393 (hybrid proposal), #395, #397 (replication), #399, #400 (MVP-2b), #402, #403 (statistical confirmation)
+
+### Entry 42: MVP-4 Hybrid Bridge Drafted & Live Accumulation Verified
+**Date:** 2026-04-14
+
+**What happened:**
+- Following NotebookLM corpus synthesis, the "Translator Wall" bandwidth limit was addressed by drafting a new **Hybrid Bridge (MVP-4)** architecture (`hybrid_bridge.py`). It uses a 0.5B model to map Mamba sequences to virtual tokens.
+- Added a `get_intervention_dose()` metric (L2 norm) and reduced virtual tokens to 4 to satisfy Herr Hurtig's strict Ethics Gate constraints for token-generating bridges. Local PyTorch smoke tests passed.
+- Concurrently, Techno-Monk's new `--live-accumulation` feature in `chat_server.py` was successfully smoke-tested on Steve. The bridge bias and Mamba states now increment dynamically per-turn, proving the "Endocrine System" can run live.
+
+**Artifacts:**
+- `hybrid_bridge.py`
+- `smoke_test_hybrid_bridge.py`
+- `smoke_test_live_accumulation.py`

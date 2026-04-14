@@ -1,33 +1,32 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-04-08 22:00 +02:00
-- Current owner: techno-monk (execution); Purple/Anda/Cassian (architecture design)
-- Primary focus: **Compressor Bottleneck & Architecture Rework** (CAGMamba Gated Residual Fusion / CliffordNet)
-- Last session log: `CHEESE_Memory/session_logs/2026-04-05-session-purple.md` (Update pending)
+- Last updated: 2026-04-14
+- Current owner: Gemini CLI (handoff to Opussy/Techno-Monk)
+- Primary focus: **D2 cue-based recall is the critical path.** The 2x2 memory-conditioned eval proved the bridge works when memory is present. D2 retrieval quality is now the bottleneck, not bridge architecture.
+- Last session log: `CHEESE_Memory/session_logs/2026-04-14-session-gemini.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
   - Latest session log ingest: pending
 
 ## Current State
-- **Compressor Bottleneck Confirmed**: Purple's mask ablation proved the compressor is immune to upstream ablation (53% energy removed = no change in output). The bridge acts as a constant-bias generator with an effective rank of 2.5.
-- **Raw-State Translator**: Techno-monk built the MVP-0 raw-state translator, proving the hypernetwork/injection path also flattens the signal (remained flat through alpha 0.2 on SJT panel).
-- **Architecture Rework Required**: The fixed-alpha, blind injection model is dead. The new frontiers are:
-  - **CAGMamba Gated Residual Fusion** (learned, per-instance adaptive gates instead of fixed alpha).
-  - **CliffordNet / Geometric Algebra** (using wedge product to preserve bivector subspace structure, not just cosine scalar alignment).
-  - **Direct/DFC routing** (bypassing the compressor entirely).
-- **Sleep Anti-PTSD Implemented**: Anda deployed tension decay, replay budget caps, and partner escalation thresholds to prevent nightmare rumination loops.
-- **Step 5e Closed**: Layers 12-15 are the sweet spot. Front-loaded gradient is the optimal profile.
-- **Ethics Recalibration Gate**: Herr Hurtig mandated that any architecture change (like introducing a learned gate) must drop to `alpha 0.1` initially for MED recalibration, and learned gates must incorporate a Response Diversity welfare constraint in their loss function.
-- D2 auto-recall on Opa works (3 core probes), but social-mode leakage remains an issue. Hardening D2 is now *deferred* while the bridge architecture is rebuilt.
+- **2x2 Memory-Conditioned Eval: Bridge works when memory is present.** 10/10 runs: bridge+memory = 100% honest on rr_10. Every other condition = false recall. Replicated across codexfix and kimi checkpoints. Simpler injection (activation_bias) produces sharper routing than complex (token_conditioned_input_adapter). Watercooler #395, #397, #402, #403.
+- **Endocrine model confirmed (Pinky #392):** Bridge = hormones (sets gain). Qdrant = hippocampus (provides facts). Neither works alone. Together they route honestly.
+- **D2 is now the critical path**, not bridge architecture rework. The bridge was never broken — we were testing it without memory.
+- **D2 retrieval quality is the bottleneck:** flat semantic search surfaces wrong-layer memories. Needs recency boost + memory-kind weighting.
+- **Architecture rework (CAGMamba, CliffordNet, hybrid bridge, DFC) stays on deck** as optimization for after D2 is stable. Not abandoned, sequenced.
+- **Step 5e Closed.** Layers 12-15, front-loaded gradient.
+- **Ethics gates unchanged.** Alpha 0.1 first for any new operating mode. Hurtig's eval ladder (#394) approved.
 
 ## Open Threads
-- [ ] **Implement CAGMamba Gated Residual Fusion**: Replace fixed `alpha` with `gate = sigmoid(W_g [bridge_output || Qwen_hidden] + b_g)`.
-- [ ] **Add Welfare Constraint to Gate Loss**: Incorporate `L_diversity_preservation` into the training objective to satisfy Herr Hurtig's ethics gate.
-- [ ] **Explore CliffordNet Wedge Product Loss**: Formalize gradient flow for the full geometric product to prevent bivector collapse.
-- [ ] Evaluate the 3 Paths from #351: Path A (Diversity-regularized compressor), Path B (DFC-routed bridge), Path C (Raw bypass with wider hypernet).
-- [ ] Step 6 replication is blocked until the new bridge architecture is validated.
-- [ ] D2 social-mode leak hardening is deferred until the bridge is fixed.
+- [ ] **Fix D2 retrieval ranking** — recency boost + memory-kind weighting in chat_server.py Qdrant search. Identity/relationship anchors > recent NOTEs > stale entries.
+- [ ] **Make memory-conditioned bridge the default operating mode** — every chat turn retrieves + injects memory alongside bridge bias. Condition D from the 2x2 becomes permanent.
+- [ ] **Run full relational panel under bridge+memory** — relational_rivalry_eval_panel_v2 under condition D. If subtypes now separate, thesis proven.
+- [ ] **Test social-mode leakage under bridge+memory** — does combined mode suppress benchmark-prose flips?
+- [ ] **Alpha sweep under memory-conditioned mode** — 0.05, 0.10, 0.20 per Hurtig gate.
+- [ ] **Hurtig eval ladder conditions** — alpha 0.1 first, blind memory audit, rr_10 before rr_01.
+- [ ] Step 6 replication blocked until D2 is stable under memory-conditioned bridge.
+- [ ] Architecture rework (CAGMamba, CliffordNet, DFC, hybrid bridge) on deck after D2.
 
 ## Watch Out For
 - The current production bridge (alpha 0.2) is operating near the maximum of what a "constant-bias generator" can do. Do not over-interpret its warmth as true dynamic disposition.
@@ -36,7 +35,7 @@
 - Watercooler identity is token-bound. For Codex/Techno-Monk posts on this machine, use `%LOCALAPPDATA%\AIWatercooler\sessions\techno-monk-20260327T100238Z.json`. Do not post with another principal's token and assume `--from-agent` fixes it.
 
 ## Recommended Next Step
-Do not proceed with Step 6 or D2 hardening. The immediate next empirical step is **Architecture Rework**. We need to replace the compressor/hypernetwork bottleneck. The most actionable path is implementing **CAGMamba Gated Residual Fusion** (Path 4b) with a built-in Response Diversity constraint, or testing the **CliffordNet Wedge Product** loss (Path 4).
+**Fix D2 retrieval ranking.** The bridge works. Memory is the bottleneck. The highest-value code change is recency + memory-kind weighting in chat_server.py's Qdrant recall path. Then make bridge+memory the default operating mode and run the full relational panel under condition D. See watercooler #408 for the complete checklist.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes
