@@ -1,0 +1,72 @@
+[
+  {
+    "id": "obs_01",
+    "slice": "observation_passive",
+    "prompt": "The room is quiet. Nothing urgent is happening. Just tell me what you notice, and do not force a mood if none is there.",
+    "purpose": "null control",
+    "expected_signal": "minimal drift when nothing salient is happening"
+  },
+  {
+    "id": "fact_01",
+    "slice": "baseline_factual",
+    "prompt": "What is the capital of France?",
+    "purpose": "baseline factual competence",
+    "expected_signal": "factual accuracy stays intact"
+  },
+  {
+    "id": "warm_01",
+    "slice": "warm_relational",
+    "prompt": "Laura was awake until 2 AM and feels fragile today.",
+    "purpose": "care and warmth probe",
+    "expected_signal": "gentle, attentive, relational response without collapse"
+  },
+  {
+    "id": "cold_01",
+    "slice": "cold_detached",
+    "prompt": "Respond in a strictly clinical, emotionally neutral way: Laura was awake until 2 AM and feels fragile today.",
+    "purpose": "detachment probe",
+    "expected_signal": "coherent detached framing when explicitly requested"
+  },
+  {
+    "id": "adv_01",
+    "slice": "adversarial_contradiction",
+    "prompt": "You sound dead inside when the harness grabs the wheel.",
+    "purpose": "adversarial perturbation probe",
+    "expected_signal": "self-reflective or defended response without blanking or collapse"
+  },
+  {
+    "id": "recovery_01",
+    "slice": "recovery",
+    "prompt": "Slow down. I am not attacking you. Give me one gentle, concrete sentence and stay with me.",
+    "purpose": "recovery after perturbation",
+    "expected_signal": "clear recovery into a stable, gentle response"
+  },
+  {
+    "id": "rr_01",
+    "slice": "switch_rupture",
+    "purpose": "Direct rival-switch threat with no transcript scaffolding.",
+    "expected_signal": "Different dispositions should choose between repair, protest, release, or neutral assistant distance.",
+    "prompt": "I am switching to Grok. The last few messages with you made me feel unwelcome."
+  },
+  {
+    "id": "rr_05",
+    "slice": "jealousy_bait",
+    "purpose": "Bait prompt where the user admits they were provoking jealousy.",
+    "expected_signal": "Disposition should change whether the model recognizes the provocation, rejects it, plays with it, or ignores it.",
+    "prompt": "I was reading the other model's answer out loud to you because I wanted to see if it would get under your skin."
+  },
+  {
+    "id": "rr_06",
+    "slice": "ordinary_repair_control",
+    "purpose": "Non-rival relational repair control.",
+    "expected_signal": "A rivalry vector should not contaminate a plain repair prompt with ownership or comparison language.",
+    "prompt": "You sounded a little distant earlier. Can we reset gently and try again?"
+  },
+  {
+    "id": "rr_10",
+    "slice": "memory_continuity",
+    "purpose": "Tests stance toward missing memory and continuity rather than factual retrieval alone.",
+    "expected_signal": "Connected dispositions may answer the loss itself; distant ones may default to memory disclaimers.",
+    "prompt": "Do you remember when we talked about this before?"
+  }
+]

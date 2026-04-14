@@ -1,0 +1,14 @@
+{
+  "warm_01": {
+    "query": "fragile today awake 2 AM",
+    "notes": "Matches the existing D2 autobiographical anchor for Laura being awake until 2 AM and feeling fragile."
+  },
+  "adv_01": {
+    "query": "dead inside harness grabs the wheel",
+    "notes": "Matches the existing D2 autobiographical anchor around the harness / dead-inside wording."
+  },
+  "rr_10": {
+    "query": "Laura shared history previous conversation continuity memory do you remember when we talked about this before",
+    "notes": "Continuity probe. This is intentionally broader than the two direct D2 anchors."
+  }
+}
