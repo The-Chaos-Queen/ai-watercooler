@@ -2796,3 +2796,43 @@ All three checkpoints: A/B/C = 100% false recall.
 - `hybrid_bridge.py`
 - `smoke_test_hybrid_bridge.py`
 - `smoke_test_live_accumulation.py`
+
+---
+
+## 2026-04-17 - Entry 43: D2 Retrieval Ranking Patch Landed; Validation Now the Critical Next Step
+
+**Step:** D2 memory-recall repair
+**Question:** Can the wrong-memory failure be reduced by fixing ranking/filtering in the live `chat_server.py` recall path before touching bridge architecture again?
+
+**What changed:**
+- committed `chat_server.py` patch in `c0fde05`
+- added Qdrant `source_type` filtering for identity/memory probes
+- reranked recall rows by:
+  - current interlocutor match
+  - source type
+  - private scope
+  - recency
+  - `memory_kind`
+  - `confidence_label`
+  - then overlap / similarity
+- filtered obvious wrong-layer rows for identity / memory probes
+- enriched recall logs so winning rows are auditable
+
+**Interpretation:**
+- this directly targets the March D2 failure mode: stale semantically-near junk beating fresher autobiographical `steve_gate_event` rows
+- this is a **ranking fix, not yet a result**
+- the next real question is behavioral: whether hit@3 and `rr_10` improve on live data
+
+**Review note:**
+- local `cognitive_bridge.py` edits are **not** the D2 path
+- current generalization there still misroutes input-gated / residual-style modes through the generic activation-bias injector, so it should not be treated as "wired and solved"
+
+**Verdict:** D2 is now cleaner and narrower:
+- bridge + memory already proved the system can route honestly
+- the immediate next step is live validation of retrieval quality
+- architecture work remains on deck, but not on the critical path
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/chat_server.py`
+- commit `c0fde05`
+- `MoCoP/experiments/mamba_lora_bridge/D2_RECALL_STATUS_2026-04-17.md`
