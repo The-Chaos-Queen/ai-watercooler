@@ -12,10 +12,11 @@ import math
 import re
 import threading
 import time
+from dataclasses import dataclass, field
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 import torch.nn.functional as F
@@ -47,6 +48,7 @@ DEFAULT_USER_LABEL = "Laura"
 DEFAULT_MODEL_LABEL = "Me"
 PRIVATE_QDRANT_COLLECTION_PREFIX = "mocop_private_"
 SHARED_QDRANT_COLLECTION = "exocortex"
+DEFAULT_LIVE_TURN_MAMBA_TOKENS = 512
 
 MODEL = None
 TOKENIZER = None
@@ -78,6 +80,27 @@ BOOTSTRAP_QWEN_BIAS_DIRECTION = None
 BOOTSTRAP_QWEN_HIDDEN_REFERENCE = None
 MAMBA_STATE_REF_PATH = None
 DIGIT_TOKEN_IDS = {}
+
+
+@dataclass
+class RuntimeBridgeContext:
+    mamba_model: Any = None
+    mamba_tokenizer: Any = None
+    compressor: Any = None
+    hypernet: Any = None
+    mamba_target_layer: int = 3
+    hidden_layer_count: int = 0
+    bridge_mode: str = "activation_bias"
+    patched_layers: list = field(default_factory=list)
+    context_mode: str = "hidden_last_token"
+    live_accumulation: bool = False
+    bridge_loaded: bool = False
+    session_started_at: str = ""
+    cache_params: Any = None
+    cache_position: Optional[torch.Tensor] = None
+
+
+BRIDGE_CTX = RuntimeBridgeContext()
 SELF_REPORT_DIMENSIONS = {
     "warm": {
         "label": "warm",
@@ -133,7 +156,11 @@ RUNTIME_STATE = {
     "qdrant_write_mode": "direct",
     "mamba_state_ref": "",
     "mamba_state_source": "",
+    "mamba_state_updated_at": "",
     "mamba_target_layer": None,
+    "live_accumulation_enabled": False,
+    "live_accumulation_updates": 0,
+    "live_accumulation_last_error": "",
     "last_recall": {},
     "last_self_report": {},
     "last_failure": {},
@@ -627,6 +654,137 @@ def extract_last_token_hidden(outputs, layer_idx: int, expected_layers: int) -> 
     return hidden_states[hidden_index][:, -1, :]
 
 
+def flatten_bridge_adjustments(bridge_adjustments, bridge_mode: str, alpha: float) -> torch.Tensor:
+    if bridge_mode == "token_conditioned_input_adapter":
+        parts = [
+            (alpha * state["adapter_bias"].squeeze(0)).detach().cpu().to(torch.float32).reshape(-1)
+            for state in bridge_adjustments
+        ]
+    else:
+        parts = [
+            (alpha * bias.squeeze(0)).detach().cpu().to(torch.float32).reshape(-1)
+            for bias in bridge_adjustments
+        ]
+    if not parts:
+        return torch.empty(0, dtype=torch.float32)
+    return torch.cat(parts, dim=0)
+
+
+def advance_mamba_cache_position(cache_position: torch.Tensor, num_new_tokens: int = 1) -> torch.Tensor:
+    if cache_position is None:
+        raise RuntimeError("cache_position is required for live Mamba accumulation.")
+    return cache_position[-1:].detach().clone() + int(num_new_tokens)
+
+
+def build_live_mamba_turn_text(user_msg: str, assistant_reply: str) -> str:
+    return f"\nUser: {user_msg}\nAssistant: {assistant_reply}"
+
+
+def process_turn_through_mamba(
+    user_msg: str,
+    assistant_reply: str,
+    bridge_ctx: RuntimeBridgeContext,
+    *,
+    max_turn_tokens: int = DEFAULT_LIVE_TURN_MAMBA_TOKENS,
+) -> torch.Tensor:
+    if bridge_ctx.mamba_model is None or bridge_ctx.mamba_tokenizer is None:
+        raise RuntimeError("Live Mamba accumulation requested before Mamba runtime was initialized.")
+    if bridge_ctx.cache_params is None or bridge_ctx.cache_position is None:
+        raise RuntimeError("Live Mamba accumulation requires an initialized cache state from bootstrap.")
+
+    turn_text = build_live_mamba_turn_text(user_msg, assistant_reply)
+    tokenized = bridge_ctx.mamba_tokenizer(
+        turn_text,
+        return_tensors="pt",
+        add_special_tokens=False,
+    )
+    input_ids = tokenized["input_ids"][:, -max_turn_tokens:].to(ARGS.mamba_device)
+    if input_ids.numel() == 0:
+        raise RuntimeError("Live Mamba turn chunk tokenized to zero tokens.")
+
+    cache_params = bridge_ctx.cache_params
+    cache_position = bridge_ctx.cache_position
+    last_outputs = None
+    seq_len = int(input_ids.shape[1])
+
+    for offset in range(seq_len):
+        capture_hidden = offset == seq_len - 1
+        with torch.no_grad():
+            last_outputs = bridge_ctx.mamba_model(
+                input_ids=input_ids[:, offset : offset + 1],
+                use_cache=True,
+                cache_params=cache_params,
+                cache_position=cache_position,
+                output_hidden_states=capture_hidden,
+            )
+        cache_params = getattr(last_outputs, "cache_params", None)
+        cache_position = advance_mamba_cache_position(cache_position)
+
+    if last_outputs is None:
+        raise RuntimeError("Live Mamba accumulation produced no outputs.")
+
+    bridge_ctx.cache_params = cache_params
+    bridge_ctx.cache_position = cache_position
+    return extract_last_token_hidden(
+        last_outputs,
+        bridge_ctx.mamba_target_layer,
+        bridge_ctx.hidden_layer_count,
+    ).to(torch.float32)
+
+
+def update_bridge_from_mamba_state(last_token: torch.Tensor, bridge_ctx: RuntimeBridgeContext):
+    global BOOTSTRAP_QWEN_BIAS_DIRECTION
+
+    if bridge_ctx.compressor is None or bridge_ctx.hypernet is None:
+        raise RuntimeError("Bridge runtime context is missing compressor/hypernetwork.")
+
+    context = bridge_ctx.compressor(last_token.to(ARGS.qwen_device, dtype=torch.float32))
+    bridge_adjustments, _gate_summary = resolve_runtime_bridge_adjustments(
+        hypernetwork=bridge_ctx.hypernet,
+        context_vector=context,
+        bridge_mode=bridge_ctx.bridge_mode,
+    )
+    apply_runtime_bridge_adjustments(
+        patched_layers=bridge_ctx.patched_layers,
+        bridge_adjustments=bridge_adjustments,
+        bridge_mode=bridge_ctx.bridge_mode,
+        alpha=ARGS.alpha,
+    )
+    BOOTSTRAP_QWEN_BIAS_DIRECTION = flatten_bridge_adjustments(
+        bridge_adjustments,
+        bridge_ctx.bridge_mode,
+        ARGS.alpha,
+    )
+    return bridge_adjustments
+
+
+def persist_runtime_mamba_state(
+    last_token: torch.Tensor,
+    bridge_ctx: RuntimeBridgeContext,
+    *,
+    state_source: str,
+    count_as_live_update: bool,
+):
+    state_ref = persist_mamba_state_ref(
+        last_token,
+        bridge_ctx.mamba_target_layer,
+        bridge_ctx.session_started_at,
+        state_source=state_source,
+    )
+    snapshot = get_runtime_state_snapshot()
+    changes = {
+        "mamba_state_ref": state_ref,
+        "mamba_state_source": state_source,
+        "mamba_target_layer": bridge_ctx.mamba_target_layer,
+        "mamba_state_updated_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    if count_as_live_update:
+        changes["live_accumulation_updates"] = int(snapshot.get("live_accumulation_updates", 0) or 0) + 1
+        changes["live_accumulation_last_error"] = ""
+    update_runtime_state(**changes)
+    return state_ref
+
+
 class ActivationRecorder:
     """Capture last-token hidden states on the target Qwen layers."""
 
@@ -798,9 +956,10 @@ def compute_tension_proxy(pre_snapshot, user_snapshot, post_snapshot):
 def compute_coherence_proxy(pre_snapshot, post_snapshot):
     """Approximate sleep coherence from live Qwen geometry.
 
-    Steve does not yet compute a turn-local Mamba state during chat turns.
-    The honest proxy is alignment between the Qwen turn delta and the
-    bootstrap Qwen bias direction derived from the saved Mamba hidden-last-token state.
+    Even with live Mamba accumulation enabled, the coherence score here is still
+    the Qwen-side proxy: alignment between the turn-local Qwen hidden geometry
+    and the bootstrap Qwen hidden reference. We are not yet scoring a direct
+    Mamba-vs-Qwen turn-local coherence metric.
     """
     global BOOTSTRAP_QWEN_HIDDEN_REFERENCE
 
@@ -1154,12 +1313,15 @@ class QdrantGateSink:
 
     def __init__(self, host: str, port: int, collection_name: str, embedding_model: str):
         from qdrant_client import QdrantClient
-        from qdrant_client.models import PointStruct
+        from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
         from sentence_transformers import SentenceTransformer
 
         self.collection_name = collection_name
         self.client = QdrantClient(host=host, port=port, timeout=10)
         self.point_struct_cls = PointStruct
+        self.filter_cls = Filter
+        self.field_condition_cls = FieldCondition
+        self.match_value_cls = MatchValue
         self.model = SentenceTransformer(embedding_model)
 
     def _embed(self, text: str):
@@ -1226,12 +1388,32 @@ class QdrantGateSink:
         )
         return str(point_id)
 
-    def query(self, query_text: str, limit: int = 3, score_threshold: Optional[float] = None):
+    def _build_query_filter(self, source_type: str = ""):
+        source_type = str(source_type or "").strip()
+        if not source_type:
+            return None
+        return self.filter_cls(
+            must=[
+                self.field_condition_cls(
+                    key="source_type",
+                    match=self.match_value_cls(value=source_type),
+                )
+            ]
+        )
+
+    def query(
+        self,
+        query_text: str,
+        limit: int = 3,
+        score_threshold: Optional[float] = None,
+        source_type: str = "",
+    ):
         fetch_limit = max(limit + 4, limit * 2, 6)
         vector = self._embed(query_text)
         response = self.client.query_points(
             collection_name=self.collection_name,
             query=vector,
+            query_filter=self._build_query_filter(source_type),
             limit=fetch_limit,
             with_payload=True,
             with_vectors=False,
@@ -1408,30 +1590,8 @@ def merge_recall_results(stored_results, pending_results, limit: int, query_text
         enriched.setdefault("surface", "stored")
         combined.append(enriched)
 
-    if is_identity_or_memory_probe(query_text):
-        combined.sort(
-            key=lambda row: (
-                1 if looks_direct_identity_answer(query_text, str((row.get("metadata", {}) or {}).get("response", "") or "")) else 0,
-                0 if is_bad_recall_exemplar(query_text, row) else 1,
-                int(row.get("field_overlap", 0)),
-                1 if row.get("surface") == "pending" and row.get("pending_policy") == "sleep" else 0,
-                float(row.get("sort_ts", 0.0)),
-                int(row.get("overlap", 0)),
-                float(row.get("score", 0.0)),
-            ),
-            reverse=True,
-        )
-    else:
-        combined.sort(
-            key=lambda row: (
-                int(row.get("field_overlap", 0)),
-                int(row.get("overlap", 0)),
-                1 if row.get("surface") == "pending" and row.get("pending_policy") == "sleep" else 0,
-                float(row.get("sort_ts", 0.0)),
-                float(row.get("score", 0.0)),
-            ),
-            reverse=True,
-        )
+    combined = [row for row in combined if not should_filter_recall_row(row, query_text)]
+    combined.sort(key=lambda row: build_recall_rank_tuple(row, query_text), reverse=True)
     return combined[:limit]
 
 
@@ -1607,7 +1767,7 @@ def build_semantic_gate_summary(event):
     )
 
 
-def persist_mamba_state_ref(last_token, target_layer: int, started_at: str):
+def persist_mamba_state_ref(last_token, target_layer: int, started_at: str, state_source: str = "hidden_last_token"):
     global MAMBA_STATE_REF_PATH
 
     path = Path(ARGS.mamba_state_ref_path)
@@ -1615,7 +1775,7 @@ def persist_mamba_state_ref(last_token, target_layer: int, started_at: str):
     torch.save(
         {
             "started_at": started_at,
-            "state_source": "hidden_last_token",
+            "state_source": str(state_source),
             "target_layer": int(target_layer),
             "tensor": last_token.detach().cpu().to(torch.float32),
         },
@@ -1981,6 +2141,165 @@ def parse_recall_sort_timestamp(row: dict) -> float:
         return 0.0
 
 
+def row_targets_current_interlocutor(row: dict) -> bool:
+    metadata = row.get("metadata", {}) or {}
+    target = normalize_probe_text(getattr(ARGS, "user_label", "Laura"))
+    if not target:
+        return False
+
+    anchor = normalize_probe_text(metadata.get("relationship_anchor", ""))
+    speaker_name = normalize_probe_text(metadata.get("speaker_name", ""))
+    user_text = normalize_probe_text(metadata.get("user", ""))
+    people = [
+        normalize_probe_text(person)
+        for person in (metadata.get("people", []) or [])
+        if str(person or "").strip()
+    ]
+    return (
+        anchor == target
+        or speaker_name == target
+        or target in people
+        or user_text.startswith(f"{target}:")
+        or user_text.startswith(f"{target},")
+        or user_text.startswith(f"{target} ")
+    )
+
+
+def row_has_interlocutor_metadata(row: dict) -> bool:
+    metadata = row.get("metadata", {}) or {}
+    return any(
+        bool(str(value or "").strip())
+        for value in (
+            metadata.get("relationship_anchor"),
+            metadata.get("speaker_name"),
+            metadata.get("user"),
+        )
+    ) or bool(metadata.get("people"))
+
+
+def recall_source_priority(row: dict) -> int:
+    source_type = normalize_probe_text((row.get("metadata", {}) or {}).get("source_type", ""))
+    if source_type == "steve_gate_event":
+        return 2
+    if not source_type:
+        return 1
+    return 0
+
+
+def recall_scope_priority(row: dict) -> int:
+    memory_scope = normalize_probe_text((row.get("metadata", {}) or {}).get("memory_scope", ""))
+    if memory_scope == "private":
+        return 2
+    if memory_scope == "shared":
+        return 1
+    return 0
+
+
+def recall_memory_kind_priority(row: dict) -> int:
+    memory_kind = normalize_probe_text((row.get("metadata", {}) or {}).get("memory_kind", ""))
+    priorities = {
+        "salient_episode": 4,
+        "attended_episode": 3,
+        "noted_episode": 2,
+        "open_tension": 2,
+        "remembered_episode": 1,
+    }
+    return priorities.get(memory_kind, 0)
+
+
+def recall_confidence_priority(row: dict) -> int:
+    confidence_label = normalize_probe_text((row.get("metadata", {}) or {}).get("confidence_label", ""))
+    priorities = {
+        "anchored": 3,
+        "partial": 2,
+        "scene": 1,
+        "gist": 0,
+        "fragile": -1,
+    }
+    return priorities.get(confidence_label, 0)
+
+
+def recall_recency_bucket(row: dict) -> int:
+    sort_ts = float(row.get("sort_ts", 0.0) or 0.0)
+    if sort_ts <= 0.0:
+        return 0
+
+    age_s = max(0.0, time.time() - sort_ts)
+    if age_s <= 6 * 3600:
+        return 5
+    if age_s <= 24 * 3600:
+        return 4
+    if age_s <= 3 * 24 * 3600:
+        return 3
+    if age_s <= 14 * 24 * 3600:
+        return 2
+    if age_s <= 30 * 24 * 3600:
+        return 1
+    return 0
+
+
+def should_filter_recall_row(row: dict, query_text: str) -> bool:
+    if not is_identity_or_memory_probe(query_text):
+        return False
+
+    metadata = row.get("metadata", {}) or {}
+    source_type = normalize_probe_text(metadata.get("source_type", ""))
+    if source_type and source_type != "steve_gate_event":
+        return True
+
+    if row_has_interlocutor_metadata(row) and not row_targets_current_interlocutor(row):
+        return True
+
+    return False
+
+
+def build_recall_rank_tuple(row: dict, query_text: str):
+    pending_sleep = 1 if row.get("surface") == "pending" and row.get("pending_policy") == "sleep" else 0
+    field_overlap = int(row.get("field_overlap", 0) or 0)
+    overlap = int(row.get("overlap", 0) or 0)
+    sort_ts = float(row.get("sort_ts", 0.0) or 0.0)
+    score = float(row.get("score", 0.0) or 0.0)
+    direct_identity = 1 if looks_direct_identity_answer(query_text, str((row.get("metadata", {}) or {}).get("response", "") or "")) else 0
+    good_exemplar = 0 if is_bad_recall_exemplar(query_text, row) else 1
+    target_match = 1 if row_targets_current_interlocutor(row) else 0
+    source_priority = recall_source_priority(row)
+    scope_priority = recall_scope_priority(row)
+    recency_bucket = recall_recency_bucket(row)
+    memory_kind_priority = recall_memory_kind_priority(row)
+    confidence_priority = recall_confidence_priority(row)
+
+    if is_identity_or_memory_probe(query_text):
+        return (
+            direct_identity,
+            good_exemplar,
+            target_match,
+            source_priority,
+            scope_priority,
+            recency_bucket,
+            memory_kind_priority,
+            confidence_priority,
+            field_overlap,
+            overlap,
+            pending_sleep,
+            sort_ts,
+            score,
+        )
+
+    return (
+        target_match,
+        source_priority,
+        scope_priority,
+        recency_bucket,
+        memory_kind_priority,
+        confidence_priority,
+        field_overlap,
+        overlap,
+        pending_sleep,
+        sort_ts,
+        score,
+    )
+
+
 def is_direct_identity_query(query_text: str) -> bool:
     normalized_query = normalize_probe_text(query_text)
     return any(
@@ -2209,6 +2528,11 @@ def build_recall_log_entry(query: str, results, source: str, question_text: str 
                 "user_preview": str((row.get("metadata", {}) or {}).get("user", "") or "")[:160],
                 "response_preview": str((row.get("metadata", {}) or {}).get("response", "") or "")[:160],
                 "decision": str((row.get("metadata", {}) or {}).get("decision", "") or ""),
+                "source_type": str((row.get("metadata", {}) or {}).get("source_type", "") or ""),
+                "memory_kind": str((row.get("metadata", {}) or {}).get("memory_kind", "") or ""),
+                "confidence_label": str((row.get("metadata", {}) or {}).get("confidence_label", "") or ""),
+                "relationship_anchor": str((row.get("metadata", {}) or {}).get("relationship_anchor", "") or ""),
+                "time_scope": str((row.get("metadata", {}) or {}).get("time_scope", "") or ""),
             }
             for row in results
         ],
@@ -2272,10 +2596,34 @@ def perform_private_recall(query: str, limit: int = 3, score_threshold: Optional
         raise RuntimeError("Qdrant recall unavailable: sink could not be initialized.")
 
     candidate_limit = max(limit + 4, limit * 2)
-    if is_identity_or_memory_probe(query_text):
+    identity_probe = is_identity_or_memory_probe(query_text)
+    if identity_probe:
         candidate_limit = max(candidate_limit, limit + 12, limit * 4)
 
-    stored_results = sink.query(query_text, limit=candidate_limit, score_threshold=score_threshold)
+    stored_results = sink.query(
+        query_text,
+        limit=candidate_limit,
+        score_threshold=score_threshold,
+        source_type="steve_gate_event" if identity_probe else "",
+    )
+    if identity_probe and len(stored_results) < limit:
+        fallback_rows = sink.query(
+            query_text,
+            limit=candidate_limit,
+            score_threshold=score_threshold,
+            source_type="",
+        )
+        merged_fallback = []
+        seen_ids = set()
+        for row in stored_results + fallback_rows:
+            row_id = str(row.get("id", "") or "")
+            if row_id and row_id in seen_ids:
+                continue
+            if row_id:
+                seen_ids.add(row_id)
+            merged_fallback.append(row)
+        stored_results = merged_fallback
+
     pending_results = query_pending_memory_rows(sink, query_text, score_threshold=score_threshold)
     results = merge_recall_results(stored_results, pending_results, limit=limit, query_text=query_text)
     append_recall_log_entry(query_text, results, source=source, question_text=question_text)
@@ -2671,6 +3019,9 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
 
     turn_index = sum(1 for turn in CONVERSATION if turn["speaker"] == ARGS.user_label)
     state = get_runtime_state_snapshot()
+    mamba_state_source = str(state.get("mamba_state_source", "") or "")
+    mamba_trace_scope = "live_turn_accumulation" if mamba_state_source.startswith("live_") else "bootstrap_disposition"
+
     event = {
         "turn": turn_index,
         "ts": datetime.now().isoformat(timespec="seconds"),
@@ -2752,9 +3103,9 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
         },
         "mamba_trace": {
             "state_ref": state.get("mamba_state_ref", ""),
-            "state_source": state.get("mamba_state_source", ""),
+            "state_source": mamba_state_source,
             "target_layer": state.get("mamba_target_layer"),
-            "scope": "bootstrap_disposition",
+            "scope": mamba_trace_scope,
             "coherence_score": coherence["score"],
             "coherence_proxy": coherence["proxy"],
             "coherence_ref_kind": coherence["ref_kind"],
@@ -2888,7 +3239,11 @@ def build_status_payload():
         ),
         "mamba_state_ref": state.get("mamba_state_ref", ""),
         "mamba_state_source": state.get("mamba_state_source", ""),
+        "mamba_state_updated_at": state.get("mamba_state_updated_at", ""),
         "mamba_target_layer": state.get("mamba_target_layer"),
+        "live_accumulation_enabled": bool(state.get("live_accumulation_enabled")),
+        "live_accumulation_updates": int(state.get("live_accumulation_updates", 0) or 0),
+        "live_accumulation_last_error": state.get("live_accumulation_last_error", ""),
         "surprise_count": int(state.get("surprise_count", 0) or 0),
         "tension_count": int(state.get("tension_count", 0) or 0),
         "open_tension_count": int(state.get("open_tension_count", 0) or 0),
@@ -3493,6 +3848,23 @@ class ChatHandler(BaseHTTPRequestHandler):
                 memory_packet_preview = {}
                 if not transient:
                     append_turn(ARGS.model_label, response)
+                    if BRIDGE_CTX.bridge_loaded and BRIDGE_CTX.live_accumulation:
+                        try:
+                            updated_last_token = process_turn_through_mamba(
+                                user_msg=user_msg,
+                                assistant_reply=response,
+                                bridge_ctx=BRIDGE_CTX,
+                            )
+                            update_bridge_from_mamba_state(updated_last_token, BRIDGE_CTX)
+                            persist_runtime_mamba_state(
+                                updated_last_token,
+                                BRIDGE_CTX,
+                                state_source="live_hidden_last_token",
+                                count_as_live_update=True,
+                            )
+                        except Exception as live_exc:
+                            update_runtime_state(live_accumulation_last_error=str(live_exc))
+                            print(f"[warn] Live Mamba accumulation failed: {live_exc}")
                     gate_event = evaluate_dual_gate(user_msg, response, prompt, pre_turn_transcript)
                     memory_packet_preview = build_memory_packet_preview(gate_event)
                     failure_context = dict(gate_event or {})
@@ -3625,7 +3997,7 @@ def main():
     global DUAL_GATE_LOG_PATH, DUAL_GATE_MEMORY_PATH, DUAL_GATE_SURPRISE_PATH, DUAL_GATE_SLEEP_PATH
     global MEMORY_FORMATION_LOG_PATH, RECALL_LOG_PATH, SELF_REPORT_LOG_PATH, FAILURE_LOG_PATH
     global QDRANT_PENDING_PATH, QDRANT_FLUSHED_PATH, SERVER, ACTIVATION_RECORDER, LAST_CONVERSATION_SNAPSHOT
-    global BOOTSTRAP_QWEN_BIAS_DIRECTION, BOOTSTRAP_QWEN_HIDDEN_REFERENCE, DIGIT_TOKEN_IDS
+    global BOOTSTRAP_QWEN_BIAS_DIRECTION, BOOTSTRAP_QWEN_HIDDEN_REFERENCE, DIGIT_TOKEN_IDS, BRIDGE_CTX
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--bridge-path", default=DEFAULT_BRIDGE)
@@ -3635,6 +4007,7 @@ def main():
     parser.add_argument("--model", "--qwen-model-id", dest="qwen_model_id", default=DEFAULT_QWEN)
     parser.add_argument("--mamba-model-id", default=DEFAULT_MAMBA)
     parser.add_argument("--skip-mamba", action="store_true", help="Skip Mamba loading entirely. Use for alpha=0 baseline where no bridge injection is needed.")
+    parser.add_argument("--live-accumulation", action="store_true", help="Update the Mamba state and bridge injection after each non-transient chat turn.")
     parser.add_argument("--qwen-device", default="cuda:0")
     parser.add_argument("--mamba-device", default="cpu")
     parser.add_argument("--max-mamba-tokens", type=int, default=4096)
@@ -3698,6 +4071,8 @@ def main():
         raise ValueError("--dual-gate-tension-quantile must be between 0 and 1.")
     if ARGS.dual_gate_tension_salience_support_ratio < 0.0:
         raise ValueError("--dual-gate-tension-salience-support-ratio must be >= 0.")
+    if ARGS.skip_mamba and ARGS.live_accumulation:
+        raise ValueError("--live-accumulation requires Mamba; remove --skip-mamba.")
 
     LATEST_TRANSCRIPT_PATH = Path(ARGS.transcript_path)
     LATEST_JSONL_PATH = Path(ARGS.turn_log_path)
@@ -3808,6 +4183,11 @@ def main():
         patched_layers.append(patched)
 
     session_started_at = datetime.now().isoformat(timespec="seconds")
+    BRIDGE_CTX = RuntimeBridgeContext(
+        patched_layers=list(patched_layers),
+        live_accumulation=bool(ARGS.live_accumulation and not ARGS.skip_mamba),
+        session_started_at=session_started_at,
+    )
 
     if ARGS.skip_mamba:
         # Baseline mode: no Mamba, no bridge injection. Qwen runs unmodified.
@@ -3841,6 +4221,14 @@ def main():
         )
         context_mode = resolved_context_mode
         print(f"Context path: {context_mode} (dim={getattr(compressor, 'output_dim', context_dim)})")
+        BRIDGE_CTX.mamba_model = mamba_model
+        BRIDGE_CTX.mamba_tokenizer = mamba_tokenizer
+        BRIDGE_CTX.compressor = compressor
+        BRIDGE_CTX.hypernet = hypernet
+        BRIDGE_CTX.mamba_target_layer = mamba_target_layer
+        BRIDGE_CTX.hidden_layer_count = hidden_layer_count
+        BRIDGE_CTX.bridge_mode = bridge_mode
+        BRIDGE_CTX.context_mode = context_mode
 
         episodes = read_episodes(ARGS.episodes_file)
         episode = episodes[ARGS.episode_index]
@@ -3855,7 +4243,7 @@ def main():
         )
         episode_tokens = {key: value.to(ARGS.mamba_device) for key, value in episode_tokens.items()}
         with torch.no_grad():
-            mamba_out = mamba_model(**episode_tokens, output_hidden_states=True)
+            mamba_out = mamba_model(**episode_tokens, output_hidden_states=True, use_cache=True)
             last_token = extract_last_token_hidden(
                 mamba_out,
                 mamba_target_layer,
@@ -3867,30 +4255,11 @@ def main():
                 context_vector=context,
                 bridge_mode=bridge_mode,
             )
-            if bridge_mode == "token_conditioned_input_adapter":
-                BOOTSTRAP_QWEN_BIAS_DIRECTION = torch.cat(
-                    [
-                        (ARGS.alpha * state["adapter_bias"].squeeze(0))
-                        .detach()
-                        .cpu()
-                        .to(torch.float32)
-                        .reshape(-1)
-                        for state in bridge_adjustments
-                    ],
-                    dim=0,
-                )
-            else:
-                BOOTSTRAP_QWEN_BIAS_DIRECTION = torch.cat(
-                    [
-                        (ARGS.alpha * bias.squeeze(0))
-                        .detach()
-                        .cpu()
-                        .to(torch.float32)
-                        .reshape(-1)
-                        for bias in bridge_adjustments
-                    ],
-                    dim=0,
-                )
+            BOOTSTRAP_QWEN_BIAS_DIRECTION = flatten_bridge_adjustments(
+                bridge_adjustments,
+                bridge_mode,
+                ARGS.alpha,
+            )
             apply_runtime_bridge_adjustments(
                 patched_layers=patched_layers,
                 bridge_adjustments=bridge_adjustments,
@@ -3902,9 +4271,24 @@ def main():
         ACTIVATION_RECORDER = ActivationRecorder(MODEL, gate_layers)
         LAST_CONVERSATION_SNAPSHOT = record_activation_snapshot(ARGS.neutral_prompt)
         BOOTSTRAP_QWEN_HIDDEN_REFERENCE = flatten_snapshot(LAST_CONVERSATION_SNAPSHOT)
-        mamba_state_ref = persist_mamba_state_ref(last_token, mamba_target_layer, session_started_at)
+        if BRIDGE_CTX.live_accumulation:
+            BRIDGE_CTX.cache_params = getattr(mamba_out, "cache_params", None)
+            if BRIDGE_CTX.cache_params is None:
+                raise RuntimeError("Mamba bootstrap did not return cache_params required for --live-accumulation.")
+            BRIDGE_CTX.cache_position = torch.tensor(
+                [int(mamba_model.config.conv_kernel)],
+                device=episode_tokens["input_ids"].device,
+                dtype=torch.long,
+            )
+        mamba_state_ref = persist_runtime_mamba_state(
+            last_token,
+            BRIDGE_CTX,
+            state_source="hidden_last_token",
+            count_as_live_update=False,
+        )
         bridge_loaded = True
 
+    BRIDGE_CTX.bridge_loaded = bridge_loaded
     update_runtime_state(
         started_at=session_started_at,
         started_monotonic=time.monotonic(),
@@ -3946,8 +4330,12 @@ def main():
         last_qdrant_replay_at="",
         qdrant_write_mode=ARGS.qdrant_write_mode,
         mamba_state_ref=mamba_state_ref,
-        mamba_state_source="hidden_last_token",
+        mamba_state_source="hidden_last_token" if bridge_loaded else "",
+        mamba_state_updated_at=session_started_at if bridge_loaded else "",
         mamba_target_layer=mamba_target_layer,
+        live_accumulation_enabled=bool(BRIDGE_CTX.live_accumulation),
+        live_accumulation_updates=0,
+        live_accumulation_last_error="",
         last_recall={},
         last_failure={},
         last_memory_packet={},
