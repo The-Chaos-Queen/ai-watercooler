@@ -8,7 +8,38 @@ and start looking like recent autobiographical event packets.
 
 from __future__ import annotations
 
+import datetime
 from typing import Any, Dict, List, Optional
+
+
+def calculate_expiration(memory_kind: str, created_at: Optional[str] = None) -> Optional[str]:
+    """Calculates expiration time (τ) based on H2-EMV learned relevance rules."""
+    if memory_kind == "identity_anchor":
+        return None
+        
+    lifetimes_days = {
+        "salient_episode": 60,       # 30 * 2
+        "attended_episode": 14,      # 14 * 1
+        "noted_episode": 7,          # 7 * 1
+        "relationship_anchor": 360,  # 90 * 4
+        "correction": 180            # 60 * 3
+    }
+    days = lifetimes_days.get(memory_kind, 14)
+    
+    try:
+        if created_at:
+            try:
+                base_time = datetime.datetime.fromisoformat(str(created_at).replace("Z", "+00:00"))
+                if base_time.tzinfo is None:
+                    base_time = base_time.replace(tzinfo=datetime.timezone.utc)
+            except ValueError:
+                base_time = datetime.datetime.now(datetime.timezone.utc)
+        else:
+            base_time = datetime.datetime.now(datetime.timezone.utc)
+            
+        return (base_time + datetime.timedelta(days=days)).isoformat().replace("+00:00", "Z")
+    except Exception:
+        return None
 
 
 AUTOBIO_SCHEMA_VERSION = "d2_autobio_v1"
@@ -48,6 +79,10 @@ def _clamp_unit(value: Any) -> Optional[float]:
 
 
 def infer_memory_kind(metadata: Dict[str, Any]) -> str:
+    explicit_kind = _clean_text(metadata.get("memory_kind"))
+    if explicit_kind:
+        return explicit_kind
+
     decision = _clean_text(metadata.get("decision")).upper()
     if bool(metadata.get("open_tension")):
         return "open_tension"
@@ -118,7 +153,7 @@ def build_autobiographical_frame(
     speaker_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     metadata = dict(metadata or {})
-    resolved_speaker = _clean_text(speaker_name or metadata.get("speaker_name")) or "Laura"
+    resolved_speaker = _clean_text(speaker_name or metadata.get("speaker_name")) or "User"
     event_gist = _build_event_gist(content, metadata, resolved_speaker)
     confidence_label = infer_confidence_label(metadata)
 
@@ -188,6 +223,16 @@ def enrich_memory_metadata(
     enriched["people"] = [person["name"] for person in frame["people"]]
     enriched["confidence_label"] = frame["status"]["confidence_label"]
     enriched["autobiographical_frame"] = frame
+    
+    if "expiration" not in enriched:
+        created_time = enriched.get("created_at") or enriched.get("timestamp") or enriched.get("queued_at")
+        enriched["expiration"] = calculate_expiration(
+            frame["memory_kind"], 
+            created_time
+        )
+    enriched.setdefault("relevance_extensions", 0)
+    enriched.setdefault("relevance_rules_applied", [])
+    
     return enriched
 
 
