@@ -98,8 +98,10 @@ def create_sink(host: str, port: int, collection: str, embedding_model: str):
             "flushed_from_pending": True,
         }
         payload.update(metadata)
+        
+        target_collection = metadata.get("qdrant_collection", collection)
         client.upsert(
-            collection_name=collection,
+            collection_name=target_collection,
             points=[PointStruct(id=point_id, vector=vector, payload=payload)],
         )
         return str(point_id)
