@@ -34,7 +34,7 @@ import json
 import re
 import shutil
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -97,6 +97,59 @@ def phase1_decay(
     print(f"[phase1] Decayed {len(entries)} entries by {decay_factor} "
           f"(tension_decay={tension_decay}, floor_drain={tension_floor_drain}, "
           f"{tension_resolved_count} tensions resolved by decay)")
+    return entries
+
+
+# ---------------------------------------------------------------------------
+# Phase 1b: Expiration and Relevance
+# ---------------------------------------------------------------------------
+
+def estimate_relevance(entry: dict, rules: list) -> tuple[bool, int]:
+    """Estimate relevance based on learned rules (Phase 1c stub).
+    Returns (is_relevant, days_to_extend).
+    """
+    return False, 0
+
+def phase1b_expiration_and_relevance(entries: list, rules: list = None, now: datetime = None) -> list:
+    """Check memory expiration. Extend lifetime if relevant, otherwise mark FORGOTTEN."""
+    if now is None:
+        now = datetime.now(datetime.timezone.utc)
+    
+    rules = rules or []
+    expired_count = 0
+    extended_count = 0
+    forgotten_count = 0
+
+    for entry in entries:
+        metadata = entry.get("metadata", {})
+        expiration_str = metadata.get("expiration")
+        if not expiration_str:
+            continue
+            
+        try:
+            expiration = datetime.fromisoformat(str(expiration_str).replace("Z", "+00:00"))
+            if expiration.tzinfo is None:
+                expiration = expiration.replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+
+        if expiration < now:
+            expired_count += 1
+            is_relevant, days_to_extend = estimate_relevance(entry, rules)
+            if is_relevant:
+                extended_count += 1
+                new_expiration = now + timedelta(days=days_to_extend)
+                metadata["expiration"] = new_expiration.isoformat().replace("+00:00", "Z")
+                metadata["relevance_extensions"] = metadata.get("relevance_extensions", 0) + 1
+            else:
+                forgotten_count += 1
+                entry["_status"] = "FORGOTTEN"
+                if "status" not in metadata:
+                    metadata["status"] = {}
+                metadata["status"]["sleep_status"] = "FORGOTTEN"
+                metadata["status"]["forgotten_at"] = now.isoformat().replace("+00:00", "Z")
+
+    print(f"[phase1b] Expiration check: {expired_count} expired, {extended_count} extended, {forgotten_count} marked FORGOTTEN")
     return entries
 
 
@@ -250,6 +303,9 @@ def phase2_replay(entries: list, bootstrap_state: Optional[dict], top_k: int = 2
     model, tokenizer, device = replay_stack
 
     for entry in entries:
+        if entry.get("_status") == "FORGOTTEN":
+            continue
+            
         content = str(entry.get("content", "") or "").strip()
         if not content:
             entry["_coherence"] = float(entry["metadata"].get("coherence_score", 0.0) or 0.0)
@@ -586,13 +642,14 @@ def write_residue_log(residue_entries: list, residue_path: Path, dry_run: bool =
 def phase5_flush(entries: list, sink_fn, snapshot_path: Path,
                  mamba_state_path: str, residue_path: Path, dry_run: bool = False) -> dict:
     """Write validated entries to Qdrant and save disposition snapshot."""
-    to_write = [entry for entry in entries if entry["_status"] in (KEEP, UNCERTAIN)]
-    to_archive = [entry for entry in entries if entry["_status"] in (WEAKEN, DISCARD)]
+    to_write = [entry for entry in entries if entry.get("_status") in (KEEP, UNCERTAIN)]
+    to_archive = [entry for entry in entries if entry.get("_status") in (WEAKEN, DISCARD)]
+    forgotten = [entry for entry in entries if entry.get("_status") == "FORGOTTEN"]
     residue_entries = build_sleep_residue_entries(entries)
 
     print(
         f"[phase5] Writing {len(to_write)} entries to Qdrant "
-        f"({len(to_archive)} archived/discarded, {len(residue_entries)} residue entries)"
+        f"({len(to_archive)} archived/discarded, {len(forgotten)} forgotten, {len(residue_entries)} residue entries)"
     )
 
     written = 0
@@ -836,6 +893,10 @@ def main():
         tension_decay=args.tension_decay,
         tension_floor_drain=args.tension_floor_drain,
         tension_resolve_threshold=args.tension_resolve_threshold,
+    )
+    entries = phase1b_expiration_and_relevance(
+        entries,
+        rules=None,  # Placeholder for Phase 1c rules load
     )
     entries = phase2_replay(
         entries, bootstrap_state,
