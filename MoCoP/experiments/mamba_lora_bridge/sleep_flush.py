@@ -25,6 +25,8 @@ from pathlib import Path
 
 from autobiographical_memory import build_recall_text, enrich_memory_metadata
 
+PRIVATE_QDRANT_COLLECTION_PREFIX = "mocop_private_"
+
 
 def load_pending(path: Path):
     """Read JSONL pending log, yield (line_number, record) tuples."""
@@ -60,18 +62,43 @@ def validate_record(line_num: int, record: dict) -> tuple:
         print(f"[skip] line {line_num}: content too short ({len(content.strip())} chars)")
         return False, None, None, reason
 
+    metadata = dict(metadata)
+    outer_queued_at = str(record.get("queued_at", "") or "").strip()
+    has_creation_time = any(
+        str(metadata.get(key, "") or "").strip()
+        for key in ("created_at", "timestamp", "queued_at")
+    )
+    if outer_queued_at and not has_creation_time:
+        metadata["queued_at"] = outer_queued_at
+
     return True, content, metadata, reason
 
 
 def create_sink(host: str, port: int, collection: str, embedding_model: str):
     """Create a QdrantGateSink-compatible writer. Imports lazily."""
     from qdrant_client import QdrantClient
-    from qdrant_client.models import PointStruct
+    from qdrant_client.models import Distance, PointStruct, VectorParams
     from sentence_transformers import SentenceTransformer
     import hashlib
 
     client = QdrantClient(host=host, port=port, timeout=10)
     model = SentenceTransformer(embedding_model)
+    embedding_dim = int(model.get_sentence_embedding_dimension())
+    known_collections = {c.name for c in client.get_collections().collections}
+
+    def ensure_collection(target_collection: str):
+        if target_collection in known_collections:
+            return
+        if not target_collection.startswith(PRIVATE_QDRANT_COLLECTION_PREFIX):
+            raise RuntimeError(
+                f"Refusing to auto-create non-private Qdrant collection {target_collection!r}."
+            )
+        client.create_collection(
+            collection_name=target_collection,
+            vectors_config=VectorParams(size=embedding_dim, distance=Distance.COSINE),
+        )
+        known_collections.add(target_collection)
+        print(f"[qdrant] Created private collection {target_collection} dim={embedding_dim}")
 
     def store(content: str, metadata: dict) -> str:
         metadata = enrich_memory_metadata(content, metadata, speaker_name=metadata.get("speaker_name"))
@@ -98,8 +125,11 @@ def create_sink(host: str, port: int, collection: str, embedding_model: str):
             "flushed_from_pending": True,
         }
         payload.update(metadata)
-        
-        target_collection = metadata.get("qdrant_collection", collection)
+
+        target_collection = str(metadata.get("qdrant_collection") or collection).strip()
+        if not target_collection:
+            raise RuntimeError("No Qdrant target collection resolved for pending row.")
+        ensure_collection(target_collection)
         client.upsert(
             collection_name=target_collection,
             points=[PointStruct(id=point_id, vector=vector, payload=payload)],
@@ -157,12 +187,12 @@ def main():
         return 0
 
     if args.dry_run:
-        print(f"[dry-run] Would write {len(valid)} entries to "
-              f"{args.host}:{args.port}/{args.collection}")
+        print(f"[dry-run] Would write {len(valid)} entries to {args.host}:{args.port}")
         for line_num, content, metadata in valid:
             decision = metadata.get("decision", "?")
+            target_collection = str(metadata.get("qdrant_collection") or args.collection).strip()
             preview = content[:80].replace("\n", " ")
-            print(f"  line {line_num}: [{decision}] {preview}...")
+            print(f"  line {line_num}: [{decision}] -> {target_collection} {preview}...")
         return 0
 
     store = create_sink(args.host, args.port, args.collection, args.embedding_model)
