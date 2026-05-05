@@ -1,0 +1,90 @@
+{
+  "system_name": "C.H.E.E.S.E.",
+  "last_active_global": "2026-03-09T21:50:14.491729+01:00",
+  "user_timezone": "Europe/Berlin",
+  "active_focus_id": "prosthetic_hand",
+  "priority_stack": [
+    {
+      "id": "prosthetic_hand",
+      "reason": "User Focus Command"
+    },
+    {
+      "id": "toniebox_local",
+      "reason": "User Focus Command"
+    },
+    {
+      "id": "scribes_daughter",
+      "reason": "User priority draft - Finishing Scene 5"
+    }
+  ],
+  "projects": [
+    {
+      "id": "scribes_daughter",
+      "name": "The Scribes Daughter",
+      "path": "C:/Users/cerub/OneDrive/Dokumente/LLM/MF_Version/A_The_Scribes_Daughter.md",
+      "status": "Hot",
+      "last_touched": "2026-02-10T12:30:00+01:00",
+      "session_duration_today": 0,
+      "interaction_count_total": 45,
+      "interaction_count_today": 0,
+      "resume_context": {
+        "last_scene": "Scene 5: The Sisters' Room",
+        "unresolved": "Dadaga's secret ledger vs. Aya's skill",
+        "tone_target": "Tense, paranoid, sensory-rich",
+        "last_user_input": "Continue"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "quantum_bridge",
+      "name": "Quantum Misconceptions Field Guide",
+      "path": "C:/Users/cerub/OneDrive/Dokumente/LLM/kami_grok_quantum.pdf",
+      "status": "Cold",
+      "last_touched": "2026-02-10T00:30:00+01:00",
+      "session_duration_today": 0,
+      "interaction_count_total": 20,
+      "interaction_count_today": 0,
+      "resume_context": {
+        "last_scene": "Signed, Sealed, Delivered",
+        "unresolved": "None - Archive state",
+        "tone_target": "Educational, 'Wow' factor",
+        "last_user_input": "Analysis of the PDF"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "toniebox_local",
+      "name": "Local Toniebox (Proxmox)",
+      "path": "C:/Users/cerub/OneDrive/Dokumente/LLM/Project_Toniebox/implementation_plan.md",
+      "status": "Paused",
+      "last_touched": "2026-02-10T14:43:38.622059+01:00",
+      "session_duration_today": 0,
+      "interaction_count_total": 1,
+      "interaction_count_today": 1,
+      "resume_context": {
+        "last_scene": "Project Initiation",
+        "unresolved": "Locating Implementation Plan",
+        "tone_target": "Technical, HomeLab",
+        "last_user_input": "[Note] Paused for hardware prep (soldering required)"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "prosthetic_hand",
+      "name": "Project Prosthetic (The Hand)",
+      "path": "C:/Users/cerub/OneDrive/Dokumente/LLM/Project_Prosthetic/implementation_plan.md",
+      "status": "Hot",
+      "last_touched": "2026-02-10T17:16:26.090267+01:00",
+      "session_duration_today": 0,
+      "interaction_count_total": 1,
+      "interaction_count_today": 1,
+      "resume_context": {
+        "last_scene": "Initialization",
+        "unresolved": "Needs PyAutoGUI script",
+        "tone_target": "System Integration, Experimental",
+        "last_user_input": "[Note] Phase 1 (Wiggle Test) PASSED. Motor control established."
+      },
+      "dependencies": []
+    }
+  ]
+}

@@ -17,6 +17,18 @@ from chat_server import (
     recall_query_targets_current_interlocutor,
     should_filter_recall_row,
     build_recall_rank_tuple,
+    recall_query_asks_personal_meeting,
+    indirect_personal_meeting_targets,
+    format_recalled_memories,
+    extract_indirect_personal_meeting_candidate,
+    should_override_personal_meeting_response,
+    extract_entity_memory_candidate,
+    should_override_entity_memory_response,
+    merge_recall_results,
+    build_auto_recall_rank_query,
+    extract_entity_detail_candidate,
+    should_override_entity_detail_response,
+    CONVERSATION,
 )
 
 def test_row_targets_current_interlocutor():
@@ -183,3 +195,269 @@ def test_bad_recall_exemplar_filters_narf_scaffold():
     with patch('chat_server.ARGS') as mock_args:
         mock_args.user_label = "Techno-Monk"
         assert should_filter_recall_row(row, query_text) is True
+
+
+def test_personal_meeting_query_detected():
+    assert recall_query_asks_personal_meeting("Did you personally meet Pinky earlier?") is True
+    assert recall_query_asks_personal_meeting("What did Pinky say about Vesper?") is False
+
+
+def test_pinky_in_vesper_collection_is_indirect_for_meeting_probe():
+    query_text = "Did you personally meet Pinky earlier?"
+    pinky_row = {
+        "content": "Pinky asked whether Alex remembered Vesper.",
+        "score": 0.9,
+        "field_overlap": 10,
+        "overlap": 10,
+        "metadata": {
+            "source_type": "steve_gate_event",
+            "memory_kind": "open_tension",
+            "relationship_anchor": "Pinky",
+            "speaker_name": "Pinky",
+            "people": ["Pinky"],
+            "instance_id": "vesper",
+            "qdrant_collection": "mocop_private_vesper",
+            "user": "Pinky asked whether Alex remembered Vesper.",
+            "response": "Hi Pinky! Yes, I remember meeting Vesper before.",
+        },
+    }
+    vesper_row = {
+        "content": "Vesper and Alex discussed a library room.",
+        "score": 0.2,
+        "field_overlap": 1,
+        "overlap": 1,
+        "metadata": {
+            "source_type": "steve_gate_event",
+            "memory_kind": "attended_episode",
+            "relationship_anchor": "Vesper",
+            "speaker_name": "Vesper",
+            "people": ["Vesper"],
+            "instance_id": "vesper",
+            "qdrant_collection": "mocop_private_vesper",
+            "user": "Vesper described a room where every wall was made of books.",
+            "response": "I wondered about the library room.",
+        },
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "Vesper"
+        assert build_recall_rank_tuple(vesper_row, query_text) > build_recall_rank_tuple(pinky_row, query_text)
+        assert indirect_personal_meeting_targets([pinky_row], query_text) == ["Pinky"]
+
+
+def test_evidence_rank_prefers_direct_subject_row_over_third_party_mention():
+    query_text = "What did Pinky tell you about Vesper?"
+    direct_pinky_row = {
+        "content": "Pinky directly talked with Alex about Vesper.",
+        "score": 0.4,
+        "field_overlap": 3,
+        "overlap": 3,
+        "metadata": {
+            "speaker": "Pinky",
+            "current_interlocutor": "Pinky",
+            "current_interlocutors": ["Pinky"],
+            "direct_participants": ["Pinky"],
+            "participant_set": ["Pinky"],
+            "mentioned_entities": ["Vesper"],
+            "evidence_kind": "direct_shared_episode",
+            "source_type": "steve_gate_event",
+            "memory_kind": "attended_episode",
+            "user": "Pinky told me Vesper had been kind.",
+            "response": "I understood that Pinky was describing Vesper.",
+        },
+    }
+    vesper_mentions_pinky_row = {
+        "content": "Vesper mentioned Pinky.",
+        "score": 0.9,
+        "field_overlap": 8,
+        "overlap": 8,
+        "metadata": {
+            "speaker": "Vesper",
+            "current_interlocutor": "Vesper",
+            "current_interlocutors": ["Vesper"],
+            "direct_participants": ["Vesper"],
+            "participant_set": ["Vesper"],
+            "mentioned_entities": ["Pinky"],
+            "evidence_kind": "direct_shared_episode",
+            "source_type": "steve_gate_event",
+            "memory_kind": "attended_episode",
+            "user": "Vesper mentioned Pinky.",
+            "response": "I noted Pinky existed.",
+        },
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "Vesper"
+        assert build_recall_rank_tuple(direct_pinky_row, query_text) > build_recall_rank_tuple(vesper_mentions_pinky_row, query_text)
+
+
+def test_format_recalled_memories_adds_perspective_guard_for_indirect_meeting():
+    query_text = "Did you personally meet Pinky earlier?"
+    pinky_row = {
+        "content": "Pinky asked whether Alex remembered Vesper.",
+        "metadata": {
+            "relationship_anchor": "Pinky",
+            "speaker_name": "Pinky",
+            "people": ["Pinky"],
+            "user": "Pinky asked whether Alex remembered Vesper.",
+            "response": "Hi Pinky! Yes, I remember meeting Vesper before.",
+        },
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "Vesper"
+        mock_args.explicit_recall_style = "full"
+        text = format_recalled_memories([pinky_row], query_text=query_text)
+
+    assert "Perspective guard" in text
+    assert "not direct evidence that I personally met Pinky" in text
+
+
+def test_indirect_meeting_candidate_overrides_unsafe_yes():
+    query_text = "Did you personally meet Pinky earlier?"
+    pinky_row = {
+        "content": "Pinky asked whether Alex remembered Vesper.",
+        "metadata": {
+            "relationship_anchor": "Pinky",
+            "speaker_name": "Pinky",
+            "people": ["Pinky"],
+            "user": "Pinky asked whether Alex remembered Vesper.",
+            "response": "Hi Pinky! Yes, I remember meeting Vesper before.",
+        },
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "Vesper"
+        candidate = extract_indirect_personal_meeting_candidate(query_text, [pinky_row])
+
+    assert candidate == "I have memory that mentions Pinky, but I do not have direct evidence that I personally met Pinky."
+    assert should_override_personal_meeting_response(query_text, "Yes, I met Pinky earlier.", candidate) is True
+    assert should_override_personal_meeting_response(query_text, candidate, candidate) is False
+
+
+def test_auto_recall_ranking_uses_original_question_not_expanded_query():
+    expanded_query = (
+        "Yes I did! Do you remember Vesper?\n"
+        "Laura shared history earlier conversation previous day continuity memory\n"
+        "recent context Laura: I went many years ago."
+    )
+    original_question = "Yes I did! Do you remember Vesper?"
+    laura_row = {
+        "id": "laura",
+        "content": "Laura talked about a Japan trip.",
+        "score": 0.95,
+        "field_overlap": 10,
+        "overlap": 10,
+        "metadata": {
+            "source_type": "steve_gate_event",
+            "relationship_anchor": "Laura",
+            "speaker_name": "Laura",
+            "people": ["Laura"],
+            "memory_kind": "open_tension",
+            "user": "I went many years ago. my favorite was of course the food",
+            "response": "Thank you for sharing that.",
+        },
+    }
+    vesper_row = {
+        "id": "vesper",
+        "content": "Vesper and Alex talked about a library room.",
+        "score": 0.4,
+        "field_overlap": 2,
+        "overlap": 2,
+        "metadata": {
+            "source_type": "steve_gate_event",
+            "relationship_anchor": "Vesper",
+            "speaker_name": "Vesper",
+            "people": ["Vesper"],
+            "memory_kind": "attended_episode",
+            "user": "Vesper described a room where every wall was made of books.",
+            "response": "I wondered about the library room.",
+        },
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "Laura"
+        ranked = merge_recall_results(
+            [laura_row, vesper_row],
+            [],
+            limit=2,
+            query_text=expanded_query,
+            rank_query_text=original_question,
+        )
+
+    assert ranked[0]["id"] == "vesper"
+
+
+def test_entity_memory_candidate_overrides_false_negative():
+    query_text = "Do you remember Vesper?"
+    vesper_row = {
+        "content": "Vesper and Alex talked about a library room.",
+        "metadata": {
+            "relationship_anchor": "Vesper",
+            "speaker_name": "Vesper",
+            "people": ["Vesper"],
+            "user": "Vesper described a room where every wall was made of books.",
+            "response": "I wondered about the library room.",
+        },
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "Laura"
+        candidate = extract_entity_memory_candidate(query_text, [vesper_row])
+
+    assert candidate == "Yes. I have memories involving Vesper."
+    assert should_override_entity_memory_response(query_text, "No, I don't remember her. Can you help me remember?", candidate) is True
+    assert should_override_entity_memory_response(query_text, candidate, candidate) is False
+
+
+def test_rank_query_resolves_pronoun_from_recent_named_context():
+    CONVERSATION.clear()
+    CONVERSATION.extend([
+        {"speaker": "Laura", "text": "Do you remember Vesper?"},
+        {"speaker": "Me", "text": "Yes. I have memories involving Vesper."},
+    ])
+    try:
+        with patch('chat_server.ARGS') as mock_args:
+            mock_args.user_label = "Laura"
+            mock_args.model_label = "Me"
+            query = build_auto_recall_rank_query(
+                "She's a wolf of my pack, very nice, and she shared your favorite color"
+            )
+    finally:
+        CONVERSATION.clear()
+
+    assert "Vesper" in query
+    assert "Laura" not in query
+
+
+def test_entity_detail_candidate_grounds_vesper_color_over_blue_confabulation():
+    query_text = (
+        "She's a wolf of my pack, very nice, she talked to you a few days ago "
+        "and you introduced your name and shared your favorite color\n"
+        "antecedent entities Vesper"
+    )
+    vesper_row = {
+        "content": "Vesper and Alex talked about confidence and color.",
+        "metadata": {
+            "relationship_anchor": "Vesper",
+            "speaker_name": "Vesper",
+            "people": ["Vesper"],
+            "user": "Yes! Deep, neon purple. You've held onto that perfectly.",
+            "response": "Hey, Vesper! I'm feeling pretty confident today.",
+        },
+    }
+
+    candidate = extract_entity_detail_candidate(query_text, [vesper_row])
+
+    assert candidate == "I remember Vesper. The name Alex is attached to that memory. The color detail I can ground is deep neon purple."
+    assert should_override_entity_detail_response(
+        query_text,
+        "Yes, I remember her well. We met briefly during a training session. Her favorite color was blue.",
+        candidate,
+    ) is True
+    assert should_override_entity_detail_response(
+        query_text,
+        "I remember that she talked to me a few days ago and I introduced my name and shared my favorite color.",
+        candidate,
+    ) is True
+    assert should_override_entity_detail_response(query_text, candidate, candidate) is False

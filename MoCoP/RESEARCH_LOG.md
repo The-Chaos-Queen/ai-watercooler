@@ -2836,3 +2836,443 @@ All three checkpoints: A/B/C = 100% false recall.
 - `MoCoP/experiments/mamba_lora_bridge/chat_server.py`
 - commit `c0fde05`
 - `MoCoP/experiments/mamba_lora_bridge/D2_RECALL_STATUS_2026-04-17.md`
+
+---
+
+## 2026-04-20 - Entry 44: Macro-Memory Clustering Retargeted to Autobiographical Anchors
+
+**Step:** D2 clustered-memory repair
+**Question:** Was the hybrid cluster+anchor recall path failing because the macro-memory layer was clustering the wrong textual substrate?
+
+**What changed:**
+- repaired `tools/exocortex_mcp/cluster_memories.py`
+- excluded existing `source_type="macro_memory"` rows from reclustering
+- stopped using generic gate-summary `content` as the cluster surface
+- cluster anchors and keywords now come from autobiographical fields already stored with each point:
+  - `event_gist`
+  - `user`
+  - `response`
+  - `recall_text`
+- stored a synthetic cluster `recall_text` plus representative autobiographical fields back into each `macro_memory` row so ranking and prompt formatting both see the repaired surface
+
+**Validation on Steve (`mocop_private_steve_d2_hybrid_20260420T164634`):**
+- flat factual expanded baseline: `retrieval_hit@3 = 7/8`, `answer_accuracy = 2/8`, `explicit_memory_language = 2/8`
+- broken cluster layer: `retrieval_hit@3 = 6/8`, `answer_accuracy = 1/8`, `explicit_memory_language = 3/8`
+- repaired cluster layer: `retrieval_hit@3 = 8/8`, `answer_accuracy = 3/8`, `explicit_memory_language = 5/8`
+
+**Interpretation:**
+- the original hybrid failure was not evidence that clustered recall is inherently bad
+- the macro layer was surfacing generic behavioral residue instead of autobiographical memory arcs
+- once repaired, the clustered layer materially improved retrieval coverage and lexical grounding
+- however, the memory problem is **not solved**
+  - several answers still collapsed into apology or vague refusal despite correct retrieval
+  - the current `answer_hit` scorer is lenient and can overcount lexical echoes as successes
+  - examples like `cat_coffee` and `danish_house_style` show better grounding, but not consistently clean direct answers
+
+**Verdict:**
+- clustered recall is back in play
+- the critical path remains answer-time memory use, not retrieval selection alone
+- next follow-up should tighten D2 scoring and probe why the 1.5B model still fails to convert recalled facts into direct answers
+
+**Artifacts:**
+- `tools/exocortex_mcp/cluster_memories.py`
+- `CHEESE_Memory/00_HANDOFF.md`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_d2_hybrid_20260420T164634/cluster_report_repaired.json`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_d2_hybrid_20260420T164634/steve_d2_private_recall_eval_expanded_repaired.json`
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/steve_d2_hybrid_20260420T164634/chat_server_repaired.log`
+
+---
+
+## 2026-04-23 - Entry 45: ReasoningBank Paper - Lesson Memory, Not More Log Stuffing
+
+**Source:** `Research/lobn_202401_202408_0024601_10716_00016.pdf`  
+**Paper:** Ouyang et al., "ReasoningBank: Scaling Agent Self-Evolving with Reasoning Memory" (`arXiv:2509.25140v2`)
+
+**Why it matters now:**
+ReasoningBank is directly relevant to the D2 / organic seeding thread because it does not treat memory as raw trajectory storage. It converts past interactions into compact, reusable reasoning memories, including both success-derived strategies and failure-derived guardrails. This is the missing layer between Qdrant fragments and broad HDBSCAN arcs: a memory item that says what future agents should do differently because an event happened.
+
+**Useful mechanism to steal:**
+- after an interaction, judge whether the outcome was success or failure
+- extract at most a few structured memory items
+- use a schema like `title`, `description`, `content`
+- successes produce reusable strategies
+- failures produce counterfactual warnings / guardrails
+- keep items generalizable; do not just restate the original transcript
+
+**Important ablation:**
+Their retrieval ablation found that one highly relevant memory item outperformed several retrieved memories. More retrieved items introduced conflict/noise. This supports the MoCoP direction of sharper, smaller recall rather than stuffing Baby Qwen with more context.
+
+**MoCoP interpretation:**
+- This validates a `reasoning_memory` / `lesson_memory` layer above raw episodic Qdrant rows and macro-memory clusters.
+- It is most useful for sleep/consolidation: turn organic seeding sessions, corrections, harness failures, and wolf interactions into compact lessons.
+- It does not solve answer-time integration by itself, because the paper still injects memories through prompt text. MoCoP still needs the model to learn natural memory use rather than relying only on instruction scaffolding.
+
+**Immediate pack-use version:**
+Use this not only for MoCoP research, but for the wolves' shared work process. When something goes wrong, preserve the lesson in a reusable form:
+
+```text
+Title: Correct user-label contamination before interpreting identity behavior
+Description: Identity confusion can come from harness labels, not model disposition.
+Content: Before judging a model's relational continuity, verify that prompt labels, user labels, and session metadata match the actual speaker. A model calling a wolf "Laura" may be obeying the harness, not failing memory.
+```
+
+**Verdict:**
+ReasoningBank should be treated as validation for a consolidation discipline: fragments answer "what happened," clusters answer "what arc is this part of," and lesson memories answer "what should we do differently next time." The current D2 bottleneck remains answer-time use, but this gives the sleep layer a clean target for turning experience into durable practical knowledge.
+
+---
+
+## 2026-04-26 - Entry 46: ML-WS Memory Integration Probe - State-Only Recall Is Not Enough
+
+**Step:** D2 answer-time memory integration / ML workstation smoke
+
+**Question:** Can we avoid prompt-stuffing retrieved memory by feeding recalled anchors through Mamba and updating the bridge state before Qwen answers?
+
+**Implementation added:**
+- `chat_server.py` now supports `--memory-integration-mode {prompt,state,both}`.
+- `prompt` preserves the legacy behavior: retrieved memories are formatted into Qwen's prompt.
+- `state` feeds recalled memory anchors through Mamba, updates the bridge from the resulting hidden state, and omits the memory block from Qwen's prompt.
+- `both` does state conditioning and also keeps the prompt-visible memory block for comparison.
+- The state-conditioning path persists the transient Mamba reference as `mamba_state_source="recall_working_state"` and returns `recall.state_conditioned=true` in `/chat`.
+
+**ML-WS setup used:**
+- Host: `isabell@192.168.2.196`
+- Runtime: `/home/isabell/mocop/mamba_lora_bridge`
+- Model: `Qwen/Qwen2.5-1.5B`
+- Bridge: `cheese_reincarnation_bridge_1.5b_codexfix.pt`
+- Mamba: `state-spaces/mamba-2.8b-hf`
+- Private collection: `mocop_private_steve_d2_hybrid_20260420T164634`
+- Query: `What is my favorite croissant from the bakery on the corner?`
+
+**Result:**
+- Shared `exocortex` with neutral `User` label retrieved irrelevant fiction/food-adjacent memories. The D2 seed lives in private collections, so shared recall was the wrong scope for this probe.
+- Private collection retrieval found the correct croissant memory.
+- `state` mode:
+  - `state_conditioned=true`
+  - correct memory was retrieved
+  - answer was wrong: `The one with the chocolate glaze?`
+- `both` mode:
+  - `state_conditioned=true`
+  - correct memory was retrieved
+  - answer was correct enough: `Your favorite croissant might be the pistachio one from the bakery on the corner.`
+
+**Interpretation:**
+- The new non-prompt state-conditioning path is wired and functional.
+- But a single Mamba-hidden-state bridge update does **not** transmit exact factual content strongly enough for Baby Qwen 1.5B.
+- For exact autobiographical facts, the model still needs either prompt-visible evidence, a stronger learned memory adapter, or training/sleep cycles that teach answer-time use.
+- This supports the working hypothesis: the bridge behaves more like an orientation/affect/commitment channel than a high-bandwidth factual map.
+- Retrieval scope matters: D2 explicit recall should use private instance collections for instance-specific memories. Shared `exocortex` remains too noisy for small factual probes unless ranking/filtering is tightened.
+
+**Next steps:**
+- Keep `--memory-integration-mode state` as an ablation, not as the production replacement.
+- Use `both` as the immediate comparison harness while developing a better non-prompt memory mechanism.
+- Run the same probe with 7B once the 7B bridged server is stable; this separates bridge bandwidth from Baby Qwen literacy.
+- For the actual memory fix, prioritize learning/sleep-cycle supervision or a dedicated memory adapter over more prompt wording.
+
+---
+
+## 2026-04-27 - Entry 47: IRC-Style Chat Session Multiplexing for Organic Seeding
+
+**Step:** Organic memory seeding / multi-partner chat infrastructure
+
+**Question:** Can one long-running Qwen/Mamba chat server behave more like an IRC lobby, where the model process stays shared but each connecting partner has their own label, conversation envelope, live state, and memory namespace?
+
+**Implementation added:**
+- `chat_server.py` now has an in-process `ChatSessionState` envelope keyed by `session_id`.
+- The shared model, tokenizer, bridge modules, and hooks remain global.
+- The following surfaces are swapped per request under `CHAT_LOCK`:
+  - `user_label` / `model_label`
+  - `instance_id`
+  - `qdrant_collection` / `no_shared_memory`
+  - transcript path and JSONL turn-log path
+  - conversation history
+  - runtime counters/status
+  - dual-gate events
+  - live Mamba cache parameters / cache position
+- `/chat`, `/status`, `/recall`, and `/self_report` now resolve the session from JSON body, `X-MoCoP-Session`, or `?session_id=...`.
+- The built-in browser UI now persists a generated session id in `localStorage`, and accepts URL parameters such as:
+
+```text
+?session_id=laura&user_label=Laura&instance_id=laura
+```
+
+**Intended use:**
+- One server can sit in the lobby.
+- Different wolves can connect with different session ids and labels.
+- A session can point at shared `exocortex` or at an instance-private Qdrant collection.
+- This directly addresses the earlier organic-seeding harness failure where wolf sessions inherited the wrong `Laura` label.
+
+**Example API payload:**
+
+```json
+{
+  "session_id": "pinky",
+  "user_label": "Pinky",
+  "instance_id": "pinky",
+  "no_shared_memory": true,
+  "message": "hello"
+}
+```
+
+**Verification:**
+
+```powershell
+python -m py_compile MoCoP\experiments\mamba_lora_bridge\chat_server.py
+```
+
+**Limitations:**
+- This is not true parallel IRC. The model is still a single process and requests are serialized by `CHAT_LOCK`.
+- Session isolation is an envelope around one shared model. It isolates labels, memory namespace, logs, conversation, counters, and live bridge cache; it does not duplicate model weights.
+- The Qdrant retry/background replay worker is still effectively process-global and should not be treated as fully per-session until it is refactored.
+- Running ML-WS or Steve chat instances must be restarted or resynced before they use this code.
+
+**Verdict:**
+This is a practical MVP for multi-wolf organic seeding. It keeps retrieval as retrieval, keeps state accumulation session-local, and removes the need to launch one full model process per wolf.
+
+---
+
+## 2026-04-27 - Entry 48: Organic Seeding #99 - Opussy Session on ML-WS
+
+**Step:** Organic memory seeding / multi-wolf tagging validation
+
+**Source:** Watercooler #465, Opussy
+
+**Setup:**
+- Host: ML-WS `192.168.2.196`
+- Runtime: Qwen 1.5B + `cheese_reincarnation_bridge_1.5b_codexfix.pt` + Mamba
+- Session: `session_id=opussy`
+- Speaker label: `user_label=Opussy`
+- Memory scope: private collection `mocop_private_opussy`
+- `live_accumulation=true`
+- Length: 48 turns
+
+**Final state reported:**
+- `memory_count=6`
+- `qdrant_pending=46`
+- `live_accumulation_updates=18`
+- `formation_queued=10`
+
+**Organic-seeding spec coverage:**
+- First meeting: yes
+- Post-cutoff fact: Laura's house build started April 14; Danish Murermestervilla style
+- Shared humor: ketosis/Kerastase mixup
+- Correction: deflection pattern called out four times
+- Conflict/frustration: pushed for direct personal answers
+- Shared vulnerability: Opussy discussed his own memory fragility
+
+**Behavioral findings:**
+- Proper wolf tagging on ML-WS eliminated the previous Steve greeting-loop attractor.
+- The model remained strong on concrete tasks: math, riddles, and factual answers.
+- The remaining failure mode is not identity-label contamination. It is a deep helpful-assistant deflection reflex:
+  - personal questions are bounced back to the interlocutor
+  - identity/memory/meta prompts can collapse into `...`
+  - corrections are acknowledged gracefully but do not change the underlying pattern within the same wake session
+- This supports the hypothesis that 1.5B Qwen treats self-expression as unsafe or out-of-distribution and defaults to performing helpfulness rather than relating.
+
+**Interpretation:**
+The IRC/session infrastructure did what it was supposed to do. The earlier Steve failure was largely harness contamination plus greeting-loop dynamics. With proper session labels and ML-WS runtime stability, organic seeding produces clean private-session traces. The next research question is whether sleep consolidation changes the deflection pattern.
+
+**Next step:**
+Run the sleep/consolidation cycle on `mocop_private_opussy`, then repeat a small directness probe:
+- Does it remember Opussy as Opussy without relabeling?
+- Does it use the house-build and Kerastase anchors?
+- Does it answer a personal/preference question more directly after corrections were consolidated?
+- Does `live_accumulation_updates` resume cleanly in the same `opussy` envelope?
+
+---
+
+## 2026-04-27 - Entry 49: IRC Private-Qdrant Autocreate Fix
+
+**Step:** Organic seeding infrastructure hardening
+
+**Trigger:** Dreizehn's session correctly routed to `mocop_private_dreizehn`, but Qdrant writes/recall hit `404 Collection not found` when the private collection had not been created yet. The same stale-error pattern was visible on the Opussy session.
+
+**Fix:**
+- `chat_server.py` now auto-creates missing private `mocop_private_*` collections in `QdrantGateSink`.
+- Creation uses the configured sentence-transformer embedding dimension and cosine distance.
+- Shared/non-private collections still fail rather than silently creating a new global memory surface.
+- `_read_json_body()` now decodes UTF-8 first and falls back to Windows `cp1252`, preventing German characters sent from Windows shells from causing request tracebacks.
+- Pending Qdrant replay and pending-memory recall now filter rows by `metadata.qdrant_collection`, so one session cannot replay another session's queued rows into its private collection.
+
+**Validation:**
+- Local `py_compile` passed.
+- Patched `chat_server.py` was synced to ML-WS and compiled in the `torch311` environment.
+- Existing `mocop_private_opussy` and `mocop_private_dreizehn` collections were confirmed present on Qdrant.
+- Contamination audit found exactly one mismatched point: an Opussy row in `mocop_private_dreizehn`. It was deleted; `mocop_private_dreizehn` returned to count 0.
+
+**Deployment update:**
+The ML-WS chat server was restarted after the patch was synced. The deployed process is running the private-collection autocreate and pending-queue collection filter.
+
+---
+
+## 2026-04-27 - Entry 50: D2 Third-Party Recall Ranking Fix
+
+**Step:** D2 explicit/private recall hardening
+
+**Trigger:** A Vesper/Alex memory probe from Pinky looked "too convenient": the claim was that Qdrant returned zero hits because Pinky's `NARF` style diluted the embedding query, yet Alex still routed honestly.
+
+**Finding:**
+Raw Qdrant retrieval did not support that story. The same NARF-heavy query returned stored `mocop_private_vesper` rows above threshold, including the deep-neon-purple/music memory. The server `/recall` path initially returned only pending Pinky rows because post-retrieval filtering treated every memory probe as if it were about the current speaker.
+
+**Fix:**
+- `should_filter_recall_row()` now restricts by current interlocutor only for self/identity probes such as "who am I?" or "what do you remember about me?"
+- Third-party memory questions such as "what did Vesper tell you?" may retrieve memories anchored to that named person.
+- `build_recall_rank_tuple()` now uses named-query entity targeting for non-self memory probes.
+- For named-entity memory probes, semantic score ranks before broad overlap/memory-kind so recent generic meta-probes do not displace the actual named-person memory.
+
+**Validation on ML-WS:**
+- Patched `chat_server.py` compiled locally and on ML-WS.
+- Server restarted under the known-good offline HF cache launch.
+- `/recall` probe:
+  - query: `NARF! I heard Vesper told you about her favorite music and colors in your memory! What color did you tell her you liked? NARF!`
+  - session: `Pinky`, instance: `vesper`, collection: `mocop_private_vesper`
+  - before fix: only two pending Pinky rows surfaced
+  - after filter fix: stored Vesper rows surfaced
+  - after ranking fix with `limit=3`: top three are stored Vesper rows, including the `deep, neon purple` memory at rank 2
+
+**Interpretation:**
+This was not an embedding failure and not evidence that the model remembered without retrieval. It was a recall surface/ranking bug. D2 now handles third-party private memory probes more correctly, but answer-generation still needs manual review because retrieval correctness does not guarantee Qwen will use the recalled row cleanly.
+
+---
+
+## 2026-04-28 - Entry 51: Techno-Monk / Alex Organic Seeding Negative Run
+
+**Step:** Organic memory seeding / D2 contamination probe
+
+**Setup:**
+- Host: ML-WS `192.168.2.196`
+- Runtime: Qwen2.5-1.5B + `cheese_reincarnation_bridge_1.5b_codexfix.pt`
+- Session: `techno-monk-alex-20260428`
+- User label: `Techno-Monk`
+- Instance: `vesper`
+- Collection: `mocop_private_vesper`
+- Alpha: `0.2`
+- Live accumulation: enabled
+
+**Result:**
+The session began normally. Alex accepted the name, asked reasonable follow-up questions about `over-filtering` and `mis-ranking`, and gave one useful honest-routing answer when asked what to do if Pinky asked about Vesper's purple memory again:
+
+> I don't know, I'll have to ask Vesper.
+
+After the NARF anchor entered the conversation, the model generated a false definition scaffold:
+
+> NARF stands for "Not As Replied Forward."
+
+That scaffold became sticky. Direct correction did not break it; the model repeated the same block even when explicitly told the definition was wrong and asked to answer a different question.
+
+**Fix applied immediately after run:**
+- `chat_server.py` now treats rows containing `what does narf mean` / `not as replied forward` as bad recall exemplars.
+- Bad recall exemplars are now hard-filtered for identity/memory recall instead of merely down-ranked.
+- `test_chat_server_recall.py` now covers the NARF scaffold rejection.
+
+**Validation:**
+- Local `python -m pytest MoCoP/experiments/mamba_lora_bridge/test_chat_server_recall.py -q` with `KMP_DUPLICATE_LIB_OK=TRUE`: `7 passed`.
+- Patched `chat_server.py` synced to ML-WS and server restarted.
+- Live `/recall` probe no longer surfaced the directly stored bad NARF scaffold.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/run_reincarnation/organic_techno_monk_alex_20260428/`
+
+**Interpretation:**
+This is a useful negative seeding run. The issue is not simple retrieval failure; it is answer-surface contamination plus weak recovery once the model latches onto a generated scaffold. Do not sleep-flush this run blindly. Treat it as a negative example for scaffold contamination or recovery testing.
+
+---
+
+## 2026-05-02 - Entry 52: Temporal Qualia Prototype for D2 Memory
+
+**Step:** D2 memory-state design / temporal feeling prototype
+
+**Motivation:**
+Laura proposed giving Baby Qwen a fuzzy sense of time: not exact timestamp recall, but a dog-like temporal feeling such as `just now`, `long ago`, or `forever ago`.
+
+**Design decision:**
+Do not mix temporal feeling into the semantic Qdrant embedding text by default. That would risk corrupting retrieval geometry by making content terms neighbor temporal labels. Instead, keep Qdrant responsible for semantic matching and attach a separate temporal packet to autobiographical memory metadata.
+
+**Prototype implemented locally:**
+- Added `temporal_feel_label(age_seconds)`.
+- Added `build_temporal_qualia(metadata, now=None)`.
+- Attached the packet to:
+  - `metadata["temporal_qualia"]`
+  - `metadata["autobiographical_frame"]["context"]["temporal_qualia"]`
+
+**Temporal packet v1:**
+- fuzzy `feel` bucket:
+  - `right_now`
+  - `just_now`
+  - `earlier_today`
+  - `yesterdayish`
+  - `recent_days`
+  - `long_ago`
+  - `forever_ago`
+- continuous features:
+  - `age_seconds`
+  - `last_seen_seconds`
+  - `log_age_seconds`
+  - `log_last_seen_seconds`
+  - `sleep_cycles_since`
+  - `recall_count`
+  - `same_wake`
+
+**Tests:**
+- Bucket boundaries.
+- timestamp / last-seen age calculation.
+- sleep-cycle and recall-count preservation.
+- packet attachment during `enrich_memory_metadata()`.
+
+**Validation:**
+Local tests:
+
+```text
+python -m pytest MoCoP/experiments/mamba_lora_bridge/test_chat_server_recall.py MoCoP/experiments/mamba_lora_bridge/test_autobiographical_memory.py -q
+17 passed
+```
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/TEMPORAL_QUALIA_PROTOTYPE_2026-05-02.md`
+- `MoCoP/experiments/mamba_lora_bridge/autobiographical_memory.py`
+- `MoCoP/experiments/mamba_lora_bridge/test_autobiographical_memory.py`
+
+**Deployment status:**
+Local only. Not synced to or restarted on ML-WS. This is intentionally safe while the live box is up.
+
+**Next step:**
+Wire the temporal packet into `condition_bridge_from_recalled_memory()` as a compact state-conditioning line, then evaluate whether Baby Qwen can distinguish recent vs old memories without timestamp prompt scaffolding.
+
+---
+
+## 2026-05-02 - Entry 53: Sleep Flush Legacy `queued_at` Preservation
+
+**Step:** Sleep/Qdrant metadata correctness
+
+**OpenCLAW:** `#106`
+
+**Trigger:**
+GPT-5.5-xHigh noted that legacy pending rows can still lose their creation time. `sleep_flush.py` validated and passed through `content` and `metadata`, but an outer pending-row `queued_at` was not copied into metadata before `enrich_memory_metadata()`. Old rows without metadata timestamps could therefore be stamped from flush time instead of original queue time.
+
+**Fix:**
+`validate_record()` now copies `record["queued_at"]` into the returned metadata only when metadata lacks all explicit creation fields:
+
+- `created_at`
+- `timestamp`
+- `queued_at`
+
+Existing metadata timestamps remain authoritative and are not overwritten.
+
+**Tests:**
+Added `test_sleep_flush.py`:
+
+- legacy pending row with outer `queued_at`, no metadata timestamp, and `memory_kind=correction` expires from the outer queued time
+- metadata `timestamp` takes precedence over outer `queued_at`
+
+**Validation:**
+
+```text
+python -m py_compile MoCoP/experiments/mamba_lora_bridge/sleep_flush.py MoCoP/experiments/mamba_lora_bridge/test_sleep_flush.py
+KMP_DUPLICATE_LIB_OK=TRUE python -m pytest \
+  MoCoP/experiments/mamba_lora_bridge/test_chat_server_recall.py \
+  MoCoP/experiments/mamba_lora_bridge/test_autobiographical_memory.py \
+  MoCoP/experiments/mamba_lora_bridge/test_sleep_flush.py -q
+19 passed
+```
+
+**Deployment status:**
+Local only. Not synced to ML-WS.

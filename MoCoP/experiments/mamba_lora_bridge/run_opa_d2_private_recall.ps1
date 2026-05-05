@@ -25,7 +25,6 @@ $remoteSnapshotWsl = "$remoteRunWsl/snapshots"
 $remoteCollection = "mocop_private_$InstanceId"
 
 $localRunDir = Join-Path $artifactRoot $InstanceId
-New-Item -ItemType Directory -Force -Path $localRunDir | Out-Null
 
 $syncFiles = @(
     "autobiographical_memory.py",
@@ -42,7 +41,7 @@ $syncFiles = @(
 
 if (-not $NoSync) {
     Write-Host "Syncing D2 files to Opa..." -ForegroundColor Cyan
-    & scp @syncFiles "opa:$remoteBridgeWin/"
+    & scp @syncFiles "$User@192.168.2.194:$remoteBridgeWin/"
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to sync D2 files to Opa."
     }
@@ -192,7 +191,9 @@ Write-Host "Running end-to-end D2 cycle on Opa..." -ForegroundColor Cyan
 & $runnerPath -User $User -Run $remoteScript
 
 Write-Host "Copying D2 artifacts back..." -ForegroundColor Cyan
-& scp -r "opa:$remoteRunWin" $localRunDir
+New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $localRunDir | Out-Null
+& scp -r "$User@192.168.2.194:$remoteRunWin" $localRunDir
 if ($LASTEXITCODE -ne 0) {
     throw "D2 run finished on Opa but artifact copy-back failed."
 }

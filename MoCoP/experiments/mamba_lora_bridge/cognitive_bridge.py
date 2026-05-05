@@ -40,7 +40,14 @@ import torch.nn as nn
 
 from mamba_runtime_compat import ensure_mamba_ssm_compat
 from model_defaults import DEFAULT_MAMBA_MODEL_ID, DEFAULT_QWEN_MODEL_ID
-from models import MambaStateCompressor, LoRAHypernetwork, ActivationBiasHypernetwork, DynamicLoRALinear
+from models import (
+    MambaStateCompressor,
+    LoRAHypernetwork,
+    ActivationBiasHypernetwork,
+    DynamicLoRALinear,
+    ConstantBiasBridge,
+    build_activation_bias_hypernetwork,
+)
 
 logger = logging.getLogger("CognitiveBridge")
 
@@ -109,9 +116,19 @@ class BridgeConfig:
     response_format: str = "raw"  # "raw" | "mud_json"
 
     def __post_init__(self):
-        if self.bridge_mode not in {"lora", "activation_bias", "constant_bias"}:
+        valid_modes = {
+            "lora",
+            "activation_bias",
+            "constant_bias",
+            "gated_activation_bias",
+            "hidden_gated_activation_bias",
+            "input_gated_activation_bias",
+            "input_residual_mixer",
+            "token_conditioned_input_adapter",
+        }
+        if self.bridge_mode not in valid_modes:
             raise ValueError(
-                f"bridge_mode must be 'lora', 'activation_bias', or 'constant_bias', "
+                f"bridge_mode must be one of {valid_modes}, "
                 f"got {self.bridge_mode!r}"
             )
         if self.mamba_state_source not in {"ssm", "hidden_last_token"}:
@@ -465,11 +482,17 @@ class CognitiveBridge:
             target_layer=self.config.mamba_target_layer,
         ).to(self._hyper_device)
 
-        if self.config.bridge_mode == "activation_bias":
-            self.hypernetwork = ActivationBiasHypernetwork(
+        if self.config.bridge_mode == "constant_bias":
+            self.hypernetwork = ConstantBiasBridge(
+                target_dims=target_dims
+            ).to(self._hyper_device)
+        elif self.config.bridge_mode != "lora":
+            self.hypernetwork = build_activation_bias_hypernetwork(
+                bridge_mode=self.config.bridge_mode,
                 context_dim=self.config.context_dim,
                 target_dims=target_dims,
                 hidden_dim=self.config.hyper_hidden_dim,
+                rank=self.config.lora_rank,
             ).to(self._hyper_device)
         else:
             self.hypernetwork = LoRAHypernetwork(
@@ -792,7 +815,7 @@ class CognitiveBridge:
                 comp_dtype = next(self.compressor.parameters()).dtype
                 probe_state = probe_state.to(device=self._hyper_device, dtype=comp_dtype)
                 probe_context = self.compressor(probe_state)
-            if self.config.bridge_mode == "activation_bias":
+            if self.config.bridge_mode != "lora":
                 self._inject_activation_bias(probe_context)
             else:
                 self._inject_lora(probe_context)
@@ -838,7 +861,7 @@ class CognitiveBridge:
             context_norm = float(context_vec.norm())
 
             try:
-                if self.config.bridge_mode == "activation_bias":
+                if self.config.bridge_mode != "lora":
                     lora_norms = self._inject_activation_bias(context_vec)
                 else:
                     lora_norms = self._inject_lora(context_vec)
@@ -1116,7 +1139,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", "--qwen-model-id", dest="qwen_model_id", type=str, default=DEFAULT_QWEN_MODEL_ID)
     parser.add_argument("--mamba-model-id", type=str, default=DEFAULT_MAMBA_MODEL_ID)
     parser.add_argument("--bridge-mode", type=str, default="lora",
-                        choices=["lora", "activation_bias"])
+                        choices=["lora", "activation_bias", "constant_bias", "input_gated_activation_bias"])
     args = parser.parse_args()
 
     config = BridgeConfig(

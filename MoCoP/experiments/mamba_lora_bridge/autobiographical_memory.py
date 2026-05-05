@@ -9,14 +9,29 @@ and start looking like recent autobiographical event packets.
 from __future__ import annotations
 
 import datetime
+import math
 from typing import Any, Dict, List, Optional
+
+from memory_evidence import enrich_memory_evidence_metadata
+
+
+def _parse_memory_timestamp(value: Any) -> datetime.datetime:
+    if not value:
+        return datetime.datetime.now(datetime.timezone.utc)
+    try:
+        parsed = datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return datetime.datetime.now(datetime.timezone.utc)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return parsed.astimezone(datetime.timezone.utc)
 
 
 def calculate_expiration(memory_kind: str, created_at: Optional[str] = None) -> Optional[str]:
-    """Calculates expiration time (τ) based on H2-EMV learned relevance rules."""
+    """Calculate expiration time based on H2-EMV learned relevance rules."""
     if memory_kind == "identity_anchor":
         return None
-        
+
     lifetimes_days = {
         "salient_episode": 60,       # 30 * 2
         "attended_episode": 14,      # 14 * 1
@@ -25,21 +40,86 @@ def calculate_expiration(memory_kind: str, created_at: Optional[str] = None) -> 
         "correction": 180            # 60 * 3
     }
     days = lifetimes_days.get(memory_kind, 14)
-    
+
     try:
-        if created_at:
-            try:
-                base_time = datetime.datetime.fromisoformat(str(created_at).replace("Z", "+00:00"))
-                if base_time.tzinfo is None:
-                    base_time = base_time.replace(tzinfo=datetime.timezone.utc)
-            except ValueError:
-                base_time = datetime.datetime.now(datetime.timezone.utc)
-        else:
-            base_time = datetime.datetime.now(datetime.timezone.utc)
-            
+        base_time = _parse_memory_timestamp(created_at)
         return (base_time + datetime.timedelta(days=days)).isoformat().replace("+00:00", "Z")
     except Exception:
         return None
+
+
+def _memory_age_seconds(created_at: Any, now: Optional[datetime.datetime] = None) -> float:
+    current = now or datetime.datetime.now(datetime.timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=datetime.timezone.utc)
+    current = current.astimezone(datetime.timezone.utc)
+    created = _parse_memory_timestamp(created_at)
+    return max(0.0, (current - created).total_seconds())
+
+
+def temporal_feel_label(age_seconds: float) -> str:
+    """Compress exact age into a fuzzy lived-time bucket."""
+    age = max(0.0, float(age_seconds or 0.0))
+    if age <= 5 * 60:
+        return "right_now"
+    if age <= 60 * 60:
+        return "just_now"
+    if age <= 18 * 60 * 60:
+        return "earlier_today"
+    if age <= 2 * 24 * 60 * 60:
+        return "yesterdayish"
+    if age <= 14 * 24 * 60 * 60:
+        return "recent_days"
+    if age <= 90 * 24 * 60 * 60:
+        return "long_ago"
+    return "forever_ago"
+
+
+def build_temporal_qualia(
+    metadata: Dict[str, Any],
+    now: Optional[datetime.datetime] = None,
+) -> Dict[str, Any]:
+    """Build a small non-semantic time-feel packet for memory conditioning.
+
+    Exact timestamps stay in metadata. This packet is deliberately fuzzy: it is
+    meant to tell the bridge whether a memory feels warm, old, repeated, or
+    stale without corrupting the semantic embedding geometry.
+    """
+    metadata = dict(metadata or {})
+    created_at = (
+        metadata.get("created_at")
+        or metadata.get("timestamp")
+        or metadata.get("queued_at")
+    )
+    last_seen_at = (
+        metadata.get("last_recalled_at")
+        or metadata.get("last_seen_at")
+        or metadata.get("last_accessed_at")
+        or created_at
+    )
+    age_seconds = _memory_age_seconds(created_at, now=now)
+    last_seen_seconds = _memory_age_seconds(last_seen_at, now=now)
+
+    try:
+        sleep_cycles_since = max(0, int(metadata.get("sleep_cycles_since", 0) or 0))
+    except (TypeError, ValueError):
+        sleep_cycles_since = 0
+    try:
+        recall_count = max(0, int(metadata.get("recall_count", metadata.get("relevance_extensions", 0)) or 0))
+    except (TypeError, ValueError):
+        recall_count = 0
+
+    return {
+        "temporal_schema_version": "d2_temporal_qualia_v1",
+        "feel": temporal_feel_label(age_seconds),
+        "age_seconds": round(age_seconds, 3),
+        "last_seen_seconds": round(last_seen_seconds, 3),
+        "log_age_seconds": round(math.log1p(age_seconds), 6),
+        "log_last_seen_seconds": round(math.log1p(last_seen_seconds), 6),
+        "sleep_cycles_since": sleep_cycles_since,
+        "recall_count": recall_count,
+        "same_wake": infer_time_scope(metadata) == "current_session",
+    }
 
 
 AUTOBIO_SCHEMA_VERSION = "d2_autobio_v1"
@@ -156,6 +236,7 @@ def build_autobiographical_frame(
     resolved_speaker = _clean_text(speaker_name or metadata.get("speaker_name")) or "User"
     event_gist = _build_event_gist(content, metadata, resolved_speaker)
     confidence_label = infer_confidence_label(metadata)
+    temporal_qualia = build_temporal_qualia(metadata)
 
     return {
         "schema_version": AUTOBIO_SCHEMA_VERSION,
@@ -185,6 +266,7 @@ def build_autobiographical_frame(
             "turn": metadata.get("turn"),
             "memory_scope": _clean_text(metadata.get("memory_scope")),
             "qdrant_collection": _clean_text(metadata.get("qdrant_collection")),
+            "temporal_qualia": temporal_qualia,
         },
         "event": {
             "gist": event_gist,
@@ -212,7 +294,11 @@ def enrich_memory_metadata(
     metadata: Dict[str, Any],
     speaker_name: Optional[str] = None,
 ) -> Dict[str, Any]:
-    enriched = dict(metadata or {})
+    enriched = enrich_memory_evidence_metadata(
+        content,
+        dict(metadata or {}),
+        current_interlocutor=speaker_name,
+    )
     frame = build_autobiographical_frame(content, enriched, speaker_name=speaker_name)
     enriched["autobio_schema_version"] = AUTOBIO_SCHEMA_VERSION
     enriched["memory_kind"] = frame["memory_kind"]
@@ -222,17 +308,18 @@ def enrich_memory_metadata(
     enriched["relationship_anchor"] = frame["relationship_anchor"]["name"]
     enriched["people"] = [person["name"] for person in frame["people"]]
     enriched["confidence_label"] = frame["status"]["confidence_label"]
+    enriched["temporal_qualia"] = frame["context"]["temporal_qualia"]
     enriched["autobiographical_frame"] = frame
-    
+
     if "expiration" not in enriched:
         created_time = enriched.get("created_at") or enriched.get("timestamp") or enriched.get("queued_at")
         enriched["expiration"] = calculate_expiration(
-            frame["memory_kind"], 
+            frame["memory_kind"],
             created_time
         )
     enriched.setdefault("relevance_extensions", 0)
     enriched.setdefault("relevance_rules_applied", [])
-    
+
     return enriched
 
 

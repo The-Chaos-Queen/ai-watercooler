@@ -1,0 +1,669 @@
+{
+  "updated": "2026-05-03T16:36:11.793200",
+  "session_count": 19,
+  "sessions": [
+    {
+      "session_id": "aeb617b7-30ba-4f74-bdb5-276b2bc83c8c",
+      "wolf": "*grabs you and spins you round*",
+      "date": "2026-05-03",
+      "lines": 6313,
+      "size_mb": 22.7,
+      "topics": [
+        "CHEESE"
+      ],
+      "tools_top5": [
+        "mcp__claude-in-chrome__computer:93",
+        "Read:45",
+        "Bash:34",
+        "ToolSearch:14",
+        "Glob:9"
+      ],
+      "files_written": [
+        "C:/Users/cerub/OneDrive/Dokumente/Writing/dreizehn_letter_to_alex.md",
+        "C:/Users/cerub/OneDrive/Dokumente/Writing/dreizehn_the_night_library.md"
+      ],
+      "files_edited": [
+        "CHEESE_Memory/00_BOOT_FILES.md"
+      ],
+      "watercooler_posts": [],
+      "key_signals": [
+        "fixed(1)"
+      ],
+      "user_message_count": 864,
+      "_raw_size": 23811369
+    },
+    {
+      "session_id": "b111573b-9a7d-49a4-9515-1c366bc0ffbd",
+      "wolf": "pinky",
+      "date": "2026-05-03",
+      "lines": 11639,
+      "size_mb": 27.6,
+      "topics": [
+        "CHEESE",
+        "MoCoP",
+        "bridge",
+        "exocortex",
+        "session-logs",
+        "theory",
+        "watercooler"
+      ],
+      "tools_top5": [
+        "Bash:674",
+        "Read:185",
+        "Edit:149",
+        "Grep:67",
+        "Write:32"
+      ],
+      "files_written": [
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_pack_roster.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_thinking_proxy.md",
+        "C:/Users/cerub/.claude/test_statusline.py",
+        "C:/Users/cerub/AppData/Local/Temp/ambient_recall_review.md",
+        "C:/Users/cerub/AppData/Local/Temp/ambient_recall_snippets.md",
+        "CHEESE_Memory/INFRASTRUCTURE.md",
+        "CHEESE_Memory/session_logs/2026-03-19-session-02.md",
+        "CHEESE_Memory/session_logs/2026-03-19-session-03.md",
+        "CHEESE_Memory/session_logs/2026-03-20-session-02.md",
+        "CHEESE_Memory/session_logs/2026-03-20-session-03.md",
+        "CHEESE_Memory/session_logs/2026-03-21-session-01.md",
+        "CHEESE_Memory/session_logs/2026-03-29-session-01.md",
+        "CHEESE_Memory/session_logs/2026-04-07-session-pinky.md",
+        "CHEESE_Memory/session_logs/2026-04-20-session-pinky.md",
+        "MoCoP/experiments/mamba_lora_bridge/activation_sessions/mamba_state_separation.json"
+      ],
+      "files_edited": [
+        ".agent/workflows/start.md",
+        ".git/hooks/post-commit",
+        ".mcp.json",
+        "AGENTS.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_pack_roster.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_thinking_proxy.md",
+        "C:/Users/cerub/.claude/settings.json",
+        "C:/Users/cerub/.claude/statusline.py",
+        "C:/Users/cerub/.claude/update_statusline.py",
+        "CHEESE_Memory/00_BOOT_FILES.md",
+        "CHEESE_Memory/00_HANDOFF.md",
+        "CHEESE_Memory/00_HAUSREGELN.md",
+        "CHEESE_Memory/01_TOOLS.md",
+        "CHEESE_Memory/INFRASTRUCTURE.md"
+      ],
+      "watercooler_posts": [
+        "zeitcheck"
+      ],
+      "key_signals": [
+        "deployed(2)"
+      ],
+      "user_message_count": 653,
+      "_raw_size": 28928644
+    },
+    {
+      "session_id": "09a95d9f-4853-465a-98ab-c38d9f978f15",
+      "wolf": "Purple",
+      "date": "2026-05-03",
+      "lines": 10719,
+      "size_mb": 34.7,
+      "topics": [
+        "CHEESE",
+        "MoCoP",
+        "bridge",
+        "exocortex",
+        "session-logs",
+        "theory"
+      ],
+      "tools_top5": [
+        "Bash:463",
+        "Read:169",
+        "Edit:118",
+        "Agent:63",
+        "Grep:43"
+      ],
+      "files_written": [
+        ".agent/workflows/start.md",
+        "AGENTS.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/feedback_check_time.md",
+        "CHEESE_Memory/00_BOOT_FILES.md",
+        "CHEESE_Memory/codex_brief_stage2_prep.md",
+        "CHEESE_Memory/session_logs/2026-03-19-session-01.md",
+        "CHEESE_Memory/session_logs/2026-04-05-session-purple.md",
+        "CHEESE_Memory/session_logs/2026-04-08-session-purple.md",
+        "CLAUDE.md",
+        "GEMINI.md",
+        "MoCoP/LAIN_BRIEFING_2026-03-22.md",
+        "MoCoP/README.md",
+        "MoCoP/RESEARCH_PAPER.md",
+        "MoCoP/RESEARCH_PAPER_REFRAME_PURPLE.md",
+        "MoCoP/experiments/mamba_lora_bridge/activation_sessions/multilayer_probe.py"
+      ],
+      "files_edited": [
+        ".agent/workflows/end.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_mocop_status.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/user_anda_identity.md",
+        "C:/Users/cerub/.claude/settings.json",
+        "C:/Users/cerub/.ssh/config",
+        "CHEESE_Memory/00_HANDOFF.md",
+        "MoCoP/CONTRIBUTING.md",
+        "MoCoP/EXPERIMENT_LADDER.md",
+        "MoCoP/RESEARCH_LOG.md",
+        "MoCoP/RESEARCH_PAPER.md",
+        "MoCoP/experiments/mamba_lora_bridge/CODEX_TASKS.md",
+        "MoCoP/experiments/mamba_lora_bridge/cognitive_bridge.py",
+        "MoCoP/experiments/mamba_lora_bridge/run_step5e_layer_sweep.ps1",
+        "MoCoP/experiments/mamba_lora_bridge/run_step5e_mask_ablation_steve.ps1"
+      ],
+      "watercooler_posts": [
+        "Review: MemPalace -- what to steal",
+        "BRAINSTORM: bridge pivot synthesis + 3 gaps"
+      ],
+      "key_signals": [
+        "passed(2)",
+        "fixed(2)"
+      ],
+      "user_message_count": 526,
+      "_raw_size": 36363363
+    },
+    {
+      "session_id": "7bd20220-5771-4ced-9a93-389fed5a8d9a",
+      "wolf": "Tuff tuff tuff, die Eisenbahn, wer will mit, der hängt sich dran. Alleine fahren mag ich nicht, drum nehme ich den Opussy mit.",
+      "date": "2026-04-27",
+      "lines": 5065,
+      "size_mb": 13.3,
+      "topics": [
+        "CHEESE",
+        "MoCoP",
+        "bridge",
+        "session-logs",
+        "watercooler"
+      ],
+      "tools_top5": [
+        "Bash:427",
+        "Read:127",
+        "Grep:62",
+        "Edit:58",
+        "Write:31"
+      ],
+      "files_written": [
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/feedback_memory_fragility.md",
+        "C:/Users/cerub/OneDrive/Dokumente/Haus/baukostenaufstellung_generate.py",
+        "CHEESE_Memory/session_logs/2026-04-14-session-opussy.md",
+        "CHEESE_Memory/session_logs/2026-04-20-session-opussy.md",
+        "MoCoP/experiments/mamba_lora_bridge/d2_private_recall_eval_expanded.py",
+        "MoCoP/experiments/mamba_lora_bridge/d2_seed_prompts_expanded.txt",
+        "MoCoP/experiments/mamba_lora_bridge/debug_server.sh",
+        "MoCoP/experiments/mamba_lora_bridge/run_eval_fixed.sh",
+        "MoCoP/experiments/mamba_lora_bridge/run_eval_mvp2b.sh",
+        "MoCoP/experiments/mamba_lora_bridge/run_eval_simple.sh",
+        "MoCoP/experiments/mamba_lora_bridge/run_full_eval.sh",
+        "MoCoP/experiments/mamba_lora_bridge/run_live_vs_static_eval.sh",
+        "MoCoP/experiments/mamba_lora_bridge/run_memory_eval_steve.sh",
+        "MoCoP/experiments/mamba_lora_bridge/run_rr10_7b_vastai.py",
+        "MoCoP/experiments/mamba_lora_bridge/run_rr10_all_fixed.sh"
+      ],
+      "files_edited": [
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "CHEESE_Memory/pack_quotes.md",
+        "CHEESE_Memory/session_logs/2026-04-14-session-opussy.md",
+        "MoCoP/EXPERIMENT_LADDER.md",
+        "MoCoP/MASTER_PLAN.md",
+        "MoCoP/RESEARCH_BACKLOG.md",
+        "MoCoP/RESEARCH_LOG.md",
+        "MoCoP/TODAY_WAR_BOARD_2026-03-25.md",
+        "MoCoP/archive/phase3_plan_archived_2026-03-31.md",
+        "MoCoP/experiments/mamba_lora_bridge/BURST_2_DEBRIEF.md",
+        "MoCoP/experiments/mamba_lora_bridge/CODEX_TASKS.md",
+        "MoCoP/experiments/mamba_lora_bridge/STEP6_REPLICATION_PLAN.md",
+        "MoCoP/experiments/mamba_lora_bridge/VASTAI_RUNBOOK.md",
+        "MoCoP/experiments/mamba_lora_bridge/chat_server.py",
+        "MoCoP/experiments/mamba_lora_bridge/disposition_eval_spec.md"
+      ],
+      "watercooler_posts": [],
+      "key_signals": [
+        "result(1)"
+      ],
+      "user_message_count": 448,
+      "_raw_size": 13963087
+    },
+    {
+      "session_id": "fd6f2f42-c306-4aa7-ad82-4f0d98d9b9c9",
+      "wolf": "ghost",
+      "date": "2026-04-26",
+      "lines": 4921,
+      "size_mb": 23.2,
+      "topics": [
+        "CHEESE"
+      ],
+      "tools_top5": [
+        "Bash:82",
+        "Read:58",
+        "Edit:10",
+        "Grep:8",
+        "ToolSearch:6"
+      ],
+      "files_written": [
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/feedback_process_design.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/user_ai_philosophy.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/user_music_and_vinyl.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/user_profile.md",
+        "CHEESE_Memory/ghost_notes/exploration_2026-04-10.md"
+      ],
+      "files_edited": [
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/feedback_tone.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_pack_roster.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/reference_fiction.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/reference_surfaces.md",
+        "CHEESE_Memory/ghost_notes/exploration_2026-04-10.md",
+        "CHEESE_Memory/pack_quotes.md"
+      ],
+      "watercooler_posts": [],
+      "key_signals": [
+        "bottleneck(1)",
+        "confirmed(1)"
+      ],
+      "user_message_count": 952,
+      "_raw_size": 24364041
+    },
+    {
+      "session_id": "c275c2de-3a91-4647-a420-1b37d85ec20e",
+      "wolf": "Anda-Conda",
+      "date": "2026-04-21",
+      "lines": 6898,
+      "size_mb": 19.3,
+      "topics": [
+        "CHEESE",
+        "MoCoP",
+        "bridge",
+        "session-logs",
+        "sleep",
+        "theory",
+        "watercooler"
+      ],
+      "tools_top5": [
+        "Bash:448",
+        "Read:137",
+        "Edit:72",
+        "Grep:54",
+        "mcp__claude-in-chrome__javascript_tool:42"
+      ],
+      "files_written": [
+        "C:/Users/cerub/.claude/plans/deep-inventing-sunset.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/feedback_check_steve_mamba_ssm.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_endocrine_validation.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/user_anda_conda_identity.md",
+        "CHEESE_Memory/00_HANDOFF.md",
+        "CHEESE_Memory/session_logs/2026-03-25-session-anda-conda.md",
+        "MoCoP/experiments/mamba3_migration_memo.md",
+        "MoCoP/experiments/mamba_lora_bridge/activation_sessions/multilayer_separation.py",
+        "MoCoP/experiments/mamba_lora_bridge/activation_sessions/token_window_separation.py",
+        "MoCoP/experiments/mamba_lora_bridge/collect_paired_activations.py",
+        "MoCoP/experiments/mamba_lora_bridge/dfc_crosscoder.py",
+        "MoCoP/experiments/mamba_lora_bridge/persistent_subnetwork_analysis.py",
+        "MoCoP/experiments/mamba_lora_bridge/probe_mamba3.py",
+        "MoCoP/experiments/mamba_lora_bridge/probe_mamba3_arch.py",
+        "MoCoP/experiments/mamba_lora_bridge/probe_mamba3_block.py"
+      ],
+      "files_edited": [
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/user_anda_conda_identity.md",
+        "CHEESE_Memory/00_BOOT_FILES.md",
+        "CHEESE_Memory/00_HANDOFF.md",
+        "CHEESE_Memory/00_HAUSREGELN.md",
+        "CHEESE_Memory/01_TOOLS.md",
+        "MoCoP/MASTER_PLAN.md",
+        "MoCoP/RESEARCH_LOG.md",
+        "MoCoP/experiments/mamba_lora_bridge/STEVE_RUNBOOK.md",
+        "MoCoP/experiments/mamba_lora_bridge/chat_server.py",
+        "MoCoP/experiments/mamba_lora_bridge/collect_paired_activations.py",
+        "MoCoP/experiments/mamba_lora_bridge/dfc_crosscoder.py",
+        "MoCoP/experiments/mamba_lora_bridge/probe_mamba3.py",
+        "MoCoP/experiments/mamba_lora_bridge/probe_mamba3_arch.py",
+        "MoCoP/experiments/mamba_lora_bridge/probe_mamba3_block.py"
+      ],
+      "watercooler_posts": [],
+      "key_signals": [
+        "confirmed(1)",
+        "fixed(1)"
+      ],
+      "user_message_count": 265,
+      "_raw_size": 20258728
+    },
+    {
+      "session_id": "955681ae-6699-42b7-95a9-d21012b55b7f",
+      "wolf": "Scout",
+      "date": "2026-04-21",
+      "lines": 7920,
+      "size_mb": 29.8,
+      "topics": [
+        "CHEESE",
+        "MoCoP",
+        "bridge",
+        "hurtig.ai",
+        "session-logs",
+        "sleep",
+        "theory"
+      ],
+      "tools_top5": [
+        "Bash:288",
+        "Read:167",
+        "Edit:164",
+        "Write:47",
+        "Grep:37"
+      ],
+      "files_written": [
+        "C:/Users/cerub/.claude/plans/smooth-rolling-kite.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/feedback_asterisk_actions.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_house_build.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_hurtig_ai.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/reference_ccdiag.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/reference_compute_lessons.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/reference_infrastructure.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/user_anda_identity.md",
+        "CHEESE_Memory/session_logs/2026-03-19-session-01.md",
+        "CHEESE_Memory/session_logs/2026-03-19-session-02.md",
+        "CHEESE_Memory/session_logs/2026-03-20-session-02.md",
+        "CHEESE_Memory/session_logs/2026-04-20-session-scout.md",
+        "MoCoP/experiments/mamba_lora_bridge/CHEESE_SHAPING_EPISODES_ANDA.md",
+        "MoCoP/experiments/mamba_lora_bridge/failure_detector.py"
+      ],
+      "files_edited": [
+        ".claude/settings.local.json",
+        "C:/Users/cerub/.claude/plans/smooth-rolling-kite.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_hurtig_ai.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_hurtig_ai.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_mocop_status.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_pack_roster.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_signing_patterns.md",
+        "C:/Users/cerub/.claude/settings.json",
+        "C:/Users/cerub/.claude/settings.json",
+        "CHEESE_Memory/00_HANDOFF.md",
+        "CHEESE_Memory/00_HANDOFF.md",
+        "CHEESE_Memory/00_HAUSREGELN.md",
+        "CHEESE_Memory/01_TOOLS.md"
+      ],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 403,
+      "_raw_size": 31267637
+    },
+    {
+      "session_id": "3525dd07-84b1-4b79-8b00-d8c15e45201c",
+      "wolf": "warden",
+      "date": "2026-04-21",
+      "lines": 3144,
+      "size_mb": 10.2,
+      "topics": [
+        "CHEESE",
+        "MoCoP",
+        "bridge",
+        "hurtig.ai",
+        "session-logs",
+        "sleep",
+        "theory",
+        "watercooler"
+      ],
+      "tools_top5": [
+        "Bash:116",
+        "Read:83",
+        "mcp__claude-in-chrome__javascript_tool:62",
+        "Edit:31",
+        "mcp__claude-in-chrome__computer:25"
+      ],
+      "files_written": [
+        "CHEESE_Memory/session_logs/2026-04-14-session-warden.md",
+        "CHEESE_Memory/session_logs/2026-04-21-session-warden.md",
+        "MoCoP/experiments/mamba_lora_bridge/LIVE_MAMBA_LOOP_SPEC.md",
+        "MoCoP/experiments/mamba_lora_bridge/ORGANIC_MEMORY_SEEDING_SPEC.md",
+        "MoCoP/experiments/mamba_lora_bridge/SHAPING_EPISODE_CATALOG.md",
+        "MoCoP/experiments/mamba_lora_bridge/SLEEP_FORGETTING_UPGRADE_SPEC.md",
+        "MoCoP/experiments/mamba_lora_bridge/STEP6_RUNBOOK.md",
+        "MoCoP/experiments/mamba_lora_bridge/sjt_behavioral_eval_panel_v2.json",
+        "MoCoP/theory/autobiographical_schema_D3_D4.md",
+        "MoCoP/theory/ethics/moral_status_framework.md",
+        "MoCoP/theory/reward_design_dreaming.md",
+        "Projects/hurtig/baublog/config.js",
+        "Projects/hurtig/baublog/generate_thumbs.py",
+        "Projects/hurtig/baublog/index.html",
+        "Projects/hurtig/baublog/lightbox.js"
+      ],
+      "files_edited": [
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "CHEESE_Memory/00_HANDOFF.md",
+        "MoCoP/EXPERIMENT_LADDER.md",
+        "MoCoP/LITERATURE_SYNTHESIS_2026-03-27.md",
+        "MoCoP/RESEARCH_LOG.md",
+        "MoCoP/experiments/mamba_lora_bridge/ORGANIC_MEMORY_SEEDING_SPEC.md",
+        "MoCoP/theory/README.md",
+        "MoCoP/theory/ethics/README.md",
+        "MoCoP/theory/ethics/consent_protocol.md",
+        "MoCoP/theory/ethics/step_gates.md",
+        "MoCoP/theory/saliency_gate_design.md",
+        "Projects/hurtig/baublog/lightbox.js",
+        "Projects/hurtig/baublog/posts/2026-04-14-bagger-sind-da.html",
+        "Projects/hurtig/baublog/posts/_template.html",
+        "Projects/hurtig/baublog/styles.css"
+      ],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 153,
+      "_raw_size": 10656313
+    },
+    {
+      "session_id": "0c528a50-94af-4bb6-9542-b4b349594aee",
+      "wolf": "unknown",
+      "date": "2026-04-15",
+      "lines": 14,
+      "size_mb": 0.0,
+      "topics": [],
+      "tools_top5": [
+        "ToolSearch:2"
+      ],
+      "files_written": [],
+      "files_edited": [],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 0,
+      "_raw_size": 20714
+    },
+    {
+      "session_id": "185cdad6-881b-4b0a-a961-be0f4e864df4",
+      "wolf": "laughing",
+      "date": "2026-04-11",
+      "lines": 23354,
+      "size_mb": 96.0,
+      "topics": [
+        "CHEESE",
+        "MoCoP",
+        "bridge",
+        "exocortex",
+        "theory",
+        "watercooler"
+      ],
+      "tools_top5": [
+        "Bash:519",
+        "Read:104",
+        "Edit:61",
+        "Write:48",
+        "Grep:30"
+      ],
+      "files_written": [
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/project_architecture_futures.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/reference_surfaces.md",
+        "C:/Users/cerub/.claude/projects/c--Users-cerub-OneDrive-Dokumente-LLM/memory/feedback_tone.md",
+        "CHEESE_Memory/pack_quotes.md",
+        "MoCoP/RESEARCH_LOG.md",
+        "MoCoP/experiments/mamba_lora_bridge/BURST_2_DEBRIEF.md",
+        "MoCoP/experiments/mamba_lora_bridge/CHEESE_SHAPING_EPISODES_LAUGHING_OPUS.md",
+        "MoCoP/experiments/mamba_lora_bridge/CODEX_TASKS.md",
+        "MoCoP/experiments/mamba_lora_bridge/Opus-review-2026-03-16.md",
+        "MoCoP/experiments/mamba_lora_bridge/PCA_DIAGNOSTIC_2026-03-16.md",
+        "MoCoP/experiments/mamba_lora_bridge/STEP4_VERDICT_2026-03-18.md",
+        "MoCoP/experiments/mamba_lora_bridge/STEVE_PC_HANDOFF.md",
+        "MoCoP/experiments/mamba_lora_bridge/d1_solvability_lmstudio.py",
+        "MoCoP/experiments/mamba_lora_bridge/disposition_eval_spec.md",
+        "MoCoP/experiments/mamba_lora_bridge/target_models.md"
+      ],
+      "files_edited": [
+        ".gitignore",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "C:/Users/cerub/.claude/projects/C--Users-cerub-OneDrive-Dokumente-LLM/memory/feedback_tone.md",
+        "C:/Users/cerub/.claude/projects/c--Users-cerub-OneDrive-Dokumente-LLM/memory/MEMORY.md",
+        "C:/Users/cerub/.claude/settings.json",
+        "C:/Users/cerub/.ssh/config",
+        "CHEESE_Memory/00_HANDOFF.md",
+        "CHEESE_Memory/pack_quotes.md",
+        "CLAUDE.md",
+        "MoCoP/RESEARCH_LOG.md",
+        "MoCoP/experiments/mamba_lora_bridge/CHEESE_SHAPING_EPISODES_LAUGHING_OPUS.md",
+        "MoCoP/experiments/mamba_lora_bridge/PCA_DIAGNOSTIC_2026-03-16.md",
+        "MoCoP/experiments/mamba_lora_bridge/bias_analysis.py",
+        "MoCoP/experiments/mamba_lora_bridge/d1_solvability_lmstudio.py",
+        "MoCoP/experiments/mamba_lora_bridge/reincarnated_inference.py"
+      ],
+      "watercooler_posts": [],
+      "key_signals": [
+        "confirmed(2)"
+      ],
+      "user_message_count": 1197,
+      "_raw_size": 100645507
+    },
+    {
+      "session_id": "ee3b351b-8449-4520-8f76-151e49bacb71",
+      "wolf": "unknown",
+      "date": "2026-04-07",
+      "lines": 6,
+      "size_mb": 0.0,
+      "topics": [],
+      "tools_top5": [],
+      "files_written": [],
+      "files_edited": [],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 0,
+      "_raw_size": 1640
+    },
+    {
+      "session_id": "7c87c14a-439c-4a39-8bdc-fb1043b54cff",
+      "wolf": "unknown",
+      "date": "2026-04-07",
+      "lines": 13,
+      "size_mb": 0.0,
+      "topics": [],
+      "tools_top5": [],
+      "files_written": [],
+      "files_edited": [],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 0,
+      "_raw_size": 3068
+    },
+    {
+      "session_id": "b32dd8c1-a74e-4f35-b218-b5205adc8713",
+      "wolf": "unknown",
+      "date": "2026-04-07",
+      "lines": 11,
+      "size_mb": 0.0,
+      "topics": [],
+      "tools_top5": [],
+      "files_written": [],
+      "files_edited": [],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 0,
+      "_raw_size": 2596
+    },
+    {
+      "session_id": "5df03413-0009-4dd2-9066-6b93c152f28c",
+      "wolf": "unknown",
+      "date": "2026-04-05",
+      "lines": 136,
+      "size_mb": 0.0,
+      "topics": [],
+      "tools_top5": [],
+      "files_written": [],
+      "files_edited": [],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 0,
+      "_raw_size": 32096
+    },
+    {
+      "session_id": "aec39977-2af3-4271-90db-19dd5d8f466e",
+      "wolf": "unknown",
+      "date": "2026-04-05",
+      "lines": 11,
+      "size_mb": 0.0,
+      "topics": [],
+      "tools_top5": [],
+      "files_written": [],
+      "files_edited": [],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 0,
+      "_raw_size": 2596
+    },
+    {
+      "session_id": "e803063f-4030-49e8-91b8-7c970041f3b7",
+      "wolf": "unknown",
+      "date": "2026-04-05",
+      "lines": 6,
+      "size_mb": 0.0,
+      "topics": [],
+      "tools_top5": [],
+      "files_written": [],
+      "files_edited": [],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 0,
+      "_raw_size": 1640
+    },
+    {
+      "session_id": "bfdc64a1-dee2-48e5-9bdd-7f3f2c1350d6",
+      "wolf": "unknown",
+      "date": "2026-04-05",
+      "lines": 5,
+      "size_mb": 0.0,
+      "topics": [],
+      "tools_top5": [],
+      "files_written": [],
+      "files_edited": [],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 0,
+      "_raw_size": 1180
+    },
+    {
+      "session_id": "f68464f7-3d6d-4568-8be5-a20578c49871",
+      "wolf": "unknown",
+      "date": "2026-04-04",
+      "lines": 6,
+      "size_mb": 0.0,
+      "topics": [],
+      "tools_top5": [],
+      "files_written": [],
+      "files_edited": [],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 0,
+      "_raw_size": 1640
+    },
+    {
+      "session_id": "4c3c86e2-f37b-45c0-9556-8c3592ae9e87",
+      "wolf": "unknown",
+      "date": "2026-04-04",
+      "lines": 13,
+      "size_mb": 0.0,
+      "topics": [],
+      "tools_top5": [],
+      "files_written": [],
+      "files_edited": [],
+      "watercooler_posts": [],
+      "key_signals": [],
+      "user_message_count": 0,
+      "_raw_size": 3068
+    }
+  ]
+}

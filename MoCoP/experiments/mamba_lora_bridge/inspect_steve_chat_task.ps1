@@ -6,12 +6,15 @@ $currentAlpha = "0.2 (default)"
 $currentQwenModelId = "Qwen/Qwen2.5-7B (default)"
 $currentTargetLayers = "12:v_proj,13:v_proj,14:v_proj,15:v_proj (default)"
 $currentTemperature = "0.7 (default)"
+$currentUserLabel = "Laura (default)"
+$currentModelLabel = "Me (default)"
 $currentDualGateEnabled = "true (default)"
 $currentDualGateWarmupTurns = "3 (default)"
 $currentDualGateSalienceQuantile = "0.75 (default)"
 $currentDualGateSurpriseQuantile = "0.75 (default)"
 $currentDualGateSupportedTensionEnabled = "false (default)"
 $currentDualGateTensionSalienceSupportRatio = "0.55 (default)"
+$currentLiveAccumulation = "false (default)"
 
 if (Test-Path $configPath) {
     try {
@@ -27,6 +30,12 @@ if (Test-Path $configPath) {
         }
         if ($null -ne $config.temperature -and "$($config.temperature)".Trim()) {
             $currentTemperature = "$($config.temperature)".Trim()
+        }
+        if ($null -ne $config.user_label -and "$($config.user_label)".Trim()) {
+            $currentUserLabel = "$($config.user_label)".Trim()
+        }
+        if ($null -ne $config.model_label -and "$($config.model_label)".Trim()) {
+            $currentModelLabel = "$($config.model_label)".Trim()
         }
         if ($null -ne $config.dual_gate_enabled -and "$($config.dual_gate_enabled)".Trim()) {
             $currentDualGateEnabled = "$($config.dual_gate_enabled)".Trim()
@@ -46,17 +55,23 @@ if (Test-Path $configPath) {
         if ($null -ne $config.dual_gate_tension_salience_support_ratio -and "$($config.dual_gate_tension_salience_support_ratio)".Trim()) {
             $currentDualGateTensionSalienceSupportRatio = "$($config.dual_gate_tension_salience_support_ratio)".Trim()
         }
+        if ($null -ne $config.live_accumulation -and "$($config.live_accumulation)".Trim()) {
+            $currentLiveAccumulation = "$($config.live_accumulation)".Trim()
+        }
     } catch {
         $currentAlpha = "invalid config"
         $currentQwenModelId = "invalid config"
         $currentTargetLayers = "invalid config"
         $currentTemperature = "invalid config"
+        $currentUserLabel = "invalid config"
+        $currentModelLabel = "invalid config"
         $currentDualGateEnabled = "invalid config"
         $currentDualGateWarmupTurns = "invalid config"
         $currentDualGateSalienceQuantile = "invalid config"
         $currentDualGateSurpriseQuantile = "invalid config"
         $currentDualGateSupportedTensionEnabled = "invalid config"
         $currentDualGateTensionSalienceSupportRatio = "invalid config"
+        $currentLiveAccumulation = "invalid config"
     }
 }
 
@@ -80,12 +95,15 @@ if (Get-ScheduledTask -TaskName $indicatorTaskName -ErrorAction SilentlyContinue
     CurrentQwenModelId = $currentQwenModelId
     CurrentTargetLayers = $currentTargetLayers
     CurrentTemperature = $currentTemperature
+    CurrentUserLabel = $currentUserLabel
+    CurrentModelLabel = $currentModelLabel
     CurrentDualGateEnabled = $currentDualGateEnabled
     CurrentDualGateWarmupTurns = $currentDualGateWarmupTurns
     CurrentDualGateSalienceQuantile = $currentDualGateSalienceQuantile
     CurrentDualGateSurpriseQuantile = $currentDualGateSurpriseQuantile
     CurrentDualGateSupportedTensionEnabled = $currentDualGateSupportedTensionEnabled
     CurrentDualGateTensionSalienceSupportRatio = $currentDualGateTensionSalienceSupportRatio
+    CurrentLiveAccumulation = $currentLiveAccumulation
     IndicatorTaskName = $indicatorTaskName
     IndicatorState = $indicatorState
 } | Format-List

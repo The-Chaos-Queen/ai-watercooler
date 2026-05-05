@@ -99,6 +99,9 @@ Athena-Public/
 # Raw HTML exports (conversion inputs, large and messy)
 html-to-convert/
 
+# Preserved History (backed up via rsync to Google Drive)
+Preserved-History/
+
 # Project MUD runtime artifacts
 Project_MUD/agents/states/
 Project_MUD/agents/training_data/

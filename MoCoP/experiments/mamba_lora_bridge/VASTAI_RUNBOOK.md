@@ -315,6 +315,76 @@ python3 reincarnated_inference.py \
 
 **Total cost:** ~$0.50 (30 minutes including model downloads).
 
+## A40 Bootstrap — mamba-ssm Build Recipe (2026-04-15, Opussy)
+
+Tested on: Vast.ai verified A40 (46GB VRAM), CUDA driver 12.8, Ubuntu 24.04.
+
+**The problem:** `pip install mamba-ssm` fails because build isolation pulls a torch version
+whose CUDA doesn't match the host driver. causal-conv1d has the same issue. You cannot
+skip this — without compiled kernels, Mamba falls back to the sequential path (~10x slower).
+
+**Working recipe (10 min):**
+
+```bash
+# 1. System build deps (nvcc headers + compiler)
+apt-get update -y
+DEBIAN_FRONTEND=noninteractive apt-get install -y nvidia-cuda-toolkit build-essential ninja-build
+
+# 2. Install torch matching the HOST driver
+#    Check driver CUDA version with: nvidia-smi | head -3
+#    A40 on this host = driver 12.8 → use cu128
+pip install --index-url https://download.pytorch.org/whl/cu128 'torch==2.11.0+cu128'
+
+# 3. Build causal-conv1d
+#    --no-build-isolation: uses the torch we just installed instead of pulling its own
+#    --force-reinstall --no-cache-dir: avoids stale ABI-mismatched wheels
+export CUDA_HOME=/usr/local/cuda
+export TORCH_CUDA_ARCH_LIST="8.6"   # A40 compute capability
+pip install --no-build-isolation --force-reinstall --no-cache-dir causal-conv1d
+
+# 4. Restore torch cu128
+#    causal-conv1d's setup.py may have pulled torch cu130 as a transitive dep,
+#    which has CUDA 13.0 — too new for the 12.8 driver. Reinstall our version.
+pip install --index-url https://download.pytorch.org/whl/cu128 'torch==2.11.0+cu128'
+
+# 5. Build mamba-ssm
+#    --no-deps: critical — prevents pip from replacing torch again
+pip install --no-build-isolation --no-deps mamba-ssm
+
+# 6. Runtime deps
+pip install einops accelerate sentence-transformers transformers
+
+# 7. Verify everything
+python3 -c '
+import torch
+assert torch.cuda.is_available(), "GPU not available!"
+print("torch:", torch.__version__, "cuda:", torch.version.cuda)
+import mamba_ssm, causal_conv1d
+print("mamba fast path: OK")
+'
+```
+
+**Key lessons:**
+- `--no-build-isolation` is mandatory — build isolation creates a fresh venv that pulls the latest torch (cu130), which won't work on a 12.8 driver
+- `--no-deps` on mamba-ssm prevents it from reinstalling torch
+- After causal-conv1d, always re-pin torch to cu128 — the causal-conv1d CUDA kernels are ABI-compatible across minor torch versions
+- `TORCH_CUDA_ARCH_LIST="8.6"` for A40 (Ampere). Use `"8.0"` for A100, `"8.9"` for L40/4090
+- The apt `nvidia-cuda-toolkit` installs nvcc 12.8 which matches the driver — do NOT remove it
+
+**Cost:** ~$0.30 for the 10 min bootstrap on a $1.80/hr A40.
+
+**VRAM budget on A40 (46GB):**
+
+| Setup | VRAM |
+|-------|------|
+| Qwen-7B control (skip-mamba) | ~15 GB |
+| Qwen-7B + Mamba bridge | ~29 GB |
+| Both servers simultaneous | ~41 GB |
+
+Fits with ~5GB headroom. For 7B + 7B without skip-mamba, use A100-80GB instead.
+
+---
+
 ## Known Follow-Up Code Fixes
 
 - Add proper CLI model-id flags to the 7B quick-run scripts so nobody has to sed-replace model names by hand.

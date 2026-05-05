@@ -6,6 +6,8 @@ from autobiographical_memory import (
     calculate_expiration,
     infer_memory_kind,
     enrich_memory_metadata,
+    temporal_feel_label,
+    build_temporal_qualia,
 )
 
 def test_calculate_expiration_known_kinds():
@@ -71,3 +73,66 @@ def test_enrich_memory_metadata_creation_time_resolution():
     }
     enriched_2 = enrich_memory_metadata("content", metadata_with_queued_at)
     assert enriched_2["expiration"] == "2026-09-28T00:00:00Z"
+
+
+def test_temporal_feel_label_buckets():
+    assert temporal_feel_label(60) == "right_now"
+    assert temporal_feel_label(30 * 60) == "just_now"
+    assert temporal_feel_label(6 * 3600) == "earlier_today"
+    assert temporal_feel_label(36 * 3600) == "yesterdayish"
+    assert temporal_feel_label(7 * 24 * 3600) == "recent_days"
+    assert temporal_feel_label(45 * 24 * 3600) == "long_ago"
+    assert temporal_feel_label(180 * 24 * 3600) == "forever_ago"
+
+
+def test_build_temporal_qualia_uses_existing_metadata_without_semantic_text():
+    now = datetime.datetime(2026, 5, 2, 12, 0, 0, tzinfo=datetime.timezone.utc)
+    metadata: Dict[str, Any] = {
+        "timestamp": "2026-05-01T12:00:00Z",
+        "last_recalled_at": "2026-05-02T11:30:00Z",
+        "sleep_cycles_since": 2,
+        "recall_count": 3,
+        "time_scope": "current_session",
+    }
+
+    qualia = build_temporal_qualia(metadata, now=now)
+    assert qualia["temporal_schema_version"] == "d2_temporal_qualia_v1"
+    assert qualia["feel"] == "yesterdayish"
+    assert qualia["age_seconds"] == 24 * 3600
+    assert qualia["last_seen_seconds"] == 30 * 60
+    assert qualia["sleep_cycles_since"] == 2
+    assert qualia["recall_count"] == 3
+    assert qualia["same_wake"] is True
+
+
+def test_enrich_memory_metadata_adds_temporal_qualia_packet():
+    enriched = enrich_memory_metadata(
+        "content",
+        {
+            "timestamp": "2026-04-01T00:00:00Z",
+            "decision": "NOTE",
+        },
+    )
+
+    assert enriched["temporal_qualia"]["temporal_schema_version"] == "d2_temporal_qualia_v1"
+    assert "temporal_qualia" in enriched["autobiographical_frame"]["context"]
+
+
+def test_enrich_memory_metadata_adds_evidence_packet():
+    enriched = enrich_memory_metadata(
+        "Vesper and Alex discussed color.",
+        {
+            "speaker_name": "Vesper",
+            "qdrant_collection": "mocop_private_vesper",
+            "user": "Vesper said deep neon purple.",
+            "response": "I remembered deep neon purple.",
+        },
+        speaker_name="Vesper",
+    )
+
+    assert enriched["evidence_schema_version"] == "d2_memory_evidence_v1"
+    assert enriched["instance_owner"] == "Vesper"
+    assert enriched["current_interlocutor"] == "Vesper"
+    assert enriched["speaker"] == "Vesper"
+    assert enriched["participant_set"] == ["Vesper"]
+    assert enriched["evidence_kind"] == "direct_shared_episode"

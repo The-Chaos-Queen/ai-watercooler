@@ -1,6 +1,5 @@
-import pytest
 import datetime
-from sleep_reconcile import phase1b_expiration_and_relevance
+from sleep_reconcile import phase1b_expiration_and_relevance, phase3_classify
 
 def test_phase1b_expiration_and_relevance():
     now = datetime.datetime(2026, 4, 1, tzinfo=datetime.timezone.utc)
@@ -59,3 +58,37 @@ def test_phase1b_expiration_relevance_extension():
         assert processed[0]["metadata"]["relevance_extensions"] == 1
     finally:
         sleep_reconcile.estimate_relevance = original
+
+def test_phase1b_default_now_uses_utc_timezone():
+    entries = [
+        {
+            "metadata": {
+                "expiration": "2000-01-01T00:00:00Z"
+            }
+        }
+    ]
+
+    processed = phase1b_expiration_and_relevance(entries, rules=[])
+
+    assert processed[0]["_status"] == "FORGOTTEN"
+    assert processed[0]["metadata"]["status"]["sleep_status"] == "FORGOTTEN"
+    assert processed[0]["metadata"]["status"]["forgotten_at"].endswith("Z")
+
+def test_phase3_preserves_forgotten_status():
+    entries = [
+        {
+            "_status": "FORGOTTEN",
+            "_strength": 1.0,
+            "metadata": {
+                "coherence_score": 1.0,
+                "tension_score": 0.2,
+            },
+        }
+    ]
+
+    processed = phase3_classify(entries)
+
+    assert processed[0]["_status"] == "FORGOTTEN"
+    assert processed[0]["_coherence"] == 1.0
+    assert processed[0]["_tension"] == 0.2
+    assert processed[0]["_open_tension"] is False

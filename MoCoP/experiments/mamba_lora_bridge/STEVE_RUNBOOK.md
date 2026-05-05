@@ -59,6 +59,7 @@ The current Steve stack is built around these files:
 - `set_steve_chat_layers.ps1`
 - `set_steve_chat_model.ps1`
 - `set_steve_chat_temperature.ps1`
+- `set_steve_chat_user_label.ps1`
 - `steve-wsl.ps1`
 - `run_step5d_steve_sweep.ps1`
 - `run_steve_midnight_recorder.ps1`
@@ -75,6 +76,8 @@ Scheduled tasks on Steve:
 If nothing else is specified, Steve should be restored to:
 
 - model: `Qwen/Qwen2.5-1.5B`
+- user label: `Laura`
+- model label: `Me`
 - alpha: `0.2`
 - temperature: `0.7`
 - dual gate: enabled
@@ -83,6 +86,17 @@ If nothing else is specified, Steve should be restored to:
 - dual-gate surprise quantile: `0.75`
 
 Those values live in `steve_chat_config.json` and are consumed by `launch_chat_windows.ps1`.
+
+## Multi-Wolf Chat Labels
+
+The chat server is one AI instance used by multiple speakers. Before an organic seeding session, set the active speaker label so prompt framing, transcripts, memory packets, self-report probes, and status output all agree on who is present.
+
+```powershell
+.\set_steve_chat_user_label.ps1 -UserLabel "Opussy"
+.\set_steve_chat_user_label.ps1 -UserLabel "Herr Hurtig" -NoRestart
+```
+
+Use `-NoRestart` only when you are staging config for a later task start. For a live seeding session, let the helper restart the task so `/status` shows the correct `user_label` before the first turn.
 
 ## Sync Procedure
 

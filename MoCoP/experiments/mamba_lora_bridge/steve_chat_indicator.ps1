@@ -65,6 +65,8 @@ function Read-SteeringConfig {
         alpha = "0.2"
         qwen_model_id = "Qwen/Qwen2.5-1.5B"
         temperature = "0.7"
+        user_label = "Laura"
+        model_label = "Me"
     }
 
     if (-not (Test-Path $configPath)) {
@@ -81,6 +83,12 @@ function Read-SteeringConfig {
         }
         if ($null -ne $config.temperature -and "$($config.temperature)".Trim()) {
             $result.temperature = "$($config.temperature)".Trim()
+        }
+        if ($null -ne $config.user_label -and "$($config.user_label)".Trim()) {
+            $result.user_label = "$($config.user_label)".Trim()
+        }
+        if ($null -ne $config.model_label -and "$($config.model_label)".Trim()) {
+            $result.model_label = "$($config.model_label)".Trim()
         }
     } catch {
     }
@@ -110,6 +118,12 @@ function Get-SteeringStatus {
             if ($resp.last_error) {
                 $lastError = "$($resp.last_error)"
             }
+            if ($resp.user_label) {
+                $config.user_label = "$($resp.user_label)"
+            }
+            if ($resp.model_label) {
+                $config.model_label = "$($resp.model_label)"
+            }
         } elseif ($resp.stop_requested) {
             $statusLabel = "stopping"
         }
@@ -127,6 +141,8 @@ function Get-SteeringStatus {
         alpha = $config.alpha
         qwen_model_id = $config.qwen_model_id
         temperature = $config.temperature
+        user_label = $config.user_label
+        model_label = $config.model_label
         lastError = $lastError
     }
 }
@@ -196,7 +212,7 @@ function Update-Indicator {
 
     $notifyIcon.Icon = if ($isHealthy) { $greenIcon } else { $redIcon }
     $notifyIcon.Text = "MoCoP: $statusText | a=$($status.alpha) | t=$($status.temperature)"
-    $statusItem.Text = "Status: $statusText | task=$($status.taskState) | a=$($status.alpha) | t=$($status.temperature)"
+    $statusItem.Text = "Status: $statusText | speaker=$($status.user_label) | a=$($status.alpha) | t=$($status.temperature)"
     $openItem.Enabled = $isHealthy
     $stopItem.Enabled = ($status.taskState -eq "Running")
     $startItem.Enabled = ($status.taskState -ne "Running")

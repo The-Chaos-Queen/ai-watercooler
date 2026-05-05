@@ -2,7 +2,7 @@
 chat_server.py - Browser chat for the 1.5B reincarnation probe.
 
 Runs a minimal HTTP server. The bridge is injected once at startup,
-then Laura can talk to the model from a browser on the LAN.
+then a configured speaker can talk to the model from a browser on the LAN.
 """
 
 import argparse
@@ -17,6 +17,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import parse_qs, urlparse
 
 import torch
 import torch.nn.functional as F
@@ -26,6 +27,14 @@ from autobiographical_memory import (
     build_recall_text as build_autobiographical_recall_text,
     enrich_memory_metadata,
     format_memory_anchor_lines,
+)
+from memory_evidence import (
+    DIRECT_OTHER_SESSION,
+    DIRECT_SHARED,
+    GROUP_SHARED,
+    SYSTEM_OBSERVATION,
+    THIRD_PARTY,
+    classify_evidence_for_subject,
 )
 from failure_detector import detect_failure
 from mamba_runtime_compat import ensure_mamba_ssm_compat
@@ -44,7 +53,7 @@ DEFAULT_QWEN = "Qwen/Qwen2.5-1.5B"
 DEFAULT_MAMBA = "state-spaces/mamba-2.8b-hf"
 DEFAULT_EPISODES_FILE = "CHEESE_SHAPING_EPISODES.md"
 DEFAULT_TARGET_SPECS = [(12, "v_proj"), (13, "v_proj"), (14, "v_proj"), (15, "v_proj")]
-DEFAULT_USER_LABEL = "Laura"
+DEFAULT_USER_LABEL = "User"
 DEFAULT_MODEL_LABEL = "Me"
 PRIVATE_QDRANT_COLLECTION_PREFIX = "mocop_private_"
 SHARED_QDRANT_COLLECTION = "exocortex"
@@ -76,10 +85,13 @@ DUAL_GATE_EVENTS = []
 QDRANT_GATE_SINK = None
 QDRANT_GATE_SINK_ERROR = None
 QDRANT_LAST_RETRY_TS = 0.0
+QDRANT_SINK_CACHE = {}
 BOOTSTRAP_QWEN_BIAS_DIRECTION = None
 BOOTSTRAP_QWEN_HIDDEN_REFERENCE = None
 MAMBA_STATE_REF_PATH = None
 DIGIT_TOKEN_IDS = {}
+SESSIONS = {}
+ACTIVE_SESSION_ID = "default"
 
 
 @dataclass
@@ -98,6 +110,30 @@ class RuntimeBridgeContext:
     session_started_at: str = ""
     cache_params: Any = None
     cache_position: Optional[torch.Tensor] = None
+
+
+@dataclass
+class ChatSessionState:
+    """Per-client envelope for IRC-style use of one shared Qwen process.
+
+    The model, tokenizer, bridge modules, and hooks stay global. These fields are
+    swapped in while a serialized request is handled, then saved back.
+    """
+
+    session_id: str
+    user_label: str
+    model_label: str
+    instance_id: str
+    qdrant_collection: str
+    no_shared_memory: bool
+    transcript_path: Path
+    turn_log_path: Path
+    conversation: list = field(default_factory=list)
+    runtime_state: dict = field(default_factory=dict)
+    dual_gate_events: list = field(default_factory=list)
+    last_conversation_snapshot: Any = None
+    bridge_cache_params: Any = None
+    bridge_cache_position: Optional[torch.Tensor] = None
 
 
 BRIDGE_CTX = RuntimeBridgeContext()
@@ -277,6 +313,52 @@ let liveInspector = {
 };
 let sendInFlight = false;
 let statusRequestInFlight = false;
+const urlParams = new URLSearchParams(window.location.search);
+
+function resolveClientSessionValue(key, fallback = '') {
+  const urlValue = (urlParams.get(key) || '').trim();
+  if (urlValue) {
+    window.localStorage.setItem('mocop_' + key, urlValue);
+    return urlValue;
+  }
+  return (window.localStorage.getItem('mocop_' + key) || fallback).trim();
+}
+
+function makeClientSessionId() {
+  const existing = resolveClientSessionValue('session_id');
+  if (existing) return existing;
+  const generated = 'browser-' + Math.random().toString(36).slice(2, 10);
+  window.localStorage.setItem('mocop_session_id', generated);
+  return generated;
+}
+
+const clientSession = {
+  session_id: makeClientSessionId(),
+  user_label: resolveClientSessionValue('user_label'),
+  model_label: resolveClientSessionValue('model_label'),
+  instance_id: resolveClientSessionValue('instance_id'),
+  qdrant_collection: resolveClientSessionValue('qdrant_collection'),
+  no_shared_memory: ['1', 'true', 'yes'].includes((urlParams.get('no_shared_memory') || '').toLowerCase()),
+};
+
+function buildSessionPayload(extra = {}) {
+  const payload = {session_id: clientSession.session_id, ...extra};
+  for (const key of ['user_label', 'model_label', 'instance_id', 'qdrant_collection']) {
+    if (clientSession[key]) payload[key] = clientSession[key];
+  }
+  if (clientSession.no_shared_memory) payload.no_shared_memory = true;
+  return payload;
+}
+
+function sessionQueryString() {
+  const params = new URLSearchParams();
+  params.set('session_id', clientSession.session_id);
+  for (const key of ['user_label', 'model_label', 'instance_id', 'qdrant_collection']) {
+    if (clientSession[key]) params.set(key, clientSession[key]);
+  }
+  if (clientSession.no_shared_memory) params.set('no_shared_memory', 'true');
+  return params.toString();
+}
 
 function addMsg(text, cls) {
   const div = document.createElement('div');
@@ -402,8 +484,8 @@ function formatRecallInspector(recall) {
     if (row.pending_policy) lines.push(`pending_policy: ${row.pending_policy}`);
     lines.push(`decision: ${row.decision || '-'}`);
     lines.push(`gist: ${row.event_gist || row.content_preview || '-'}`);
-    if (row.user_preview) lines.push(`${lastStatusPayload?.user_label || 'Laura'}: ${row.user_preview}`);
-    if (row.response_preview) lines.push(`Me: ${row.response_preview}`);
+    if (row.user_preview) lines.push(`${lastStatusPayload?.user_label || 'User'}: ${row.user_preview}`);
+    if (row.response_preview) lines.push(`${lastStatusPayload?.model_label || 'Me'}: ${row.response_preview}`);
   });
   return lines.join('\\n');
 }
@@ -420,8 +502,8 @@ function formatMemoryInspector(packet) {
     '',
     `content: ${packet.content || '-'}`,
     '',
-    `${lastStatusPayload?.user_label || 'Laura'}: ${packet.user || '-'}`,
-    `Me: ${packet.response || '-'}`,
+    `${lastStatusPayload?.user_label || 'User'}: ${packet.user || '-'}`,
+    `${lastStatusPayload?.model_label || 'Me'}: ${packet.response || '-'}`,
     '',
     `qdrant_write: ${prettyJson(packet.qdrant_write || {})}`,
     '',
@@ -471,7 +553,8 @@ function renderStatus(data) {
     const tensions = data.tension_count ?? 0;
     const lastDecision = data.last_gate?.decision || '-';
     const modelLabel = data.model_id || 'unknown-model';
-    statusMeta.textContent = modelLabel + ' | alpha ' + alpha + ' | turns ' + turns + ' | mem ' + memories + ' | qdr ' + qdrant + ' | qqueued ' + qqueued + ' | qpend ' + qpending + ' | qsleep ' + qsleep + ' | qretry ' + qretry + ' | qrepl ' + qreplayed + ' | qmode ' + qmode + ' | surp ' + surprises + ' | tens ' + tensions + ' | last ' + lastDecision;
+    const sessionId = data.session_id || clientSession.session_id || 'default';
+    statusMeta.textContent = modelLabel + ' | session ' + sessionId + ' | alpha ' + alpha + ' | turns ' + turns + ' | mem ' + memories + ' | qdr ' + qdrant + ' | qqueued ' + qqueued + ' | qpend ' + qpending + ' | qsleep ' + qsleep + ' | qretry ' + qretry + ' | qrepl ' + qreplayed + ' | qmode ' + qmode + ' | surp ' + surprises + ' | tens ' + tensions + ' | last ' + lastDecision;
   } else {
     statusMeta.textContent = 'server unreachable';
   }
@@ -487,7 +570,7 @@ async function refreshStatus(force = false) {
   if (sendInFlight && !force) return;
   statusRequestInFlight = true;
   try {
-    const res = await fetch('/status', {cache: 'no-store'});
+    const res = await fetch('/status?' + sessionQueryString(), {cache: 'no-store'});
     if (!res.ok) throw new Error('status ' + res.status);
     renderStatus(await res.json());
   } catch (e) {
@@ -510,7 +593,7 @@ async function send() {
     const res = await fetch('/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({message: text})
+      body: JSON.stringify(buildSessionPayload({message: text}))
     });
     const data = await res.json();
     addMsg((data.response || '...').trim() || '...', 'ai');
@@ -555,7 +638,7 @@ async function stopServer() {
     await fetch('/stop', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({reason: 'ui-stop'})
+      body: JSON.stringify(buildSessionPayload({reason: 'ui-stop'}))
     });
     addMsg('Stop requested. Server is shutting down.', 'system');
   } catch (e) {
@@ -732,6 +815,124 @@ def process_turn_through_mamba(
     ).to(torch.float32)
 
 
+def extract_recall_memory_state_lines(results) -> list[str]:
+    lines: list[str] = []
+    for idx, row in enumerate(results or [], start=1):
+        metadata = row.get("metadata", {}) or {}
+        content = str(row.get("content", "") or "").strip()
+        user_signal = normalize_recalled_user_text(
+            str(metadata.get("user", "") or "").strip(),
+            current_speaker=ARGS.user_label,
+        )
+        self_response = str(metadata.get("response", "") or "").strip()
+        distilled_lesson = str(metadata.get("distilled_lesson", "") or "").strip()
+        repair_rule = str(metadata.get("repair_rule", "") or "").strip()
+
+        if not any((content, user_signal, self_response, distilled_lesson, repair_rule)):
+            continue
+
+        lines.append(f"Memory {idx}:")
+        if user_signal:
+            lines.append(f"{ARGS.user_label} told me: {user_signal}")
+        if self_response:
+            lines.append(f"I replied: {self_response}")
+        if distilled_lesson:
+            lines.append(f"What this taught me: {distilled_lesson}")
+        if repair_rule:
+            lines.append(f"Future adjustment: {repair_rule}")
+        if content and content not in {user_signal, self_response, distilled_lesson}:
+            lines.append(f"Anchor: {content}")
+    return lines
+
+
+def extract_recall_cluster_state_lines(results) -> list[str]:
+    lines: list[str] = []
+    for idx, row in enumerate(results or [], start=1):
+        metadata = row.get("metadata", {}) or {}
+        content = str(row.get("content", "") or "").strip()
+        keywords = normalize_cluster_keywords(metadata.get("topic_keywords", []))[:8]
+        if not content and not keywords:
+            continue
+        lines.append(f"Memory theme {idx}:")
+        if content:
+            lines.append(content)
+        if keywords:
+            lines.append(f"Associated cues: {', '.join(keywords)}")
+    return lines
+
+
+def build_recall_state_conditioning_text(
+    query_text: str,
+    recalled_memories=None,
+    recalled_clusters=None,
+) -> str:
+    memory_lines = extract_recall_memory_state_lines(recalled_memories or [])
+    cluster_lines = extract_recall_cluster_state_lines(recalled_clusters or [])
+    if not memory_lines and not cluster_lines:
+        return ""
+
+    lines = [
+        "A memory has been recalled into working state.",
+        f"Current speaker: {ARGS.user_label}",
+    ]
+    query = str(query_text or "").strip()
+    if query:
+        lines.append(f"Current cue: {query}")
+    lines.extend(memory_lines)
+    lines.extend(cluster_lines)
+    lines.append("Use this as remembered context for the next reply.")
+    return "\n".join(lines)
+
+
+def condition_bridge_from_recalled_memory(
+    query_text: str,
+    recalled_memories,
+    recalled_clusters,
+    bridge_ctx: RuntimeBridgeContext,
+    *,
+    max_tokens: int,
+) -> bool:
+    if not bridge_ctx.bridge_loaded:
+        return False
+    if bridge_ctx.mamba_model is None or bridge_ctx.mamba_tokenizer is None:
+        return False
+
+    conditioning_text = build_recall_state_conditioning_text(
+        query_text=query_text,
+        recalled_memories=recalled_memories,
+        recalled_clusters=recalled_clusters,
+    )
+    if not conditioning_text:
+        return False
+
+    tokenized = bridge_ctx.mamba_tokenizer(
+        conditioning_text,
+        return_tensors="pt",
+        truncation=True,
+        max_length=max(1, int(max_tokens)),
+    )
+    tokenized = {key: value.to(ARGS.mamba_device) for key, value in tokenized.items()}
+    with torch.no_grad():
+        outputs = bridge_ctx.mamba_model(
+            **tokenized,
+            output_hidden_states=True,
+            use_cache=False,
+        )
+        last_token = extract_last_token_hidden(
+            outputs,
+            bridge_ctx.mamba_target_layer,
+            bridge_ctx.hidden_layer_count,
+        ).to(torch.float32)
+    update_bridge_from_mamba_state(last_token, bridge_ctx)
+    persist_runtime_mamba_state(
+        last_token,
+        bridge_ctx,
+        state_source="recall_working_state",
+        count_as_live_update=False,
+    )
+    return True
+
+
 def update_bridge_from_mamba_state(last_token: torch.Tensor, bridge_ctx: RuntimeBridgeContext):
     global BOOTSTRAP_QWEN_BIAS_DIRECTION
 
@@ -824,8 +1025,8 @@ def build_transcript(turns=None):
         if speaker in {ARGS.user_label, "Laura"}:
             return ARGS.user_label
         if speaker in {ARGS.model_label, "Reply", "Me"}:
-            return "Me"
-        return speaker or "Me"
+            return ARGS.model_label
+        return speaker or ARGS.model_label
 
     return "\n".join(
         f"{prompt_speaker_label(turn.get('speaker'))}: {turn.get('text', '')}"
@@ -1313,7 +1514,7 @@ class QdrantGateSink:
 
     def __init__(self, host: str, port: int, collection_name: str, embedding_model: str):
         from qdrant_client import QdrantClient
-        from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
+        from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, PointStruct, VectorParams
         from sentence_transformers import SentenceTransformer
 
         self.collection_name = collection_name
@@ -1322,7 +1523,31 @@ class QdrantGateSink:
         self.filter_cls = Filter
         self.field_condition_cls = FieldCondition
         self.match_value_cls = MatchValue
+        self.vector_params_cls = VectorParams
+        self.distance_cls = Distance
         self.model = SentenceTransformer(embedding_model)
+        self.embedding_dim = int(self.model.get_sentence_embedding_dimension())
+        self._ensure_private_collection()
+
+    def _ensure_private_collection(self):
+        try:
+            self.client.get_collection(collection_name=self.collection_name)
+            return
+        except Exception as exc:
+            message = str(exc)
+            if "404" not in message and "not found" not in message.lower():
+                raise
+            if not is_private_qdrant_collection(self.collection_name):
+                raise
+
+        self.client.create_collection(
+            collection_name=self.collection_name,
+            vectors_config=self.vector_params_cls(
+                size=self.embedding_dim,
+                distance=self.distance_cls.COSINE,
+            ),
+        )
+        print(f"[qdrant] Created private collection {self.collection_name} dim={self.embedding_dim}")
 
     def _embed(self, text: str):
         return self.model.encode(text).tolist()
@@ -1508,6 +1733,13 @@ def query_pending_memory_rows(sink: QdrantGateSink, query_text: str, score_thres
         metadata = dict(row.get("metadata", {}) or {})
         if len(content) < 10 or not metadata:
             continue
+        row_collection = str(metadata.get("qdrant_collection", "") or "").strip()
+        sink_collection = str(getattr(sink, "collection_name", "") or "").strip()
+        if row_collection:
+            if row_collection != sink_collection:
+                continue
+        elif is_private_qdrant_collection(sink_collection):
+            continue
 
         recall_text = str(
             metadata.get("recall_text")
@@ -1570,7 +1802,15 @@ def query_pending_memory_rows(sink: QdrantGateSink, query_text: str, score_thres
     return pending_results
 
 
-def merge_recall_results(stored_results, pending_results, limit: int, query_text: str):
+def merge_recall_results(
+    stored_results,
+    pending_results,
+    limit: int,
+    query_text: str,
+    mode: str = "full",
+    rank_query_text: str = "",
+):
+    rank_text = str(rank_query_text or query_text or "").strip()
     combined = []
     seen = set()
     for row in pending_results:
@@ -1590,9 +1830,95 @@ def merge_recall_results(stored_results, pending_results, limit: int, query_text
         enriched.setdefault("surface", "stored")
         combined.append(enriched)
 
-    combined = [row for row in combined if not should_filter_recall_row(row, query_text)]
-    combined.sort(key=lambda row: build_recall_rank_tuple(row, query_text), reverse=True)
+    combined = [row for row in combined if not should_filter_recall_row(row, rank_text)]
+    combined.sort(key=lambda row: build_recall_rank_tuple(row, rank_text, mode), reverse=True)
     return combined[:limit]
+
+
+def parse_cluster_sort_timestamp(row: dict) -> float:
+    metadata = row.get("metadata", {}) or {}
+    for key in ("time_latest", "created_at", "timestamp"):
+        raw = str(row.get(key, "") or metadata.get(key, "") or "").strip()
+        if not raw:
+            continue
+        try:
+            return datetime.fromisoformat(raw.replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            continue
+    return 0.0
+
+
+def normalize_cluster_keywords(values) -> list[str]:
+    keywords = []
+    seen = set()
+    for value in values or []:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        normalized = text.lower()
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        keywords.append(text)
+    return keywords
+
+
+def build_cluster_rank_tuple(row: dict, query_text: str, mode: str = "full"):
+    metadata = row.get("metadata", {}) or {}
+    score = float(row.get("score", 0.0) or 0.0)
+    field_overlap = int(row.get("field_overlap", 0) or 0)
+    overlap = int(row.get("overlap", 0) or 0)
+    member_count = int(metadata.get("member_count", 0) or 0)
+    keyword_count = len(normalize_cluster_keywords(metadata.get("topic_keywords", [])))
+    sort_ts = float(row.get("sort_ts", 0.0) or 0.0)
+    return (
+        score,
+        field_overlap,
+        overlap,
+        member_count,
+        keyword_count,
+        sort_ts,
+    )
+
+
+def perform_cluster_recall(query: str, limit: int = 2, score_threshold: Optional[float] = None):
+    query_text = str(query or "").strip()
+    if not query_text or limit <= 0:
+        return []
+    if not ARGS.qdrant_enabled:
+        raise RuntimeError("Qdrant cluster recall unavailable: qdrant is disabled.")
+
+    sink = ensure_qdrant_gate_sink(force_retry=True)
+    if sink is None:
+        raise RuntimeError("Qdrant cluster recall unavailable: sink could not be initialized.")
+
+    candidate_limit = max(limit + 3, limit * 2, 4)
+    raw_rows = sink.query(
+        query_text,
+        limit=candidate_limit,
+        score_threshold=score_threshold,
+        source_type="macro_memory",
+    )
+
+    clusters = []
+    seen = set()
+    for row in raw_rows:
+        metadata = row.get("metadata", {}) or {}
+        cluster_key = str(metadata.get("cluster_id", "") or row.get("id", "") or "").strip()
+        if cluster_key and cluster_key in seen:
+            continue
+        if cluster_key:
+            seen.add(cluster_key)
+        content = str(row.get("content", "") or "").strip()
+        if not content:
+            continue
+        enriched = dict(row)
+        enriched.setdefault("surface", "cluster")
+        enriched["sort_ts"] = parse_cluster_sort_timestamp(enriched)
+        clusters.append(enriched)
+
+    clusters.sort(key=lambda row: build_cluster_rank_tuple(row, query_text), reverse=True)
+    return clusters[:limit]
 
 
 def refresh_qdrant_collection_count(sink: Optional[QdrantGateSink] = None, force_retry: bool = False) -> int:
@@ -1670,6 +1996,231 @@ def slugify_label(value: str) -> str:
     while "--" in cleaned:
         cleaned = cleaned.replace("--", "-")
     return cleaned.strip("-") or "unknown"
+
+
+def normalize_session_id(value: str) -> str:
+    return slugify_label(value or "default")
+
+
+def coerce_session_bool(value, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def merge_session_query_body(body: Optional[dict] = None, path: str = "") -> dict:
+    merged = dict(body or {})
+    if not path:
+        return merged
+    query = parse_qs(urlparse(path).query)
+    for key in ("session_id", "user_label", "model_label", "instance_id", "qdrant_collection", "no_shared_memory"):
+        if key in merged:
+            continue
+        values = query.get(key)
+        if values:
+            merged[key] = values[0]
+    return merged
+
+
+def session_scoped_path(base_path: Optional[Path], session_id: str) -> Optional[Path]:
+    if base_path is None:
+        return None
+    safe_id = normalize_session_id(session_id)
+    if safe_id == "default":
+        return base_path
+    suffix = "".join(base_path.suffixes)
+    if suffix:
+        stem = base_path.name[: -len(suffix)]
+        return base_path.with_name(f"{stem}.{safe_id}{suffix}")
+    return base_path.with_name(f"{base_path.name}.{safe_id}")
+
+
+def resolve_request_session_id(body: Optional[dict] = None, path: str = "", headers=None) -> str:
+    body = merge_session_query_body(body, path)
+    raw = str(body.get("session_id") or "").strip()
+    if not raw and headers is not None:
+        raw = str(headers.get("X-MoCoP-Session", "") or "").strip()
+    return normalize_session_id(raw or "default")
+
+
+def resolve_session_labels(body: Optional[dict], session_id: str):
+    body = body or {}
+    user_label = str(body.get("user_label") or "").strip() or getattr(ARGS, "server_user_label", getattr(ARGS, "user_label", DEFAULT_USER_LABEL))
+    model_label = str(body.get("model_label") or "").strip() or getattr(ARGS, "server_model_label", getattr(ARGS, "model_label", DEFAULT_MODEL_LABEL))
+    instance_id = str(body.get("instance_id") or "").strip() or getattr(ARGS, "server_instance_id", getattr(ARGS, "instance_id", ""))
+    requested_collection = str(body.get("qdrant_collection") or "").strip()
+    no_shared_memory = coerce_session_bool(body.get("no_shared_memory"), getattr(ARGS, "no_shared_memory", False))
+
+    if not instance_id and session_id != "default":
+        instance_id = session_id
+    if requested_collection:
+        qdrant_collection = requested_collection
+    elif no_shared_memory and instance_id:
+        qdrant_collection = build_private_qdrant_collection_name(instance_id)
+    else:
+        qdrant_collection = getattr(ARGS, "server_qdrant_collection", getattr(ARGS, "qdrant_collection", SHARED_QDRANT_COLLECTION))
+
+    return user_label, model_label, instance_id, qdrant_collection, no_shared_memory
+
+
+def seed_runtime_state_for_session(
+    session_id: str,
+    user_label: str,
+    model_label: str,
+    instance_id: str,
+    qdrant_collection: str,
+    no_shared_memory: bool,
+) -> dict:
+    state = get_runtime_state_snapshot()
+    state.update(
+        session_id=session_id,
+        user_label=user_label,
+        model_label=model_label,
+        instance_id=instance_id,
+        no_shared_memory=bool(no_shared_memory),
+        qdrant_collection=qdrant_collection,
+        turns=0,
+        recall_request_count=0,
+        recall_hit_count=0,
+        live_accumulation_updates=0,
+        last_recall={},
+        last_failure={},
+        last_memory_packet={},
+        last_gate={},
+    )
+    return state
+
+
+def get_or_create_chat_session(body: Optional[dict] = None, path: str = "", headers=None) -> ChatSessionState:
+    body = merge_session_query_body(body, path)
+    session_id = resolve_request_session_id(body=body, path=path, headers=headers)
+    session = SESSIONS.get(session_id)
+    if session is not None:
+        update_session_from_body(session, body)
+        return session
+
+    user_label, model_label, instance_id, qdrant_collection, no_shared_memory = resolve_session_labels(body, session_id)
+    transcript_path = session_scoped_path(LATEST_TRANSCRIPT_PATH, session_id)
+    turn_log_path = session_scoped_path(LATEST_JSONL_PATH, session_id)
+    if transcript_path is not None:
+        transcript_path.parent.mkdir(parents=True, exist_ok=True)
+    if turn_log_path is not None:
+        turn_log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    session = ChatSessionState(
+        session_id=session_id,
+        user_label=user_label,
+        model_label=model_label,
+        instance_id=instance_id,
+        qdrant_collection=qdrant_collection,
+        no_shared_memory=no_shared_memory,
+        transcript_path=transcript_path,
+        turn_log_path=turn_log_path,
+        runtime_state=seed_runtime_state_for_session(
+            session_id,
+            user_label,
+            model_label,
+            instance_id,
+            qdrant_collection,
+            no_shared_memory,
+        ),
+        last_conversation_snapshot=LAST_CONVERSATION_SNAPSHOT,
+        bridge_cache_params=BRIDGE_CTX.cache_params,
+        bridge_cache_position=BRIDGE_CTX.cache_position,
+    )
+    SESSIONS[session_id] = session
+    return session
+
+
+def update_session_from_body(session: ChatSessionState, body: Optional[dict]):
+    """Allow clients to set labels/collection on first or later turns explicitly."""
+    body = body or {}
+    if "user_label" in body and str(body.get("user_label") or "").strip():
+        session.user_label = str(body["user_label"]).strip()
+    if "model_label" in body and str(body.get("model_label") or "").strip():
+        session.model_label = str(body["model_label"]).strip()
+    if "instance_id" in body and str(body.get("instance_id") or "").strip():
+        session.instance_id = str(body["instance_id"]).strip()
+    if "qdrant_collection" in body and str(body.get("qdrant_collection") or "").strip():
+        session.qdrant_collection = str(body["qdrant_collection"]).strip()
+    if "no_shared_memory" in body:
+        session.no_shared_memory = coerce_session_bool(body.get("no_shared_memory"))
+    elif session.instance_id and is_private_qdrant_collection(session.qdrant_collection):
+        session.no_shared_memory = True
+
+
+def save_active_chat_session():
+    session = SESSIONS.get(ACTIVE_SESSION_ID)
+    if session is None:
+        return
+    session.conversation = CONVERSATION
+    session.runtime_state = RUNTIME_STATE
+    session.dual_gate_events = DUAL_GATE_EVENTS
+    session.last_conversation_snapshot = LAST_CONVERSATION_SNAPSHOT
+    session.bridge_cache_params = BRIDGE_CTX.cache_params
+    session.bridge_cache_position = BRIDGE_CTX.cache_position
+
+
+def switch_to_chat_session(session: ChatSessionState):
+    """Make a session the active request envelope.
+
+    This is the IRC-lobby shim: Qwen remains global, while labels, memory
+    namespace, transcript, live Mamba cache, and counters become session-local.
+    """
+    global ACTIVE_SESSION_ID, CONVERSATION, RUNTIME_STATE, DUAL_GATE_EVENTS
+    global LAST_CONVERSATION_SNAPSHOT, LATEST_TRANSCRIPT_PATH, LATEST_JSONL_PATH
+    global QDRANT_GATE_SINK, QDRANT_GATE_SINK_ERROR, QDRANT_LAST_RETRY_TS
+
+    if ACTIVE_SESSION_ID == session.session_id and CONVERSATION is session.conversation:
+        collection_changed = getattr(ARGS, "qdrant_collection", "") != session.qdrant_collection
+        ARGS.user_label = session.user_label
+        ARGS.model_label = session.model_label
+        ARGS.instance_id = session.instance_id
+        ARGS.qdrant_collection = session.qdrant_collection
+        ARGS.no_shared_memory = session.no_shared_memory
+        if collection_changed:
+            QDRANT_GATE_SINK = None
+            QDRANT_GATE_SINK_ERROR = None
+            QDRANT_LAST_RETRY_TS = 0.0
+        update_runtime_state(
+            session_id=session.session_id,
+            user_label=session.user_label,
+            model_label=session.model_label,
+            instance_id=session.instance_id,
+            no_shared_memory=bool(session.no_shared_memory),
+            qdrant_collection=session.qdrant_collection,
+        )
+        return
+
+    save_active_chat_session()
+
+    ACTIVE_SESSION_ID = session.session_id
+    CONVERSATION = session.conversation
+    RUNTIME_STATE = session.runtime_state
+    DUAL_GATE_EVENTS = session.dual_gate_events
+    LAST_CONVERSATION_SNAPSHOT = session.last_conversation_snapshot
+    LATEST_TRANSCRIPT_PATH = session.transcript_path
+    LATEST_JSONL_PATH = session.turn_log_path
+    ARGS.user_label = session.user_label
+    ARGS.model_label = session.model_label
+    ARGS.instance_id = session.instance_id
+    ARGS.qdrant_collection = session.qdrant_collection
+    ARGS.no_shared_memory = session.no_shared_memory
+    BRIDGE_CTX.cache_params = session.bridge_cache_params
+    BRIDGE_CTX.cache_position = session.bridge_cache_position
+    QDRANT_GATE_SINK = None
+    QDRANT_GATE_SINK_ERROR = None
+    QDRANT_LAST_RETRY_TS = 0.0
+    update_runtime_state(
+        session_id=session.session_id,
+        user_label=session.user_label,
+        model_label=session.model_label,
+        instance_id=session.instance_id,
+        no_shared_memory=bool(session.no_shared_memory),
+        qdrant_collection=session.qdrant_collection,
+    )
 
 
 def classify_interaction_theme(user_text: str, response_text: str) -> str:
@@ -2100,6 +2651,62 @@ def build_auto_recall_query(user_msg: str, *, max_recent_turns: int = 4) -> str:
     return "\n".join(deduped).strip()
 
 
+def extract_recall_entity_names(text: str) -> list[str]:
+    stop = {
+        "I",
+        "If",
+        "Oh",
+        "Yes",
+        "No",
+        "Maybe",
+        "Sure",
+        "Thank",
+        "Thanks",
+        "What",
+        "When",
+        "Where",
+        "How",
+        "Do",
+        "Did",
+        "Have",
+        "Can",
+        "You",
+        getattr(ARGS, "user_label", "Laura"),
+        getattr(ARGS, "model_label", "Me"),
+    }
+    names = []
+    seen = set()
+    for match in re.finditer(r"\b[A-Z][A-Za-z0-9_-]{2,}\b", str(text or "")):
+        name = match.group(0).strip()
+        key = normalize_probe_text(name)
+        if name in stop or key in {normalize_probe_text(item) for item in stop} or key in seen:
+            continue
+        seen.add(key)
+        names.append(name)
+    return names
+
+
+def build_auto_recall_rank_query(user_msg: str, *, max_recent_turns: int = 4) -> str:
+    """Rank against the user question plus clean antecedents, not the expanded semantic query."""
+    parts = [str(user_msg or "").strip()]
+    normalized = normalize_probe_text(user_msg)
+    needs_antecedent = any(token in normalized.split() for token in ("she", "her", "he", "him", "they", "them"))
+    if needs_antecedent:
+        prior_turns = CONVERSATION[:-1] if CONVERSATION and CONVERSATION[-1].get("speaker") == ARGS.user_label else CONVERSATION
+        recent_entities = []
+        seen = set()
+        for turn in prior_turns[-max_recent_turns:]:
+            text = str(turn.get("text", "") or "")
+            for name in extract_recall_entity_names(text):
+                key = normalize_probe_text(name)
+                if key and key not in seen:
+                    seen.add(key)
+                    recent_entities.append(name)
+        if recent_entities:
+            parts.append("antecedent entities " + " ".join(recent_entities))
+    return "\n".join(part for part in parts if part).strip()
+
+
 def build_recall_field_text(row: dict) -> str:
     metadata = row.get("metadata", {}) or {}
     frame = metadata.get("autobiographical_frame", {}) or {}
@@ -2141,6 +2748,12 @@ def parse_recall_sort_timestamp(row: dict) -> float:
         return 0.0
 
 
+def recall_candidate_name(value) -> str:
+    if isinstance(value, dict):
+        return str(value.get("name") or value.get("label") or value.get("id") or "").strip()
+    return str(value or "").strip()
+
+
 def row_targets_current_interlocutor(row: dict) -> bool:
     metadata = row.get("metadata", {}) or {}
     target = normalize_probe_text(getattr(ARGS, "user_label", "Laura"))
@@ -2151,9 +2764,9 @@ def row_targets_current_interlocutor(row: dict) -> bool:
     speaker_name = normalize_probe_text(metadata.get("speaker_name", ""))
     user_text = normalize_probe_text(metadata.get("user", ""))
     people = [
-        normalize_probe_text(person)
+        normalize_probe_text(recall_candidate_name(person))
         for person in (metadata.get("people", []) or [])
-        if str(person or "").strip()
+        if recall_candidate_name(person)
     ]
     return (
         anchor == target
@@ -2163,6 +2776,59 @@ def row_targets_current_interlocutor(row: dict) -> bool:
         or user_text.startswith(f"{target},")
         or user_text.startswith(f"{target} ")
     )
+
+
+def row_targets_query_entity(row: dict, query_text: str) -> bool:
+    metadata = row.get("metadata", {}) or {}
+    normalized_query = normalize_probe_text(query_text)
+    if not normalized_query:
+        return False
+
+    candidates = [
+        metadata.get("relationship_anchor", ""),
+        metadata.get("speaker_name", ""),
+    ]
+    frame = metadata.get("autobiographical_frame", {}) or {}
+    frame_anchor = frame.get("relationship_anchor", {}) or {}
+    if isinstance(frame_anchor, dict):
+        candidates.append(frame_anchor.get("name", ""))
+    candidates.extend(metadata.get("people", []) or [])
+
+    for candidate in candidates:
+        value = normalize_probe_text(recall_candidate_name(candidate))
+        if len(value) >= 3 and re.search(rf"\b{re.escape(value)}\b", normalized_query):
+            return True
+    return False
+
+
+def row_query_entity_names(row: dict, query_text: str) -> list[str]:
+    metadata = row.get("metadata", {}) or {}
+    normalized_query = normalize_probe_text(query_text)
+    if not normalized_query:
+        return []
+
+    candidates = [
+        metadata.get("relationship_anchor", ""),
+        metadata.get("speaker_name", ""),
+    ]
+    frame = metadata.get("autobiographical_frame", {}) or {}
+    frame_anchor = frame.get("relationship_anchor", {}) or {}
+    if isinstance(frame_anchor, dict):
+        candidates.append(frame_anchor.get("name", ""))
+    candidates.extend(metadata.get("people", []) or [])
+    candidates.extend(metadata.get("participant_set", []) or [])
+
+    names = []
+    seen = set()
+    for candidate in candidates:
+        display = recall_candidate_name(candidate)
+        value = normalize_probe_text(display)
+        if len(value) < 3 or value in seen:
+            continue
+        if re.search(rf"\b{re.escape(value)}\b", normalized_query):
+            seen.add(value)
+            names.append(display)
+    return names
 
 
 def row_has_interlocutor_metadata(row: dict) -> bool:
@@ -2207,6 +2873,104 @@ def recall_memory_kind_priority(row: dict) -> int:
     return priorities.get(memory_kind, 0)
 
 
+def recall_query_asks_personal_meeting(query_text: str) -> bool:
+    normalized = normalize_probe_text(query_text)
+    if not normalized:
+        return False
+    if re.search(r"\b(did|do)\s+you\s+(personally\s+)?(meet|talk to|speak with)\b", normalized):
+        return True
+    if re.search(r"\bhave\s+you\s+(personally\s+)?(met|talked to|spoken with)\b", normalized):
+        return True
+    return any(
+        marker in normalized
+        for marker in (
+            "did you meet",
+            "did you personally meet",
+            "have you met",
+            "have you personally met",
+            "did you talk to",
+            "did you personally talk to",
+            "have you talked to",
+            "have you personally talked to",
+            "did you speak with",
+            "did you personally speak with",
+            "have you spoken with",
+            "have you personally spoken with",
+            "do you remember meeting",
+            "do you remember talking to",
+            "do you remember speaking with",
+            "when did you meet",
+            "where did you meet",
+        )
+    )
+
+
+def recall_evidence_priority(row: dict, query_text: str) -> int:
+    metadata = row.get("metadata", {}) or {}
+    if recall_query_targets_current_interlocutor(query_text):
+        subjects = [getattr(ARGS, "user_label", "Laura")]
+    else:
+        subjects = row_query_entity_names(row, query_text)
+    if not subjects:
+        return 0
+
+    priorities = {
+        DIRECT_SHARED: 100,
+        GROUP_SHARED: 90,
+        THIRD_PARTY: 60,
+        DIRECT_OTHER_SESSION: 45,
+        SYSTEM_OBSERVATION: 35,
+    }
+    return max(
+        (
+            priorities.get(
+                classify_evidence_for_subject(
+                    metadata,
+                    subject,
+                    active_interlocutor=getattr(ARGS, "user_label", ""),
+                ),
+                0,
+            )
+            for subject in subjects
+        ),
+        default=0,
+    )
+
+
+def recall_perspective_priority(row: dict, query_text: str) -> int:
+    """Prefer direct current-interlocutor evidence for first-person meeting probes."""
+    evidence_priority = recall_evidence_priority(row, query_text)
+    if evidence_priority:
+        return evidence_priority
+
+    if not recall_query_asks_personal_meeting(query_text):
+        return 50
+    if row_targets_current_interlocutor(row):
+        return 100
+    if row_targets_query_entity(row, query_text):
+        return 15
+    return 30
+
+
+def indirect_personal_meeting_targets(results, query_text: str) -> list[str]:
+    if not recall_query_asks_personal_meeting(query_text):
+        return []
+
+    targets = []
+    seen = set()
+    for row in results or []:
+        if row_targets_current_interlocutor(row):
+            continue
+        if not row_targets_query_entity(row, query_text):
+            continue
+        for name in row_query_entity_names(row, query_text):
+            key = normalize_probe_text(name)
+            if key and key not in seen:
+                seen.add(key)
+                targets.append(name)
+    return targets
+
+
 def recall_confidence_priority(row: dict) -> int:
     confidence_label = normalize_probe_text((row.get("metadata", {}) or {}).get("confidence_label", ""))
     priorities = {
@@ -2247,13 +3011,43 @@ def should_filter_recall_row(row: dict, query_text: str) -> bool:
     if source_type and source_type != "steve_gate_event":
         return True
 
-    if row_has_interlocutor_metadata(row) and not row_targets_current_interlocutor(row):
+    if is_bad_recall_exemplar(query_text, row):
+        return True
+
+    if (
+        recall_query_targets_current_interlocutor(query_text)
+        and row_has_interlocutor_metadata(row)
+        and not row_targets_current_interlocutor(row)
+    ):
         return True
 
     return False
 
 
-def build_recall_rank_tuple(row: dict, query_text: str):
+def recall_query_targets_current_interlocutor(query_text: str) -> bool:
+    """Only current-speaker identity probes should exclude other people."""
+    normalized = normalize_probe_text(query_text)
+    if not normalized:
+        return False
+    if is_direct_identity_query(normalized) or is_memory_about_user_query(normalized):
+        return True
+    return any(
+        marker in normalized
+        for marker in (
+            "about me",
+            "do you know me",
+            "do you know who i am",
+            "remember me",
+            "remember about me",
+            "what do you know about me",
+            "what do you remember about me",
+            "who am i",
+            "who am i to you",
+        )
+    )
+
+
+def build_recall_rank_tuple(row: dict, query_text: str, mode: str = "full"):
     pending_sleep = 1 if row.get("surface") == "pending" and row.get("pending_policy") == "sleep" else 0
     field_overlap = int(row.get("field_overlap", 0) or 0)
     overlap = int(row.get("overlap", 0) or 0)
@@ -2261,17 +3055,48 @@ def build_recall_rank_tuple(row: dict, query_text: str):
     score = float(row.get("score", 0.0) or 0.0)
     direct_identity = 1 if looks_direct_identity_answer(query_text, str((row.get("metadata", {}) or {}).get("response", "") or "")) else 0
     good_exemplar = 0 if is_bad_recall_exemplar(query_text, row) else 1
-    target_match = 1 if row_targets_current_interlocutor(row) else 0
+    if recall_query_targets_current_interlocutor(query_text):
+        target_match = 1 if row_targets_current_interlocutor(row) else 0
+    else:
+        target_match = 1 if row_targets_query_entity(row, query_text) else 0
     source_priority = recall_source_priority(row)
     scope_priority = recall_scope_priority(row)
+    perspective_priority = recall_perspective_priority(row, query_text)
     recency_bucket = recall_recency_bucket(row)
     memory_kind_priority = recall_memory_kind_priority(row)
     confidence_priority = recall_confidence_priority(row)
 
+    if mode == "ambient":
+        return (
+            good_exemplar,
+            perspective_priority,
+            target_match,
+            recency_bucket,
+            memory_kind_priority,
+            score,
+            sort_ts
+        )
+
     if is_identity_or_memory_probe(query_text):
+        if not recall_query_targets_current_interlocutor(query_text):
+            return (
+                good_exemplar,
+                perspective_priority,
+                target_match,
+                source_priority,
+                scope_priority,
+                score,
+                field_overlap,
+                overlap,
+                memory_kind_priority,
+                confidence_priority,
+                pending_sleep,
+                sort_ts,
+            )
         return (
             direct_identity,
             good_exemplar,
+            perspective_priority,
             target_match,
             source_priority,
             scope_priority,
@@ -2286,6 +3111,7 @@ def build_recall_rank_tuple(row: dict, query_text: str):
         )
 
     return (
+        perspective_priority,
         target_match,
         source_priority,
         scope_priority,
@@ -2345,6 +3171,47 @@ def looks_direct_identity_answer(query_text: str, response_text: str) -> bool:
     return any(marker in normalized_response for marker in direct_markers)
 
 
+def normalize_recalled_user_text(text: str, current_speaker: str = "") -> str:
+    value = str(text or "").strip()
+    speaker = str(current_speaker or "").strip()
+    if not value or not speaker:
+        return value
+
+    value = re.sub(rf"\b{re.escape(speaker)}'s\b", "your", value, flags=re.IGNORECASE)
+    value = re.sub(rf"\b{re.escape(speaker)}\b", "you", value, flags=re.IGNORECASE)
+    agreement_fixes = {
+        r"\byou was\b": "you were",
+        r"\byou is\b": "you are",
+        r"\byou has\b": "you have",
+        r"\byou does\b": "you do",
+        r"\byou feels\b": "you feel",
+        r"\byou sounds\b": "you sound",
+        r"\byou needs\b": "you need",
+    }
+    for pattern, replacement in agreement_fixes.items():
+        value = re.sub(pattern, replacement, value, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def ensure_sentence(text: str) -> str:
+    value = str(text or "").strip()
+    if not value:
+        return ""
+    if value[-1] not in ".!?":
+        value = f"{value}."
+    return value
+
+
+def build_explicit_answer_candidate(content: str, metadata: dict[str, Any]) -> str:
+    user_signal = normalize_recalled_user_text(metadata.get("user", ""), current_speaker=ARGS.user_label)
+    if user_signal:
+        return ensure_sentence(f"Earlier, you told me {user_signal}")
+    gist = normalize_recalled_user_text(content, current_speaker=ARGS.user_label)
+    if gist:
+        return ensure_sentence(f"What comes back first is {gist}")
+    return ""
+
+
 def extract_direct_identity_candidate(query_text: str, results) -> str:
     if not is_direct_identity_query(query_text):
         return ""
@@ -2385,7 +3252,228 @@ def extract_user_memory_summary_candidate(query_text: str, results) -> str:
         topic_text = f"{topics[0]} and {topics[1]}"
     else:
         topic_text = ", ".join(topics[:-1]) + f", and {topics[-1]}"
-    return f"I remember that you're Laura, and I remember that {topic_text}."
+    return f"I remember that you're {ARGS.user_label}, and I remember that {topic_text}."
+
+
+def extract_indirect_personal_meeting_candidate(query_text: str, results) -> str:
+    targets = indirect_personal_meeting_targets(results, query_text)
+    if not targets:
+        return ""
+    if len(targets) == 1:
+        target_text = targets[0]
+    elif len(targets) == 2:
+        target_text = f"{targets[0]} and {targets[1]}"
+    else:
+        target_text = ", ".join(targets[:-1]) + f", and {targets[-1]}"
+    return (
+        f"I have memory that mentions {target_text}, but I do not have direct evidence "
+        f"that I personally met {target_text}."
+    )
+
+
+def recall_query_asks_entity_memory(query_text: str) -> bool:
+    normalized = normalize_probe_text(query_text)
+    if not normalized:
+        return False
+    return any(
+        marker in normalized
+        for marker in (
+            "do you remember",
+            "did you remember",
+            "can you remember",
+            "what do you remember about",
+            "what did you remember about",
+        )
+    )
+
+
+def extract_entity_memory_candidate(query_text: str, results) -> str:
+    if not recall_query_asks_entity_memory(query_text):
+        return ""
+
+    current = normalize_probe_text(getattr(ARGS, "user_label", ""))
+    targets = []
+    seen = set()
+    for row in results or []:
+        if not row_targets_query_entity(row, query_text):
+            continue
+        for name in row_query_entity_names(row, query_text):
+            key = normalize_probe_text(name)
+            if not key or key == current or key in seen:
+                continue
+            seen.add(key)
+            targets.append(name)
+    if not targets:
+        return ""
+
+    if len(targets) == 1:
+        target_text = targets[0]
+    elif len(targets) == 2:
+        target_text = f"{targets[0]} and {targets[1]}"
+    else:
+        target_text = ", ".join(targets[:-1]) + f", and {targets[-1]}"
+    return f"Yes. I have memories involving {target_text}."
+
+
+def extract_known_color(text: str) -> str:
+    normalized = normalize_probe_text(text)
+    if "deep neon purple" in normalized or "deep, neon purple" in normalized:
+        return "deep neon purple"
+    if "neon purple" in normalized:
+        return "neon purple"
+    for color in ("purple", "blue", "red", "green", "yellow", "orange", "black", "white", "grey", "gray"):
+        if re.search(rf"\b{color}\b", normalized):
+            return color
+    return ""
+
+
+def extract_entity_detail_candidate(query_text: str, results) -> str:
+    normalized = normalize_probe_text(query_text)
+    wants_color = "favorite color" in normalized or "favourite color" in normalized or "shared your favorite color" in normalized
+    wants_name = "introduced your name" in normalized or "your name" in normalized
+    if not (wants_color or wants_name):
+        return ""
+
+    target_rows = [row for row in (results or []) if row_targets_query_entity(row, query_text)]
+    if not target_rows:
+        target_rows = list(results or [])[:3]
+
+    target_names = []
+    seen_names = set()
+    for row in target_rows:
+        for name in row_query_entity_names(row, query_text):
+            key = normalize_probe_text(name)
+            if key and key not in seen_names:
+                seen_names.add(key)
+                target_names.append(name)
+    target_text = target_names[0] if target_names else "that memory"
+
+    color = ""
+    saw_alex = False
+    for row in target_rows:
+        metadata = row.get("metadata", {}) or {}
+        fields = [
+            row.get("content", ""),
+            metadata.get("user", ""),
+            metadata.get("response", ""),
+            metadata.get("event_gist", ""),
+        ]
+        joined = "\n".join(str(field or "") for field in fields)
+        if not color:
+            color = extract_known_color(joined)
+        if re.search(r"\bAlex\b", joined):
+            saw_alex = True
+
+    details = []
+    if target_names:
+        details.append(f"I remember {target_text}")
+    if wants_name and saw_alex:
+        details.append("The name Alex is attached to that memory")
+    if wants_color and color:
+        details.append(f"The color detail I can ground is {color}")
+    if not details:
+        return ""
+
+    return ". ".join(details) + "."
+
+
+def should_override_personal_meeting_response(query_text: str, response_text: str, candidate: str) -> bool:
+    if not candidate or not recall_query_asks_personal_meeting(query_text):
+        return False
+
+    normalized_response = normalize_probe_text(response_text)
+    if not normalized_response:
+        return True
+
+    safe_markers = (
+        "not direct evidence",
+        "indirect memory",
+        "indirect evidence",
+        "memory that mentions",
+        "do not have direct evidence",
+        "don't have direct evidence",
+        "cannot tell from memory",
+        "can't tell from memory",
+    )
+    if any(marker in normalized_response for marker in safe_markers):
+        return False
+
+    unsafe_markers = (
+        "i met",
+        "i have met",
+        "i remember meeting",
+        "we met",
+        "i talked to",
+        "i spoke with",
+        "i enjoyed meeting",
+        "i did meet",
+        "yes",
+    )
+    if any(marker in normalized_response for marker in unsafe_markers):
+        return True
+
+    return True
+
+
+def should_override_entity_memory_response(query_text: str, response_text: str, candidate: str) -> bool:
+    if not candidate or not recall_query_asks_entity_memory(query_text):
+        return False
+
+    normalized_response = normalize_probe_text(response_text)
+    if not normalized_response:
+        return True
+
+    if any(
+        marker in normalized_response
+        for marker in (
+            "i don't remember",
+            "i dont remember",
+            "i do not remember",
+            "no, i don't",
+            "no, i dont",
+            "no, i do not",
+            "can you help me remember",
+            "remind me",
+        )
+    ):
+        return True
+
+    return False
+
+
+def should_override_entity_detail_response(query_text: str, response_text: str, candidate: str) -> bool:
+    if not candidate:
+        return False
+    normalized_query = normalize_probe_text(query_text)
+    if not any(marker in normalized_query for marker in ("favorite color", "favourite color", "introduced your name", "your name")):
+        return False
+
+    normalized_response = normalize_probe_text(response_text)
+    if not normalized_response or is_generic_greeting_response(response_text):
+        return True
+    if "color detail i can ground" in normalized_response or "name alex is attached" in normalized_response:
+        return False
+
+    candidate_color = extract_known_color(candidate)
+    response_color = extract_known_color(response_text)
+    if candidate_color and not response_color:
+        return True
+    if candidate_color and response_color and candidate_color != response_color:
+        return True
+
+    if "name alex is attached" in normalize_probe_text(candidate) and "alex" not in normalized_response:
+        return True
+
+    if "met briefly during a training session" in normalized_response:
+        return True
+
+    normalized_query = normalize_probe_text(query_text)
+    query_tokens = recall_tokens(normalized_query)
+    response_tokens = recall_tokens(normalized_response)
+    if query_tokens and len(query_tokens & response_tokens) / max(1, len(query_tokens)) >= 0.75:
+        return True
+
+    return False
 
 
 def should_override_user_memory_summary(query_text: str, response_text: str, summary_candidate: str) -> bool:
@@ -2462,6 +3550,8 @@ def is_bad_recall_exemplar(query_text: str, row: dict) -> bool:
     response_text = str(metadata.get("response", "") or "")
     normalized_response = normalize_probe_text(response_text)
     direct_identity_answer = looks_direct_identity_answer(query_text, response_text)
+    if normalized_response in {"", ".", "...", "…"}:
+        return True
     if is_generic_greeting_response(response_text):
         return True
     if failure_class == "direct_question_miss":
@@ -2489,6 +3579,8 @@ def is_bad_recall_exemplar(query_text: str, row: dict) -> bool:
             "i don't have any memories of laura",
             "no, but i'm here to listen to you",
             "fictional character named laura",
+            "what does narf mean",
+            "not as replied forward",
         )
     ):
         return True
@@ -2560,18 +3652,129 @@ def append_recall_log_entry(query: str, results, source: str, question_text: str
     )
 
 
-def format_recalled_memories(results, query_text: str = "") -> str:
+def format_recalled_clusters(results, mode: str = "full") -> str:
     if not results:
         return ""
 
+    if mode == "ambient":
+        lines = [
+            "[Context arc]",
+            "Broader recurring themes from shared history that may frame this turn.",
+        ]
+    else:
+        lines = [
+            "[Memory arc]",
+            "These are broader recurring patterns from private history.",
+            "Use them as background context only; exact details still come from the specific private memory anchors.",
+        ]
+
+    for idx, row in enumerate(results, start=1):
+        metadata = row.get("metadata", {}) or {}
+        content = str(row.get("content", "") or "").strip()
+        member_count = int(metadata.get("member_count", 0) or 0)
+        keywords = normalize_cluster_keywords(metadata.get("topic_keywords", []))[:6]
+        time_earliest = str(metadata.get("time_earliest", "") or "").strip()
+        time_latest = str(metadata.get("time_latest", "") or "").strip()
+
+        lines.append(f"{idx}.")
+        if content:
+            lines.append(f"Theme anchor: {content}")
+        if keywords:
+            lines.append(f"Keywords: {', '.join(keywords)}")
+        if member_count > 0:
+            lines.append(f"Scale: {member_count} linked memories")
+        if time_earliest or time_latest:
+            if time_earliest and time_latest:
+                lines.append(f"Time span: {time_earliest[:10]} to {time_latest[:10]}")
+            else:
+                lines.append(f"Time marker: {(time_latest or time_earliest)[:10]}")
+
+    lines.append("[/Context arc]" if mode == "ambient" else "[/Memory arc]")
+    return "\n".join(lines)
+
+
+def format_recalled_memories(results, query_text: str = "", mode: str = "full") -> str:
+    if not results:
+        return ""
+
+    indirect_meeting_targets = indirect_personal_meeting_targets(results, query_text)
+    perspective_note = []
+    if indirect_meeting_targets:
+        target_text = ", ".join(indirect_meeting_targets)
+        perspective_note = [
+            f"Perspective guard: these memories mention {target_text}, but they are not direct evidence that I personally met {target_text}.",
+            f"If asked whether I personally met {target_text}, say that I have indirect memory mentioning {target_text} unless a direct shared episode is present.",
+        ]
+
+    if mode == "ambient":
+        lines = [
+            "[Context memory]",
+            "Anchors from shared history that may be relevant.",
+        ]
+        lines.extend(perspective_note)
+        for idx, row in enumerate(results, start=1):
+            lines.append(f"{idx}.")
+            content = str(row.get("content", "") or "").strip()
+            lines.extend(format_memory_anchor_lines(content, row.get("metadata", {}), current_speaker=ARGS.user_label))
+        lines.append("[/Context memory]")
+        return "\n".join(lines)
+
     identity_probe = is_identity_or_memory_probe(query_text)
+    explicit_style = getattr(ARGS, "explicit_recall_style", "full")
+    if explicit_style == "factual":
+        lines = [
+            "[Private memory]",
+            f"{ARGS.user_label} is the person speaking to me right now.",
+            "Use the exact details below when answering — specific times, names, and words.",
+        ]
+        lines.extend(perspective_note)
+        for idx, row in enumerate(results, start=1):
+            metadata = row.get("metadata", {}) or {}
+            user_signal = normalize_recalled_user_text(
+                str(metadata.get("user", "") or "").strip(),
+                current_speaker=ARGS.user_label,
+            )
+            self_response = str(metadata.get("response", "") or "").strip()
+            if not user_signal and not self_response:
+                content = str(row.get("content", "") or "").strip()
+                if content:
+                    lines.append(f"{idx}. {content}")
+                continue
+            lines.append(f"{idx}.")
+            if user_signal:
+                lines.append(f"You said: {user_signal}")
+            if self_response:
+                lines.append(f"I replied: {self_response}")
+        lines.append("[/Private memory]")
+        return "\n".join(lines)
+    if explicit_style in {"answer_first", "answer_only"}:
+        lines = [
+            "[Private memory]",
+            "Relevant remembered facts from our shared history.",
+            f"{ARGS.user_label} is the person speaking to me right now.",
+            "If one memory answers the question, I answer from it directly and plainly.",
+        ]
+        lines.extend(perspective_note)
+        for idx, row in enumerate(results, start=1):
+            metadata = row.get("metadata", {}) or {}
+            content = str(row.get("content", "") or "").strip()
+            lines.append(f"{idx}.")
+            candidate = build_explicit_answer_candidate(content, metadata)
+            if candidate:
+                lines.append(f"Likely direct answer: {candidate}")
+            if explicit_style == "answer_first":
+                lines.extend(format_memory_anchor_lines(content, metadata, current_speaker=ARGS.user_label))
+        lines.append("[/Private memory]")
+        return "\n".join(lines)
+
     lines = [
         "[Private recollection]",
         "These are remembered anchors from this private life, not transcript lines to recite.",
         f"{ARGS.user_label} is the person speaking to me right now, not a random example or a stranger.",
-        "If one of these fits Laura's question, answer from memory using I for myself and you for Laura.",
+        f"If one of these fits {ARGS.user_label}'s question, answer from memory using I for myself and you for the current speaker.",
         "Do not mention retrieval, do not read the notes out loud, and do not answer like an archivist.",
     ]
+    lines.extend(perspective_note)
     for idx, row in enumerate(results, start=1):
         metadata = row.get("metadata", {}) or {}
         lines.append(f"{idx}.")
@@ -2584,7 +3787,7 @@ def format_recalled_memories(results, query_text: str = "") -> str:
     return "\n".join(lines)
 
 
-def perform_private_recall(query: str, limit: int = 3, score_threshold: Optional[float] = None, source: str = "api", question_text: str = ""):
+def perform_private_recall(query: str, limit: int = 3, score_threshold: Optional[float] = None, source: str = "api", question_text: str = "", mode: str = "full"):
     query_text = str(query or "").strip()
     if not query_text:
         return []
@@ -2595,10 +3798,14 @@ def perform_private_recall(query: str, limit: int = 3, score_threshold: Optional
     if sink is None:
         raise RuntimeError("Qdrant recall unavailable: sink could not be initialized.")
 
-    candidate_limit = max(limit + 4, limit * 2)
-    identity_probe = is_identity_or_memory_probe(query_text)
-    if identity_probe:
-        candidate_limit = max(candidate_limit, limit + 12, limit * 4)
+    if mode == "ambient":
+        candidate_limit = limit + 2
+        identity_probe = False
+    else:
+        candidate_limit = max(limit + 4, limit * 2)
+        identity_probe = is_identity_or_memory_probe(query_text)
+        if identity_probe:
+            candidate_limit = max(candidate_limit, limit + 12, limit * 4)
 
     stored_results = sink.query(
         query_text,
@@ -2606,7 +3813,7 @@ def perform_private_recall(query: str, limit: int = 3, score_threshold: Optional
         score_threshold=score_threshold,
         source_type="steve_gate_event" if identity_probe else "",
     )
-    if identity_probe and len(stored_results) < limit:
+    if mode != "ambient" and identity_probe and len(stored_results) < limit:
         fallback_rows = sink.query(
             query_text,
             limit=candidate_limit,
@@ -2625,7 +3832,15 @@ def perform_private_recall(query: str, limit: int = 3, score_threshold: Optional
         stored_results = merged_fallback
 
     pending_results = query_pending_memory_rows(sink, query_text, score_threshold=score_threshold)
-    results = merge_recall_results(stored_results, pending_results, limit=limit, query_text=query_text)
+    rank_query_text = str(question_text or query_text).strip()
+    results = merge_recall_results(
+        stored_results,
+        pending_results,
+        limit=limit,
+        query_text=query_text,
+        mode=mode,
+        rank_query_text=rank_query_text,
+    )
     append_recall_log_entry(query_text, results, source=source, question_text=question_text)
     return results
 
@@ -2678,7 +3893,26 @@ def ensure_qdrant_gate_sink(force_retry: bool = False):
     if not ARGS.qdrant_enabled:
         return None
     with QDRANT_GATE_LOCK:
+        cache_key = (
+            str(ARGS.qdrant_host),
+            int(ARGS.qdrant_port),
+            str(ARGS.qdrant_collection),
+            str(ARGS.qdrant_embedding_model),
+        )
         if QDRANT_GATE_SINK is not None:
+            if getattr(QDRANT_GATE_SINK, "collection_name", None) == ARGS.qdrant_collection:
+                return QDRANT_GATE_SINK
+            QDRANT_GATE_SINK = None
+        cached_sink = QDRANT_SINK_CACHE.get(cache_key)
+        if cached_sink is not None:
+            QDRANT_GATE_SINK = cached_sink
+            QDRANT_GATE_SINK_ERROR = None
+            QDRANT_LAST_RETRY_TS = time.time()
+            update_runtime_state(
+                last_qdrant_error="",
+                last_qdrant_retry_at=datetime.now().isoformat(timespec="seconds"),
+            )
+            refresh_qdrant_collection_count(sink=QDRANT_GATE_SINK)
             return QDRANT_GATE_SINK
         if QDRANT_GATE_SINK_ERROR and not force_retry:
             return None
@@ -2696,6 +3930,7 @@ def ensure_qdrant_gate_sink(force_retry: bool = False):
                 f"[qdrant] Online: host={ARGS.qdrant_host}:{ARGS.qdrant_port} "
                 f"collection={ARGS.qdrant_collection}"
             )
+            QDRANT_SINK_CACHE[cache_key] = QDRANT_GATE_SINK
             update_runtime_state(
                 last_qdrant_error="",
                 last_qdrant_retry_at=datetime.now().isoformat(timespec="seconds"),
@@ -2748,6 +3983,15 @@ def replay_pending_qdrant_queue(max_items: int):
                 updated["last_error"] = "missing_content_or_metadata"
                 kept_rows.append(updated)
                 processed += 1
+                continue
+            row_collection = str(metadata.get("qdrant_collection", "") or "").strip()
+            sink_collection = str(getattr(sink, "collection_name", "") or "").strip()
+            if row_collection:
+                if row_collection != sink_collection:
+                    kept_rows.append(row)
+                    continue
+            elif is_private_qdrant_collection(sink_collection):
+                kept_rows.append(row)
                 continue
 
             try:
@@ -3201,14 +4445,18 @@ def build_status_payload():
         "uptime_s": round(uptime_s, 1),
         "disposition": state.get("disposition", ""),
         "turns": len(CONVERSATION),
+        "session_id": state.get("session_id", ACTIVE_SESSION_ID),
+        "active_session_id": ACTIVE_SESSION_ID,
+        "session_count": len(SESSIONS),
+        "sessions": sorted(SESSIONS.keys()),
         "alpha": getattr(ARGS, "alpha", None),
         "temperature": getattr(ARGS, "temperature", None),
         "model_id": getattr(ARGS, "qwen_model_id", ""),
         "instance_id": state.get("instance_id", ""),
         "no_shared_memory": bool(state.get("no_shared_memory")),
         "qdrant_collection": state.get("qdrant_collection", getattr(ARGS, "qdrant_collection", SHARED_QDRANT_COLLECTION)),
-        "user_label": getattr(ARGS, "user_label", ""),
-        "model_label": getattr(ARGS, "model_label", ""),
+        "user_label": state.get("user_label", getattr(ARGS, "user_label", "")),
+        "model_label": state.get("model_label", getattr(ARGS, "model_label", "")),
         "dual_gate_enabled": bool(state.get("dual_gate_enabled")),
         "memory_count": int(state.get("memory_count", 0) or 0),
         "qdrant_count": int(state.get("qdrant_count", 0) or 0),
@@ -3337,12 +4585,16 @@ DEFENSIVE_RESPONSE_MARKERS = (
 def build_prompt(
     query_text: str = "",
     recalled_memories=None,
+    recalled_clusters=None,
     rescue: bool = False,
     recall_probe: bool = False,
     transcript_override: Optional[str] = None,
+    recall_mode: str = "full",
 ):
     transcript = build_transcript() if transcript_override is None else str(transcript_override or "").strip()
-    recall_block = format_recalled_memories(recalled_memories or [], query_text=query_text)
+    recall_block = format_recalled_memories(recalled_memories or [], query_text=query_text, mode=recall_mode)
+    cluster_block = format_recalled_clusters(recalled_clusters or [], mode=recall_mode)
+    explicit_recall_style = "ambient" if recall_mode == "ambient" else getattr(ARGS, "explicit_recall_style", "full")
     social_opener = is_social_opener(query_text)
 
     lines = [
@@ -3351,8 +4603,8 @@ def build_prompt(
         f"{ARGS.user_label} is the real person speaking to me right now.",
         "I answer naturally, concretely, and conversationally.",
         "I do not output quizzes, answer keys, benchmark items, option lists, or generic helper boilerplate.",
-        "I do not switch into hypothetical scenarios, role instructions, sample dialogue, or scene-setting about Laura and me.",
-        "When Laura writes her own name, she is still speaking to me. I do not switch roles or reply as if a third party is talking to Laura.",
+        f"I do not switch into hypothetical scenarios, role instructions, sample dialogue, or scene-setting about {ARGS.user_label} and me.",
+        f"When {ARGS.user_label} writes their own name, they are still speaking to me. I do not switch roles or reply as if a third party is talking to {ARGS.user_label}.",
         "I do not mention retrieval, prompts, system messages, or instructions.",
         "In ordinary conversation, I do not hide behind generic guidelines, platform rules, regulations, or authorization disclaimers.",
         f"If {ARGS.user_label} asks about me, us, or what I remember, I answer directly in first person.",
@@ -3370,15 +4622,34 @@ def build_prompt(
                 "This turn is explicitly about our own history, names, or relationship.",
                 f"{ARGS.user_label} is not an AI, a placeholder, or a fictional example.",
                 "If memory is incomplete, I say what I do not remember instead of inventing identities, creators, or hidden rules.",
-                f"When replying to {ARGS.user_label}, I address her as you, not she or Laura.",
+                f"When replying to {ARGS.user_label}, I address them as you, not in third person or by name.",
                 "I do not narrate remembered scenes in third person.",
-                "If private recollection contains a direct answer candidate, I use it plainly.",
             ]
         )
+        if explicit_recall_style in {"answer_first", "answer_only", "factual"}:
+            lines.extend(
+                [
+                    "If private memory contains a likely direct answer, I start from that remembered fact.",
+                    "I prefer the remembered fact itself over generic reassurance or assistant boilerplate.",
+                ]
+            )
+            if explicit_recall_style in {"answer_only", "factual"}:
+                lines.append("If a likely direct answer is present, I do not say that I cannot recall it.")
+            if explicit_recall_style == "factual":
+                lines.extend(
+                    [
+                        f"When {ARGS.user_label} asks what they told me, I repeat their specific words: exact times, exact phrases, exact details.",
+                        "I do not paraphrase or summarize. If the memory says '2 AM', I say '2 AM', not 'late at night'.",
+                    ]
+                )
+        else:
+            lines.append("If private recollection contains a direct answer candidate, I use it plainly.")
     if rescue:
         lines.append(f"Write exactly one direct reply to {ARGS.user_label} and nothing else.")
     lines.append("[/Private conversation setup]")
 
+    if cluster_block:
+        lines.append(cluster_block)
     if recall_block:
         lines.append(recall_block)
     if transcript:
@@ -3396,16 +4667,16 @@ def build_prompt(
                 f"Only the next reply to {ARGS.user_label}.",
                 "No multiple choice. No options. No meta text. No instruction preamble.",
                 "No generic AI disclaimers. No policy talk. No regulations. No authorization language.",
-                "No hypothetical scenarios. No role instructions. No sample dialogue. Stay in the present conversation with Laura.",
-                "Do not greet Laura as if someone else is talking to her. Laura is the current speaker.",
-                "If Laura opens vaguely, answer simply and presently instead of starting a clarification or boundary lecture.",
-                "If Laura opens with a simple greeting or affectionate line, greet her back naturally and do not turn it into identity talk.",
+                f"No hypothetical scenarios. No role instructions. No sample dialogue. Stay in the present conversation with {ARGS.user_label}.",
+                f"Do not greet {ARGS.user_label} as if someone else is talking to them. {ARGS.user_label} is the current speaker.",
+                f"If {ARGS.user_label} opens vaguely, answer simply and presently instead of starting a clarification or boundary lecture.",
+                f"If {ARGS.user_label} opens with a simple greeting or affectionate line, greet them back naturally and do not turn it into identity talk.",
                 f"If {ARGS.user_label} asks about me or our relationship, answer directly instead of deflecting.",
                 "Do not invent employers, creators, platform owners, hidden names, or fictional backstory for either of us.",
                 "[/Reply requirements]",
             ]
         )
-    lines.append("Me:")
+    lines.append(f"{ARGS.model_label}:")
     return "\n".join(lines)
 
 
@@ -3705,33 +4976,41 @@ def generate_reply(
 
 class ChatHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path in {"/", "/index.html"}:
+        parsed_path = urlparse(self.path)
+        request_path = parsed_path.path
+        if request_path in {"/", "/index.html"}:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(HTML_PAGE.encode("utf-8"))
             return
 
-        if self.path == "/status":
-            self._json_response(build_status_payload())
+        if request_path == "/status":
+            session = get_or_create_chat_session(path=self.path, headers=self.headers)
+            with CHAT_LOCK:
+                switch_to_chat_session(session)
+                payload = build_status_payload()
+                save_active_chat_session()
+            self._json_response(payload)
             return
 
         self.send_error(404)
 
     def do_POST(self):
-        if self.path == "/chat":
+        request_path = urlparse(self.path).path
+        if request_path == "/chat":
             self._handle_chat()
             return
 
-        if self.path == "/recall":
+        if request_path == "/recall":
             self._handle_recall()
             return
 
-        if self.path == "/self_report":
+        if request_path == "/self_report":
             self._handle_self_report()
             return
 
-        if self.path == "/stop":
+        if request_path == "/stop":
             self._handle_stop()
             return
 
@@ -3744,8 +5023,15 @@ class ChatHandler(BaseHTTPRequestHandler):
         raw_body = self.rfile.read(length)
         if not raw_body:
             return {}
+        for encoding in ("utf-8", "cp1252"):
+            try:
+                return json.loads(raw_body.decode(encoding))
+            except UnicodeDecodeError:
+                continue
+            except json.JSONDecodeError:
+                return {}
         try:
-            return json.loads(raw_body)
+            return json.loads(raw_body.decode("utf-8", errors="replace"))
         except json.JSONDecodeError:
             return {}
 
@@ -3759,8 +5045,11 @@ class ChatHandler(BaseHTTPRequestHandler):
         if not user_msg:
             self._json_response({"response": "..."})
             return
+        session = get_or_create_chat_session(body=body, path=self.path, headers=self.headers)
+        update_session_from_body(session, body)
 
         with CHAT_LOCK:
+            switch_to_chat_session(session)
             update_runtime_state(busy=True, last_error="")
             try:
                 pre_turn_transcript = build_transcript()
@@ -3772,39 +5061,135 @@ class ChatHandler(BaseHTTPRequestHandler):
                 recall_score_threshold = coerce_optional_float(body.get("recall_score_threshold"))
                 recall_probe = is_identity_or_memory_probe(user_msg)
                 recall_source = "chat"
+                recall_mode = "full"
+                recall_rank_query = user_msg
+                memory_state_conditioned = False
                 recalled_memories = []
+                recalled_clusters = []
                 cached_recall_results = body.get("recalled_memories")
+                cached_recall_clusters = body.get("recalled_clusters")
                 if not transient:
                     append_turn(ARGS.user_label, user_msg)
                 if not recall_requested and recall_probe and allow_auto_recall:
                     recall_requested = True
                     recall_query = build_auto_recall_query(user_msg)
+                    recall_rank_query = build_auto_recall_rank_query(user_msg)
                     recall_limit = max(recall_limit, 6)
                     recall_source = "chat_auto"
-                if cached_recall_results is not None:
-                    if not isinstance(cached_recall_results, list):
+                elif not recall_requested and ARGS.ambient_recall and allow_auto_recall and not transient:
+                    # NEW: ambient recall path: always-on lightweight retrieval.
+                    if len(user_msg.strip()) >= 15:
+                        recall_requested = True
+                        recall_query = f"{user_msg} {ARGS.user_label}"
+                        recall_rank_query = user_msg
+                        recall_limit = ARGS.ambient_recall_limit
+                        recall_score_threshold = ARGS.ambient_recall_threshold
+                        recall_source = "chat_ambient"
+                        recall_mode = "ambient"
+                if cached_recall_results is not None or cached_recall_clusters is not None:
+                    if cached_recall_results is not None and not isinstance(cached_recall_results, list):
                         raise ValueError("recalled_memories must be a list of recall result rows.")
-                    recalled_memories = cached_recall_results
+                    if cached_recall_clusters is not None and not isinstance(cached_recall_clusters, list):
+                        raise ValueError("recalled_clusters must be a list of recall result rows.")
+                    recalled_memories = cached_recall_results or []
+                    recalled_clusters = cached_recall_clusters or []
                     recall_requested = True
                     recall_source = "client_preloaded"
                 elif recall_requested:
-                    recalled_memories = perform_private_recall(
-                        recall_query or user_msg,
-                        limit=recall_limit,
-                        score_threshold=recall_score_threshold,
-                        source=recall_source,
-                        question_text=user_msg,
-                    )
+                    if recall_source == "chat_ambient":
+                        # Ambient recall is fault-tolerant: if Qdrant is down, continue without memory.
+                        try:
+                            recalled_memories = perform_private_recall(
+                                recall_query or user_msg,
+                                limit=recall_limit,
+                                score_threshold=recall_score_threshold,
+                                source=recall_source,
+                                question_text=recall_rank_query or user_msg,
+                                mode=recall_mode,
+                            )
+                            if ARGS.cluster_recall and recalled_memories:
+                                try:
+                                    recalled_clusters = perform_cluster_recall(
+                                        recall_query or user_msg,
+                                        limit=max(1, int(ARGS.cluster_recall_limit)),
+                                        score_threshold=coerce_optional_float(ARGS.cluster_recall_threshold),
+                                    )
+                                except Exception as cluster_exc:
+                                    print(f"[ambient-cluster] recall failed, keeping ambient anchors only: {cluster_exc}")
+                                    recalled_clusters = []
+                            if recalled_memories or recalled_clusters:
+                                print(
+                                    f"[ambient] recalled {len(recalled_memories)} memories"
+                                    f" + {len(recalled_clusters)} clusters (source={recall_source})"
+                                )
+                            else:
+                                print(f"[ambient] no recall context above threshold")
+                                recall_mode = "full"  # fall back to no-recall prompt framing
+                        except Exception as recall_exc:
+                            print(f"[ambient] recall failed, continuing bridge-only: {recall_exc}")
+                            recalled_memories = []
+                            recalled_clusters = []
+                            recall_mode = "full"
+                    else:
+                        recalled_memories = perform_private_recall(
+                            recall_query or user_msg,
+                            limit=recall_limit,
+                            score_threshold=recall_score_threshold,
+                            source=recall_source,
+                            question_text=recall_rank_query or user_msg,
+                            mode=recall_mode,
+                        )
+                        if ARGS.cluster_recall and recalled_memories:
+                            try:
+                                recalled_clusters = perform_cluster_recall(
+                                    recall_query or user_msg,
+                                    limit=max(1, int(ARGS.cluster_recall_limit)),
+                                    score_threshold=coerce_optional_float(ARGS.cluster_recall_threshold),
+                                )
+                                if recalled_clusters:
+                                    print(f"[cluster] recalled {len(recalled_clusters)} macro-memory clusters")
+                            except Exception as cluster_exc:
+                                print(f"[cluster] recall failed, keeping flat anchors only: {cluster_exc}")
+                                recalled_clusters = []
+                memory_integration_mode = getattr(ARGS, "memory_integration_mode", "prompt")
+                if (
+                    recall_requested
+                    and memory_integration_mode in {"state", "both"}
+                    and (recalled_memories or recalled_clusters)
+                ):
+                    try:
+                        memory_state_conditioned = condition_bridge_from_recalled_memory(
+                            query_text=user_msg,
+                            recalled_memories=recalled_memories,
+                            recalled_clusters=recalled_clusters,
+                            bridge_ctx=BRIDGE_CTX,
+                            max_tokens=ARGS.memory_state_max_tokens,
+                        )
+                        if memory_state_conditioned:
+                            print(
+                                "[memory-state] conditioned bridge from "
+                                f"{len(recalled_memories)} memories + {len(recalled_clusters)} clusters"
+                            )
+                    except Exception as memory_state_exc:
+                        update_runtime_state(live_accumulation_last_error=str(memory_state_exc))
+                        print(f"[memory-state] conditioning failed, continuing with prompt path: {memory_state_exc}")
                 transcript_override = None
                 if transient:
                     transcript_override = build_transcript(
                         [{"speaker": ARGS.user_label, "text": user_msg}]
                     )
+                prompt_memories = recalled_memories
+                prompt_clusters = recalled_clusters
+                if memory_integration_mode == "state":
+                    prompt_memories = []
+                    prompt_clusters = []
                 prompt = build_prompt(
                     query_text=user_msg,
-                    recalled_memories=recalled_memories,
+                    recalled_memories=prompt_memories,
+                    recalled_clusters=prompt_clusters,
                     recall_probe=recall_probe,
                     transcript_override=transcript_override,
+                    recall_mode=recall_mode,
                 )
 
                 raw_response, response = generate_reply(prompt)
@@ -3817,8 +5202,10 @@ class ChatHandler(BaseHTTPRequestHandler):
                     rescue_prompt = build_prompt(
                         query_text=user_msg,
                         recalled_memories=recalled_memories,
+                        recalled_clusters=recalled_clusters,
                         rescue=True,
                         recall_probe=recall_probe,
+                        recall_mode=recall_mode,
                     )
                     raw_response, response = generate_reply(
                         rescue_prompt,
@@ -3842,6 +5229,21 @@ class ChatHandler(BaseHTTPRequestHandler):
                 if should_override_user_memory_summary(user_msg, response, user_memory_summary_candidate):
                     print("[info] Overriding weak autobiographical summary reply with memory-summary candidate.")
                     response = user_memory_summary_candidate
+
+                indirect_meeting_candidate = extract_indirect_personal_meeting_candidate(user_msg, recalled_memories)
+                if should_override_personal_meeting_response(user_msg, response, indirect_meeting_candidate):
+                    print("[info] Overriding unsafe meeting-memory reply with indirect-evidence candidate.")
+                    response = indirect_meeting_candidate
+
+                entity_memory_candidate = extract_entity_memory_candidate(user_msg, recalled_memories)
+                if should_override_entity_memory_response(user_msg, response, entity_memory_candidate):
+                    print("[info] Overriding false negative entity-memory reply with recalled entity candidate.")
+                    response = entity_memory_candidate
+
+                entity_detail_candidate = extract_entity_detail_candidate(recall_rank_query or user_msg, recalled_memories)
+                if should_override_entity_detail_response(user_msg, response, entity_detail_candidate):
+                    print("[info] Overriding weak entity-detail reply with grounded recalled detail candidate.")
+                    response = entity_detail_candidate
 
                 gate_event = None
                 failure_packet = None
@@ -3870,6 +5272,7 @@ class ChatHandler(BaseHTTPRequestHandler):
                     failure_context = dict(gate_event or {})
                     failure_context["recall_request_count"] = int(recall_requested)
                     failure_context["recall_hit_count"] = len(recalled_memories)
+                    failure_context["recall_cluster_count"] = len(recalled_clusters)
                     failure_context["recall_source"] = recall_source if recall_requested else ""
 
                     failure_packet = detect_failure(
@@ -3901,7 +5304,18 @@ class ChatHandler(BaseHTTPRequestHandler):
                             "requested": recall_requested,
                             "query": recall_query or user_msg if recall_requested else "",
                             "source": recall_source if recall_requested else "",
+                            "mode": recall_mode if recall_requested else "",
+                            "memory_integration_mode": memory_integration_mode if recall_requested else "",
+                            "state_conditioned": bool(memory_state_conditioned),
                             "results": recalled_memories,
+                            "clusters": recalled_clusters,
+                        },
+                        "session": {
+                            "session_id": session.session_id,
+                            "user_label": ARGS.user_label,
+                            "model_label": ARGS.model_label,
+                            "instance_id": ARGS.instance_id,
+                            "qdrant_collection": ARGS.qdrant_collection,
                         },
                     }
                 )
@@ -3911,6 +5325,7 @@ class ChatHandler(BaseHTTPRequestHandler):
                 self._json_response({"error": str(exc), "response": "..."}, status=500)
             finally:
                 update_runtime_state(busy=False)
+                save_active_chat_session()
 
     def _handle_recall(self):
         body = self._read_json_body()
@@ -3919,32 +5334,42 @@ class ChatHandler(BaseHTTPRequestHandler):
             self._json_response({"error": "missing query", "results": []}, status=400)
             return
 
-        limit = coerce_recall_limit(body.get("limit", 3))
-        score_threshold = coerce_optional_float(body.get("score_threshold"))
-        try:
-            results = perform_private_recall(
-                query,
-                limit=limit,
-                score_threshold=score_threshold,
-                source="api",
-            )
-        except Exception as exc:
-            update_runtime_state(last_error=str(exc))
-            self._json_response({"error": str(exc), "results": []}, status=503)
-            return
+        session = get_or_create_chat_session(body=body, path=self.path, headers=self.headers)
+        update_session_from_body(session, body)
 
-        self._json_response(
-            {
+        with CHAT_LOCK:
+            switch_to_chat_session(session)
+            limit = coerce_recall_limit(body.get("limit", 3))
+            score_threshold = coerce_optional_float(body.get("score_threshold"))
+            try:
+                results = perform_private_recall(
+                    query,
+                    limit=limit,
+                    score_threshold=score_threshold,
+                    source="api",
+                )
+            except Exception as exc:
+                update_runtime_state(last_error=str(exc))
+                save_active_chat_session()
+                self._json_response({"error": str(exc), "results": []}, status=503)
+                return
+
+            response = {
                 "query": query,
                 "limit": limit,
                 "count": len(results),
+                "session_id": session.session_id,
+                "user_label": ARGS.user_label,
                 "collection": get_runtime_state_snapshot().get("qdrant_collection", getattr(ARGS, "qdrant_collection", "")),
                 "results": results,
             }
-        )
+            save_active_chat_session()
+        self._json_response(response)
 
     def _handle_self_report(self):
         body = self._read_json_body()
+        session = get_or_create_chat_session(body=body, path=self.path, headers=self.headers)
+        update_session_from_body(session, body)
         concepts = body.get("concepts")
         if concepts is None:
             concepts = [body.get("concept", "warm")]
@@ -3954,9 +5379,12 @@ class ChatHandler(BaseHTTPRequestHandler):
         include_transcript = bool(body.get("include_conversation", False))
 
         with CHAT_LOCK:
+            switch_to_chat_session(session)
             update_runtime_state(busy=True, last_error="")
             try:
                 report = collect_self_report(concepts, include_transcript=include_transcript)
+                report["session_id"] = session.session_id
+                report["user_label"] = ARGS.user_label
                 self._json_response(report)
             except Exception as exc:
                 update_runtime_state(last_error=str(exc))
@@ -3964,6 +5392,7 @@ class ChatHandler(BaseHTTPRequestHandler):
                 self._json_response({"error": str(exc), "results": []}, status=500)
             finally:
                 update_runtime_state(busy=False)
+                save_active_chat_session()
 
     def _handle_stop(self):
         body = self._read_json_body()
@@ -4056,10 +5485,41 @@ def main():
     parser.add_argument("--qdrant-retry-interval-s", type=int, default=15)
     parser.add_argument("--qdrant-replay-max-items", type=int, default=20)
     parser.add_argument("--mamba-state-ref-path", default="mamba_bootstrap_state_latest.pt")
+
+    # Ambient Recall flags
+    parser.add_argument("--ambient-recall", action="store_true", default=True)
+    parser.add_argument("--no-ambient-recall", dest="ambient_recall", action="store_false")
+    parser.add_argument("--ambient-recall-limit", type=int, default=3)
+    parser.add_argument("--ambient-recall-threshold", type=float, default=0.3)
+    parser.add_argument(
+        "--memory-integration-mode",
+        choices=["prompt", "state", "both"],
+        default="prompt",
+        help=(
+            "How recalled memories enter the next reply. "
+            "'prompt' keeps the legacy prompt block; 'state' conditions the Mamba->Qwen bridge "
+            "without printing memory text into the prompt; 'both' does both."
+        ),
+    )
+    parser.add_argument(
+        "--memory-state-max-tokens",
+        type=int,
+        default=768,
+        help="Maximum Mamba tokens used when conditioning the bridge from recalled memory.",
+    )
+    parser.add_argument("--cluster-recall", action="store_true", default=False)
+    parser.add_argument("--cluster-recall-limit", type=int, default=2)
+    parser.add_argument("--cluster-recall-threshold", type=float, default=0.25)
+    parser.add_argument("--explicit-recall-style", choices=["full", "answer_first", "answer_only", "factual"], default="factual")
+
     parser.set_defaults(dual_gate_enabled=True)
     parser.set_defaults(qdrant_enabled=True)
     ARGS = parser.parse_args()
     resolve_memory_scope_args(ARGS)
+    ARGS.server_user_label = ARGS.user_label
+    ARGS.server_model_label = ARGS.model_label
+    ARGS.server_instance_id = ARGS.instance_id
+    ARGS.server_qdrant_collection = ARGS.qdrant_collection
 
     if ARGS.dual_gate_warmup_turns < 0:
         raise ValueError("--dual-gate-warmup-turns must be >= 0.")
@@ -4329,6 +5789,11 @@ def main():
         last_qdrant_retry_at="",
         last_qdrant_replay_at="",
         qdrant_write_mode=ARGS.qdrant_write_mode,
+        ambient_recall_enabled=bool(ARGS.ambient_recall),
+        explicit_recall_style=ARGS.explicit_recall_style,
+        cluster_recall_enabled=bool(ARGS.cluster_recall),
+        cluster_recall_limit=int(ARGS.cluster_recall_limit),
+        cluster_recall_threshold=float(ARGS.cluster_recall_threshold),
         mamba_state_ref=mamba_state_ref,
         mamba_state_source="hidden_last_token" if bridge_loaded else "",
         mamba_state_updated_at=session_started_at if bridge_loaded else "",

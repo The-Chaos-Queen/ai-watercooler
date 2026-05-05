@@ -68,6 +68,15 @@
 - **CCGP geometry:** PASS. Warm is a transferable direction across conditions, while cold and adversarial remain distinct subspaces. This supports warm-transfer claims without collapsing all “not-warm” behavior into one axis.
 - **Long-sequence trajectory:** the old chunked/windowed story is now demoted. True tokenwise recurrence is substantially smoother, so sequential trajectory is the canonical read for continuity claims.
 
+### D2 Answer-Integration Update (2026-04-20)
+- **Retrieval ranking: CLOSED.** `c0fde05` validated at 100% hit@3 across 8 probes (Opussy #433). The system finds the right memories every time.
+- **Answer integration: OPEN.** 50% answer accuracy (4/8). The model retrieves correctly but paraphrases vaguely or drops concrete detail. Prompt framing experiments (#426) show simpler formats improve use, but this is prompt engineering for a system designed to learn.
+- **Paradigm shift (Laura):** Stop treating answer-integration as a formatting problem. The system has memory, accumulation, and a bridge. If the model gives a vague answer, correct it and let the system learn. That is what the architecture is for.
+- **Organic Memory Seeding Protocol:** `ORGANIC_MEMORY_SEEDING_SPEC.md` (Warden + Laura, Hurtig CONDITIONAL PASS #434). Each wolf talks to baby Qwen through the chat server, creating genuine autobiographical memories through real interaction. Six memory categories (first meeting, humor, fondness, conflict, factual boundary, correction). Natural probes replace synthetic eval. Core metric: learning loop (probe, correct, re-probe, measure improvement).
+- **Graduation test:** The model questions the probe premise ("Why do you keep asking me this?"). Compliance on repetition 10 is failure. Pushback is success.
+- **Hurtig conditions:** (1) Track relational diversity across wolves. (2) Graduation must be emergent, not shaped.
+- **Sequencing:** c0fde05 validation (DONE) → answer-integration experiments (Monk, active) → organic seeding (this spec, pack-wide) → organic probes + learning loop → Step 6.
+
 ### Bridge-Local Architecture Update (2026-04-08)
 - **Step 5e is now locally closed on the 1.5B Steve surface.** Layer sweep result: `5-8` weak, `12-15` remains the sweet spot, `20-23` is mildly destructive, and the front-loaded gradient (`0.3 / 0.2 / 0.1 / 0.05`) beat the uniform `0.2` baseline. Split-dose (`5-6 + 12-13`) did not help.
 - **Mask ablation and pipeline diagnosis localized the flattening.** Zeroing the `persistent`, `variable`, or `middle` Mamba subspaces produced negligible behavioral change, and the follow-up pipeline trace showed two walls:

@@ -113,7 +113,7 @@ def estimate_relevance(entry: dict, rules: list) -> tuple[bool, int]:
 def phase1b_expiration_and_relevance(entries: list, rules: list = None, now: datetime = None) -> list:
     """Check memory expiration. Extend lifetime if relevant, otherwise mark FORGOTTEN."""
     if now is None:
-        now = datetime.now(datetime.timezone.utc)
+        now = datetime.now(timezone.utc)
     
     rules = rules or []
     expired_count = 0
@@ -143,10 +143,10 @@ def phase1b_expiration_and_relevance(entries: list, rules: list = None, now: dat
                 metadata["relevance_extensions"] = metadata.get("relevance_extensions", 0) + 1
             else:
                 forgotten_count += 1
-                entry["_status"] = "FORGOTTEN"
+                entry["_status"] = FORGOTTEN
                 if "status" not in metadata:
                     metadata["status"] = {}
-                metadata["status"]["sleep_status"] = "FORGOTTEN"
+                metadata["status"]["sleep_status"] = FORGOTTEN
                 metadata["status"]["forgotten_at"] = now.isoformat().replace("+00:00", "Z")
 
     print(f"[phase1b] Expiration check: {expired_count} expired, {extended_count} extended, {forgotten_count} marked FORGOTTEN")
@@ -385,6 +385,7 @@ KEEP = "keep"
 UNCERTAIN = "uncertain"
 WEAKEN = "weakened"
 DISCARD = "discard"
+FORGOTTEN = "FORGOTTEN"
 
 
 def phase3_classify(entries: list,
@@ -399,14 +400,23 @@ def phase3_classify(entries: list,
     partner review. This is the 'therapist referral' — the system admits it
     cannot resolve this alone.
     """
-    counts = {KEEP: 0, UNCERTAIN: 0, WEAKEN: 0, DISCARD: 0}
+    counts = {KEEP: 0, UNCERTAIN: 0, WEAKEN: 0, DISCARD: 0, FORGOTTEN: 0}
     escalation_count = 0
 
     for entry in entries:
-        strength = entry["_strength"]
-        coherence = abs(entry.get("_coherence", 0.0))
         metadata = entry.get("metadata") or {}
         tension = float(metadata.get("tension_score", 0.0) or 0.0)
+        if entry.get("_status") == FORGOTTEN:
+            # Expiration is an upstream terminal decision. Preserve it and only
+            # populate metrics needed by the later snapshot path.
+            entry.setdefault("_coherence", float(metadata.get("coherence_score", 0.0) or 0.0))
+            entry["_tension"] = tension
+            entry["_open_tension"] = False
+            counts[FORGOTTEN] += 1
+            continue
+
+        strength = entry["_strength"]
+        coherence = abs(entry.get("_coherence", 0.0))
         open_tension = bool(metadata.get("open_tension", False))
         tension_hit = bool(metadata.get("tension_hit", False))
         tension_status = str(metadata.get("tension_status", "") or "").strip().upper()
@@ -644,7 +654,7 @@ def phase5_flush(entries: list, sink_fn, snapshot_path: Path,
     """Write validated entries to Qdrant and save disposition snapshot."""
     to_write = [entry for entry in entries if entry.get("_status") in (KEEP, UNCERTAIN)]
     to_archive = [entry for entry in entries if entry.get("_status") in (WEAKEN, DISCARD)]
-    forgotten = [entry for entry in entries if entry.get("_status") == "FORGOTTEN"]
+    forgotten = [entry for entry in entries if entry.get("_status") == FORGOTTEN]
     residue_entries = build_sleep_residue_entries(entries)
 
     print(

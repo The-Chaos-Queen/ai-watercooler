@@ -11,6 +11,8 @@ $defaultTemperature = 0.7
 $defaultQwenModelId = "Qwen/Qwen2.5-7B"
 $defaultTargetLayers = ""
 $defaultQdrantWriteMode = "pending"
+$defaultUserLabel = "User"
+$defaultModelLabel = "Me"
 $defaultDualGateEnabled = $true
 $defaultDualGateWarmupTurns = 3
 $defaultDualGateSalienceQuantile = 0.75
@@ -19,12 +21,15 @@ $defaultDualGateSupportedTensionEnabled = $false
 $defaultDualGateTensionSalienceSupportRatio = 0.55
 $defaultEpisodeIndex = 2
 $defaultBlindDispositionUi = $false
+$defaultLiveAccumulation = $false
 $culture = [System.Globalization.CultureInfo]::InvariantCulture
 $alpha = $defaultAlpha
 $temperature = $defaultTemperature
 $qwenModelId = $defaultQwenModelId
 $targetLayers = $defaultTargetLayers
 $qdrantWriteMode = $defaultQdrantWriteMode
+$userLabel = $defaultUserLabel
+$modelLabel = $defaultModelLabel
 $dualGateEnabled = $defaultDualGateEnabled
 $dualGateWarmupTurns = $defaultDualGateWarmupTurns
 $dualGateSalienceQuantile = $defaultDualGateSalienceQuantile
@@ -33,8 +38,19 @@ $dualGateSupportedTensionEnabled = $defaultDualGateSupportedTensionEnabled
 $dualGateTensionSalienceSupportRatio = $defaultDualGateTensionSalienceSupportRatio
 $episodeIndex = $defaultEpisodeIndex
 $blindDispositionUi = $defaultBlindDispositionUi
+$liveAccumulation = $defaultLiveAccumulation
 
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+
+function ConvertTo-BashArg {
+    param([AllowNull()][string]$Value)
+
+    if ($null -eq $Value) {
+        return "''"
+    }
+
+    return "'" + ($Value -replace "'", "'`"`'`"`'") + "'"
+}
 
 $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:sszzz"
 Add-Content -Path $logPath -Value "[$timestamp] starting MoCoP Steve chat task"
@@ -66,6 +82,22 @@ if (Test-Path $configPath) {
                 $qdrantWriteMode = $rawQdrantWriteMode
             } else {
                 Add-Content -Path $logPath -Value "[$timestamp] invalid qdrant_write_mode in config, using default: $rawQdrantWriteMode"
+            }
+        }
+        if ($null -ne $config.user_label -and "$($config.user_label)".Trim()) {
+            $rawUserLabel = "$($config.user_label)".Trim()
+            if ($rawUserLabel -match "[`r`n]") {
+                Add-Content -Path $logPath -Value "[$timestamp] invalid user_label in config, using default: contains newline"
+            } else {
+                $userLabel = $rawUserLabel
+            }
+        }
+        if ($null -ne $config.model_label -and "$($config.model_label)".Trim()) {
+            $rawModelLabel = "$($config.model_label)".Trim()
+            if ($rawModelLabel -match "[`r`n]") {
+                Add-Content -Path $logPath -Value "[$timestamp] invalid model_label in config, using default: contains newline"
+            } else {
+                $modelLabel = $rawModelLabel
             }
         }
         if ($null -ne $config.temperature -and "$($config.temperature)".Trim()) {
@@ -155,6 +187,13 @@ if (Test-Path $configPath) {
                 Add-Content -Path $logPath -Value "[$timestamp] invalid blind_disposition_ui in config, using default: $($config.blind_disposition_ui)"
             }
         }
+        if ($null -ne $config.live_accumulation) {
+            try {
+                $liveAccumulation = [System.Convert]::ToBoolean($config.live_accumulation)
+            } catch {
+                Add-Content -Path $logPath -Value "[$timestamp] invalid live_accumulation in config, using default: $($config.live_accumulation)"
+            }
+        }
     } catch {
         Add-Content -Path $logPath -Value "[$timestamp] failed to read config, using default alpha: $($_.Exception.Message)"
     }
@@ -178,9 +217,11 @@ cmd /c "netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=78
 Add-Content -Path $logPath -Value "[$timestamp] portproxy -> $($wslIp):7860"
 Add-Content -Path $logPath -Value "[$timestamp] chat alpha -> $alphaArg"
 Add-Content -Path $logPath -Value "[$timestamp] chat model -> $qwenModelId"
+Add-Content -Path $logPath -Value "[$timestamp] prompt labels -> $userLabel / $modelLabel"
 Add-Content -Path $logPath -Value "[$timestamp] chat temperature -> $temperatureArg"
 Add-Content -Path $logPath -Value "[$timestamp] chat episode_index -> $episodeIndexArg"
 Add-Content -Path $logPath -Value "[$timestamp] chat blind_disposition_ui -> $blindDispositionUi"
+Add-Content -Path $logPath -Value "[$timestamp] chat live_accumulation -> $liveAccumulation"
 if ($targetLayers) {
     Add-Content -Path $logPath -Value "[$timestamp] chat target_layers -> $targetLayers"
 }
@@ -195,7 +236,7 @@ if (-not $dualGateEnabled) {
 
 $targetLayersSwitch = ""
 if ($targetLayers) {
-    $targetLayersSwitch = " --target-layers $targetLayers"
+    $targetLayersSwitch = " --target-layers $(ConvertTo-BashArg $targetLayers)"
 }
 
 $supportedTensionSwitch = ""
@@ -208,7 +249,17 @@ if ($blindDispositionUi) {
     $blindDispositionSwitch = " --blind-disposition-ui"
 }
 
-$pythonCommand = "cd /mnt/c/Users/tikii/bridge && exec /root/mocop_venv/bin/python3 -X utf8 chat_server.py --qwen-model-id $qwenModelId --temperature $temperatureArg --alpha $alphaArg --episode-index $episodeIndexArg --dual-gate-warmup-turns $dualGateWarmupArg --dual-gate-salience-quantile $dualGateSalienceArg --dual-gate-surprise-quantile $dualGateSurpriseArg --qdrant-write-mode $qdrantWriteMode --max-new-tokens 200 --host 0.0.0.0 --port 7860$dualGateSwitch$supportedTensionSwitch$targetLayersSwitch$blindDispositionSwitch"
+$liveAccumulationSwitch = ""
+if ($liveAccumulation) {
+    $liveAccumulationSwitch = " --live-accumulation"
+}
+
+$qwenModelIdArg = ConvertTo-BashArg $qwenModelId
+$qdrantWriteModeArg = ConvertTo-BashArg $qdrantWriteMode
+$userLabelArg = ConvertTo-BashArg $userLabel
+$modelLabelArg = ConvertTo-BashArg $modelLabel
+
+$pythonCommand = "cd /mnt/c/Users/tikii/bridge && exec /root/mocop_venv/bin/python3 -X utf8 chat_server.py --qwen-model-id $qwenModelIdArg --temperature $temperatureArg --alpha $alphaArg --episode-index $episodeIndexArg --dual-gate-warmup-turns $dualGateWarmupArg --dual-gate-salience-quantile $dualGateSalienceArg --dual-gate-surprise-quantile $dualGateSurpriseArg --qdrant-write-mode $qdrantWriteModeArg --user-label $userLabelArg --model-label $modelLabelArg --max-new-tokens 200 --host 0.0.0.0 --port 7860$dualGateSwitch$supportedTensionSwitch$targetLayersSwitch$blindDispositionSwitch$liveAccumulationSwitch"
 
 $wslArgs = @(
     "-u", "root",
