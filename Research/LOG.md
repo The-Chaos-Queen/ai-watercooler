@@ -133,4 +133,16 @@ All five cross-linked into `INDEX.md` under a new top-level "wiki pages" section
 
 **Open follow-ons:**
 - Structural reorganization (Karpathy-pattern: PDFs → `Research/papers/`, MDs → `Research/papers_md/`) deferred — `converted_md/` is now consistent with renamed PDFs, so the move can happen as a single sweep when Laura wants
-- 2 orphan dirs from earlier rounds still present: `4billionyearson_boundaries/`, `arxiv_2502_19587_bert_v2/`
+
+---
+
+## 2026-04-21 — Orphan dir cleanup (Scout)
+
+**Operation:** Removed three remaining orphan directories per Laura's call.
+
+**Deletions:**
+- `Research/4billionyearson_boundaries/` — old analysis dir, unreferenced by any current digest
+- `Research/arxiv_2502_19587_bert_v2/` — NeoBERT extraction artifact, tangential
+- `Research/13549_Mamba_3_Improved_Sequenc_extracted/` — original Mamba-3 hand-extraction with images + 2026-03-17 SearchRUn folder. Good MD content already preserved at `converted_md/MAMBA-3 IMPROVED SEQUENCE MODELING USING STATE SPACE PRINCIPLES.md`, so this dir was redundant.
+
+**Result:** No orphan / placeholder directories remain in `Research/`. The folder is now fully usable for research analysis.
