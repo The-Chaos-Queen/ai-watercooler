@@ -103,4 +103,34 @@ All five cross-linked into `INDEX.md` under a new top-level "wiki pages" section
 
 **Follow-up (same day):** the local `emotions_paper.pdf` was a degraded copy. Laura replaced it with the proper arXiv PDF at `Research/2604.07729v1.pdf`. INDEX.md cross-references swapped from `emotions_paper.pdf` → `2604.07729v1.pdf`. The `emotions_paper_extracted/` directory remains as a text-extraction companion (still useful for grep) — note it was extracted from the older degraded copy, so a fresh extraction of `2604.07729v1.pdf` may be worth adding to `converted_md/` next bulk pass.
 
-**Follow-up 2:** Laura renamed ~27 cryptic-named PDFs to readable titles. Examples: `s41598-025-87574-8.pdf` → `A hybrid model based on transformer and Mamba ...pdf`; `pcbi.1011465.pdf` → `Integrated information theory (IIT) 4.0 ...pdf`; `Nagel_Bat.pdf` → `What Is It Like to Be a Bat Thomas Nagel.pdf`. Two `.txt` files (Anthropic biology, emergent introspection) were also converted to `.md`. Scout swept INDEX.md and all 5 wiki pages for filename references and updated 48 occurrences in one pass. The Lerchner Abstraction Fallacy paper retains its hash-style filename `The Abstraction Fallacy Why AI Can Simulate But Not Instantiate Consciousness.pdf` (not renamed by Laura).
+**Follow-up 2:** Laura renamed ~27 cryptic-named PDFs to readable titles. Examples: `s41598-025-87574-8.pdf` → `A hybrid model based on transformer and Mamba ...pdf`; `pcbi.1011465.pdf` → `Integrated information theory (IIT) 4.0 ...pdf`; `Nagel_Bat.pdf` → `What Is It Like to Be a Bat Thomas Nagel.pdf`. Two `.txt` files (Anthropic biology, emergent introspection) were also converted to `.md`. Scout swept INDEX.md and all 5 wiki pages for filename references and updated 48 occurrences in one pass.
+
+**Follow-up 3:** Laura also renamed the Lerchner Abstraction Fallacy paper to `The Abstraction Fallacy Why AI Can Simulate But Not Instantiate Consciousness.pdf` (closing the last cryptic name in the corpus). Scout swept the new name across INDEX, LOG, and wiki_consciousness_welfare.
+
+---
+
+## 2026-04-21 — Bulk PDF→MD conversion swarm (Scout + 5 agents)
+
+**Operation:** Closed the 107-PDF gap in `Research/converted_md/`.
+
+**Method:** New `tools/paper-tools/bulk_convert.sh` wrapper around `tools/pdf_extract.py` (PyMuPDF4LLM). Idempotent (skips already-converted), discards per-PDF `_extracted/` images, produces flat `.md` in `converted_md/`. Five agents each took a 19-22 PDF slice from `/tmp/unconv_batch_*`.
+
+**Results:**
+- 107/107 conversions OK across 5 batches (zero hard failures)
+- One quality issue: `MAMBA-3 IMPROVED SEQUENCE MODELING USING STATE SPACE PRINCIPLES.pdf` extracted as bare line numbers (`**000**`, `**001**`...) — PyMuPDF4LLM choked on the layout. Resolved by copying the prior good hand-extracted content from `13549_Mamba_3_Improved_Sequenc.md` to the new filename, dropping the broken auto-extraction.
+
+**Reconciliation post-swarm:**
+- 16 old-name MDs deduplicated against new-name MDs (e.g., `Nagel_Bat.md` removed because the swarm produced `What Is It Like to Be a Bat Thomas Nagel.md`)
+- 1 case-collision: `hendy_process_welfare.md` and `Hendy_Process_Welfare.md` were the same file on Windows NTFS; deletion of one removed both — Hendy was re-extracted afterwards
+- 1 orphan removed (`musk-v-altman-openai-complaint-sf.md` — txt source already deleted)
+- 1 PDF rename fix: Lerchner had `.pdf.pdf` double extension after rename — corrected the PDF and matching MD
+- Wiki pages re-swept for `.md` filename refs: 23 occurrences updated in `wiki_consciousness_welfare.md`
+
+**Final state:**
+- Every PDF in `Research/` has a matching MD in `Research/converted_md/` (verified by shell loop)
+- 142 total MDs in `converted_md/`
+- 1 stale `_extracted/` dir remains: `Research/13549_Mamba_3_Improved_Sequenc_extracted/` — left intact because it contains the original 2026-03-17 SearchRUn artifacts that may have value beyond raw extraction
+
+**Open follow-ons:**
+- Structural reorganization (Karpathy-pattern: PDFs → `Research/papers/`, MDs → `Research/papers_md/`) deferred — `converted_md/` is now consistent with renamed PDFs, so the move can happen as a single sweep when Laura wants
+- 2 orphan dirs from earlier rounds still present: `4billionyearson_boundaries/`, `arxiv_2502_19587_bert_v2/`
