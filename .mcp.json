@@ -7,6 +7,10 @@
     "graphify": {
       "command": "C:\\Users\\cerub\\OneDrive\\Dokumente\\LLM\\.venv\\Scripts\\python.exe",
       "args": ["-m", "graphify.serve", "C:\\Users\\cerub\\OneDrive\\Dokumente\\LLM\\graphify-out\\graph.json"]
+    },
+    "codesight": {
+      "command": "node",
+      "args": ["C:\\Users\\cerub\\OneDrive\\Dokumente\\LLM\\tools\\codesight\\dist\\index.js", "--mcp"]
     }
   }
 }

@@ -2,6 +2,17 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-05-04 15:10 UTC] git | MoCoP | Laura: fix(memory): preserve outer queued_at for legacy pending rows in sleep_flush (ef60add)
+[2026-05-02 23:42 UTC] git | MoCoP | Laura: feat(sleep): implement Phase 1b expiration and relevance path (5325528)
+[2026-04-29 20:07 UTC] git | MoCoP | Laura: test(memory): add tests for third-party entity recall ranking (62cf5b3)
+[2026-04-27 21:16 UTC] git | MoCoP | Laura: test(memory): add tests for H2-EMV expiration logic (86f4e42)
+[2026-04-27 18:29 UTC] git | MoCoP | Laura: fix(memory): sleep_flush routes to correct collection from metadata (d52557d)
+[2026-04-27 17:32 UTC] git | MoCoP | Laura: fix(memory): H2-EMV expiration logic respects memory_kind and UTC (P1-P3) (9b22192)
+[2026-04-17 16:00 UTC] git | MoCoP | Laura: Preserve D2 recall status and handoff state (717226c)
+[2026-04-17 13:53 UTC] git | MoCoP | Laura: Update chat server live bridge runtime and D2 recall ranking (c0fde05)
+[2026-04-14 23:17 UTC] git | MoCoP | Laura: Add Gemini session log, update handoff, and append Entry 42 to RESEARCH_LOG.md (530bd92)
+[2026-04-14 21:44 UTC] git | MoCoP | Laura: Scope live Mamba accumulation loop for chat_server.py (21a56ef)
+[2026-04-14 21:34 UTC] git | MoCoP | Laura: Scale down MVP-4 Virtual Tokens and add dose metric (453ba8b)
 [2026-04-14 21:11 UTC] git | MoCoP | Laura: Draft MVP-4 Hybrid Bridge architecture (dd8eb46)
 [2026-04-13 10:44 UTC] git | MoCoP | Laura: Add shaping episode catalog mapping real corpus to MVP-2b episodes (#72) (462d69b)
 [2026-04-13 08:44 UTC] git | MoCoP | Laura: Fix v_proj_in extraction for hidden-gated and input-gated paths (bbfe5ee)

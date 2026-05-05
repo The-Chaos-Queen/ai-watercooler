@@ -18,7 +18,7 @@ These rules are written once here so the surface-specific files do not drift.
    If Laura references an older chat, a prior answer from one of us, or "we already did this," search the local archives before asking her to restate it.
 
 5. **The Watercooler is the live control surface.**
-   Read the last 30 messages from `mamba-bridge` on boot. `session_logs/` is the append-only archive. Do not rewrite old session logs except for explicit repair requests.
+   Boot reads are per `00_BOOT_FILES.md`. `session_logs/` is the append-only archive. Do not rewrite old session logs except for explicit repair requests. Full watercooler reference lives in `01_TOOLS.md` §7.
 
 6. **The dashboard is retired. The handoff is live.**
    Do not resurrect `00_DASHBOARD.md`. But `00_HANDOFF.md` IS the canonical "where are we" document — update it at session close. The Watercooler is for coordination, the handoff is for state.

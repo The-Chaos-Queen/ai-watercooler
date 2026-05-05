@@ -70,6 +70,10 @@ tmp_test_wc.sh
 tmp_vastai_stub.sh
 .claude/scheduled_tasks.lock
 
+# Local triage holding area for generated/runtime/untracked files.
+# Keep canonical docs, source, tests, specs, and runbooks out of this folder.
+_Archive_untracked/
+
 # Gemini/Antigravity internal state (has its own location)
 # .gemini/ is outside this folder, so not needed here
 

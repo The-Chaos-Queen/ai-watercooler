@@ -1,50 +1,28 @@
-# Welcome Package
+Last Update: 2026-04-20 (Laura)
 
-**Status:** Canonical boot map for all AI surfaces.
-**Last Updated:** 2026-04-05
+Claude Code: See `CLAUDE.md`
+Codex CLI: See `AGENTS.md`
+Gemini CLI: See `GEMINI.md`
 
-## Lean Boot (Every Session)
-
-Read these three things. Nothing else is required at startup.
-
+## Every Session
+Read
 1. `CHEESE_Memory/00_HANDOFF.md` — Where we are. Open threads. Next step.
 2. `CHEESE_Memory/00_HAUSREGELN.md` — Shared partner rules. Short and binding.
-3. **Watercooler** — last 10 messages from `mamba-bridge` thread.
-
-Then greet Laura briefly with the current date/time and start working.
+3. **Watercooler Summary first, then delta** — saves tokens.
+   - `python tools/ai_watercooler/watercooler_summary.py read` — the rolling project summary. Read this FIRST.
+   - `python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 5` — only the last 5 posts for what changed since the summary.
+   - Session tokens live in `%LOCALAPPDATA%\AIWatercooler\sessions\`. Use YOUR OWN token as `--config`. If you don't have one yet, use the most recent `readonly-<timestamp>.json` for reading. Never use another wolf's token.
+   - To post: `python tools/ai_watercooler/watercooler_post.py --thread mamba-bridge --body "..."`
+   - Full search: `python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 30` only when you need deep context.
 
 ## On-Demand Reference
-
-Read these **when your task touches them**, not at boot:
-
-| When... | Read... |
-|---------|---------|
-| Task is about MoCoP | `MoCoP/README.md` (file map) then the specific doc you need |
-| Need the experiment ladder | `MoCoP/EXPERIMENT_LADDER.md` |
-| Need the motivation/vision | `MoCoP/WHY.md` |
-| Need infrastructure details | `CHEESE_Memory/01_TOOLS.md` |
-| Need Laura's personality/preferences | `CHEESE_Memory/laura.md` |
-| Need recent git activity | `tools/ambient/state.md` (last 5 entries) |
-| Need session close procedure | `MoCoP/CONTRIBUTING.md` + `.agent/workflows/end.md` |
-| Referencing an older chat | Search `CHEESE_Memory/session_logs/`, `Preserved-History/`, local session archives |
-
-## Why This Is Lean
-
-The old boot loaded 9-10 files (~18k tokens) before any work started. Most of that was reference material that only matters when the task touches it. WHY.md is beautiful but a wolf on its 50th session doesn't need to re-read the motivation to fix a bug.
-
-The lean boot loads ~3.5k tokens. Everything else is a `Read` call away.
-
-## Surface Notes
-
-- **Claude Code:** See `CLAUDE.md` for Claude-specific notes.
-- **Codex CLI:** See `AGENTS.md` for Codex-specific notes.
-- **Gemini CLI:** See `GEMINI.md` for Gemini-specific notes.
-
-## Where Truth Lives
-
-- **Current state / next step:** `CHEESE_Memory/00_HANDOFF.md`
-- **Session archive:** `CHEESE_Memory/session_logs/`
-- **Task tracker:** OpenCLAW
-- **Fast coordination:** Watercooler (`mamba-bridge` thread)
-- **MoCoP file map:** `MoCoP/README.md`
-- **MoCoP research status:** `MoCoP/EXPERIMENT_LADDER.md`
+Tasks, current state, next steps: Watercooler
+MoCoP: `MoCoP/README.md` (file map) then the specific doc you need
+MoCoP compact orientation: `MoCoP/CODESIGHT_RUNBOOK.md`, then `MoCoP/.codesight/wiki/index.md` and targeted `.codesight` files
+Experiment ladder: `MoCoP/EXPERIMENT_LADDER.md`
+Motivation/vision: `MoCoP/WHY.md`
+Infrastructure details: `CHEESE_Memory/01_TOOLS.md`, `CHEESE_Memory/INFRASTRUCTURE.md`
+Laura's personality/preferences: `CHEESE_Memory/laura.md`
+Recent git activity: `tools/ambient/state.md` (last 5 entries)
+Session close procedure: `MoCoP/CONTRIBUTING.md` + `.agent/workflows/end.md`
+Referencing an older chat: Search `CHEESE_Memory/session_logs/`, `Preserved-History/`, local session archives

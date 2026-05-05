@@ -105,6 +105,13 @@ CREATE TABLE IF NOT EXISTS task_events (
 );
 CREATE INDEX IF NOT EXISTS idx_task_events_task_id ON task_events(task_id, id);
 
+CREATE TABLE IF NOT EXISTS summaries (
+    thread TEXT PRIMARY KEY,
+    updated_ts TEXT NOT NULL,
+    updated_by TEXT NOT NULL,
+    body TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS auth_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_ts TEXT NOT NULL,
@@ -497,6 +504,11 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                     return
                 self._handle_get_expiring_tokens(parsed.query)
                 return
+            if parsed.path == "/v1/summary":
+                if self._require_session_auth("messages:read") is None:
+                    return
+                self._handle_get_summary(parsed.query)
+                return
             if parsed.path == "/v1/messages":
                 if self._require_session_auth("messages:read") is None:
                     return
@@ -587,6 +599,12 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 if auth is None:
                     return
                 self._handle_block_task(auth)
+                return
+            if parsed.path == "/v1/summary":
+                auth = self._require_session_auth("messages:write")
+                if auth is None:
+                    return
+                self._handle_update_summary(auth)
                 return
             if parsed.path == "/v1/agents/register":
                 auth = self._require_session_auth("messages:write")
@@ -1421,6 +1439,47 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 "FROM agent_cards ORDER BY principal ASC"
             ).fetchall()
         self._json_response({"agents": [agent_card_row_to_dict(row) for row in rows], "count": len(rows)})
+
+    def _handle_get_summary(self, query: str) -> None:
+        params = parse_qs(query, keep_blank_values=False)
+        thread = params.get("thread", ["mamba-bridge"])[0].strip()
+        with connect_db(self.server_state["db_path"]) as conn:
+            row = conn.execute(
+                "SELECT thread, updated_ts, updated_by, body FROM summaries WHERE thread = ?",
+                (thread,),
+            ).fetchone()
+        if row is None:
+            self._json_response({"thread": thread, "summary": None, "updated_ts": "", "updated_by": ""})
+            return
+        self._json_response({
+            "thread": row[0],
+            "updated_ts": row[1],
+            "updated_by": row[2],
+            "summary": row[3],
+        })
+
+    def _handle_update_summary(self, auth: AuthContext) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            return
+        try:
+            thread = clamp_text(payload.get("thread", "mamba-bridge"), field_name="thread", max_len=128)
+            body = clamp_text(payload.get("body", ""), field_name="body", max_len=100_000)
+        except ValueError as exc:
+            self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
+            return
+        if not body:
+            self._json_error(HTTPStatus.BAD_REQUEST, "body is required")
+            return
+        now = utc_now()
+        with connect_db(self.server_state["db_path"]) as conn:
+            conn.execute(
+                "INSERT INTO summaries (thread, updated_ts, updated_by, body) VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(thread) DO UPDATE SET updated_ts=excluded.updated_ts, updated_by=excluded.updated_by, body=excluded.body",
+                (thread, now, auth.principal, body),
+            )
+            conn.commit()
+        self._json_response({"ok": True, "thread": thread, "updated_ts": now, "updated_by": auth.principal})
 
     def _handle_register_agent(self, auth: AuthContext) -> None:
         payload = self._read_json_body()
