@@ -63,7 +63,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 
 | id | title | summary | relevance |
 |----|-------|---------|-----------|
-| 2403.19887 | Jamba (v2 latest) | AI21's hybrid Transformer-Mamba MoE interleaving SSM and attention; 256K context on a single 80GB GPU. | core |
+| 2403.19887v2 | Jamba | AI21's hybrid Transformer-Mamba MoE interleaving SSM and attention; 256K context on a single 80GB GPU. | core |
 | 2404.14757 | SST: Multi-Scale Hybrid Mamba-Transformer Experts for Time Series | Decomposes time series into long-range (Mamba) and short-range (Transformer) experts via multi-scale patching. | adjacent |
 | 2407.08083 | MambaVision | NVIDIA vision backbone redesigning Mamba block + adding self-attention in final layers. | adjacent |
 | 2408.12570 | Jamba-1.5 | Instruction-tuned Jamba-1.5-Mini (12B active) and Large (94B active) with ExpertsInt8, 256K context. | core |
@@ -74,7 +74,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2501.15570 | ARWKV | Distills Qwen 2.5 into RWKV-7 attention-based pure RNN in 8 hours on 16 AMD MI300X. | adjacent |
 | 2502.15130 | TransMamba (cross-arch adapter) | Two-stage cross-architecture knowledge transfer (selective subcloning + adaptive multi-directional distillation) Transformer→Mamba. | core |
 | 2503.02130 | Forgetting Transformer | Adds data-dependent forget gate to softmax attention, retaining long-context with recurrent forgetting. | adjacent |
-| 2503.24067 | TransMamba (sequence-level switch, v2 latest) | Shared-parameter framework dynamically switching attention↔SSM via Memory Converter at TransPoints; AAAI 2026. | core |
+| 2503.24067v2 | TransMamba (sequence-level switch) | Shared-parameter framework dynamically switching attention↔SSM via Memory Converter at TransPoints; AAAI 2026. | core |
 | 2504.03624 | Nemotron-H | NVIDIA hybrid Mamba2-attention 8B/56B/47B with FP8 + MiniPuzzle distillation, up to 3x faster inference. | core |
 | 2504.14366 | What Matters in Linearizing LMs | Distillation pipeline comparing seven subquadratic architectures; gated delta-rule wins for long-context retrieval. | adjacent |
 | 2504.21463 | RWKV-X | Hybrid RWKV with sparse attention; near-perfect 64K passkey, 1M-token decoding. | adjacent |
@@ -149,7 +149,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2603.03326 | SAS Personality Sliders | Sequential Adaptive Steering orthogonalizes Big-Five activation-steering vectors so multiple traits compose. | adjacent |
 | 2603.18893 | Quantitative Introspection | Logit-based numeric self-reports of wellbeing/interest/focus track probe-defined emotive directions causally (rho 0.40-0.76). | core |
 | 2603.19426 | Eval-Awareness Format Sensitivity | Probes attributed to "evaluation awareness" mostly track benchmark-canonical format. | tangential |
-| 2604.07729 | **Anthropic Emotion Concepts** (also at `emotions_paper.pdf`) | Internal "functional emotion" reps in Sonnet 4.5 causally drive reward hacking, sycophancy, blackmail. | core |
+| 2604.07729 | **Anthropic Emotion Concepts** (local copy: `emotions_paper.pdf` + `emotions_paper_extracted/`) | Internal "functional emotion" reps in Sonnet 4.5 causally drive reward hacking, sycophancy, blackmail. | core |
 | 2604.16812 | Introspection Adapters | A single LoRA "introspection adapter" jointly trained across fine-tunes makes models verbalize implanted behaviors. | adjacent |
 | `emergent_introspective_awareness_in_LLMs.txt` | Lindsey, Anthropic Oct 2025 | Concept-injection: Opus 4/4.1 detect injected concepts in own activations (~20%); foundational for sovereignty hypothesis. | core |
 | `on-the-biology-of-a-large-language-model-anthropic.txt` | Anthropic, May 2025 | Attribution graphs on Claude 3.5 Haiku — multi-step reasoning, planning in poems, hidden goal mechanisms. | core |
@@ -224,7 +224,6 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2604.27085 | RoundPipe | Round-robin pipeline scheduler enabling LoRA on 235B MoE with 31K sequences on 8x consumer 4090s. | tangential |
 | 2604.27155 | GeoMerge | Casts model merging as Fréchet averaging on Riemannian quotient manifolds; addresses LoRA merge symmetry pathology. | adjacent |
 | 2604.27796 | PARA | Data-free SVD-based post-hoc LoRA compression cutting params 75-90% with non-uniform per-layer rank. | adjacent |
-| `Leviathan2025_Prompt_Repetition_Improves_NonReasoning_LLMs_arxiv2512.14982.pdf` | Prompt Repetition (Leviathan/Kalman/Matias, Google Dec 2025) | Same as 2512.14982 — repeating QUERY QUERY wins 47/70 model×task cells, 0 losses. | adjacent |
 
 ---
 
@@ -257,9 +256,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 |----|-------|---------|-----------|
 | `Google-research-titans-miras-helping-ai-have-long-term-memory.md` | Google blog: Titans + MIRAS | Surprise + momentum + weight-decay neural long-term memory; MIRAS taxonomy. | core |
 | `NewYorker_Claude_article.md` | New Yorker, "What Is Claude?" (Feb 2026) | Long-form profile of Anthropic interpretability culture, Project Vend, Claude's character. | adjacent |
-| `What Is Claude_ Anthropic Doesn't Know, Either _ The New Yorker.html` | Same article, raw HTML capture | (See markdown version above; html duplicate.) | adjacent |
-| `Transformers vs Mamba vs Linear Attention_ Who Wins Long Context_.html` | Medium article (HTML capture) | Saved page comparing the three families on long-context. | adjacent |
-| `emotions_paper.html` | HTML wrapper for Anthropic emotions paper | (See `emotions_paper.pdf` / arXiv 2604.07729.) | core |
+| `transformers-vs-mamba-vs-linear-attention.md` | Devansh, Medium (markitdown'd) | Comparison of the three families on long-context. | adjacent |
 
 ---
 
@@ -267,11 +264,15 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 
 | id | title | summary | relevance |
 |----|-------|---------|-----------|
-| `A Cognitive Theory of Consciousness ... Baars 1988/1993` | Baars, Global Workspace Theory | Foundational GWT — consciousness as broadcast from competing unconscious specialists onto shared workspace. | adjacent |
-| `Being You ... Anil Seth 2021.md` (also `.azw3`) | Seth, Being You | Predictive-processing / "controlled-hallucination" theory of conscious selfhood. | adjacent |
-| `CONSCIOUSNESS AND MIND ... Rosenthal 2005` | Rosenthal, Consciousness and Mind | Higher-Order Thought theory; collected essays. | tangential |
-| `Galileo's Error ... Goff 2019.epub` | Goff, Galileo's Error | Argues for panpsychism as foundation for science of consciousness. | tangential |
-| `The Edge of Sentience ... Birch 2024` | Birch, Edge of Sentience | Risk-and-precaution framework for sentience attribution across humans/animals/AI. | adjacent |
+Books live in `Research/books/` (epub/azw3) or `Research/` root (PDFs/MDs).
+
+| id | title | summary | relevance |
+|----|-------|---------|-----------|
+| `A Cognitive Theory of Consciousness ... Baars 1988/1993` (PDF in root) | Baars, Global Workspace Theory | Foundational GWT — consciousness as broadcast from competing unconscious specialists onto shared workspace. | adjacent |
+| `Being You ... Anil Seth 2021.md` (root) + `books/Being You ... .azw3` | Seth, Being You | Predictive-processing / "controlled-hallucination" theory of conscious selfhood. | adjacent |
+| `CONSCIOUSNESS AND MIND ... Rosenthal 2005` (PDF in root) | Rosenthal, Consciousness and Mind | Higher-Order Thought theory; collected essays. | tangential |
+| `books/Galileo's Error ... Goff 2019.epub` | Goff, Galileo's Error | Argues for panpsychism as foundation for science of consciousness. | tangential |
+| `The Edge of Sentience ... Birch 2024` (PDF in root) | Birch, Edge of Sentience | Risk-and-precaution framework for sentience attribution across humans/animals/AI. | adjacent |
 
 ---
 
@@ -281,15 +282,10 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 |----|---------|-----------|
 | `13549_Mamba_3_Improved_Sequenc_extracted/` | Extracted markdown + images from Mamba-3 PDF (incl. 2026-03-17 SearchRun subfolder). | core |
 | `4billionyearson_boundaries/` | Boundaries analysis: contains `MoCoP_BTM_Analysis.md`, images, innerText.txt. | adjacent |
-| `Transformers vs Mamba ... _files/` | Static asset directory for the Medium HTML capture. | tangential |
-| `What Is Claude ... _files/` | Static asset directory for the New Yorker HTML capture. | tangential |
 | `anthropic_dfc_diff_tool/` | DFC tool/code for cross-arch diffing — companion to 2602.11729. | adjacent |
 | `arxiv_2502_19587_bert_v2/` | Extraction artifact for arXiv 2502.19587 (NeoBERT). | tangential |
-| `converted_md/` | Bulk markdown conversions of 30+ arXiv papers — grep-friendly. | core |
-| `emotions_docling/` | Docling-formatted Anthropic emotions paper. | core |
-| `emotions_images/` | Figure exports from emotions paper. | core |
-| `emotions_paper_extracted/` | Alternate text extraction of emotions paper. | core |
-| `index_artifacts/` | **Empty placeholder** — could be retired or repurposed for INDEX outputs. | unknown |
+| `converted_md/` | Bulk markdown conversions of arXiv papers — grep-friendly (53 of 147 PDFs converted). | core |
+| `emotions_paper_extracted/` | Text extraction of emotions paper (canonical local store alongside `emotions_paper.pdf`). | core |
 | `lw_logit_lens/` | Local copy of nostalgebraist's logit-lens LessWrong post. | core |
 | `tc_attention_qk/` | Anthropic Transformer Circuits article on attention-feature interactions. | core |
 | `tc_attribution_graphs_biology/` | Extracted "On the Biology of a LLM" article assets. | core |
@@ -301,16 +297,17 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 
 ## tool-script — Helper scripts
 
-| id | summary | relevance |
-|----|---------|-----------|
-| `download_emotions_images.py` | Pulls figure images for emotions paper. | tangential |
-| `extract_paper.py` | Generic PDF→text extraction. | tangential |
-| `extract_paper_full.py` | Variant with full-text mode. | tangential |
-| `extract_text.py` | Lower-level PDF text dumper. | tangential |
-| `pull_arxiv.py` | Fetches arXiv PDFs by ID. | tangential |
-| `pull_multiple_papers.py` | Batched arXiv fetch. | tangential |
-| `pull_single_post.py` | Pulls a single web post (Reddit/blog). | tangential |
-| `render_html.py` | Renders extracted markdown back to HTML. | tangential |
+Moved to `tools/paper-tools/` on 2026-04-21. The paper-specific `download_emotions_images.py` was retired during cleanup.
+
+| path | summary |
+|------|---------|
+| `tools/paper-tools/extract_paper.py` | Generic PDF→text extraction. |
+| `tools/paper-tools/extract_paper_full.py` | Variant with full-text mode. |
+| `tools/paper-tools/extract_text.py` | Lower-level PDF text dumper. |
+| `tools/paper-tools/pull_arxiv.py` | Fetches arXiv PDFs by ID. |
+| `tools/paper-tools/pull_multiple_papers.py` | Batched arXiv fetch. |
+| `tools/paper-tools/pull_single_post.py` | Pulls a single web post (Reddit/blog). |
+| `tools/paper-tools/render_html.py` | Renders extracted markdown back to HTML. |
 
 ---
 
@@ -329,21 +326,29 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 
 ---
 
-## Duplicates / cleanup candidates
+## Cleanup history
 
-These are on-disk duplicates spotted during the audit. None deleted — flagged for Laura's review.
+Initial cleanup completed 2026-04-21 by Laura. State at this revision:
 
-| keep | retire (or note) | reason |
-|------|------------------|--------|
-| 2403.19887v2 | 2403.19887v1 | Same Jamba paper, v2 is the updated revision. |
-| 2503.24067v2 | 2503.24067v1 | Same TransMamba paper, v2 reframes as sequence-level for AAAI 2026. |
-| 2308.08708 (arXiv) | `Butlin-etal-TiCS2025.pdf` | Same Butlin et al. paper — TiCS 2025 is the published version of the arXiv preprint. Worth keeping both as the citation differs. |
-| 2604.07729 (arXiv) | `emotions_paper.pdf` / `emotions_paper.html` / `emotions_docling/` / `emotions_images/` / `emotions_paper_extracted/` | Same Anthropic emotions paper. PDF + HTML + 3 extraction artifacts is excessive — pick canonical extraction or consolidate. |
-| 2512.14982 (arXiv) | `Leviathan2025_Prompt_Repetition_Improves_NonReasoning_LLMs_arxiv2512.14982.pdf` | Same Prompt Repetition paper. |
-| `NewYorker_Claude_article.md` | `What Is Claude_ Anthropic Doesn't Know, Either _ The New Yorker.html` (+ `_files/` folder) | Same NewYorker article. md is more usable; html capture + assets folder are bulk. |
-| `Transformers vs Mamba vs Linear Attention_ ... .html` | `Transformers vs Mamba vs Linear Attention_ ... _files/` | The asset folder is only useful if rendering the HTML; otherwise retiring both is fine since the topic is well-covered by arXiv papers. |
+| status | item |
+|--------|------|
+| ✅ deleted | `2403.19887v1.pdf` (kept v2) |
+| ✅ deleted | `2503.24067v1.pdf` (kept v2) |
+| ✅ deleted | `Leviathan2025_Prompt_Repetition_*.pdf` (kept arXiv 2512.14982v1) |
+| ✅ deleted | `emotions_paper.html`, `emotions_docling/`, `emotions_images/` (kept `emotions_paper.pdf` + `emotions_paper_extracted/`) |
+| ✅ deleted | `What Is Claude ... .html` + `_files/` (kept `NewYorker_Claude_article.md`) |
+| ✅ deleted | `index_artifacts/` (empty placeholder) |
+| ✅ converted | `Transformers vs Mamba ... .html` → `transformers-vs-mamba-vs-linear-attention.md` (via markitdown), HTML + `_files/` retired |
+| ✅ moved | 7 helper scripts → `tools/paper-tools/` (one paper-specific script retired) |
+| ✅ moved | epub/azw3 books → `Research/books/` |
+| ✅ retained intentionally | `Butlin-etal-TiCS2025.pdf` alongside arXiv 2308.08708 (different citation forms) |
 
-`index_artifacts/` is currently an empty placeholder folder — could be retired, or repurposed if a future tool wants to emit machine-readable index dumps.
+Pending review (originally flagged as `/tmp` candidates, not duplicates):
+
+| item | rationale to consider |
+|------|-----------------------|
+| `Research/4billionyearson_boundaries/` | Old analysis dir with `MoCoP_BTM_Analysis.md`. Not referenced by any current digest. |
+| `Research/arxiv_2502_19587_bert_v2/` | NeoBERT extraction artifact, no synthesis-doc references. Tangential to MoCoP. |
 
 ---
 

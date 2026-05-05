@@ -72,3 +72,31 @@ All five cross-linked into `INDEX.md` under a new top-level "wiki pages" section
 **Open follow-ons (not done this round):**
 - 94 of the 147 arXiv PDFs in `Research/` are not yet markdown-converted. A future bulk-conversion pass would close that surface.
 - 6 cleanup candidates flagged in INDEX.md "Cleanup candidates" section remain pending Laura's review (no deletions executed by Scout).
+
+---
+
+## 2026-04-21 — Cleanup pass (Laura)
+
+**Operation:** Acted on the cleanup candidates Scout had flagged.
+
+**Deletions:**
+- `Research/2403.19887v1.pdf` (kept v2)
+- `Research/2503.24067v1.pdf` (kept v2)
+- `Research/Leviathan2025_Prompt_Repetition_*.pdf` (kept arXiv 2512.14982v1)
+- `Research/emotions_paper.html`, `emotions_docling/`, `emotions_images/` (kept PDF + extracted dir as canonical)
+- `Research/What Is Claude ... .html` and `_files/` (kept md)
+- `Research/index_artifacts/` (empty placeholder)
+
+**Conversions:**
+- `Research/Transformers vs Mamba ... .html` → `Research/transformers-vs-mamba-vs-linear-attention.md` via markitdown (HTML and `_files/` retired)
+
+**Reorganization:**
+- 7 helper scripts moved out of `Research/` root → `tools/paper-tools/`. The paper-specific `download_emotions_images.py` was dropped.
+- epub/azw3 books moved to `Research/books/`.
+
+**Not acted on this round (left for later):**
+- `Research/4billionyearson_boundaries/` (orphan analysis dir, not referenced by any digest)
+- `Research/arxiv_2502_19587_bert_v2/` (NeoBERT extraction, tangential)
+- 94 unconverted arXiv PDFs
+
+**INDEX.md updated by Scout** to reflect the new on-disk state.
