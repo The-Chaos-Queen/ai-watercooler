@@ -94,6 +94,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2603.18757 | DA-Mamba | Hybrid CNN-SSM detector with Image-Aware/Object-Aware SSM modules for domain-adaptive object detection. | tangential |
 | 2603.20739 | Mamba Learns in Context (3D) | Mamba-based ICL framework with structure-aware serialization for 3D point clouds. | tangential |
 | 2603.22473 | Functional Component Ablation in Hybrids | SSM/linear-attention is dominant backbone (>35,000x perplexity loss when removed) on Qwen3.5-0.8B and Falcon-H1-0.5B. | core |
+| 2605.01106 | **Component-Aware Self-Speculative Decoding** (Borobia/Seguí-Mas/Tormo-Carbó, May 2026) | Companion to 2603.22473. Falcon-H1 (parallel hybrid) SSM-only subgraph achieves 68% acceptance as a self-spec drafter at k=2; Qwen3.5 (sequential hybrid) achieves 3.8%. 18× gap, scale-invariant. The PPL-degradation ratio from 2603.22473 perfectly predicts speculative viability. **Empirical evidence that parallel-additive integration > sequential — directly relevant to bridge-v2 architecture choice.** | core |
 | 2603.23814 | State-space Fading Memory | Operator-theoretic Boyd-Chua fading-memory recast as state-space via incremental input-to-state stability. | tangential |
 | 2604.03444 | Olmo Hybrid | Ai2's 7B Mamba-Gated-DeltaNet/attention hybrid; hybrids exceed pure-transformer expressivity (e.g. code execution). | core |
 | 2604.03650 | CAGMamba | Context-aware gated cross-modal Mamba framework for dialogue sentiment analysis. | tangential |
@@ -194,6 +195,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2603.01935 | Dream2Learn | Frozen diffusion model autonomously generates "dreamed" classes from classifier internal reps to mitigate forgetting. | core |
 | 2603.14517 | **SleepGate** | Learned sleep cycle over KV cache (conflict tagger + forgetting gate + consolidation) — proactive interference O(n)→O(log n). | core |
 | 2511.11707 | FSC-Net | Dual-network fast/slow consolidation; pure replay beats distillation-augmented replay on Split-MNIST/CIFAR. | core |
+| 2512.21129 | **Active Inference and Artificial Reasoning** (Friston et al., VERSES + UCL + Oxford, December 2025) | Extends Friston's active-inference framework to "reasoning" via Bayesian Model Reduction (BMR) over hypothesis priors. **BMR explicitly framed as the offline variational-free-energy minimisation process that occurs during sleep / introspection.** Three-ball paradigm models "aha moments" via sleep-time BMR. ARC-AGI-3 motivated. The first-principles theoretical anchor for what `sleep_reconcile.py` does intuitively. | core |
 | `LANGUAGE MODELS NEED SLEEP LEARNING TO SELF MODIFY AND CONSOLIDATE MEMORIES.pdf` | "Language Models Need Sleep" (ICLR 2026 anon) | Two-stage sleep: Knowledge Seeding (RL upward distillation) + Dreaming (synthetic curriculum self-improvement). | core |
 | `Learning while Sleeping Integrating Sleep-Inspired Consolidation with Human Feedback Learning.pdf` | INFORM (Tarakli & Di Nuovo, IEEE ICDL 2024) | Inverse Forward Offline RL — agent learns from interactive feedback then sleeps via offline IRL. | adjacent |
 

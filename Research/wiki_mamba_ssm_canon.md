@@ -112,6 +112,8 @@ Two papers in this orbit, both load-bearing for what comes next.
 
 The headline interpretation: "neither component is bypassed" — but the SSM/linear-attention component is the *primary language-modeling backbone*, with attention serving as a "refinement" mechanism. Hybrid topology, not weight count, determines which of the two takes the dominant role.
 
+`2605.01106v1` (Borobia et al., May 2026) is the **empirical follow-up that confirms what the ablation predicted** at the inference level. They use the SSM/linear-attention subgraph of a hybrid as a zero-cost self-speculative drafter and measure the acceptance rate. Result: parallel Falcon-H1 hits **α=0.68 at k=2** (the SSM branch alone is a competent draft model); sequential Qwen3.5 gets **α=0.038** — an 18× gap. Scale-invariant: Falcon-H1-3B reproduces 0.5B's rate exactly. **The PPL-degradation ratio from `2603.22473v1` perfectly predicts speculative viability** — a single ablation eval forecasts whether component-aware drafting will work, no need to build the speculative pipeline. For MoCoP this is the cleanest empirical evidence so far that **parallel-additive integration > sequential serial integration** for the kind of "SSM contributes alongside, attention refines" pattern the bridge implements. A bridge that adds residual bias to the Qwen stream is a parallel-style architecture, not a sequential one — and parallel is the topology that empirically carries SSM-branch coherence.
+
 ---
 
 ## 7. Convergent design choices — a checklist
@@ -229,4 +231,5 @@ The cited Du et al. 2025 (arXiv:2511.09149, "Enabling agents to communicate enti
 | `2604.01168v2` | S0 Tuning | §5, §8.3 |
 | `2412.06464v3` | Gated DeltaNet | §6 |
 | `2603.22473v1` | Functional Component Ablation | §6, §8.5 |
+| `2605.01106v1` | Component-Aware Self-Speculative Decoding (companion) | §6 (empirical follow-up) |
 | `2604.25917v1` | RecursiveMAS | §10 |

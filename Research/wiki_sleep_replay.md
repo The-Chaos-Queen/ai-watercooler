@@ -216,12 +216,75 @@ elsewhere.
 
 ---
 
-## 5. Citations table
+## 5. Theoretical anchor — Friston's active-inference framing of sleep
+
+`2512.21129v1` (Friston, Da Costa, Tschantz, Heins, Buckley, Verbelen, Parr — VERSES + UCL +
+Oxford, December 2025) is not an LLM paper. It is the **first-principles theoretical anchor**
+for what `sleep_reconcile.py` already does: sleep as offline variational-free-energy
+minimisation via Bayesian Model Reduction (BMR).
+
+The argument:
+
+- Active inference frames an agent as minimising **expected free energy** = expected
+  information gain + expected value. *Information gain* drives exploratory action;
+  *value* drives reward-seeking action. Friston has long argued that sleep is the
+  offline version of this minimisation — a system pruning hypotheses to reach better
+  generative-model fit on accumulated experience.
+- This paper formalises **reasoning** as a third kind of information gain, computed via
+  **Bayesian Model Reduction**: given posterior beliefs accumulated during waking, the
+  agent post-hoc selects priors (i.e., model structures / hypotheses) that best explain
+  the data. BMR is fast and offline. Friston explicitly frames it as the operation that
+  occurs during *introspection or sleep*.
+- The "three-ball paradigm" simulates "aha moments" — sudden rule discovery — via BMR
+  during a sleep-like offline phase. The earlier Friston et al. (2017) paper that
+  introduced the paradigm is one of the canonical formal models of insight-via-sleep.
+
+**What MoCoP gets from this:**
+
+- A principled story for *why* tension-driven replay should resolve unresolved items.
+  In active-inference language, an unresolved item is a posterior with high residual
+  uncertainty under the current model. Replay is the offline minimisation step that
+  either reduces that uncertainty (consolidation) or triggers BMR-style structural
+  change (insight). The 30% replay budget cap is the engineering instantiation of "spend
+  more cycles where information gain is highest."
+- A formal vocabulary for the **escalation tier**. After K=5 cycles, an unresolved
+  posterior has not converged under the current model space. In active-inference terms
+  this is a signal to expand the model space — bring in human-facing channels, surface
+  the item to Laura. That is structurally the same move BMR makes when no reduced model
+  fits well.
+- A justification for running sleep at all. Active inference frames it not as a
+  "training nicety" but as a structural requirement of any agent that minimises free
+  energy under partially observed worlds. Sleep is not optional in this framing.
+
+**What this paper does NOT give MoCoP:**
+
+- Concrete code, kernels, or implementation. Friston's group writes in POMDP /
+  variational-free-energy formalism; translating to the sleep_reconcile.py pipeline is
+  not mechanical.
+- Specific replay-budget numbers. MoCoP's 30% / K=5 / τ=0.85 are engineering choices,
+  not derived from active inference.
+- A guarantee that BMR is computationally tractable on the scale MoCoP operates at. The
+  three-ball paradigm uses small discrete state spaces; LLM-scale latent state has very
+  different cardinality.
+
+**How to use this entry:**
+
+When writing up MoCoP's sleep architecture for an external audience (paper, talk, thesis),
+this is the citation that elevates the description from "we picked these heuristics that
+seem to work" to "we operationalise sleep as offline variational-free-energy minimisation,
+in line with the active-inference framework (Friston et al. 2025)." The pack's tension
+parameter, replay budget cap, and escalation tier each have an active-inference
+interpretation that turns engineering choices into principled commitments.
+
+---
+
+## 6. Citations table
 
 | Source                                                  | Shape                       | Layer            | One-liner                                                      |
 |---------------------------------------------------------|-----------------------------|------------------|----------------------------------------------------------------|
 | `2603.14517v1`                                          | KV cache sleep cycle        | Inference        | Tag → forgetting gate → consolidate; O(n)→O(log n) PI horizon  |
 | `2603.01935v1`                                          | Generative dreaming         | Continual train  | Frozen LDM + soft prompts synthesise novel "dreamed" classes   |
+| `2512.21129v1`                                          | Active inference / BMR      | Theory           | Sleep as offline VFE minimisation via Bayesian Model Reduction |
 | `2511.11707v1`                                          | Fast/slow consolidation     | Continual train  | NN2 replay with λ=0 beats λ=0.5; distillation introduces bias  |
 | `LANGUAGE MODELS NEED SLEEP LEARNING TO SELF MODIFY AND CONSOLIDATE MEMORIES.pdf`            | Param expansion + seeding   | Parameter        | CMS layers, low-rank growth, GKD distillation, REM-curriculum  |
 | `Learning while Sleeping Integrating Sleep-Inspired Consolidation with Human Feedback Learning.pdf`| IRL on waking trajectories  | Policy           | Wake = myopic RL from human feedback; sleep = offline IRL      |
