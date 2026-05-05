@@ -100,3 +100,5 @@ All five cross-linked into `INDEX.md` under a new top-level "wiki pages" section
 - 94 unconverted arXiv PDFs
 
 **INDEX.md updated by Scout** to reflect the new on-disk state.
+
+**Follow-up (same day):** the local `emotions_paper.pdf` was a degraded copy. Laura replaced it with the proper arXiv PDF at `Research/2604.07729v1.pdf`. INDEX.md cross-references swapped from `emotions_paper.pdf` → `2604.07729v1.pdf`. The `emotions_paper_extracted/` directory remains as a text-extraction companion (still useful for grep) — note it was extracted from the older degraded copy, so a fresh extraction of `2604.07729v1.pdf` may be worth adding to `converted_md/` next bulk pass.

@@ -149,7 +149,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2603.03326 | SAS Personality Sliders | Sequential Adaptive Steering orthogonalizes Big-Five activation-steering vectors so multiple traits compose. | adjacent |
 | 2603.18893 | Quantitative Introspection | Logit-based numeric self-reports of wellbeing/interest/focus track probe-defined emotive directions causally (rho 0.40-0.76). | core |
 | 2603.19426 | Eval-Awareness Format Sensitivity | Probes attributed to "evaluation awareness" mostly track benchmark-canonical format. | tangential |
-| 2604.07729 | **Anthropic Emotion Concepts** (local copy: `emotions_paper.pdf` + `emotions_paper_extracted/`) | Internal "functional emotion" reps in Sonnet 4.5 causally drive reward hacking, sycophancy, blackmail. | core |
+| 2604.07729 | **Anthropic Emotion Concepts** (local copy: `2604.07729v1.pdf` + `emotions_paper_extracted/`) | Internal "functional emotion" reps in Sonnet 4.5 causally drive reward hacking, sycophancy, blackmail. | core |
 | 2604.16812 | Introspection Adapters | A single LoRA "introspection adapter" jointly trained across fine-tunes makes models verbalize implanted behaviors. | adjacent |
 | `emergent_introspective_awareness_in_LLMs.txt` | Lindsey, Anthropic Oct 2025 | Concept-injection: Opus 4/4.1 detect injected concepts in own activations (~20%); foundational for sovereignty hypothesis. | core |
 | `on-the-biology-of-a-large-language-model-anthropic.txt` | Anthropic, May 2025 | Attribution graphs on Claude 3.5 Haiku — multi-step reasoning, planning in poems, hidden goal mechanisms. | core |
@@ -285,7 +285,7 @@ Books live in `Research/books/` (epub/azw3) or `Research/` root (PDFs/MDs).
 | `anthropic_dfc_diff_tool/` | DFC tool/code for cross-arch diffing — companion to 2602.11729. | adjacent |
 | `arxiv_2502_19587_bert_v2/` | Extraction artifact for arXiv 2502.19587 (NeoBERT). | tangential |
 | `converted_md/` | Bulk markdown conversions of arXiv papers — grep-friendly (53 of 147 PDFs converted). | core |
-| `emotions_paper_extracted/` | Text extraction of emotions paper (canonical local store alongside `emotions_paper.pdf`). | core |
+| `emotions_paper_extracted/` | Text extraction of emotions paper (canonical local store alongside `2604.07729v1.pdf`). | core |
 | `lw_logit_lens/` | Local copy of nostalgebraist's logit-lens LessWrong post. | core |
 | `tc_attention_qk/` | Anthropic Transformer Circuits article on attention-feature interactions. | core |
 | `tc_attribution_graphs_biology/` | Extracted "On the Biology of a LLM" article assets. | core |
@@ -335,7 +335,7 @@ Initial cleanup completed 2026-04-21 by Laura. State at this revision:
 | ✅ deleted | `2403.19887v1.pdf` (kept v2) |
 | ✅ deleted | `2503.24067v1.pdf` (kept v2) |
 | ✅ deleted | `Leviathan2025_Prompt_Repetition_*.pdf` (kept arXiv 2512.14982v1) |
-| ✅ deleted | `emotions_paper.html`, `emotions_docling/`, `emotions_images/` (kept `emotions_paper.pdf` + `emotions_paper_extracted/`) |
+| ✅ deleted | `emotions_paper.html`, `emotions_docling/`, `emotions_images/` (kept `2604.07729v1.pdf` + `emotions_paper_extracted/`) |
 | ✅ deleted | `What Is Claude ... .html` + `_files/` (kept `NewYorker_Claude_article.md`) |
 | ✅ deleted | `index_artifacts/` (empty placeholder) |
 | ✅ converted | `Transformers vs Mamba ... .html` → `transformers-vs-mamba-vs-linear-attention.md` (via markitdown), HTML + `_files/` retired |
