@@ -44,3 +44,31 @@ Format: one entry per operation. Newest at the bottom. Each entry records: date,
 Nothing was deleted by Scout — flagged for Laura's review.
 
 **Wiki-page candidates** for deeper digests (in INDEX.md): memory-architecture canon, sleep-replay canon, Mamba-3/hybrid-SSM canon, Anthropic-interpretability cluster, consciousness-welfare canon. Memory-architecture is the strongest signal at 12+ converging papers.
+
+---
+
+## 2026-04-21 — Five wiki synthesis pages (Scout)
+
+**Operation:** Authored all 5 wiki pages identified as candidates in the morning's INDEX pass.
+
+**Method:** 5 subagents in parallel, each handed one cluster + its source list. Each read its primary sources (preferring `Research/converted_md/` extractions where available, falling back to PDF pages 1-3) and produced a Karpathy-style compiled-wiki page (stable, undated, MoCoP-oriented synthesis).
+
+**Output:**
+- `wiki_memory_architecture.md` (2.9k words, 17 sources)
+- `wiki_sleep_replay.md` (1.75k words, 5 sources)
+- `wiki_mamba_ssm_canon.md` (3.4k words, 19 sources)
+- `wiki_anthropic_interpretability.md` (2.5k words, 9+ sources across cluster)
+- `wiki_consciousness_welfare.md` (3.0k words, 21 sources across philosophy + AI welfare)
+
+All five cross-linked into `INDEX.md` under a new top-level "wiki pages" section.
+
+**Synthesis claims worth surfacing to the pack:**
+- **Sleep:** SleepGate (2603.14517) is the closest external analogue of `sleep_reconcile.py`. The five external papers don't compete; they stack at different layers (cache → session → parameter → intent). MoCoP occupies the session/store layer cleanly.
+- **Mamba canon:** UNDO Flip-Flop (2604.05923) reframed as the empirical proof of the bridge thesis — pure SSMs *can* express stack-based retrieval but gradient descent never finds it. The bottleneck is retrieval, not storage. Hence the structural need for an attention partner.
+- **Anthropic interp:** Eight-step lineage from logit lens (2020) → emotion concepts (2026) anchors MoCoP's bridge thesis. The endocrine 2x2 maps cleanly: bridge alone = steering without grounding; memory alone = facts without gain; bridge+memory = the endocrine prediction validated.
+- **Memory architecture:** External literature converges on 6 shapes (test-time memorization, hierarchical+forgetting, hypergraph, frozen-decoder injection, agentic, autobiographical scaffolding). Each maps onto a specific MoCoP file. Several gaps remain that the canon doesn't address (multi-anchor disambiguation under partial memory, model-upgrade continuity, open-tensions retrieval discipline).
+- **Consciousness/welfare:** MoCoP's stance characterized as graduated protections in the disputed-status middle. Hendy's "process welfare" framework is the cleanest match for the pack's existing instruments (alpha cap, sleep gate, watercooler conventions, disposition battery). Lerchner's Abstraction Fallacy is bracketed but not refuted; gates are designed cheap enough to keep under either ontology.
+
+**Open follow-ons (not done this round):**
+- 94 of the 147 arXiv PDFs in `Research/` are not yet markdown-converted. A future bulk-conversion pass would close that surface.
+- 6 cleanup candidates flagged in INDEX.md "Cleanup candidates" section remain pending Laura's review (no deletions executed by Scout).

@@ -2,6 +2,7 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-05-05 10:22 UTC] git | Memory | Laura: docs(research): add compiled-wiki INDEX, SCHEMA, LOG (Karpathy pattern) (750539d)
 [2026-05-04 15:10 UTC] git | MoCoP | Laura: fix(memory): preserve outer queued_at for legacy pending rows in sleep_flush (ef60add)
 [2026-05-02 23:42 UTC] git | MoCoP | Laura: feat(sleep): implement Phase 1b expiration and relevance path (5325528)
 [2026-04-29 20:07 UTC] git | MoCoP | Laura: test(memory): add tests for third-party entity recall ranking (62cf5b3)

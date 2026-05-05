@@ -17,6 +17,20 @@ This file is **content-oriented, not file-oriented** — within each category, o
 
 ---
 
+## wiki pages — topic-clustered synthesis
+
+Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each maps an INDEX cluster onto MoCoP-specific concerns. Update incrementally; don't replace.
+
+| id | title | summary | relevance |
+|----|-------|---------|-----------|
+| `wiki_memory_architecture.md` | Memory architecture canon | 17 sources synthesized into 6 big shapes (test-time memorization, hierarchical+forgetting, hypergraph, frozen-decoder injection, agentic, autobiographical). Direct MoCoP-component mapping (D2, autobiographical_memory.py, sleep_reconcile.py, cognitive_bridge.py). Names OpenClaw / soul erosion / missing diagonal in context. | core |
+| `wiki_sleep_replay.md` | Sleep / replay canon | 5 papers in 5 layered shapes (KV cycle, generative dreaming, fast-slow CLS, parameter seeding, IRL on memory). SleepGate flagged as closest external analogue of `sleep_reconcile.py`. Five gaps + four MoCoP-originals (30% replay cap, tension-as-scalar, K=5 escalation, persistent cross-session). | core |
+| `wiki_mamba_ssm_canon.md` | Mamba / SSM / hybrid canon | 19 papers across pure-Mamba scale, hybrids, cross-arch transfer, expressivity bounds, hybrid-specific finetuning, kernel/state innovations. Reframes UNDO Flip-Flop as the empirical foundation of the bridge thesis: pure SSMs *can* express stack retrieval but gradient descent never finds it; therefore they need an attention partner for honest recall, which is structurally what the bridge provides. | core |
+| `wiki_anthropic_interpretability.md` | Anthropic interpretability cluster | 7 sub-threads: linear directions, circuit tracing, SAE scaling, logit lens lineage, introspection, cross-arch model diffing, emotion concepts. Eight-step lineage from logit lens (2020) → emotion concepts (2026). Endocrine 2x2 mapped onto it: bridge alone = steering without grounding, memory alone = facts without gain, bridge+memory = endocrine prediction validated. | core |
+| `wiki_consciousness_welfare.md` | Consciousness & welfare canon | Hard Problem lineage (Nagel/Chalmers/Frankish) + theories (GWT/HOT/IIT/PP) + moral-status frameworks (Schwitzgebel-Garza/Metzinger/Long-Sebo/Birch/Shulman-Bostrom) + substrate critique (Lerchner Abstraction Fallacy) + recent empirical work (verbal+behavioral, self-referential, Talmudic tiers). 9-row design-to-philosophy mapping table for MoCoP instruments. Hendy's "process welfare" identified as the cleanest framework match for pack-existing instruments. | core |
+
+---
+
 ## synthesis-doc — start here
 
 | id | title | summary | relevance |
