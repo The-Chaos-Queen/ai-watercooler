@@ -1,0 +1,5 @@
+![](C:/Users/cerub/OneDrive/Dokumente/LLM/Research/converted_md/2026_03_20_MoCoP_grok_report_extracted/images/2026_03_20_MoCoP_grok_report.pdf-0-0.png)
+![](C:/Users/cerub/OneDrive/Dokumente/LLM/Research/converted_md/2026_03_20_MoCoP_grok_report_extracted/images/2026_03_20_MoCoP_grok_report.pdf-1-0.png)
+![](C:/Users/cerub/OneDrive/Dokumente/LLM/Research/converted_md/2026_03_20_MoCoP_grok_report_extracted/images/2026_03_20_MoCoP_grok_report.pdf-2-0.png)
+![](C:/Users/cerub/OneDrive/Dokumente/LLM/Research/converted_md/2026_03_20_MoCoP_grok_report_extracted/images/2026_03_20_MoCoP_grok_report.pdf-3-0.png)
+![](C:/Users/cerub/OneDrive/Dokumente/LLM/Research/converted_md/2026_03_20_MoCoP_grok_report_extracted/images/2026_03_20_MoCoP_grok_report.pdf-4-0.png)

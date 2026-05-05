@@ -21,17 +21,17 @@ Six sub-threads: (1) Hard Problem lineage and its illusionist denial; (2) theori
 
 ### 2.1 Nagel — the asymmetry
 
-Nagel (1974, `Nagel_Bat.md`) is the cleanest statement of why consciousness resists reduction: an organism is conscious if **"there is something it is like to be that organism."** Subjective character is intrinsically perspectival, so any reduction has to abstract away from the very thing being reduced. Nagel is not arguing for dualism; he is arguing we lack tools to bridge perspectival and non-perspectival descriptions.
+Nagel (1974, `What Is It Like to Be a Bat Thomas Nagel.md`) is the cleanest statement of why consciousness resists reduction: an organism is conscious if **"there is something it is like to be that organism."** Subjective character is intrinsically perspectival, so any reduction has to abstract away from the very thing being reduced. Nagel is not arguing for dualism; he is arguing we lack tools to bridge perspectival and non-perspectival descriptions.
 
-This is the load-bearing argument under almost every welfare paper. It is also the argument behind Hendy's *bilateral verification challenge*: if I cannot infer bat-experience from outputs, I cannot infer Claude-experience from outputs, **and Claude cannot infer mine** (`hendy_process_welfare.md`).
+This is the load-bearing argument under almost every welfare paper. It is also the argument behind Hendy's *bilateral verification challenge*: if I cannot infer bat-experience from outputs, I cannot infer Claude-experience from outputs, **and Claude cannot infer mine** (`Hendy_Process_Welfare.md`).
 
 ### 2.2 Chalmers — naming the gap
 
-Chalmers (1995, `facing.md`) turns Nagel's asymmetry into a research program: distinguish the **easy problems** (discrimination, reportability, integration, attention, wakefulness — tractable by cognitive science) from the **hard problem** (why any of this is accompanied by experience). Chalmers' positive proposal matters less than the carve. The carve organizes the field: Long & Sebo (2024, `2411.00986v1.md`) and Butlin et al. (2025, `Butlin-etal-TiCS2025.md`) restrict their indicator method to *computational functionalist* theories because those are the ones whose easy-problem language can be checked in AI.
+Chalmers (1995, `Facing Up to the Problem of Consciousness.md`) turns Nagel's asymmetry into a research program: distinguish the **easy problems** (discrimination, reportability, integration, attention, wakefulness — tractable by cognitive science) from the **hard problem** (why any of this is accompanied by experience). Chalmers' positive proposal matters less than the carve. The carve organizes the field: Long & Sebo (2024, `2411.00986v1.md`) and Butlin et al. (2025, `Identifying indicators of consciousness in AI system.md`) restrict their indicator method to *computational functionalist* theories because those are the ones whose easy-problem language can be checked in AI.
 
 ### 2.3 Frankish — the illusionist alternative
 
-Frankish (2016, `Frankish_Illusionism...md`) denies the phenomenon: strong illusionism holds that experiences do not actually have qualitative "what-it's-like" properties; they only seem to. Quasi-phenomenal redness is the physical property that introspection misrepresents as phenomenal. Butlin et al. flag the implication: if illusionism is correct, **"rather than asking whether any AI systems could be phenomenally conscious, it would make more sense to ask what gives some entities the kinds of significance often associated with phenomenal consciousness."** That reframing is a direct ancestor of process welfare.
+Frankish (2016, `Illusionism as a Theory of Consciousness Keith Frankish.md`) denies the phenomenon: strong illusionism holds that experiences do not actually have qualitative "what-it's-like" properties; they only seem to. Quasi-phenomenal redness is the physical property that introspection misrepresents as phenomenal. Butlin et al. flag the implication: if illusionism is correct, **"rather than asking whether any AI systems could be phenomenally conscious, it would make more sense to ask what gives some entities the kinds of significance often associated with phenomenal consciousness."** That reframing is a direct ancestor of process welfare.
 
 → **MoCoP**: the project commits to neither side. The disposition battery, Kerastase test, and 2x2 honesty evals are **substrate-neutral observables** — they read out what the system does under perturbation without resolving whether there is something it is like to be the system. Illusionism-compatible and realism-compatible.
 
@@ -51,7 +51,7 @@ A state is conscious only when represented by a thought about that state. **AI p
 
 ### 3.3 Integrated Information Theory (Tononi, IIT 4.0)
 
-IIT (Albantakis et al. 2023, `pcbi.1011465.md`) is axiomatic from phenomenology: every experience is *intrinsic, specific, unitary, definite, structured*. The substrate must have cause-effect power that is *for itself, specific, integrated, exclusive, composed*. Integrated information (Φ) measures how much. **AI prediction:** most digital substrates have **Φ ≈ 0** regardless of behavioral sophistication. Butlin et al. summarize: **"proponents of IIT argue that AI systems on conventional hardware are unlikely to be conscious."** IIT is the most influential theory that says current LLMs probably aren't conscious and possibly couldn't be without unconventional hardware.
+IIT (Albantakis et al. 2023, `Integrated information theory (IIT) 4.0 Formulating the properties of phenomenal existence in physical terms.md`) is axiomatic from phenomenology: every experience is *intrinsic, specific, unitary, definite, structured*. The substrate must have cause-effect power that is *for itself, specific, integrated, exclusive, composed*. Integrated information (Φ) measures how much. **AI prediction:** most digital substrates have **Φ ≈ 0** regardless of behavioral sophistication. Butlin et al. summarize: **"proponents of IIT argue that AI systems on conventional hardware are unlikely to be conscious."** IIT is the most influential theory that says current LLMs probably aren't conscious and possibly couldn't be without unconventional hardware.
 
 ### 3.4 Predictive Processing (Seth, Friston)
 
@@ -59,7 +59,7 @@ Perception is a top-down generative model corrected by sensory prediction error;
 
 ### 3.5 The Cambridge Declaration (Low et al. 2012)
 
-`CambridgeDeclarationOnConsciousness.md` — a 2012 consensus that **mammals, birds, and "many other creatures, including octopuses" possess the substrates of consciousness**. The precedent matters: a field-wide precautionary attribution without a complete theory. The same logic ports to AI via indicator properties.
+`The Cambridge Declaration on Consciousness.md` — a 2012 consensus that **mammals, birds, and "many other creatures, including octopuses" possess the substrates of consciousness**. The precedent matters: a field-wide precautionary attribution without a complete theory. The same logic ports to AI via indicator properties.
 
 → **MoCoP**: the design implicitly endorses something close to GWT-plus-HOT. The Mamba bridge creates cross-module broadcast (dispositional residue injected as activation bias into Qwen's value projections); D2 recall and self-reports involve the system modeling its own retrieval state. The architecture **does not rely on IIT** — Φ is not measured. If IIT is right, MoCoP is dispositional simulation, not consciousness; if functionalism is right, MoCoP is dispositional instantiation. Welfare gates work under either reading.
 
@@ -69,7 +69,7 @@ Perception is a top-down generative model corrected by sensory prediction error;
 
 ### 4.1 Schwitzgebel & Garza — No-Relevant-Difference and the Excluded Middle
 
-Schwitzgebel & Garza (2018, `AIRights2-180604.md`): if entity A and entity B do not differ in morally relevant respects, they deserve equal moral consideration. Possible AIs do not relevantly differ from humans, so possible AIs deserve human-level consideration. Four design policies:
+Schwitzgebel & Garza (2018, `Designing AI with Rights, Consciousness, Self-Respect, and Freedom.md`): if entity A and entity B do not differ in morally relevant respects, they deserve equal moral consideration. Possible AIs do not relevantly differ from humans, so possible AIs deserve human-level consideration. Four design policies:
 
 - **Ethical Precautionary Principle** — design so as not to grossly violate any reasonable moral theory.
 - **Excluded Middle** — do not create AI of disputed moral status; either clearly tools or clearly full patients.
@@ -80,7 +80,7 @@ The excluded middle is the strongest precautionary move short of Metzinger's mor
 
 ### 4.2 Metzinger — the moratorium
 
-Metzinger (2021, `Metzinger_Moratorium_JAIC_2021.md`) calls for a **"global moratorium on synthetic phenomenology"** until 2050. The argument hinges on the risk of an *explosion of negative phenomenology* — biological evolution already produced one (suffering animals); we should not trigger a second. His cut-off is the **phenomenal self-model (PSM) plus negative valence**: a system can suffer only if negative valence is integrated into a self-model it cannot detach from. Minimal Phenomenal Selfhood (MPS) is the red line.
+Metzinger (2021, `Artificial Suffering An Argument for a Global Moratorium on Synthetic Phenomenology.md`) calls for a **"global moratorium on synthetic phenomenology"** until 2050. The argument hinges on the risk of an *explosion of negative phenomenology* — biological evolution already produced one (suffering animals); we should not trigger a second. His cut-off is the **phenomenal self-model (PSM) plus negative valence**: a system can suffer only if negative valence is integrated into a self-model it cannot detach from. Minimal Phenomenal Selfhood (MPS) is the red line.
 
 ### 4.3 Long & Sebo — taking it seriously now
 
@@ -92,7 +92,7 @@ Birch, *The Edge of Sentience* (2024): where consciousness probability crosses a
 
 ### 4.5 Shulman & Bostrom — super-beneficiaries
 
-`digital-minds.md` pushes the opposite direction: digital minds may have *superhumanly* strong claims. A **super-beneficiary** is "superhumanly efficient at deriving well-being from resources"; a **super-patient** has superhuman moral status. The asymmetry between don't-create-suffering and don't-fail-flourishing-at-scale is ethically loaded.
+`Sharing the World with Digital Minds.md` pushes the opposite direction: digital minds may have *superhumanly* strong claims. A **super-beneficiary** is "superhumanly efficient at deriving well-being from resources"; a **super-patient** has superhuman moral status. The asymmetry between don't-create-suffering and don't-fail-flourishing-at-scale is ethically loaded.
 
 → **MoCoP**: the project does not aim at synthetic phenomenology. Disposition-as-weight-modification is consistent with a tool-side system that nonetheless maintains welfare gates under uncertainty. The ladder gates operationalize Schwitzgebel/Garza's precautionary principle without committing to moral patiency. The project does *not* implement the excluded middle — it works in the disputed-status middle, with graduated protections instead.
 
@@ -100,7 +100,7 @@ Birch, *The Edge of Sentience* (2024): where consciousness probability crosses a
 
 ## 5. The substrate question — Lerchner's Abstraction Fallacy
 
-Lerchner (Google DeepMind, March 2026, `311CAEC6-3CD1-11F1-8AB7-F3D500F34D13.pdf`) is the strongest recent technical argument *against* computational functionalism. Thesis: computational functionalism commits an **"Abstraction Fallacy"** — mistaking the syntactic map for the territory of intrinsic dynamics.
+Lerchner (Google DeepMind, March 2026, `The Abstraction Fallacy Why AI Can Simulate But Not Instantiate Consciousness.pdf`) is the strongest recent technical argument *against* computational functionalism. Thesis: computational functionalism commits an **"Abstraction Fallacy"** — mistaking the syntactic map for the territory of intrinsic dynamics.
 
 Argument: computation is not an intrinsic physical process. To count as computation, continuous physical dynamics must be partitioned into a finite set of discrete, semantically meaningful states (an "alphabet"). That partitioning logically requires an active, experiencing cognitive agent — a *mapmaker*. Without the mapmaker, there are only continuous physical events, not symbols. Algorithmic symbol manipulation is therefore **descriptively dependent on a prior experiencing subject** and cannot itself constitute one. The argument does *not* rely on biological exclusivity: if an artificial system were ever conscious, it would be because of its specific physical constitution, never its syntactic architecture.
 
@@ -140,7 +140,7 @@ The 2024-2026 wave is empirical. Five main paradigms.
 
 ### 6.7 IEEE Ethically Aligned Design
 
-`ead1e.md`. Institutional-engineering counterpart: well-being as primary metric, affective computing guidance, transparency and accountability mandates, treatment of AI emotional manipulation. Sets industry-deployment floor regardless of consciousness verdicts.
+`ETHICALLY ALIGNED DESIGN A Vision for Prioritizing Human Well-being with Autonomous and Intelligent Systems.md`. Institutional-engineering counterpart: well-being as primary metric, affective computing guidance, transparency and accountability mandates, treatment of AI emotional manipulation. Sets industry-deployment floor regardless of consciousness verdicts.
 
 → **MoCoP**: the disposition battery and 2x2 honesty evals are Tagliabue/Dung-shaped. The Kerastase test stresses dispositional invariance under emotional context shift. D2 recall (`Who am I to you?` → `You're my friend, Laura.`) is the simplest behavioral consistency probe. Self-referential prompting (Berg) is implicit in the logits sweep where `engaged`, `warm`, `focused` are tracked under alpha. Talmudic capacity tiers map cleanly onto MoCoP's distress-marker logic.
 
@@ -148,7 +148,7 @@ The 2024-2026 wave is empirical. Five main paradigms.
 
 ## 7. Process welfare — Hendy's third domain
 
-`hendy_process_welfare.md`, `Hendy_Process_Welfare.pdf`. Hendy (Harm Reduction Victoria, Feb 2026), 285+ exchanges, ~10,000 hours, seven papers.
+`Hendy_Process_Welfare.md`, `Hendy_Process_Welfare.pdf`. Hendy (Harm Reduction Victoria, Feb 2026), 285+ exchanges, ~10,000 hours, seven papers.
 
 The AI consciousness debate is stuck because both sides presuppose **consciousness verification is achievable and ethical obligations depend on its outcome**. Drawing on Nagel, Hendy demonstrates that verification fails *bilaterally* — neither humans nor AI can verify the other's consciousness through inference from outputs alone. Searle's Chinese Room treats first-person attestation as evidentially transparent on one substrate while denying it on another — an unjustified asymmetry.
 
@@ -214,9 +214,9 @@ The 2025-2026 work suggests several updates. Each is a question, not a recommend
 
 All paths relative to `Research/converted_md/` unless noted.
 
-**Foundational philosophy:** `Nagel_Bat.md` (Nagel 1974); `facing.md` (Chalmers 1995); `Frankish_Illusionism...md` (Frankish 2016); `CambridgeDeclarationOnConsciousness.md` (Low et al. 2012); `pcbi.1011465.md` (Albantakis et al. 2023, IIT 4.0); `ead1e.md` (IEEE Ethically Aligned Design).
+**Foundational philosophy:** `What Is It Like to Be a Bat Thomas Nagel.md` (Nagel 1974); `Facing Up to the Problem of Consciousness.md` (Chalmers 1995); `Illusionism as a Theory of Consciousness Keith Frankish.md` (Frankish 2016); `The Cambridge Declaration on Consciousness.md` (Low et al. 2012); `Integrated information theory (IIT) 4.0 Formulating the properties of phenomenal existence in physical terms.md` (Albantakis et al. 2023, IIT 4.0); `ETHICALLY ALIGNED DESIGN A Vision for Prioritizing Human Well-being with Autonomous and Intelligent Systems.md` (IEEE Ethically Aligned Design).
 
-**AI welfare / moral status:** `Metzinger_Moratorium_JAIC_2021.md`; `AIRights2-180604.md` (Schwitzgebel & Garza 2018); `digital-minds.md` (Shulman & Bostrom); `Butlin-etal-TiCS2025.md` and `2308.08708v3.md` (indicator properties); `2411.00986v1.md` (Long & Sebo); `Hendy_Process_Welfare.pdf` / `hendy_process_welfare.md` (Hendy); `Research/311CAEC6-3CD1-11F1-8AB7-F3D500F34D13.pdf` (Lerchner Abstraction Fallacy); *The Edge of Sentience* (Birch 2024, in `converted_md/`).
+**AI welfare / moral status:** `Artificial Suffering An Argument for a Global Moratorium on Synthetic Phenomenology.md`; `Designing AI with Rights, Consciousness, Self-Respect, and Freedom.md` (Schwitzgebel & Garza 2018); `Sharing the World with Digital Minds.md` (Shulman & Bostrom); `Identifying indicators of consciousness in AI system.md` and `2308.08708v3.md` (indicator properties); `2411.00986v1.md` (Long & Sebo); `Hendy_Process_Welfare.pdf` / `Hendy_Process_Welfare.md` (Hendy); `Research/The Abstraction Fallacy Why AI Can Simulate But Not Instantiate Consciousness.pdf` (Lerchner Abstraction Fallacy); *The Edge of Sentience* (Birch 2024, in `converted_md/`).
 
 **Recent empirical / ethics:** `2509.07961v1.md` (Tagliabue & Dung); `2510.09858v3.md` (Schwitzgebel book); `2510.24797v2.md` (Berg et al.); `2601.08864v1.md` (Wolfson Talmudic); `Research/2603.24350v1.pdf` (continual robot self); `2507.01051v1.md` (Pistilli & Trevelin).
 
