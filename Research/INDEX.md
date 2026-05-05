@@ -130,6 +130,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | `Geometric Convergence for Conversational Context Management A Distributed Structured Memory Architecture Based on Correlation-Diagram Data.pdf` | Kawai 2026 | Patent-derived: client-side correlation-diagram (sun/planet/satellite) injected as attention bias to server LLM. | adjacent |
 | `RECURSIVE LANGUAGE MODELS.pdf` | Zhang/Kraska/Khattab (MIT, Dec 2025) | Treat long prompt as environment LLM programmatically explores via REPL + recursive self-calls; 10M+ tokens. | adjacent |
 | `ReasoningBank Scaling Agent Self-Evolving with Reasoning Memory.pdf` | ReasoningBank (Google Cloud AI, March 2026) | Memory framework distilling reasoning strategies from successful + failed agent experiences; pairs with MaTTS test-time scaling. | adjacent |
+| 2604.25917 | **RecursiveMAS** (Zou/Pan/.../Buehler, Stanford+UIUC+MIT+NVIDIA, April 2026) | Multi-agent system as recursive computation in latent space via lightweight RecursiveLink (residual MLP). Frozen agents, 0.31% trainable params; 8.3% accuracy gain, 2.4x speedup, 75.6% token reduction over text-mediated MAS. The bridge thesis generalized to N agents. See wiki_mamba_ssm_canon §10. | core |
 
 ---
 

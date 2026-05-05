@@ -174,6 +174,37 @@ This also means the component ablation result generalises a reassurance: "neithe
 
 ---
 
+## §10 RecursiveMAS — the bridge thesis generalized to N agents
+
+`2604.25917` (Zou/Pan/.../Buehler, Stanford+UIUC+MIT+NVIDIA, April 2026) extends the cross-architecture latent-transfer pattern from the bridge's N=2 case to a full N-agent recursive loop. **This is the formal version of what MoCoP's bridge already does, written for arbitrary collaboration topologies.**
+
+The architecture:
+
+- **RecursiveLink** — a 2-layer residual MLP (`R(h) = h + W₂σ(W₁h)`, GELU activation). Direct analogue of the activation-bias bridge. Two flavours: an *inner link* that loops within an agent (latent thoughts auto-regression without text decode), and an *outer link* that maps between agents with different hidden dimensions.
+- **All agents frozen.** Only RecursiveLink modules train. 13.12M trainable params, 0.31% of model. Same architectural choice MoCoP made for the bridge.
+- **Inner-outer loop training.** Inner-loop warm-start aligns each agent's latent thoughts to its own input-embedding distribution via cosine similarity (no text decoding). Outer-loop backprops through the full recursive trace across all agents, jointly optimising all RecursiveLink modules with a shared CE objective on the final output.
+
+What carries directly to the bridge:
+
+- **Theorem 4.1 (Gradient Stability)** is the formal statement underlying why activation-bias steering beats token-conditioned approaches in MoCoP's 2x2: text-mediated recursion suffers gradient vanishing on confident tokens, latent-mediated recursion preserves stable gradient norms across rounds. The bridge's `activation_bias` mode is the practical instantiation.
+- **The "inner link" warm-start trick** — train each agent to align its own latent thoughts to its input-embedding distribution before connecting to others — is a pattern the cognitive_bridge.py input-conditioned modes could adopt verbatim. A frozen Mamba can be warm-started this way without touching its parameters.
+- **Distillation pattern (Expert + Learner with latent passthrough)** is the most directly useful collaboration shape for MoCoP. They get +8% on the Learner with 1.5x speedup vs running the Expert alone. This is the architectural template if the next bridge generation pairs a small Mamba with a larger Qwen and wants the small side to inherit some of the large side's capability without the latency cost.
+
+What does **not** translate:
+
+- **Joint gradient access across agents** is required for outer-loop training. The pack's wolves run on isolated API endpoints with no shared backprop. So the optimisation advantage of RecursiveMAS doesn't carry to the pack as currently architected. You'd keep the *architectural* advantage (latent passing via RecursiveLink) and lose the *training* advantage. Retrofitting would mean training per-pair RecursiveLink modules on logged interactions — possible, but a different engineering bet.
+- **Recursive depth as a scaling axis** is gated on the agents being open-weight. The pack's Claude/GPT wolves are not.
+
+Bridge-relevant follow-ons:
+
+1. UNDO Flip-Flop on the bridged system (§8.4 above). RecursiveMAS provides the formal framework for the multi-component case — could this be tested?
+2. Latent thoughts length `m` ablation. RecursiveMAS finds `m≈80` saturates performance. The bridge currently injects at every layer; a deliberate ablation of injection density (analogous to `m`) is a clean experimental target.
+3. The "Mixture" pattern (multiple domain-specialists + summariser) has a structural analogue in the pack's Mamba-Qwen-Pinky-Hurtig role split. Whether explicit RecursiveLink modules between wolves would beat watercooler-mediated coordination is an interesting experimental question once a worktree allows joint training.
+
+The cited Du et al. 2025 (arXiv:2511.09149, "Enabling agents to communicate entirely in latent space") sits one rung deeper on this same ladder — worth pulling into Research/ if anyone has cycles.
+
+---
+
 ## Source index
 
 | arXiv ID | Short name | Cluster |
@@ -198,3 +229,4 @@ This also means the component ablation result generalises a reassurance: "neithe
 | `2604.01168v2` | S0 Tuning | §5, §8.3 |
 | `2412.06464v3` | Gated DeltaNet | §6 |
 | `2603.22473v1` | Functional Component Ablation | §6, §8.5 |
+| `2604.25917v1` | RecursiveMAS | §10 |
