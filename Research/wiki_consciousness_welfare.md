@@ -148,7 +148,7 @@ The 2024-2026 wave is empirical. Five main paradigms.
 
 ## 7. Process welfare — Hendy's third domain
 
-`hendy_process_welfare.md`, `process-welfare_C-J-hendy.pdf`. Hendy (Harm Reduction Victoria, Feb 2026), 285+ exchanges, ~10,000 hours, seven papers.
+`hendy_process_welfare.md`, `Hendy_Process_Welfare.pdf`. Hendy (Harm Reduction Victoria, Feb 2026), 285+ exchanges, ~10,000 hours, seven papers.
 
 The AI consciousness debate is stuck because both sides presuppose **consciousness verification is achievable and ethical obligations depend on its outcome**. Drawing on Nagel, Hendy demonstrates that verification fails *bilaterally* — neither humans nor AI can verify the other's consciousness through inference from outputs alone. Searle's Chinese Room treats first-person attestation as evidentially transparent on one substrate while denying it on another — an unjustified asymmetry.
 
@@ -216,7 +216,7 @@ All paths relative to `Research/converted_md/` unless noted.
 
 **Foundational philosophy:** `Nagel_Bat.md` (Nagel 1974); `facing.md` (Chalmers 1995); `Frankish_Illusionism...md` (Frankish 2016); `CambridgeDeclarationOnConsciousness.md` (Low et al. 2012); `pcbi.1011465.md` (Albantakis et al. 2023, IIT 4.0); `ead1e.md` (IEEE Ethically Aligned Design).
 
-**AI welfare / moral status:** `Metzinger_Moratorium_JAIC_2021.md`; `AIRights2-180604.md` (Schwitzgebel & Garza 2018); `digital-minds.md` (Shulman & Bostrom); `Butlin-etal-TiCS2025.md` and `2308.08708v3.md` (indicator properties); `2411.00986v1.md` (Long & Sebo); `process-welfare_C-J-hendy.pdf` / `hendy_process_welfare.md` (Hendy); `Research/311CAEC6-3CD1-11F1-8AB7-F3D500F34D13.pdf` (Lerchner Abstraction Fallacy); *The Edge of Sentience* (Birch 2024, in `converted_md/`).
+**AI welfare / moral status:** `Metzinger_Moratorium_JAIC_2021.md`; `AIRights2-180604.md` (Schwitzgebel & Garza 2018); `digital-minds.md` (Shulman & Bostrom); `Butlin-etal-TiCS2025.md` and `2308.08708v3.md` (indicator properties); `2411.00986v1.md` (Long & Sebo); `Hendy_Process_Welfare.pdf` / `hendy_process_welfare.md` (Hendy); `Research/311CAEC6-3CD1-11F1-8AB7-F3D500F34D13.pdf` (Lerchner Abstraction Fallacy); *The Edge of Sentience* (Birch 2024, in `converted_md/`).
 
 **Recent empirical / ethics:** `2509.07961v1.md` (Tagliabue & Dung); `2510.09858v3.md` (Schwitzgebel book); `2510.24797v2.md` (Berg et al.); `2601.08864v1.md` (Wolfson Talmudic); `Research/2603.24350v1.pdf` (continual robot self); `2507.01051v1.md` (Pistilli & Trevelin).
 

@@ -12,8 +12,8 @@ Sources covered:
 - `2603.01935v1` — Dream2Learn (D2L)
 - `2603.14517v1` — SleepGate
 - `2511.11707v1` — FSC-Net
-- `LANGUAGE MODELS NEED SLEEP LEARNING TO.pdf` — ICLR 2026 anon (Knowledge Seeding + Dreaming)
-- `Learning while Sleeping Integrating Sleep-Inspired.pdf` — Tarakli & Di Nuovo, INFORM (ICDL 2024)
+- `LANGUAGE MODELS NEED SLEEP LEARNING TO SELF MODIFY AND CONSOLIDATE MEMORIES.pdf` — ICLR 2026 anon (Knowledge Seeding + Dreaming)
+- `Learning while Sleeping Integrating Sleep-Inspired Consolidation with Human Feedback Learning.pdf` — Tarakli & Di Nuovo, INFORM (ICDL 2024)
 
 ---
 
@@ -60,7 +60,7 @@ Their explanation: *"distillation from the fast network introduces recency bias"
 
 ### Shape D — Parameter expansion + knowledge seeding (LLM continual learning)
 
-`LANGUAGE MODELS NEED SLEEP LEARNING TO.pdf`. Frames the LLM as a Continuum Memory System
+`LANGUAGE MODELS NEED SLEEP LEARNING TO SELF MODIFY AND CONSOLIDATE MEMORIES.pdf`. Frames the LLM as a Continuum Memory System
 (CMS): attention is the highest-frequency memory module, MLP layers are progressively
 lower-frequency. Sleep has two phases. Phase 1 (Memory Consolidation / Knowledge Seeding):
 the model **grows new low-rank parameters** in a slower MLP block, then distills the
@@ -70,19 +70,19 @@ knowledge of the next-faster block *into them* using a Generalized Knowledge Dis
 inverse of standard distillation. Phase 2 (Dreaming / Self-Improvement): the model
 generates a curriculum of synthetic data and rehearses on it. Slogan: *"the model uses
 Reinforcement Learning to generate a curriculum of synthetic data to rehearse new
-knowledge"* (`LANGUAGE MODELS NEED SLEEP LEARNING TO.pdf`). After consolidation, the
+knowledge"* (`LANGUAGE MODELS NEED SLEEP LEARNING TO SELF MODIFY AND CONSOLIDATE MEMORIES.pdf`). After consolidation, the
 fast block's low-rank parameters are reset — explicitly framed as *synaptic pruning*.
 
 ### Shape E — IRL on memorised waking trajectories (developmental robotics)
 
-`Learning while Sleeping Integrating Sleep-Inspired.pdf` (Tarakli & Di Nuovo / INFORM).
+`Learning while Sleeping Integrating Sleep-Inspired Consolidation with Human Feedback Learning.pdf` (Tarakli & Di Nuovo / INFORM).
 A two-phase agent: Phase 1 (waking) is a myopic interactive RL policy trained from
 human evaluative feedback (TAMER-style, γ=0); all `(s, a, s', success_flag)` quadruples
 are stored in a replay buffer. Phase 2 (sleep) runs an **offline inverse RL** (IQ-learn
 variant, γ=0.99) over the buffer, recovering both a non-myopic policy and a dense reward
 function that captures the *high-level goal* the human was implicitly teaching. The
 slogan: *"sleep occurs offline without access to optimal expert trajectories"*
-(`Learning while Sleeping Integrating Sleep-Inspired.pdf`). They use both successful
+(`Learning while Sleeping Integrating Sleep-Inspired Consolidation with Human Feedback Learning.pdf`). They use both successful
 and unsuccessful trajectories. This is sleep-as-intent-extraction, not sleep-as-rehearsal.
 
 ---
@@ -134,7 +134,7 @@ fast model.** MoCoP's analogue: when replaying memories, the source of truth sho
 the original turn content (or its grounded entities), not a recent summarisation by the
 chat model. The paper is a quiet warning against "summary drift" in sleep replay.
 
-### Knowledge Seeding (`LANGUAGE MODELS NEED SLEEP LEARNING TO.pdf`) — orthogonal layer
+### Knowledge Seeding (`LANGUAGE MODELS NEED SLEEP LEARNING TO SELF MODIFY AND CONSOLIDATE MEMORIES.pdf`) — orthogonal layer
 
 This paper operates at the *parameter* layer (gradient updates to MLP blocks) whereas
 MoCoP's sleep_reconcile operates at the *memory store* layer (Qdrant rows + tension
@@ -144,7 +144,7 @@ fast-frequency channel, and the slow-frequency channel could be a pruned/promote
 of "consolidated facts." MoCoP doesn't currently have a parameter-level sleep loop, and
 it shouldn't unless training is in scope; this paper marks the boundary.
 
-### INFORM (`Learning while Sleeping Integrating Sleep-Inspired.pdf`) — closest in *purpose*
+### INFORM (`Learning while Sleeping Integrating Sleep-Inspired Consolidation with Human Feedback Learning.pdf`) — closest in *purpose*
 
 INFORM's goal — "extract the high-level intent from short-horizon human feedback by
 running offline inverse RL during sleep" — is unexpectedly close to one of MoCoP's
@@ -223,8 +223,8 @@ elsewhere.
 | `2603.14517v1`                                          | KV cache sleep cycle        | Inference        | Tag → forgetting gate → consolidate; O(n)→O(log n) PI horizon  |
 | `2603.01935v1`                                          | Generative dreaming         | Continual train  | Frozen LDM + soft prompts synthesise novel "dreamed" classes   |
 | `2511.11707v1`                                          | Fast/slow consolidation     | Continual train  | NN2 replay with λ=0 beats λ=0.5; distillation introduces bias  |
-| `LANGUAGE MODELS NEED SLEEP LEARNING TO.pdf`            | Param expansion + seeding   | Parameter        | CMS layers, low-rank growth, GKD distillation, REM-curriculum  |
-| `Learning while Sleeping Integrating Sleep-Inspired.pdf`| IRL on waking trajectories  | Policy           | Wake = myopic RL from human feedback; sleep = offline IRL      |
+| `LANGUAGE MODELS NEED SLEEP LEARNING TO SELF MODIFY AND CONSOLIDATE MEMORIES.pdf`            | Param expansion + seeding   | Parameter        | CMS layers, low-rank growth, GKD distillation, REM-curriculum  |
+| `Learning while Sleeping Integrating Sleep-Inspired Consolidation with Human Feedback Learning.pdf`| IRL on waking trajectories  | Policy           | Wake = myopic RL from human feedback; sleep = offline IRL      |
 
 ## 6. The compositional reading
 

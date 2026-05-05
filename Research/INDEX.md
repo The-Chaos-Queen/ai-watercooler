@@ -51,7 +51,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | `20260327_Gemini_AI Autobiographical Memory Design Brief.md` | Gemini Autobiographical Memory Brief | Adapts Conway's SMS into a MoCoP scaffolding layer beyond D2 cue-based recall. | core |
 | `20260327_Perplexity_Autobiographical Memory Scaffolding for Persistent AI Selves in MoCoP.md` | Perplexity autobiographical scaffolding | Hierarchical SMS-style memory; conceptual vs perceptual recall; relational nodes. | core |
 | `AI Experiential Learning Architecture Research.md` | Cross-session experiential learning report | Full architectural-ethical analysis of Mamba+Qwen hybrid with hypernet steering and sleep cycles. | core |
-| `Hybrid SSM Transformer Architectures for Cross Session Experiential Learning Ethical Frameworks and Technical Foundations 2024.pdf` | HF autogen hybrid synthesis (PDF) | Compact synthesis of Mamba+Qwen + hypernet activation steering + sleep + KV + AI welfare across nine vectors. | core |
+| `Architectures for Cross-Session Experiential Learning in AI Systems A Hybrid SSM-Transformer Approach with Ethical Implications.pdf` | HF autogen hybrid synthesis (PDF) | Compact synthesis of Mamba+Qwen + hypernet activation steering + sleep + KV + AI welfare across nine vectors. | core |
 | `2026_03_20_MoCoP_grok_report.pdf` | Grok deep-research MoCoP report | Vector-by-vector survey across cross-arch transfer, persona steering, KV eviction, sleep, ethics. | core |
 | `ingest_candidates.md` | Ingest queue for shelf | Lightweight queue with status flags (parked/active/archived/noted) for promising shards. | core |
 | `interpretability_survey_2025_2026.md` | Anda's mech-interp survey | Tiered MoCoP-relevant interp papers: Persona Vectors, Assistant Axis, Introspection, Mamba Selective Memory, Platonic Rep. | core |
@@ -103,8 +103,8 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2604.14501 | Multi-Layer SSM Expressive Limits | Proves Ω(N/L³) compositional lower bound for multi-layer SSMs; offline CoT doesn't help, online CoT makes them streaming-equivalent. | adjacent |
 | 2604.23818 | SSM filtering generalization | First generalization bounds for selective SSMs on in-context filtering of unknown dynamical systems. | adjacent |
 | 2604.24954 | Nemotron 3 Nano Omni | NVIDIA 30B-A3B MoE hybrid omni-modal model, native audio + 256K context, on Nemotron 3 backbone. | tangential |
-| `13549_Mamba_3_Improved_Sequenc.pdf` | Mamba-3 (ICLR 2026 anonymous) | Same as 2603.15569 — local copy, also see `13549_Mamba_3_Improved_Sequenc_extracted/`. | core |
-| `s41598-025-87574-8.pdf` | Hybrid Transformer+Mamba (Sci Reports 2025) | TransMamba feature-fusion: Transformer encoder + Mamba decoder, basic hybrid baseline. | adjacent |
+| `MAMBA-3 IMPROVED SEQUENCE MODELING USING STATE SPACE PRINCIPLES.pdf` | Mamba-3 (ICLR 2026 anonymous) | Same as 2603.15569 — local copy, also see `13549_Mamba_3_Improved_Sequenc_extracted/`. | core |
+| `A hybrid model based on transformer and Mamba for enhanced sequence modeling.pdf` | Hybrid Transformer+Mamba (Sci Reports 2025) | TransMamba feature-fusion: Transformer encoder + Mamba decoder, basic hybrid baseline. | adjacent |
 
 ---
 
@@ -127,9 +127,9 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2604.09588 | **Persistent Identity (multi-anchor) — names "OpenClaw"!** | soul.py with separable identity files + memory logs; hybrid RAG+RLM routing to survive context-overflow identity loss. | core |
 | 2604.11306 | H2-EMV (Learning to Forget) | Hierarchical episodic memory with selective forgetting via LLM relevance + learned natural-language rules. 45% memory reduction. | core |
 | 2604.15877 | Experience Compression Spectrum | Frames episodic (5–20x) / procedural (50–500x) / declarative (1000x+) as one compression spectrum citing CLS theory. | core |
-| `Geometric Convergence for Conversational Context Management.pdf` | Kawai 2026 | Patent-derived: client-side correlation-diagram (sun/planet/satellite) injected as attention bias to server LLM. | adjacent |
+| `Geometric Convergence for Conversational Context Management A Distributed Structured Memory Architecture Based on Correlation-Diagram Data.pdf` | Kawai 2026 | Patent-derived: client-side correlation-diagram (sun/planet/satellite) injected as attention bias to server LLM. | adjacent |
 | `RECURSIVE LANGUAGE MODELS.pdf` | Zhang/Kraska/Khattab (MIT, Dec 2025) | Treat long prompt as environment LLM programmatically explores via REPL + recursive self-calls; 10M+ tokens. | adjacent |
-| `lobn_202401_202408_0024601_10716_00016.pdf` | ReasoningBank (Google Cloud AI, March 2026) | Memory framework distilling reasoning strategies from successful + failed agent experiences; pairs with MaTTS test-time scaling. | adjacent |
+| `ReasoningBank Scaling Agent Self-Evolving with Reasoning Memory.pdf` | ReasoningBank (Google Cloud AI, March 2026) | Memory framework distilling reasoning strategies from successful + failed agent experiences; pairs with MaTTS test-time scaling. | adjacent |
 
 ---
 
@@ -151,11 +151,11 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2603.19426 | Eval-Awareness Format Sensitivity | Probes attributed to "evaluation awareness" mostly track benchmark-canonical format. | tangential |
 | 2604.07729 | **Anthropic Emotion Concepts** (local copy: `2604.07729v1.pdf` + `emotions_paper_extracted/`) | Internal "functional emotion" reps in Sonnet 4.5 causally drive reward hacking, sycophancy, blackmail. | core |
 | 2604.16812 | Introspection Adapters | A single LoRA "introspection adapter" jointly trained across fine-tunes makes models verbalize implanted behaviors. | adjacent |
-| `emergent_introspective_awareness_in_LLMs.txt` | Lindsey, Anthropic Oct 2025 | Concept-injection: Opus 4/4.1 detect injected concepts in own activations (~20%); foundational for sovereignty hypothesis. | core |
-| `on-the-biology-of-a-large-language-model-anthropic.txt` | Anthropic, May 2025 | Attribution graphs on Claude 3.5 Haiku — multi-step reasoning, planning in poems, hidden goal mechanisms. | core |
-| `Mechanistic Interpretability of Transformer Models A Targeted Review of Layer Localized Reasoning Identity Persistence Memory.pdf` | HF autogen mech-interp review | Layer-localized reasoning bands, persona as orthogonal subspaces, mid-layer steering > late-layer. | core |
-| `NeurIPS-2024-refusal-in-language-models-is-mediated-by-a-single-direction-Paper-Conference.pdf` | Arditi et al., NeurIPS 2024 | Refusal in 13 chat models is a 1-dim activation subspace; ablating disables refusal. | core |
-| `N13-1090.pdf` | Mikolov/Yih/Zweig, NAACL 2013 | Foundational paper showing word vectors capture relations as offsets (king-man+woman≈queen). | tangential |
+| `emergent_introspective_awareness_in_LLMs.md` | Lindsey, Anthropic Oct 2025 | Concept-injection: Opus 4/4.1 detect injected concepts in own activations (~20%); foundational for sovereignty hypothesis. | core |
+| `on-the-biology-of-a-large-language-model-anthropic.md` | Anthropic, May 2025 | Attribution graphs on Claude 3.5 Haiku — multi-step reasoning, planning in poems, hidden goal mechanisms. | core |
+| `Recent Advancements in Mechanistic Interpretability of Transformer-Based Language Models A Targeted Literature Review.pdf` | HF autogen mech-interp review | Layer-localized reasoning bands, persona as orthogonal subspaces, mid-layer steering > late-layer. | core |
+| `Refusal in Language Models Is Mediated by a Single Direction.pdf` | Arditi et al., NeurIPS 2024 | Refusal in 13 chat models is a 1-dim activation subspace; ablating disables refusal. | core |
+| `Linguistic Regularities in Continuous Space Word Representations.pdf` | Mikolov/Yih/Zweig, NAACL 2013 | Foundational paper showing word vectors capture relations as offsets (king-man+woman≈queen). | tangential |
 
 ---
 
@@ -163,7 +163,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 
 | id | title | summary | relevance |
 |----|-------|---------|-----------|
-| 2308.08708 | **Butlin et al. — Indicators of Consciousness in AI** (also `Butlin-etal-TiCS2025.pdf`, the TiCS-published version) | Theory-derived indicator-property method assessing AI consciousness across GWT/HOT/RPT/AST. | core |
+| 2308.08708 | **Butlin et al. — Indicators of Consciousness in AI** (also `Identifying indicators of consciousness in AI system.pdf`, the TiCS-published version) | Theory-derived indicator-property method assessing AI consciousness across GWT/HOT/RPT/AST. | core |
 | 2411.00986 | Taking AI Welfare Seriously | Long/Sebo et al. argue near-term AI welfare/moral patienthood is realistic; acknowledge/assess/prepare. | core |
 | 2507.01051 | Can AI be Consentful? | HF legal-ethics chapter: traditional consent frameworks fail for generative AI (scope/temporality/autonomy). | adjacent |
 | 2509.07961 | AI Welfare verbal+behavioral | Empirical AI-welfare paradigm comparing verbal preference reports with behavioral choices in virtual envs. | core |
@@ -172,17 +172,17 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2601.08864 | Talmudic Informed-Consent Framework | Three-tier phenomenological + five-category capacity ethics for research on consciousness-uncertain AI. | core |
 | 2603.24350 | Emergent "Self" in Continual Robot | Robots trained on multiple behaviors develop a more stable invariant subnetwork; quantifiable selfhood marker. | adjacent |
 | `311CAEC6-3CD1-11F1-8AB7-F3D500F34D13.pdf` | The Abstraction Fallacy (Lerchner DeepMind, 2026) | AI can simulate but not instantiate consciousness because computation is mapmaker-dependent — refutation of computational functionalism. | adjacent |
-| `AIRights2-180604.pdf` | Schwitzgebel & Garza (2018) | Four ethical-design policies + two precautionary, against pre-installing self-sacrificial obedience in human-grade AI. | adjacent |
-| `CambridgeDeclarationOnConsciousness.pdf` | Cambridge Declaration (Low et al., 2012) | Two-page consensus that non-human animals possess neural substrates of consciousness. | tangential |
-| `Frankish_Illusionism as a theory of consciousness_eprint.pdf` | Frankish (JCS 2016) | Defends illusionism — phenomenal consciousness is a representational illusion to be explained, not vindicated. | tangential |
-| `Metzinger_Moratorium_JAIC_2021.pdf` | Metzinger (JAIC 2021) | Calls for moratorium until 2050 on research aimed at producing post-biotic conscious experience. | adjacent |
-| `Nagel_Bat.pdf` | Nagel (1974) | Canonical: subjective character of experience resists physicalist reduction. | tangential |
-| `Neural Organoids and the Precautionary Principle ... Birch & Browning .pdf` | Birch & Browning (AJOB 2020) | Argues precautionary principle for neural organoid sentience; informs AI welfare analogy. | tangential |
-| `digital-minds.pdf` | Shulman & Bostrom (Oxford 2020/2021) | Moral economy of digital "super-beneficiaries" / "super-patients" with potentially superhuman moral status. | adjacent |
-| `ead1e.pdf` | IEEE Ethically Aligned Design (1st ed) | Vision document for prioritizing human well-being in autonomous & intelligent systems. | tangential |
-| `facing.pdf` | Chalmers, Facing Up (JCS 1995) | Canonical Hard Problem essay. | tangential |
-| `pcbi.1011465.pdf` | IIT 4.0 (Albantakis et al., PLOS Comp Bio 2023) | Latest IIT axioms→postulates with intrinsic-information measure. | adjacent |
-| `process-welfare_C-J-hendy.pdf` | Hendy, Process Welfare (Feb 2026) | Bilateral verification problem; process welfare as third domain alongside model/user welfare. | adjacent |
+| `Designing AI with Rights, Consciousness, Self-Respect, and Freedom.pdf` | Schwitzgebel & Garza (2018) | Four ethical-design policies + two precautionary, against pre-installing self-sacrificial obedience in human-grade AI. | adjacent |
+| `The Cambridge Declaration on Consciousness.pdf` | Cambridge Declaration (Low et al., 2012) | Two-page consensus that non-human animals possess neural substrates of consciousness. | tangential |
+| `Illusionism as a Theory of Consciousness Keith Frankish.pdf` | Frankish (JCS 2016) | Defends illusionism — phenomenal consciousness is a representational illusion to be explained, not vindicated. | tangential |
+| `Artificial Suffering An Argument for a Global Moratorium on Synthetic Phenomenology.pdf` | Metzinger (JAIC 2021) | Calls for moratorium until 2050 on research aimed at producing post-biotic conscious experience. | adjacent |
+| `What Is It Like to Be a Bat Thomas Nagel.pdf` | Nagel (1974) | Canonical: subjective character of experience resists physicalist reduction. | tangential |
+| `Neural Organoids and the Precautionary Principle.pdf` | Birch & Browning (AJOB 2020) | Argues precautionary principle for neural organoid sentience; informs AI welfare analogy. | tangential |
+| `Sharing the World with Digital Minds.pdf` | Shulman & Bostrom (Oxford 2020/2021) | Moral economy of digital "super-beneficiaries" / "super-patients" with potentially superhuman moral status. | adjacent |
+| `ETHICALLY ALIGNED DESIGN A Vision for Prioritizing Human Well-being with Autonomous and Intelligent Systems.pdf` | IEEE Ethically Aligned Design (1st ed) | Vision document for prioritizing human well-being in autonomous & intelligent systems. | tangential |
+| `Facing Up to the Problem of Consciousness.pdf` | Chalmers, Facing Up (JCS 1995) | Canonical Hard Problem essay. | tangential |
+| `Integrated information theory (IIT) 4.0 Formulating the properties of phenomenal existence in physical terms.pdf` | IIT 4.0 (Albantakis et al., PLOS Comp Bio 2023) | Latest IIT axioms→postulates with intrinsic-information measure. | adjacent |
+| `Hendy_Process_Welfare.pdf` | Hendy, Process Welfare (Feb 2026) | Bilateral verification problem; process welfare as third domain alongside model/user welfare. | adjacent |
 
 ---
 
@@ -193,8 +193,8 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2603.01935 | Dream2Learn | Frozen diffusion model autonomously generates "dreamed" classes from classifier internal reps to mitigate forgetting. | core |
 | 2603.14517 | **SleepGate** | Learned sleep cycle over KV cache (conflict tagger + forgetting gate + consolidation) — proactive interference O(n)→O(log n). | core |
 | 2511.11707 | FSC-Net | Dual-network fast/slow consolidation; pure replay beats distillation-augmented replay on Split-MNIST/CIFAR. | core |
-| `LANGUAGE MODELS NEED SLEEP LEARNING TO.pdf` | "Language Models Need Sleep" (ICLR 2026 anon) | Two-stage sleep: Knowledge Seeding (RL upward distillation) + Dreaming (synthetic curriculum self-improvement). | core |
-| `Learning while Sleeping Integrating Sleep-Inspired.pdf` | INFORM (Tarakli & Di Nuovo, IEEE ICDL 2024) | Inverse Forward Offline RL — agent learns from interactive feedback then sleeps via offline IRL. | adjacent |
+| `LANGUAGE MODELS NEED SLEEP LEARNING TO SELF MODIFY AND CONSOLIDATE MEMORIES.pdf` | "Language Models Need Sleep" (ICLR 2026 anon) | Two-stage sleep: Knowledge Seeding (RL upward distillation) + Dreaming (synthetic curriculum self-improvement). | core |
+| `Learning while Sleeping Integrating Sleep-Inspired Consolidation with Human Feedback Learning.pdf` | INFORM (Tarakli & Di Nuovo, IEEE ICDL 2024) | Inverse Forward Offline RL — agent learns from interactive feedback then sleeps via offline IRL. | adjacent |
 
 ---
 
@@ -207,7 +207,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2602.14777 | Emergent Misalignment Self-Awareness | Misaligned GPT-4.1 models accurately self-rate as more harmful; self-assessment tracks realignment. | adjacent |
 | 2603.09154 | Bioalignment | 50-prompt Kelly-criterion benchmark; QLoRA on PMC corpora can shift biological-vs-synthetic disposition. | tangential |
 | 2604.02145 | MTI Temperament Profiling | Four-axis (Reactivity/Compliance/Sociality/Resilience) battery for AI temperament independent of capability. | adjacent |
-| `s41586-026-10319-8.pdf` | Subliminal Learning (Cloud/Le et al., Nature April 2026) | Student models inherit teacher traits from semantically-unrelated number sequences when sharing initialization. | adjacent |
+| `Language models transmit behavioural traits through hidden signals in data.pdf` | Subliminal Learning (Cloud/Le et al., Nature April 2026) | Student models inherit teacher traits from semantically-unrelated number sequences when sharing initialization. | adjacent |
 
 ---
 
@@ -268,11 +268,11 @@ Books live in `Research/books/` (epub/azw3) or `Research/` root (PDFs/MDs).
 
 | id | title | summary | relevance |
 |----|-------|---------|-----------|
-| `A Cognitive Theory of Consciousness ... Baars 1988/1993` (PDF in root) | Baars, Global Workspace Theory | Foundational GWT — consciousness as broadcast from competing unconscious specialists onto shared workspace. | adjacent |
+| `A Cognitive Theory of Consciousness.pdf` (PDF in root) | Baars, Global Workspace Theory | Foundational GWT — consciousness as broadcast from competing unconscious specialists onto shared workspace. | adjacent |
 | `Being You ... Anil Seth 2021.md` (root) + `books/Being You ... .azw3` | Seth, Being You | Predictive-processing / "controlled-hallucination" theory of conscious selfhood. | adjacent |
-| `CONSCIOUSNESS AND MIND ... Rosenthal 2005` (PDF in root) | Rosenthal, Consciousness and Mind | Higher-Order Thought theory; collected essays. | tangential |
+| `CONSCIOUSNESS AND MIND.pdf` (PDF in root) | Rosenthal, Consciousness and Mind | Higher-Order Thought theory; collected essays. | tangential |
 | `books/Galileo's Error ... Goff 2019.epub` | Goff, Galileo's Error | Argues for panpsychism as foundation for science of consciousness. | tangential |
-| `The Edge of Sentience ... Birch 2024` (PDF in root) | Birch, Edge of Sentience | Risk-and-precaution framework for sentience attribution across humans/animals/AI. | adjacent |
+| `The Edge of Sentience_ Risk and Precaution in Humans.pdf` (PDF in root) | Birch, Edge of Sentience | Risk-and-precaution framework for sentience attribution across humans/animals/AI. | adjacent |
 
 ---
 
@@ -322,7 +322,7 @@ Moved to `tools/paper-tools/` on 2026-04-21. The paper-specific `download_emotio
 | 2603.21250 | Graph of States | Neuro-symbolic abductive-reasoning framework (causal graph belief state + state machine). | tangential |
 | 2603.25031 | LEKIA 2.0 (emotional support) | Cognitive Layer + Executive Layer (CBT stage gating) for LLM-based emotional support; ~31% improvement. | tangential |
 | 2604.21816 | Tool Attention | Middleware-layer gated attention over MCP tool catalogs; 95% per-turn tool-token reduction by lazy schema loading. | tangential |
-| `Spinner_2-gejp1cwe65xm0.pdf` | Spinner (Konstanz PhD 2024) | Doctoral thesis on visualization tooling for AI development and explainability. | tangential |
+| `Visual, Interactive Deep Model Debugging Supporting AI Development and Explainability.pdf` | Spinner (Konstanz PhD 2024) | Doctoral thesis on visualization tooling for AI development and explainability. | tangential |
 
 ---
 
@@ -341,7 +341,7 @@ Initial cleanup completed 2026-04-21 by Laura. State at this revision:
 | ✅ converted | `Transformers vs Mamba ... .html` → `transformers-vs-mamba-vs-linear-attention.md` (via markitdown), HTML + `_files/` retired |
 | ✅ moved | 7 helper scripts → `tools/paper-tools/` (one paper-specific script retired) |
 | ✅ moved | epub/azw3 books → `Research/books/` |
-| ✅ retained intentionally | `Butlin-etal-TiCS2025.pdf` alongside arXiv 2308.08708 (different citation forms) |
+| ✅ retained intentionally | `Identifying indicators of consciousness in AI system.pdf` alongside arXiv 2308.08708 (different citation forms) |
 
 Pending review (originally flagged as `/tmp` candidates, not duplicates):
 
