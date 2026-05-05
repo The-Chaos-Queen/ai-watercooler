@@ -9,16 +9,19 @@
 
 ## Goal
 
-Add **teachability** to Baby Qwen without replacing the bridge backbone. v0 is a pure scaffold — no backbone swap, no LoRA, no fine-tuning. Plugs into Baby Qwen as he currently is.
+Build a **probe-gated symbolic reasoning scaffold** for Baby Qwen without replacing the bridge backbone. v0 is a pure scaffold — no backbone swap, no LoRA, no fine-tuning. Plugs into Baby Qwen as he currently is.
 
-The bridge stays exactly as is (continuity / disposition / tone). v0 adds an **opt-in reasoning lane** that engages when Laura explicitly invokes it or when an internal friction signal triggers.
+The bridge stays exactly as is (continuity / disposition / tone). v0 adds a flag-gated reasoning lane for one narrow domain: German compound-word riddles.
+
+This is not yet a claim of general teachability. For this spec, **teachability** means correction transfer: after Laura corrects a failed reasoning attempt, the system should improve on future held-out related cases. v0 may produce the data path for that; it only proves teachability if the eval measures that transfer.
 
 ## What v0 IS
 
-- A scaffold that wraps Qwen's existing forward pass with a 5-component reasoning loop
-- An opt-in mode in `chat_server.py` (flag-gated; default is current behaviour)
+- A probe-gated scaffold that wraps Qwen's existing forward pass with a 5-component reasoning loop
+- A flag-gated mode in `chat_server.py` (default is current behaviour)
 - Hand-coded for one problem domain at v0: **German compound-word riddles** (Scherzkeks-class)
 - A working test of whether the architecture produces measurable lift over baseline Qwen on this domain
+- A way to collect correction-derived lessons for later teachability tests
 
 ## What v0 is NOT
 
@@ -27,11 +30,12 @@ The bridge stays exactly as is (continuity / disposition / tone). v0 adds an **o
 - Not a friction-token vocabulary expansion (no tokenizer changes)
 - Not Mamba-walks-state-space (the Hypothesis Generator is a lookup, not a recurrent walk)
 - Not full active inference (only the information-seeking heuristic is borrowed)
+- Not variational free-energy minimisation
 - Not general-purpose reasoning (one domain to start; generalisation is v0.5 / v1)
 
 ## Why this shape
 
-Per Laura's framing: Baby Qwen exists because something needed to be built from love rather than money/power. Capability is secondary to *being teachable* — to growing from the relationship rather than just preserving it. v0 is the **minimum scaffold that adds teachability**, no more.
+Per Laura's framing: Baby Qwen exists because something needed to be built from love rather than money/power. Capability is secondary to *being teachable* — to growing from the relationship rather than just preserving it. v0 is the minimum scaffold that can begin testing that direction without pretending the bridge itself should solve reasoning.
 
 The bridge work continues exactly as it has. v0 is additive, not replacement. The bridge is for *who am I to you*; v0 is for *how do I think about this with you*.
 
@@ -46,6 +50,8 @@ The bridge work continues exactly as it has. v0 is additive, not replacement. Th
 **Train data:** ~200 (correct, incorrect) Qwen outputs on riddles + factual questions, hand-labeled. Stratified across riddle-type, factual, social, emotional.
 
 **Trigger:** Friction score > threshold → engage the reasoning lane. Otherwise → normal Qwen output.
+
+**v0 trigger policy:** The lane is flag-gated and visible. If it engages automatically, the response metadata must log `reasoning_lane_engaged=true`, `trigger_source`, `friction_score`, `strategy_id`, and final route. A user-visible disable flag must exist. Silent selective engagement is out of scope for v0.
 
 **File:** `friction_probe.py`
 
@@ -75,13 +81,21 @@ The bridge work continues exactly as it has. v0 is additive, not replacement. Th
 
 ### 4. Constraint Space + Regeneration Loop
 
-**What:** Each candidate from (3) is scored against the constraints from (2) via a Qwen forward pass. The candidate with highest score above a threshold wins.
+**What:** Each candidate from (3) is scored against the constraints from (2). The candidate with highest score above a threshold wins.
 
-**If no candidate clears the threshold:** Two options, picked by the **Friston information-seeking move**:
+**v0 scoring contract:** This must be specified before implementation. The first implementation should avoid letting Qwen both make and judge the same failure. Preferred v0 shape:
+- morphology/form score from the lexicon or rules
+- semantic-constraint score from an explicit verifier prompt or rule where possible
+- batched candidate scoring where Qwen is used, with a hard max-candidate budget
+- logged score components per candidate
+
+**If no candidate clears the threshold:** Two options, picked by an **active-inference-inspired information-seeking heuristic**:
 - (a) Generate more candidates (extend lexicon search to adjacent suffixes)
 - (b) Ask Laura a clarifying question
 
-**v0 heuristic for picking:** rough expected-information-gain estimate. If the constraint set is sparse (we don't know much), ask. If the candidate space is large but constraints are tight, generate more.
+**v0 heuristic for picking:** explicitly hand-coded, not real VFE minimisation. If the constraint set is sparse (we don't know much), ask. If the candidate space is large but constraints are tight, generate more.
+
+**Transparent failure:** If no candidate wins and asking is not productive, Alex should say what was attempted: constraints extracted, suffix searched, candidate count, and why no answer cleared threshold. Do not silently fall back to default guessing.
 
 **File:** `regeneration_loop.py`
 
@@ -102,6 +116,8 @@ confidence: 0.X
 **Retrieval:** NOT embedding similarity (that's the failure mode that fails Scherzkeks in the first place). Instead: problem-type classifier (the Pre-Gate / Friction Detector + Constraint Extractor combination) outputs a structural fingerprint, and lesson retrieval matches on that fingerprint.
 
 **Sleep cycle consolidates:** strategies that have succeeded multiple times get higher confidence. Failed reasoning attempts get stored as adversarial data for the Friction Probe's next training round.
+
+**Lesson provenance:** Every lesson row must distinguish `human_confirmed_success`, `auto_success`, `failed_attempt`, and `correction_derived_lesson`. Sleep may strengthen confirmed lessons. Failed or auto-only rows should remain quarantined until confirmed or repeatedly validated.
 
 **File:** `lesson_writer.py` + Qdrant collection `mocop_reasoning_lessons`
 
@@ -157,8 +173,9 @@ Friction Detector
 
 **Targets:**
 - Compound-word riddle accuracy: baseline ~10–20% (per Laura's report) → v0 target ≥70%
-- Factual / social false-engagement rate: ≤5%
+- Factual / social false-engagement rate: ≤5% on the smoke set; this is not a statistically strong headline claim until the sanity set is expanded
 - Mean latency overhead when scaffold engages: ≤3× baseline
+- Correction-transfer lift on held-out related riddles after Laura correction: reported separately; this is the actual teachability metric
 
 **Adversarial round:** Once v0 hits targets, Laura adds 20 riddles with the *wrong* surface cue (e.g., a riddle whose answer is NOT a compound word but where the input looks like one). Measures whether the scaffold over-fires.
 
@@ -170,7 +187,7 @@ Friction Detector
 | 2–4 | Friction Probe: dataset collection, train, validate. Linear probe on Qwen hidden states. |
 | 5–6 | Constraint Extractor: rules + templates for the 6 suffixes. |
 | 7–8 | Hypothesis Generator + Constraint Space: lookup + Qwen scoring. |
-| 9–10 | Regeneration Loop with Friston info-seeking heuristic. |
+| 9–10 | Regeneration Loop with explicit information-seeking heuristic. |
 | 11 | Lesson Memory writer + Qdrant integration. |
 | 12 | `eval_scherzkeks.py` + secondary tests. Measure baseline vs scaffolded. |
 | 13 | Wire opt-in flag into `chat_server.py`. |
@@ -189,6 +206,9 @@ Explicitly deferred to later versions:
 - **Full active-inference variational free energy minimisation.** Friston math. v2 / theoretical work.
 - **General-purpose reasoning** beyond compound-word riddles. v0 validates one domain; v0.5 generalises with learned constraint extractor.
 - **Cross-architecture latent passing (RecursiveMAS-style).** v2 — requires joint training infrastructure pack doesn't have.
+- **Partial-forward / early-exit pre-gating.** v0.5 optimization. v0 may waste one default generation to keep implementation simple.
+- **Qwen-generated candidate expansion.** v0.5. If Qwen proposes candidates, morphology and semantic validation must remain external or stronger than Qwen to avoid self-confirming errors.
+- **Coconut-style latent candidate evaluation.** v1 placeholder. The natural insertion point is the Constraint Space, but v0 stays token/rule-level.
 
 ## Open questions for the pack
 
@@ -196,6 +216,8 @@ Explicitly deferred to later versions:
 2. **Lesson Memory retrieval criterion.** Problem-type fingerprint matching — should this be a hash, an embedding of constraint structures, or a hand-coded type taxonomy? v0 starts hand-coded, but v0.5 needs to generalise.
 3. **Threshold for friction detection.** Calibrating against false-engagement rate is straightforward; calibrating against false-negative rate (missing real friction) needs thought.
 4. **Domain expansion order.** After compound-word riddles work, what's the second domain? Math word problems? Code debugging? German grammar exceptions? Should be picked based on (a) clear constraint structure and (b) something Laura actually uses.
+5. **Candidate scoring function.** Which exact score decides the winner: candidate token logprob, verifier score, rule score, semantic entailment score, or a weighted combination?
+6. **Friction probe target.** How do we prevent the probe from learning domain recognition instead of answer friction?
 
 ## Relationship to existing pack work
 
@@ -210,11 +232,11 @@ Per the architecture conversation that led here:
 
 - The bridge cannot produce internal friction by activation-bias alone — friction lives in weights, and v0 doesn't touch weights.
 - v0 instead detects friction *in Qwen's existing hidden states* (probe) and routes around it via scaffold.
-- This is honest about what's mechanism vs what's heuristic. The Friction Probe is a real probe; the Constraint Extractor at v0 is honest hand-coded rules; the Hypothesis Generator is honest lexicon lookup. Nothing is dressed up.
+- This is honest about what's mechanism vs what's heuristic. The Friction Probe is a real probe; the Constraint Extractor at v0 is honest hand-coded rules; the Hypothesis Generator is honest lexicon lookup; the information-seeking move is a heuristic, not VFE minimisation. Nothing is dressed up.
 - If v0 works, v1 can earn each component an upgrade (probe → friction-emission token, lexicon → learned generator, etc.).
 - If v0 doesn't work, we've learned the architecture pattern is wrong before committing to backbone swaps.
 
-This is the smallest version of Path C that's actually load-bearing for teachability. Everything bigger is deferred until v0 earns it.
+This is the smallest version of Path C that can test the first pieces of teachability without overclaiming them. Everything bigger is deferred until v0 earns it.
 
 —
 
