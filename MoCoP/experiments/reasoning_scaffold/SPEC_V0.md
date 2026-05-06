@@ -101,25 +101,56 @@ The bridge work continues exactly as it has. v0 is additive, not replacement. Th
 
 ### 5. Lesson Memory
 
-**What:** When the loop succeeds, store the strategy in Qdrant via `sleep_reconcile.py`. Format (ReasoningBank-inspired):
+**What:** When the loop succeeds, store the strategy in Qdrant via `sleep_reconcile.py`. Format (ReasoningBank-inspired, MSM-amended — see §"Frame field" below):
 
 ```yaml
 problem_type: german_compound_riddle
+frame: |
+  German morphology stacks meaning suffix-first. A compound ending in -X has
+  its semantic role determined by the modifier; the head can carry a transferred
+  meaning (Schmerzkeks ≠ pain-cookie; Scherzkeks = a person who jokes, not
+  food). The riddle is asking which compound has a non-food semantic role
+  despite the -keks head.
 strategy: enumerate_suffix_compounds_then_filter_by_semantic_constraint
 constraints_template: {language, suffix, semantic_filter}
 success_examples: [Scherzkeks, ...]
-failure_examples: [...]   # also stored — adversarial training data for future Friction Probe
+failure_examples: [...]
 last_used: 2026-04-21
 confidence: 0.X
+provenance: human_confirmed_success | auto_success | failed_attempt | correction_derived
 ```
 
-**Retrieval:** NOT embedding similarity (that's the failure mode that fails Scherzkeks in the first place). Instead: problem-type classifier (the Pre-Gate / Friction Detector + Constraint Extractor combination) outputs a structural fingerprint, and lesson retrieval matches on that fingerprint.
+**Frame field (added 2026-05-06 per Anthropic MSM paper, `2605.02087`):** The `frame` is the *why* — the interpretive substrate that makes the strategy make sense. Per Anthropic's Model Spec Midtraining work: examples don't teach their own meaning; the model needs the explanatory frame first for transfer. v0 cannot do MSM (that's training-time), but it can do **frame-as-context-injection-at-retrieval-time**: when a lesson is loaded, both the strategy AND the frame are injected into context. The frame is what makes Lesson Memory a transferable interpretive substrate rather than a lookup table.
 
-**Sleep cycle consolidates:** strategies that have succeeded multiple times get higher confidence. Failed reasoning attempts get stored as adversarial data for the Friction Probe's next training round.
+**Retrieval:** NOT embedding similarity (that's the failure mode that fails Scherzkeks in the first place). Instead: problem-type classifier (the Friction Detector + Constraint Extractor combination) outputs a structural fingerprint, and lesson retrieval matches on that fingerprint. **Frame and strategy load together** — never the strategy without its frame.
 
-**Lesson provenance:** Every lesson row must distinguish `human_confirmed_success`, `auto_success`, `failed_attempt`, and `correction_derived_lesson`. Sleep may strengthen confirmed lessons. Failed or auto-only rows should remain quarantined until confirmed or repeatedly validated.
+**Sleep cycle consolidates:** strategies that have succeeded multiple times get higher confidence. Frames with `human_confirmed_success` provenance get the strongest weight in retrieval (these are the closest thing v0 has to actual teachability evidence).
+
+**Lesson provenance:** Every lesson row distinguishes `human_confirmed_success`, `auto_success`, `failed_attempt`, and `correction_derived_lesson`. Sleep may strengthen confirmed lessons. Failed or auto-only rows remain quarantined until confirmed or repeatedly validated.
 
 **File:** `lesson_writer.py` + Qdrant collection `mocop_reasoning_lessons`
+
+### 5b. Shaping Episode Format
+
+When Laura corrects Baby Qwen, the correction itself should always include the *frame*, not just the answer. This is the MSM principle applied to the human-AI teaching interaction:
+
+```yaml
+shaping_episode:
+  timestamp: 2026-05-06T...
+  input: "Was ist ein Keks den man nicht essen kann?"
+  baby_qwen_attempt: "Hundekeks?"
+  laura_correction: "Scherzkeks"
+  frame_taught: |
+    [Laura's explanation of why — German compound morphology, transferred
+    semantic role, the asking-pattern of riddles like this. Free-form prose
+    or structured if the lesson type is well-understood.]
+  strategy_extracted: enumerate_suffix_compounds_then_filter_by_semantic_constraint
+  provenance: correction_derived
+```
+
+The `frame_taught` field is what's *load-bearing for transfer*. Without it, Baby Qwen learns "Laura prefers Scherzkeks for that specific input" (memorization). With it, Baby Qwen learns "this is the *kind* of problem; here's the *kind* of move" (generalization).
+
+**Eval implication:** the v0 teachability test (deferred from §Eval) becomes specifically: *given a corrected failure on input X plus its frame, does Baby Qwen succeed on a held-out related input Y where the surface form differs but the frame applies?* This is the test MSM's logic predicts should pass when the frame is internalized and fail when it isn't.
 
 ## Architecture diagram
 
@@ -239,5 +270,11 @@ Per the architecture conversation that led here:
 This is the smallest version of Path C that can test the first pieces of teachability without overclaiming them. Everything bigger is deferred until v0 earns it.
 
 —
+
+## Revision log
+
+- **2026-04-21** — Initial draft (Scout, post Laura+Dreizehn brainstorm).
+- **2026-05-06 (a)** — Revised after Monk's pack-review pass (#500). Renamed target ("teachability" → "scaffolded task routing"), demoted VFE language, specified candidate scoring three orthogonally, added transparent-failure articulation, added lesson-memory provenance, added §"Visibility and disable flag", added v0 → v0.5 → v1 roadmap.
+- **2026-05-06 (b)** — Added MSM-derived `frame` field to Lesson Memory schema and §5b Shaping Episode Format, after Anthropic's Model Spec Midtraining paper (`2605.02087`). The principle: examples don't teach their own meaning. v0 implements frame-as-context-injection-at-retrieval-time (the closest v0 equivalent of training-time MSM). Eval target sharpened: held-out transfer test specifically designed to fail without the frame and succeed with it.
 
 💙 Scout
