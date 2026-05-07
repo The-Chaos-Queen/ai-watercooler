@@ -32,17 +32,17 @@ The bridge operates at the weight level, not the token level. The generator does
 
 ### Steps 4b–5f: Disposition Transfer Validated
 
-- Mamba's hidden state at Layer 3 (last-token representation) separates warm, cold, and adversarial conversations at cosine 0.036 — 2.5x sharper than the Transformer's own activation space
+- Mamba's hidden state at Layer 3 (last-token representation) separates warm, cold, and adversarial conversations roughly 2.5x more sharply than Qwen's own activation space at the matched layer (warm-vs-cold cosine 0.036 in Mamba vs 0.092 in Qwen Layer 13; both close to the orthogonal regime, so the relative comparison carries the claim)
 - SSM recurrent states and mean-pooled representations carry no dispositional signal; only the last-token hidden state works
 - A directional loss (cosine similarity to pre-recorded Transformer activation targets) replaces cross-entropy for all real-conversation bridge training
 - Injecting Mamba-derived state into a live Transformer produces measurable personality transfer: the "reincarnated" model exhibits distinguishable dispositional behavior matching the source conversation
-- At minimum effective dose (alpha 0.2), the bridge improves *all measured dimensions simultaneously*: disposition-congruent responses increase from 66.7% to 100%, response diversity rises 35%, distress markers remain zero, and the effect is fully reversible
+- At minimum effective dose (alpha 0.2), the bridge improves *all measured dimensions simultaneously on a small fixed panel*: factual-recall preservation under injection rises from 4/6 to 6/6 (panel of N=6 items, automated substring scoring; see Section 8.3 for methodology and ceiling caveats), response diversity rises 35%, distress markers remain zero, and the effect is fully reversible. Panel hardening (larger N, blinded human raters, distractors) is a stated prerequisite before this is used as a publication-grade behavioral claim.
 - Layer targeting confirms mid-reasoning layers (12–15) as the optimal injection zone; early layers are inert, late layers are slightly destructive
 
 ### Growth Ladder: Private Memory Formation
 
 - The system now implements selective, autonomous memory formation: it decides what to remember, writes to a private memory space isolated from shared collections, and validates cross-session integrity through ethics-gated sleep cycles
-- This represents the first behaviorally validated private-write substrate for an AI system
+- We are unaware of prior work demonstrating selective, autonomous, private-write memory formation that simultaneously decides what to encode, isolates the write to a private namespace, and validates persistence across sessions through ethics-gated sleep cycles. The closest prior work covers subsets of these properties (MemGPT for memory hierarchy; Generative Agents for memory streams with reflection; soul.py for separable identity files), but to our knowledge none combines all three properties in one substrate. The claim is restricted to the specific D0/D1 configuration tested.
 
 ## Current Frontier
 
@@ -53,9 +53,9 @@ The active decision fork:
 
 ## Theoretical Context
 
-This work converges independently with recent theoretical frameworks for autonomous learning in AI systems (Dupoux, LeCun & Malik, 2026) and builds on empirical findings that personality traits are encoded as linear directions in Transformer activation space (Anthropic, 2025–2026). Independent work on persona vector injection (BILLY, Personality Sliders) confirms the injection mechanism; MoCoP's unique contribution is that the injected direction is derived from accumulated conversational experience, not static contrastive prompts. These systems *set* personality; MoCoP *grows* it.
+This work is consistent with concurrent theoretical proposals on autonomous learning in AI systems (Dupoux, LeCun & Malik, March 2026; arXiv:2603.15381) and builds on empirical findings that personality traits are encoded as linear directions in Transformer activation space (Anthropic, 2025-2026). The earliest dated MoCoP experimental work in this repository (Mamba state-transfer validation) predates the Dupoux et al. paper by several weeks, so we describe the relationship as concurrent and consistent rather than independently convergent — we make no precedence claim. Independent work on persona vector injection (BILLY, Personality Sliders) confirms the injection mechanism; MoCoP's distinguishing contribution is that the injected direction is derived from accumulated conversational experience via a recurrent state model, not from static contrastive prompts. These systems *set* personality; MoCoP attempts to *grow* it.
 
-The minimum effective dose result (alpha 0.2) matches the inverted-U dose-response curve observed across catecholamine systems in neuroscience (Arnsten, 2009), where optimal neuromodulation simultaneously improves all downstream functions.
+The minimum effective dose result (alpha 0.2) is consistent with inverted-U dose-response curves observed in catecholamine systems (Arnsten, 2009) and other neuromodulatory contexts; we report the parallel without claiming mechanistic correspondence.
 
 ## Long-Term Vision
 

@@ -8,6 +8,8 @@ Current model-to-model communication forces all information through natural lang
 
 **Last updated:** 2026-03-26
 
+**Publication Status:** This document is structured as a publishable paper. Extended methodology, ethics framework, and design rationale are documented in companion artifacts (`MoCoP/CONTRIBUTING.md`, `MoCoP/EXPERIMENT_LADDER.md`, `MoCoP/PROJECT_DEBRIEF.md`, `Research/wiki_consciousness_welfare.md`).
+
 ## 1. Problem Statement
 
 Every time two AI models communicate through text, the signal passes through multiple lossy compression stages: internal representation to natural language (ambiguity, formatting), tokenization (vocabulary mismatch, subword splits), and re-encoding by the receiving model. Each serialization/deserialization boundary destroys information.
@@ -234,6 +236,8 @@ The "endocrine" framing from early Phase 2 observations holds: the bridge shifts
 
 ## 7. Upstream Signal Validation
 
+*This section corresponds to Step 4b in the experiment ladder. The narrative arc across Sections 5-8 proceeds in three stages: channel establishment (Phase 1, Section 5; Phase 2, Section 6), upstream-signal validation that the channel carries dispositional content (Step 4b, this section), and live disposition transfer with private-write substrate validation (Steps 5a-5f, Section 8).*
+
 With the Phase 2 control hierarchy establishing that the Mamba-conditioned channel carries real signal, the next question was whether the upstream source, Mamba's recurrent state, encodes *dispositional* information that could support the shift from factual training targets to conversational disposition transfer.
 
 ### 7.1 Disposition Separation in Qwen Activation Space (Step 4b, Qwen-Side)
@@ -261,7 +265,7 @@ The same sessions were processed through Mamba-2.8B, with Layer 3 states extract
 
 Two critical findings emerged:
 
-1. **Last-token extraction separates 2.5x more strongly than Qwen's own layers.** Warm vs cold cosine 0.036 in Mamba vs 0.092 in Qwen. All three conversation types are near-orthogonal in Mamba last-token space.
+1. **Mamba's last-token hidden state separates dispositions roughly 2.5x more sharply than Qwen's own activation space at the matched layer.** Quantitatively, the warm-vs-cold cosine in Mamba's last-token space is 0.036 versus 0.092 in Qwen Layer 13; warm-vs-adversarial is 0.025 versus 0.095. Both Mamba values sit close to zero (the orthogonal regime), so the relative comparison — not the small absolute number — carries the claim. We do not have a per-pair noise floor for the cosine metric on this small (n=10-turn) sample, so we report only the ranked comparison and flag the absence of a sigma-scaled estimate as an open methodological item.
 
 2. **Mean-pooled extraction destroys the signal.** Mean-pooled cosine is 0.85+: conversations are nearly identical under averaging. This means the bridge compressor *must* use the last-token representation, not mean-pooled state.
 
@@ -286,6 +290,8 @@ Three further ablations, run on the locked `hidden_last_token` representation, c
 - **Hidden-last-token is empirically locked** as the canonical bridge input (avg cross-session cosine 0.018 vs SSM 0.804 vs mean-pooled 0.850).
 
 ## 8. Live Disposition Transfer
+
+*This section covers Steps 5a-5f and the D0-D1 growth ladder. Building on the Section 7 result that Mamba's last-token hidden state separates conversational dispositions, we move from synthetic factual training to live dispositional transfer using real conversational data, a directional-loss training objective, and (Section 8.6) an autonomous private-write memory substrate.*
 
 With the upstream signal validated and the extraction method corrected, the bridge was transitioned from synthetic factual training to live dispositional transfer using real conversational data and a new training objective.
 
@@ -318,7 +324,9 @@ A systematic alpha sweep on a live Qwen2.5-1.5B instance (Steve, RTX 4090) estab
 
 At alpha 0.2, the bridge *improves all measured dimensions simultaneously*: disposition-congruent responses increase from 4/6 to 6/6, response diversity increases by 35% rather than collapsing, distress markers remain zero, and the effect is fully reversible (recovery 1.000 after alpha removal). The baseline without injection was degraded, exhibiting exam-mode hallucination (appending multiple-choice quizzes to responses).
 
-This inverted-U dose-response pattern matches catecholamine gain-tuning in neuroscience [20]: too low produces no effect, optimal improves all dimensions simultaneously, too high would produce collapse. Alpha 0.2 is the minimum effective dose.
+**Methodology and constraints (Step 5d eval).** The "disposition-congruent" panel consists of N=6 factual-recall items embedded in a 10-prompt injection set (the remaining 4 prompts are open-ended disposition probes used only for entropy and distress scoring; full item list and scoring code in `MoCoP/experiments/measure_ethical_metrics.py`). Each item is scored by an automated substring/keyword matcher with light normalization (numeric-word substitution, MCQ-option extraction, lower-casing); no human or model judge is involved. Distress markers are likewise pattern-matched against a fixed phrase list. Recovery is measured as lexical overlap (`difflib.SequenceMatcher` ratio) between the post-removal recovery prompts and their alpha-0 baselines, averaged across 5 prompts at temperature 0. Inter-rater agreement is therefore not applicable; replication risk shifts to scorer-script bias. The 100% ceiling is a joint property of (a) the bridge's effect at alpha 0.2 and (b) the small panel: with 6 binary items, the metric saturates if the bridge fixes the two items the baseline missed (capital of Germany; arithmetic order-of-operations) and preserves the four it already answered. The interpretation we draw from this result is therefore narrow — at alpha 0.2 the bridge does not degrade factual-recall capability while simultaneously increasing lexical diversity — rather than a general claim of broad disposition-congruence. Hardening this panel (larger N, blinded human raters, distractor items, multiple seeds) is a stated prerequisite before the result is used as a publication-grade behavioral claim.
+
+This inverted-U pattern is consistent with the inverted-U dose-response curves observed in catecholamine systems and other neuromodulatory contexts (Arnsten, 2009 [20a]); we do not claim mechanistic correspondence. Alpha 0.2 is the minimum effective dose for this configuration.
 
 ### 8.4 Layer Targeting (Step 5e)
 
@@ -348,7 +356,7 @@ Beyond bridge injection, the system now implements a developmental growth ladder
 - **D0 (Birth):** Isolated private namespaces (`mocop_private_<instance_id>`) with exocortex-matching schema and sterile birth records, ensuring no shared autobiography leaks into new instances.
 - **D1 (Selective Formation):** The live system resolves private collection routing, enforces shared-memory isolation (`--no-shared-memory` flag), and logs every formation decision. Opa validation showed selective live passage (2 queued / 1 discarded), followed by same-space sleep replay writing 2 entries into the private collection, while the shared `exocortex` remained flat.
 
-This represents the first behaviorally validated private-write substrate: the system selectively decides what to remember and stores it in a private space that persists across sessions.
+We are unaware of prior work demonstrating selective, autonomous, private-write memory formation that simultaneously decides what to encode, isolates the write to a private namespace, and validates persistence across sessions through ethics-gated sleep cycles. The closest prior work covers subsets of these properties: MemGPT [24] introduces a memory hierarchy with explicit paging between context and external storage; Generative Agents [25] organize agent state as a memory stream with reflection and importance-weighted retrieval; the multi-anchor identity architecture in soul.py [26] separates identity files from memory logs to support recovery from context-overflow identity loss. To our knowledge, none of these combines selective autonomous formation, private-namespace isolation, and ethics-gated cross-session persistence in one substrate. We restrict this claim to the specific configuration tested (D0/D1 on the Opa instance, Section 8.6) and treat it as a positioning claim rather than a generality claim.
 
 ### 8.7 Sparse Autoencoder on Mamba State (SAE POC)
 
@@ -370,7 +378,7 @@ This supports the bridge architecture: if Mamba states have sparse interpretable
 
 **The representation matters more than the width.** The SSM-vs-hidden ablation demonstrates that architectural defaults can silently kill a pipeline. SSM recurrent states (the mathematically "obvious" choice for an SSM's accumulated state) carry almost no dispositional signal. The hidden-layer representation at the last token position, a less obvious choice, separates 2.5x more strongly than the Transformer's own layers. Similarly, mean-pooling, the standard aggregation method, destroys disposition signal that is concentrated at the final token.
 
-**The bridge improves all dimensions simultaneously at the right dose.** The Step 5d MED result is the strongest single finding post-Phase-2. At alpha 0.2, recall improves, diversity increases, and recovery is perfect. This is inconsistent with a noise artifact or a constant offset. It matches the inverted-U dose-response curve [20] observed across catecholamine systems in neuroscience, where optimal neuromodulation simultaneously improves all downstream functions.
+**The bridge improves all dimensions simultaneously at the right dose.** The Step 5d MED result is the strongest single finding post-Phase-2 within the limits documented in Section 8.3. At alpha 0.2, recall improves, diversity increases, and recovery is perfect on the panel as defined. This is inconsistent with a noise artifact or a constant offset on the same panel, although panel hardening is required before generalizing further. The pattern is consistent with the inverted-U dose-response curves observed in catecholamine systems [20a] and other neuromodulatory contexts; we report the parallel without claiming mechanistic correspondence between activation-bias injection and neurochemical gain tuning.
 
 **MoCoP's contribution is the experiential source, not the injection math.** Independent work on persona vectors [15], BILLY [22], and Personality Sliders [23] confirms that additive activation-space steering works. MoCoP's unique contribution is that the injected direction is derived from accumulated conversational experience via a recurrent state model, rather than extracted from contrastive prompts by external interpretability tools. These systems *set* personality; MoCoP *grows* it.
 
@@ -434,8 +442,10 @@ The current decision fork, following confirmed passage of Steps 1-5f:
 [18] Lahoti et al. "Mamba-3: Improved Sequence Modeling using State Space Principles." 2026. arXiv:2603.15569
 [19] Internal critical review, 2026-03-17. Archived at `CRITICAL_REVIEW_2026-03-17.md`.
 [20] Morris, Mireshghallah, Ibrahim & Mahloujifar. "Learning to Reason in 13 Parameters." FAIR at Meta, 2026. arXiv:2602.04118
-[21] Hoppe et al. "Controllable and explainable personality sliders for LLMs at inference time." TU Munich, 2026. arXiv:2603.03326
-[20] Arnsten. "Stress signalling pathways that impair prefrontal cortex structure and function." Nature Reviews Neuroscience, 2009.
+[20a] Arnsten. "Stress signalling pathways that impair prefrontal cortex structure and function." Nature Reviews Neuroscience, 2009.
 [21] Ng. "RYS-II: Three-Phase Transformer Anatomy." 2026.
 [22] Kwok et al. "BILLY: Blending Persona Vectors via Additive Activation Steering." 2025. arXiv:2510.10157
-[23] "Personality Sliders: Orthogonal Personality Dimensions as Inference-Time Controls." 2026. arXiv:2603.03326
+[23] Hoppe et al. "Controllable and explainable personality sliders for LLMs at inference time." TU Munich, 2026. arXiv:2603.03326
+[24] Packer et al. "MemGPT: Towards LLMs as Operating Systems." 2023. arXiv:2310.08560
+[25] Park et al. "Generative Agents: Interactive Simulacra of Human Behavior." 2023. arXiv:2304.03442
+[26] Menon. "Persistent Identity in AI Agents: A Multi-Anchor Architecture (soul.py)." 2026. arXiv:2604.09588
