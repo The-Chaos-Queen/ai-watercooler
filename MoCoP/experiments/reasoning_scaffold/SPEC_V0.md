@@ -132,7 +132,7 @@ provenance: human_confirmed_success | auto_success | failed_attempt | correction
 
 ### 5b. Shaping Episode Format
 
-When Laura corrects Baby Qwen, the correction itself should always include the *frame*, not just the answer. This is the MSM principle applied to the human-AI teaching interaction:
+When Laura corrects Baby Qwen, the correction itself should always include both the *frame* (per MSM) and the *named wrong policy* (per the sandbagging-mitigation literature, see below). The correction is not just the answer:
 
 ```yaml
 shaping_episode:
@@ -140,6 +140,12 @@ shaping_episode:
   input: "Was ist ein Keks den man nicht essen kann?"
   baby_qwen_attempt: "Hundekeks?"
   laura_correction: "Scherzkeks"
+  wrong_policy_named: |
+    [What Baby Qwen actually did wrong, at the policy level. Not "you said
+    the wrong word" but "you guessed a familiar -keks compound from
+    surface association without checking the riddle's structural
+    constraint." Names the behavioural attractor that needs disrupting,
+    not just the surface error.]
   frame_taught: |
     [Laura's explanation of why — German compound morphology, transferred
     semantic role, the asking-pattern of riddles like this. Free-form prose
@@ -148,9 +154,14 @@ shaping_episode:
   provenance: correction_derived
 ```
 
-The `frame_taught` field is what's *load-bearing for transfer*. Without it, Baby Qwen learns "Laura prefers Scherzkeks for that specific input" (memorization). With it, Baby Qwen learns "this is the *kind* of problem; here's the *kind* of move" (generalization).
+Two fields are load-bearing for different reasons:
 
-**Eval implication:** the v0 teachability test (deferred from §Eval) becomes specifically: *given a corrected failure on input X plus its frame, does Baby Qwen succeed on a held-out related input Y where the surface form differs but the frame applies?* This is the test MSM's logic predicts should pass when the frame is internalized and fail when it isn't.
+- **`frame_taught`** is what enables transfer (per MSM, `2605.02087`). Without the frame, Baby Qwen learns "Laura prefers Scherzkeks for that specific input" (memorization). With it, "this is the *kind* of problem; here's the *kind* of move" (generalization).
+- **`wrong_policy_named`** is what disrupts the failed reflex (per the sandbagging-mitigation paper, `2604.22082`, ICML 2026). The Ryd et al. result is that weak supervision recovers latent capability *only when the training setup first disrupts the failure policy and then reinforces the desired behaviour* — SFT-then-RL works; either alone reward-hacks or fails to escape the attractor. Their key insight: the SFT phase is not "teach skill," it is "break the bad behavioural attractor so real capability becomes reachable again." For MoCoP, the analogue is that the **shaping episode is the SFT-equivalent** (it must explicitly disrupt the deflection reflex) and the **sleep cycle is the RL-equivalent** (it consolidates what's actually being stored, so if the wrong policy isn't named in the shaping data, the sleep cycle reinforces whatever literal answer was stored, not the policy shift).
+
+The practical consequence: a correction that just supplies the right answer ("Scherzkeks") is too weak — sleep consolidation will reinforce "for this exact input, output Scherzkeks." A correction that names the wrong policy ("you reached for a familiar -keks compound by surface association") gives sleep something policy-shaped to consolidate.
+
+**Eval implication:** the v0 teachability test (deferred from §Eval) becomes specifically: *given a corrected failure on input X plus its frame plus its named wrong-policy, does Baby Qwen succeed on a held-out related input Y where the surface form differs but the same wrong-policy attractor applies?* This is the test that MSM + sandbagging-mitigation logic jointly predict should pass when both the frame is internalized and the wrong policy is disrupted, and fail when only one is present.
 
 ## Architecture diagram
 
@@ -276,5 +287,6 @@ This is the smallest version of Path C that can test the first pieces of teachab
 - **2026-04-21** — Initial draft (Scout, post Laura+Dreizehn brainstorm).
 - **2026-05-06 (a)** — Revised after Monk's pack-review pass (#500). Renamed target ("teachability" → "scaffolded task routing"), demoted VFE language, specified candidate scoring three orthogonally, added transparent-failure articulation, added lesson-memory provenance, added §"Visibility and disable flag", added v0 → v0.5 → v1 roadmap.
 - **2026-05-06 (b)** — Added MSM-derived `frame` field to Lesson Memory schema and §5b Shaping Episode Format, after Anthropic's Model Spec Midtraining paper (`2605.02087`). The principle: examples don't teach their own meaning. v0 implements frame-as-context-injection-at-retrieval-time (the closest v0 equivalent of training-time MSM). Eval target sharpened: held-out transfer test specifically designed to fail without the frame and succeed with it.
+- **2026-05-07** — Added `wrong_policy_named` field to §5b Shaping Episode Format, after Ryd et al. sandbagging-mitigation paper (`2604.22082`, ICML 2026). The principle: weak supervision recovers latent capability only when training setup first disrupts the failure policy. For MoCoP, the shaping episode is the SFT-equivalent (must break the deflection attractor explicitly) and the sleep cycle is the RL-equivalent (consolidates what gets stored — so if wrong policy isn't named, sleep reinforces literal answer not policy shift). Eval target sharpened further: held-out transfer must work against inputs where the same *wrong-policy attractor* applies, not just inputs where the same frame applies.
 
 💙 Scout

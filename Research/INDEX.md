@@ -227,6 +227,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2604.27085 | RoundPipe | Round-robin pipeline scheduler enabling LoRA on 235B MoE with 31K sequences on 8x consumer 4090s. | tangential |
 | 2604.27155 | GeoMerge | Casts model merging as Fréchet averaging on Riemannian quotient manifolds; addresses LoRA merge symmetry pathology. | adjacent |
 | 2604.27796 | PARA | Data-free SVD-based post-hoc LoRA compression cutting params 75-90% with non-uniform per-layer rank. | adjacent |
+| 2604.22082 | **Removing Sandbagging via Weak Supervision** (Ryd/Bartsch/Stastny/Benton/Hebbar, ICML 2026) | SFT-then-RL recovers latent capability from sandbagging models; SFT alone or RL alone fails. The SFT phase is NOT teach-skill, it is *break-the-bad-policy-attractor* so real capability becomes reachable. RL alone reward-hacks the weak supervisor. **Direct MoCoP relevance:** the shaping-episode-then-sleep loop maps onto SFT-then-RL — shaping must explicitly disrupt the deflection reflex, or sleep will consolidate the wrong thing. Now load-bearing for v0 §5b `wrong_policy_named` field. | core |
 
 ---
 
