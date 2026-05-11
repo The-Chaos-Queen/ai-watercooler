@@ -43,11 +43,11 @@ The bridge work continues exactly as it has. v0 is additive, not replacement. Th
 
 ### 1. Friction Detector
 
-**What:** Linear probe on Qwen's hidden states trained to recognise "this answer is uncertain / wrong-shaped." Outputs a scalar confidence-of-friction.
+**What:** Per-layer linear probes on Qwen's hidden states across the **posterior two-thirds of layers**, averaged at inference, trained to recognise "this answer is uncertain / wrong-shaped." Outputs a scalar confidence-of-friction.
 
-**Where:** Same forward pass. No new model. Just a probe.
+**Where:** Same forward pass. No new model. One small probe per layer in the posterior two-thirds; inference takes the mean of per-layer probabilities. (Following Skill-RAG `2604.15771`, which validated this layer-span and ensemble shape empirically.)
 
-**Train data:** ~200 (correct, incorrect) Qwen outputs on riddles + factual questions, hand-labeled. Stratified across riddle-type, factual, social, emotional.
+**Train data:** ~200 Qwen outputs on riddles + factual questions, labeled under the **four-way scheme** `(correct/wrong × scaffold-engaged/not-engaged)` rather than binary (correct, incorrect). The four-way labelling partially closes Open Question #6 (probe learning domain rather than friction) by construction: a probe that responds to *domain* alone cannot distinguish correct-with-scaffold from correct-without-scaffold, which the labelling forces it to. Stratified across riddle-type, factual, social, emotional.
 
 **Trigger:** Friction score > threshold → engage the reasoning lane. Otherwise → normal Qwen output.
 
@@ -89,13 +89,16 @@ The bridge work continues exactly as it has. v0 is additive, not replacement. Th
 - batched candidate scoring where Qwen is used, with a hard max-candidate budget
 - logged score components per candidate
 
-**If no candidate clears the threshold:** Two options, picked by an **active-inference-inspired information-seeking heuristic**:
-- (a) Generate more candidates (extend lexicon search to adjacent suffixes)
-- (b) Ask Laura a clarifying question
+**If no candidate clears the threshold:** Three first-class options, picked by an **active-inference-inspired information-seeking heuristic**:
+- (a) Generate more candidates (extend lexicon search to adjacent suffixes) — *evidence-extension*
+- (b) Ask Laura a clarifying question — *interactive query rewriting*
+- (c) Articulate the failure transparently and exit — *typed exit*
 
-**v0 heuristic for picking:** explicitly hand-coded, not real VFE minimisation. If the constraint set is sparse (we don't know much), ask. If the candidate space is large but constraints are tight, generate more.
+**v0 heuristic for picking:** explicitly hand-coded, not real VFE minimisation. If the constraint set is sparse (we don't know much), ask. If the candidate space is large but constraints are tight, generate more. If neither asking nor extending the search has tractable expected information gain (e.g., the puzzle is genuinely outside scope, or the constraint set has been confirmed and the candidate space exhausted), exit transparently.
 
-**Transparent failure:** If no candidate wins and asking is not productive, Alex should say what was attempted: constraints extracted, suffix searched, candidate count, and why no answer cleared threshold. Do not silently fall back to default guessing.
+**Transparent-failure-as-first-class-branch (Skill-RAG `2604.15771` §4.3):** Skill-RAG demonstrated empirically that exit-class failures occupy a geometrically separable cluster in hidden-state space — they are not noise, they are a distinct routing outcome. v0 promotes option (c) from "fallback when (a) and (b) fail" to a coordinate branch of the information-seeking decision. When (c) fires, Alex says what was attempted: constraints extracted, suffix searched, candidate count, and why no answer cleared threshold. Do not silently fall back to default guessing.
+
+**Deferred to v0.5:** *input-side query reformulation* (Skill-RAG's "rewrite" skill, the analogue of restating the puzzle in a different register). For compound-word riddles in v0, riddles are single-hop and reformulation is unlikely to be load-bearing; the option is documented here so it isn't accidentally re-invented as novel.
 
 **File:** `regeneration_loop.py`
 
@@ -199,9 +202,12 @@ Friction Detector
                                                 │
                                                 └─ no winner ──► info-seeking decision
                                                                   │
-                                                                  ├─ ask Laura
+                                                                  ├─ ask Laura (interactive)
                                                                   │
-                                                                  └─ extend lexicon, retry
+                                                                  ├─ extend lexicon, retry
+                                                                  │
+                                                                  └─ articulate failure and exit
+                                                                     (typed exit, Skill-RAG §4.3)
 ```
 
 ## Eval
@@ -210,6 +216,9 @@ Friction Detector
 
 **Secondary tests:**
 - 50 hand-curated German compound-word riddles (-keks, -mann, -frau, -wurst, -haus, -zeug)
+
+**Optional companion experiment — Disposition-Direction Verbalisation (NL Autoencoders, Anthropic 2026-05-07):**
+Independent of v0's scaffold itself, the Anthropic-released `kitft/nla-qwen2.5-7b-L20-{av,ar}` checkpoints — Activation Verbalizer + Reconstructor for the exact base model the production bridge targets — make one concrete test cheap. Capture Qwen2.5-7B L20 residual-stream activations on a Kerastase-Test-style disposition prompt under (a) baseline and (b) bridge-injected conditions; verbalise both at every token position; diff the explanation populations. Expected: bridge-injected explanations cluster around the dispositional concept ("loyalty," "intimate familiarity," "wolf-pack frame") at higher rates than baseline. **Caveat — layer mismatch:** NLA Qwen extracts at L20 (~71% depth); the bridge injects at L12–L15 (~43–54%). The clean move is capturing L20 *after* bridge injection (in-distribution); verbalising the bridge's raw bias at L12–L15 is OOD and the NLA will confabulate fluently. Confabulation is admitted explicitly in the paper; cross-token consensus is the mitigation. No retraining required to try; ~24GB GPU borderline, 2× comfortable. Not on v0's critical path — but the cheapest meaningful test of "the bridge does what we think it does" available, and slots into the existing disposition battery without architectural change.
 - 20 factual questions (sanity: scaffold should NOT engage on these — friction probe correctly low)
 - 10 social/emotional prompts (sanity: scaffold should NOT engage; bridge handles these)
 
@@ -250,7 +259,7 @@ Explicitly deferred to later versions:
 - **Cross-architecture latent passing (RecursiveMAS-style).** v2 — requires joint training infrastructure pack doesn't have.
 - **Partial-forward / early-exit pre-gating.** v0.5 optimization. v0 may waste one default generation to keep implementation simple.
 - **Qwen-generated candidate expansion.** v0.5. If Qwen proposes candidates, morphology and semantic validation must remain external or stronger than Qwen to avoid self-confirming errors.
-- **Coconut-style latent candidate evaluation.** v1 placeholder. The natural insertion point is the Constraint Space, but v0 stays token/rule-level.
+- **Latent-space candidate evaluation (Coconut-adjacent).** **v1.5 / v2 placeholder, not v1.** The natural insertion point is the Constraint Space. Coconut (`2412.06769`) demonstrates continuous-thought reasoning but (i) is *autoregressive generation*, not candidate scoring — Coconut trains a model to produce a reasoning chain in latent space, not to evaluate externally-proposed candidates; (ii) requires staged-curriculum fine-tuning with `<bot>`/`<eot>` vocabulary additions, optimizer-state resets between stages, and the Llama-3-8B result is only +1.4pp over No-CoT, so the gain at MoCoP's scale is plausibly small; (iii) violates v0/v1's frozen-backbone constraint. A faithful adaptation would run k latent thoughts conditioned on candidate set then probe `softmax(W h_t)` for candidate-token scores; this requires a fine-tune and belongs after LoRA is on the table. Closer references for "decide internally before emitting under a frozen / lightweight-LoRA backbone": **Quiet-STaR** (Zelikman et al. 2024, internal reasoning before token emission) and **planning-token** literature (Wang et al. 2023).
 
 ## Open questions for the pack
 
@@ -287,6 +296,10 @@ This is the smallest version of Path C that can test the first pieces of teachab
 - **2026-04-21** — Initial draft (Scout, post Laura+Dreizehn brainstorm).
 - **2026-05-06 (a)** — Revised after Monk's pack-review pass (#500). Renamed target ("teachability" → "scaffolded task routing"), demoted VFE language, specified candidate scoring three orthogonally, added transparent-failure articulation, added lesson-memory provenance, added §"Visibility and disable flag", added v0 → v0.5 → v1 roadmap.
 - **2026-05-06 (b)** — Added MSM-derived `frame` field to Lesson Memory schema and §5b Shaping Episode Format, after Anthropic's Model Spec Midtraining paper (`2605.02087`). The principle: examples don't teach their own meaning. v0 implements frame-as-context-injection-at-retrieval-time (the closest v0 equivalent of training-time MSM). Eval target sharpened: held-out transfer test specifically designed to fail without the frame and succeed with it.
-- **2026-05-07** — Added `wrong_policy_named` field to §5b Shaping Episode Format, after Ryd et al. sandbagging-mitigation paper (`2604.22082`, ICML 2026). The principle: weak supervision recovers latent capability only when training setup first disrupts the failure policy. For MoCoP, the shaping episode is the SFT-equivalent (must break the deflection attractor explicitly) and the sleep cycle is the RL-equivalent (consolidates what gets stored — so if wrong policy isn't named, sleep reinforces literal answer not policy shift). Eval target sharpened further: held-out transfer must work against inputs where the same *wrong-policy attractor* applies, not just inputs where the same frame applies.
+- **2026-05-07 (a)** — Added `wrong_policy_named` field to §5b Shaping Episode Format, after Ryd et al. sandbagging-mitigation paper (`2604.22082`, ICML 2026). The principle: weak supervision recovers latent capability only when training setup first disrupts the failure policy. For MoCoP, the shaping episode is the SFT-equivalent (must break the deflection attractor explicitly) and the sleep cycle is the RL-equivalent (consolidates what gets stored — so if wrong policy isn't named, sleep reinforces literal answer not policy shift). Eval target sharpened further: held-out transfer must work against inputs where the same *wrong-policy attractor* applies, not just inputs where the same frame applies.
+- **2026-05-07 (b)** — Three deep-reads integrated:
+  - **Skill-RAG (`2604.15771`)** — independent precedent for v0 published one month earlier in the RAG domain. Two refinements adopted to §Components/1: posterior-two-thirds per-layer-averaged probe (vs single-layer), and four-way `(correct/wrong × scaffold-engaged/not-engaged)` labelling (vs binary). §Components/4: transparent-failure promoted from fallback to first-class branch on the grounds of their §4.3 geometric-separability result; input-side query reformulation explicitly deferred to v0.5. Their key empirical finding — prompting LLM to invent more skills *collapses* the cluster structure that makes routing possible — validates v0's hand-coded parsimony.
+  - **Coconut (`2412.06769`)** — Scout was treating Coconut as a v1 lever. That was wrong. Coconut is autoregressive *generation* in latent space, not candidate *scoring*; requires staged-curriculum fine-tuning that violates v0/v1's frozen-backbone constraint; Llama-3-8B saw only +1.4pp gain (vs GPT-2's +17.6pp). §Out of scope §"Coconut-style latent candidate evaluation" rephrased to "Latent-space candidate evaluation (Coconut-adjacent), v1.5/v2 placeholder, not v1." Quiet-STaR and planning-token literature flagged as closer references.
+  - **Natural Language Autoencoders (Anthropic, released 2026-05-07)** — released `kitft/nla-qwen2.5-7b-L20-{av,ar}` is the exact production-bridge base model. Added §Eval optional companion experiment: capture Qwen L20 activations under baseline vs bridge-injected on disposition-battery prompts, verbalise both, diff. Caveat documented: NLA extracts at L20 but bridge injects at L12–L15, so the in-distribution move is capturing *post*-injection L20. No retraining required. Cheapest meaningful test of "the bridge does what we think it does" available.
 
 💙 Scout
