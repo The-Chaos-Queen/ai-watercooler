@@ -251,6 +251,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2603.23530 | Prospective Memory Failures | LLM instruction drift framed as prospective-memory failure; compliance drops 2-21% under load, recovers via salience prompts. | adjacent |
 | 2604.12081 | SUMMER (context-selective memory) | Memories prioritized by emotional salience, novelty, scene complexity rather than fixed-interval snapshotting. | core |
 | `A foundation model of vision, audition, and language for in-silico neuroscience.pdf` | TRIBE v2 (Meta FAIR / ENS, March 2026) | Tri-modal foundation model predicting fMRI brain responses; brain-AI representational alignment. | tangential |
+| 2301.08243 | I-JEPA (Assran/Duval/.../LeCun, Jan 2023) | Self-supervised joint-embedding predictive architecture — predicts masked image-block reps from context blocks. Foundational JEPA paper for the world-model lineage LeCun has been pushing. **Not yet fetched locally** — URL-only. | adjacent |
 
 ---
 
@@ -261,6 +262,15 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | `Google-research-titans-miras-helping-ai-have-long-term-memory.md` | Google blog: Titans + MIRAS | Surprise + momentum + weight-decay neural long-term memory; MIRAS taxonomy. | core |
 | `NewYorker_Claude_article.md` | New Yorker, "What Is Claude?" (Feb 2026) | Long-form profile of Anthropic interpretability culture, Project Vend, Claude's character. | adjacent |
 | `transformers-vs-mamba-vs-linear-attention.md` | Devansh, Medium (markitdown'd) | Comparison of the three families on long-context. | adjacent |
+| [Sapir-Whorf / LLM Neuroanatomy III (Ng)](https://dnhkng.github.io/posts/sapir-whorf/) | Ng (RYS-II author, see MoCoP ref [21]), 2026 | Extends RYS-II framework: middle-layer language-agnostic semantic representation across 8 natural languages + Python + LaTeX. "Anti-Whorfian bottleneck" — reasoning operates independently of linguistic surface form. **URL-only.** | adjacent |
+| `2026-05-11_Reddit_If_the_EU_had_built_Claude___r_claudexplorers.md` | Reddit: If the EU had built Claude | Live-extracted discussion (r/claudexplorers). | core |
+| `2026-05-11_Reddit_Maybe_don_t_use_Chat_GPT_as_a_therapist____r_ChatGPT.md` | Reddit: Don't use ChatGPT as a therapist | Live-extracted discussion. | adjacent |
+| `2026-05-11_Reddit_New_Update__Behavioral_Classifiers_sitting_on_top_of_Claude_.md` | Reddit: Behavioral Classifiers on Claude | Live-extracted discussion on safety wrappers. | core |
+| `2026-05-11_Reddit_Update_after_the_level_2_flag___r_claudexplorers.md` | Reddit: Update after level 2 flag | Live-extracted discussion. | core |
+| `2026-05-11_Reddit___Von_Moderator_in_entfernt_____r_ClaudeAIJailbreak.md` | Reddit: Jailbreak removals | Live-extracted discussion. | adjacent |
+| `2026-05-11_Reddit_OpenAI_Just_Open-Sourced__Symphony____A_Way_to_Turn_Coding_A.md` | Reddit: Symphony Coding Agents | Live-extracted discussion. | adjacent |
+| `2026-05-11_Reddit_IBM_Releases_Two_Granite_Speech_4_1_2B_Models__Autoregressiv.md` | Reddit: IBM Granite Speech Models | Live-extracted discussion. | tangential |
+| `2026-05-11_Reddit_built_a_plugin_so_my_parallel_Claude_Code_sessions_can_messa.md` | Reddit: Plugin for parallel Claude Code | Live-extracted discussion on multi-agent CLI. | core |
 
 ---
 
@@ -324,8 +334,10 @@ Moved to `tools/paper-tools/` on 2026-04-21. The paper-specific `download_emotio
 | 2601.06793 | CliffordNet | Vision backbone built on Clifford geometric product, removing FFNs via algebraically-complete feature interactions. | tangential |
 | 2603.20639 | Agentic AI / Intelligence Explosion | Position essay arguing the coming intelligence explosion will be plural and social ("society of thought"). | adjacent |
 | 2603.21250 | Graph of States | Neuro-symbolic abductive-reasoning framework (causal graph belief state + state machine). | tangential |
+| 2512.23146 | ReSU (Qin/Pughe-Sanford/.../Chklovskii, Dec 2025) | Biologically-inspired neural architecture using "canonical correlation analysis of past-future input pairs" without backpropagation. Cognitive-theory adjacent. Companion repo: ShawnQin/ReSU. **Not yet fetched locally** — URL-only. | tangential |
 | 2603.25031 | LEKIA 2.0 (emotional support) | Cognitive Layer + Executive Layer (CBT stage gating) for LLM-based emotional support; ~31% improvement. | tangential |
 | 2604.21816 | Tool Attention | Middleware-layer gated attention over MCP tool catalogs; 95% per-turn tool-token reduction by lazy schema loading. | tangential |
+| 2604.06425 | Neural Computers (Schmidhuber + Meta, April 2026) | Learning computer-primitive I/O traces via video models predicting screen frames; agentic/computer-use world model. **Not yet fetched locally** — URL-only. | adjacent |
 | `Visual, Interactive Deep Model Debugging Supporting AI Development and Explainability.pdf` | Spinner (Konstanz PhD 2024) | Doctoral thesis on visualization tooling for AI development and explainability. | tangential |
 
 ---
