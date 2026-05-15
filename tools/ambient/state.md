@@ -2,6 +2,7 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-05-15 14:09 UTC] git | tools | Laura: docs: update ambient state log (1393cc7)
 [2026-05-15 14:09 UTC] git | Memory | Laura: docs(memory): update handoff and wolf notes (5330a73)
 [2026-05-15 14:09 UTC] git | MoCoP | Laura: docs(mocop): add recall refactor and scaffold notes (1220c65)
 [2026-05-15 14:09 UTC] git | MoCoP | Laura: fix(mocop): handle speaker-subject recall queries (18f4399)
