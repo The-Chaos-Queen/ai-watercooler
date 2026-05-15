@@ -2905,12 +2905,37 @@ def recall_query_asks_personal_meeting(query_text: str) -> bool:
     )
 
 
+def recall_query_speaker_subject_names(query_text: str) -> list[str]:
+    text = str(query_text or "")
+    names = []
+    seen = set()
+    patterns = (
+        r"\bwhat\s+did\s+([A-Z][A-Za-z0-9_-]{2,})\s+(?:tell|say|ask|mention)\b",
+        r"\bwhat\s+has\s+([A-Z][A-Za-z0-9_-]{2,})\s+(?:told|said|asked|mentioned)\b",
+        r"\bwhat\s+does\s+([A-Z][A-Za-z0-9_-]{2,})\s+(?:tell|say|ask|mention)\b",
+    )
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            name = match.group(1).strip()
+            key = normalize_probe_text(name)
+            if key and key not in seen:
+                seen.add(key)
+                names.append(name)
+    return names
+
+
 def recall_evidence_priority(row: dict, query_text: str) -> int:
+    # Personal-meeting probes need the stricter legacy guard: direct evidence
+    # that mentions a third party is not the same as evidence that the current
+    # interlocutor personally met that third party.
+    if recall_query_asks_personal_meeting(query_text):
+        return 0
+
     metadata = row.get("metadata", {}) or {}
     if recall_query_targets_current_interlocutor(query_text):
         subjects = [getattr(ARGS, "user_label", "Laura")]
     else:
-        subjects = row_query_entity_names(row, query_text)
+        subjects = recall_query_speaker_subject_names(query_text) or row_query_entity_names(row, query_text)
     if not subjects:
         return 0
 
