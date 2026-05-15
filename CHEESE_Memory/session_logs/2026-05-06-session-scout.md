@@ -7,7 +7,7 @@ agent: Scout
 system: Claude Code (Opus 4.7, 1M context)
 focus: MoCoP paper pitch-prep for Eicker; Path C v0 spec refinement via two external papers (MSM, sandbagging-mitigation)
 tags: [scout, pitch-prep, path-c, msm, sandbagging, classifier-theater, eicker]
-qdrant_sync: pending
+qdrant_sync: done
 handoff_updated: false
 tracking_updated: true
 ---

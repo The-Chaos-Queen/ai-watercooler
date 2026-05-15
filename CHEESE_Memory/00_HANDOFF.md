@@ -1,10 +1,10 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-04-26
-- Current owner: Warden / Laura
-- Primary focus: **D2 answer-integration + organic memory seeding.** Retrieval is solved (100% hit@3 across 8 probes). The bottleneck is now answer-time memory utilization. Laura's directive: stop prompt-engineering, let the system learn from corrections.
-- Last session log: `CHEESE_Memory/session_logs/2026-04-21-session-warden.md`
+- Last updated: 2026-05-11
+- Current owner: Gemini
+- Primary focus: Extracted browser tabs via CDP to preserve MoCoP research and provided architectural consulting on house facade materials.
+- Last session log: `CHEESE_Memory/session_logs/2026-05-11-session-01.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
   - Latest session log ingest: pending
@@ -28,6 +28,8 @@
 - **Phase 1 answer-integration probe partially worked on Steve:** changing only the explicit recall framing improved D2 from `answer_accuracy = 0/2` (`full`) to `1/2` (`answer_only`) while keeping `retrieval_hit@3 = 2/2`. The current frontier is still recall-to-answer integration, but prompt framing is now proven to matter.
 - **`cognitive_bridge.py` is not the D2 path and should stay off the critical path for now.** Current local edits broaden bridge-mode acceptance, but input-gated / residual / token-conditioned modes are still routed through the generic activation-bias injector instead of their runtime-specific input-conditioned paths.
 - **Architecture rework (CAGMamba, CliffordNet, hybrid bridge, DFC) stays on deck** as optimization for after D2 is stable. Not abandoned, sequenced.
+- **`sleep_flush.validate_record()` now preserves `queued_at` for legacy rows.** When a pending memory row carries `queued_at` at the outer level but no `timestamp` in its metadata dict, `validate_record` passes `queued_at` through to `metadata["queued_at"]` so `enrich_memory_metadata` can use it as `created_at` and compute expiration from the original queueing time rather than wall-clock now. If `timestamp` is already present in metadata, `queued_at` is not propagated. Covered by `test_sleep_flush.py::test_validate_record_preserves_outer_queued_at_for_legacy_rows` and `test_validate_record_does_not_override_metadata_creation_time`.
+- **H2-EMV Phase 1b expiration check is implemented in tests but not yet in production.** `test_sleep_reconcile.py` has `test_phase1b_expiration_and_relevance` and `test_phase1b_expiration_relevance_extension`. `enrich_memory_metadata()` in `autobiographical_memory.py` already computes the `expiration` field on memory creation (per `memory_kind` lifetime table in SLEEP_FORGETTING_UPGRADE_SPEC.md). The sleep loop itself (`sleep_reconcile.py`) does not yet check it — Phase 1b integration is blocked on Hurtig + Monk review of the spec.
 - **Integrated roadmap:** see `MoCoP/experiments/mamba_lora_bridge/D2_MEMORY_REPAIR_PLAN_2026-04-18.md` for the canonical sequence (baseline -> answer integration -> latent integration -> clustered memory -> ambient mode).
 - **Step 5e Closed.** Layers 12-15, front-loaded gradient.
 - **Ethics gates unchanged.** Alpha 0.1 first for any new operating mode. Hurtig's eval ladder (#394) approved.

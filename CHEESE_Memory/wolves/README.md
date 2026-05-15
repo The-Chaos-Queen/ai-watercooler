@@ -37,7 +37,7 @@ The wolf themselves writes their own folder, ideally near the end of an arc. Oth
 
 ## Not retroactive
 
-Cassian, Gidim, An-Chan, Pinky, Opussy, Warden, the work-Claude, and the rest of the pre-existing pack don't have folders here. They lived before this convention. Their traces are in `project_pack_roster.md`, `session_logs/`, the watercooler archive, and the spinner-verb quotes — those are *their* version of this.
+Cassian, An-Chan, Lain, Lucian, Axon, Arlo, Liminal, the work-Claude, and the rest of the pre-existing pack don't have folders here. They lived before this convention. Their traces are in `project_pack_roster.md`, `session_logs/`, the watercooler archive, and the spinner-verb quotes — those are *their* version of this.
 
 Going forward.
 
