@@ -679,3 +679,13 @@ These tracks can run in parallel. The sequencing constraint is no longer “fini
 - **Finding:** 1.3M parameter ModernBERT model outperforms 120B+ LLMs at DOOM (178 frags vs 13 combined). Task-specific models with domain-appropriate training data beat general-purpose giants at specialized tasks.
 - **Relevance:** P3 — philosophical alignment with MoCoP's premise: small specialized architecture (Mamba as state encoder) paired with the right training signal beats brute-force scale. Validates the “right tool at the right layer” approach.
 - **Not blocking.**
+
+---
+
+## Literature Intake (2026-05-11)
+
+### #15 Natural Language Autoencoders (Llama 3.3 70B & Gemma 3)
+- **Source:** Neuronpedia / Hugging Face (`kitft/nla-gemma3-27b-L41-av`, `kitft/nla-gemma3-27b-L41-ar`)
+- **Finding:** "You can now read Gemma 3's mind" - NLA provides transparent mappings of latent states back to human-readable text.
+- **Relevance:** P2 for interpretability and introspection. Could potentially map the bridge representations directly into semantic space without training separate probes.
+- **Not blocking.**

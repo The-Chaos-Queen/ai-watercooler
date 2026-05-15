@@ -1,6 +1,6 @@
 # Reasoning Scaffold
 
-Path C v0 — opt-in reasoning lane for Baby Qwen. Adds **teachability** without replacing the bridge backbone.
+Path C v0 — probe-gated symbolic reasoning scaffold for Baby Qwen. Tests the first pieces of **teachability** without replacing the bridge backbone.
 
 **Status:** spec drafted, awaiting pack review.
 
@@ -10,6 +10,7 @@ Path C v0 — opt-in reasoning lane for Baby Qwen. Adds **teachability** without
 - Brainstorm: Laura + Dreizehn (active-inference inspired loop).
 - Architecture review and v0 scoping: Scout (Path A/B/C decision, then v0 minimisation).
 - Decision: keep the bridge (existing endocrine layer for disposition/continuity) and *layer* the reasoning scaffold on top. The two systems do different jobs and shouldn't compete.
+- Review correction: v0 is not VFE minimisation and not yet general teachability. It is a narrow scaffold for German compound-word riddles. Teachability is only proven if correction improves later held-out related cases.
 
 **What's here (planned):**
 
@@ -20,7 +21,7 @@ reasoning_scaffold/
 ├── friction_probe.py              # Linear probe on Qwen hidden states
 ├── constraint_extractor.py        # Hand-coded rules for compound-word riddles
 ├── hypothesis_generator.py        # Lexicon enumeration + Qwen scoring
-├── regeneration_loop.py           # Orchestration + Friston info-seeking move
+├── regeneration_loop.py           # Orchestration + explicit information-seeking heuristic
 ├── lesson_writer.py               # Qdrant integration via sleep_reconcile
 ├── morphological_lexicon/
 │   ├── keks.yaml                  # ~80 -keks compounds
@@ -37,3 +38,5 @@ reasoning_scaffold/
 ```
 
 **Open for pack review.** Watercooler note posted; iterate before committing 2 weeks of build.
+
+**Architecture target:** v0 = probe-gated symbolic scaffold for one domain; v0.5 = learned/assisted candidate generation and early-exit gating; v1 = latent candidate evaluation / broader learned fingerprints.

@@ -354,6 +354,71 @@ Reason:
 
 ---
 
+## Open Next-Version Refactor Task
+
+### Task: split `chat_server.py` into focused runtime modules
+
+Status:
+- open
+- next-version maintenance task
+- do not start before the current MemoryEvidence / answer-use slice is committed and reviewed
+
+Why:
+- `chat_server.py` has become the convergence point for HTTP handling, session identity, Qdrant memory, recall ranking, prompt formatting, bridge runtime, live accumulation, and browser UI behavior.
+- That was acceptable while the system was moving fast, but it is now a compaction and review risk.
+- The goal is a mechanical decomposition with no behavior changes, not a redesign.
+
+Proposed extraction order:
+
+1. `recall_ranking.py`
+   - query expansion
+   - bad-exemplar filtering
+   - evidence / perspective ranking
+   - personal-meeting guard logic
+
+2. `qdrant_memory.py`
+   - collection creation
+   - pending queue replay
+   - Qdrant query/write helpers
+   - sleep-flush integration helpers
+
+3. `session_state.py`
+   - session id / instance id resolution
+   - user/model label handling
+   - private collection selection
+   - transcript and cache path discipline
+
+4. `memory_formatting.py`
+   - explicit recall block formatting
+   - ambient recall block formatting
+   - grounded / hedged / no-evidence answer surfaces
+
+5. `bridge_runtime.py`
+   - Mamba/Qwen bridge state
+   - live accumulation
+   - alpha handling
+   - memory-state conditioning
+
+6. `server_http.py`
+   - `/chat`, `/status`, `/recall`, and request/response glue
+
+7. `chat_ui.py` or static template file
+   - browser UI HTML/JS
+   - no memory or bridge logic
+
+Guardrails:
+- each extraction must preserve the existing public CLI and HTTP behavior
+- each extraction needs targeted tests before the next extraction starts
+- do not mix this with ranking, answer-use, bridge, or sleep-behavior changes
+- if a test changes because of the refactor, stop and explain the behavioral difference rather than silently updating the expectation
+
+Success condition:
+- `chat_server.py` becomes an orchestration shell instead of the implementation sink
+- D2 recall tests and session-isolation tests stay green
+- future compactions can orient by module names instead of reloading one huge server file
+
+---
+
 ## What Not To Do
 
 Do not do these out of order:
