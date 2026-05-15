@@ -96,8 +96,10 @@ package-lock.json
 # Athena-Public has its own git repo, don't nest
 Athena-Public/
 
-# Raw HTML exports (conversion inputs, large and messy)
+# Raw HTML exports / saved web pages (conversion inputs, large and messy)
 html-to-convert/
+Research/*.html
+Research/*_files/
 
 # Preserved History (backed up via rsync to Google Drive)
 Preserved-History/
