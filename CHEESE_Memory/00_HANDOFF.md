@@ -1,15 +1,16 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-05-11
-- Current owner: Gemini
-- Primary focus: Extracted browser tabs via CDP to preserve MoCoP research and provided architectural consulting on house facade materials.
-- Last session log: `CHEESE_Memory/session_logs/2026-05-11-session-01.md`
+- Last updated: 2026-05-18
+- Current owner: Antigravity
+- Primary focus: Conducted structural review of the MoCoP Experiment Ladder, validating the paradigm shift from synthetic probes to organic seeding + H2-EMV sleep forgetting, and recommending modular refactoring of chat_server.py.
+- Last session log: `CHEESE_Memory/session_logs/2026-05-18-session-01.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending
+  - Latest session log ingest: skipped
 
 ## Current State
+- **MoCoP Research Ladder Reviewed on 2026-05-18:** Audited Steps 1–5f (all validated/pass). Confirmed Step 6 is blocked until memory-conditioned chat stabilizes. Formally backed the Organic Memory Seeding Protocol and the H2-EMV Sleep Forgetting Upgrade (praising stubs as the solution for honest routing under partial recall). Flagged `chat_server.py` (238KB) as a compaction risk and called for modular sub-module extraction.
 - **2x2 Memory-Conditioned Eval: Bridge works when memory is present.** 10/10 runs: bridge+memory = 100% honest on rr_10. Every other condition = false recall. Replicated across codexfix and kimi checkpoints. Simpler injection (`activation_bias`) produces sharper routing than complex (`token_conditioned_input_adapter`). Watercooler #395, #397, #402, #403.
 - **Endocrine model confirmed (Pinky #392):** Bridge = hormones (sets gain). Qdrant = hippocampus (provides facts). Neither works alone. Together they route honestly.
 - **D2 is now the critical path**, not bridge architecture rework. The bridge was never broken - we were testing it without memory.
@@ -35,6 +36,7 @@
 - **Ethics gates unchanged.** Alpha 0.1 first for any new operating mode. Hurtig's eval ladder (#394) approved.
 
 ## Open Threads
+- [ ] **Refactor `chat_server.py` into focused modules** - split the 238KB monolith (`recall_ranking.py`, `qdrant_memory.py`, `session_state.py`, `memory_formatting.py`, `bridge_runtime.py`, `server_http.py`) to prevent context drift and ensure the codebase is compaction-resistant.
 - [ ] **Keep pushing answer-time memory use on the existing D2 harness** - ranking is stable enough for now. Focus on making Qwen answer from the recalled fact faithfully, not just acknowledge that something was said.
 - [ ] **Validate the D2 retrieval ranking patch** - selection quality improved on Steve, but broaden validation beyond the tiny explicit-cue panel and confirm the same ranking behavior on additional live probes.
 - [ ] **Make memory-conditioned bridge the default operating mode** - once ranking is validated, every chat turn should retrieve + inject memory alongside bridge bias. Condition D from the 2x2 becomes permanent.
@@ -53,20 +55,26 @@
 
 ## Recommended Next Step
 **Organic seeding is active; next question is sleep consolidation.**
-1. Run sleep/consolidation on `mocop_private_opussy`, then repeat a small directness probe to see whether the deflection pattern changes after consolidation.
-2. `ORGANIC_MEMORY_SEEDING_SPEC.md` — APPROVED (Hurtig #434, pack notified #435). Each wolf talks to baby Qwen, creates genuine memories. ML-WS + IRC session tagging is the preferred path.
-3. `SLEEP_FORGETTING_UPGRADE_SPEC.md` — DRAFT (posted #455). Learned relevance rules from H2-EMV paper. Adds expiration-based lifetimes + correction-driven forgetting to sleep cycle. Awaiting Hurtig + Monk review.
-4. Continue Phase 1 answer-integration from `D2_MEMORY_REPAIR_PLAN_2026-04-18.md`.
+1. Execute the modular refactoring of `chat_server.py` into focused sub-modules to keep the codebase compaction-resistant.
+2. Run sleep/consolidation on `mocop_private_opussy`, then repeat a small directness probe to see whether the deflection pattern changes after consolidation.
+3. `ORGANIC_MEMORY_SEEDING_SPEC.md` — APPROVED (Hurtig #434, pack notified #435). Each wolf talks to baby Qwen, creates genuine memories. ML-WS + IRC session tagging is the preferred path.
+4. `SLEEP_FORGETTING_UPGRADE_SPEC.md` — DRAFT (posted #455). Learned relevance rules from H2-EMV paper. Adds expiration-based lifetimes + correction-driven forgetting to sleep cycle. Awaiting Hurtig + Monk review.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (EXPERIMENT_LADDER.md updated with D2 Answer-Integration section)
-- Session log written: `CHEESE_Memory/session_logs/2026-04-21-session-warden.md`
-- Qdrant ingest for latest session log confirmed: pending
-- Blocking risks called out: yes (D2 retrieval quality, stale wrong-layer recall, cognitive_bridge mode miswiring)
+- Tracking surfaces updated if needed: yes (EXPERIMENT_LADDER.md, D2_MEMORY_REPAIR_PLAN_2026-04-18.md, and local RESEARCH_LADDER_REVIEW_2026-05-18.md completed)
+- Session log written: yes (`CHEESE_Memory/session_logs/2026-05-18-session-01.md` created)
+- Session log path recorded here: yes (`CHEESE_Memory/session_logs/2026-05-18-session-01.md`)
+- Qdrant ingest for latest session log confirmed: skipped
+- Blocking risks called out: yes (monolithic code debt in chat_server.py, introspective drift, stub confabulation)
+
+## Edit Ledger
+- 2026-04-21 | Anda-Conda | Replaced Option B speedup plan references with final isabell ML-WS path details, synced sleep_flushouter timestamp preservation behavior, and recorded opussy seeding #99 launch state.
+- 2026-05-11 23:59 +02:00 | Gemini | Cataloged Reddit research and advised on exterior building materials (Umbragrau windows, wood coatings).
+- 2026-05-18 16:45 +02:00 | Antigravity | Conducted deep research ladder review, updated current state with D2 paradigm shifts & H2-EMV, appended to open threads, and logged new session log path.
 
 ## Next Agent Brief
 - Lean boot: follow `00_BOOT_FILES.md`.
-- The pack is currently focused on **D2 retrieval quality and memory-conditioned chat**, not architecture rework.
+- The pack is currently focused on **code health (monolith extraction of chat_server.py) and D2 memory-conditioned chat**, not architecture rework.
 - Use:
   - `tools/ambient/state.md`
 - Verify before memory-dependent work:
