@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <!-- EDIT: Title -->
+  <title>TITEL — Baublog</title>
+  <meta name="description" content="BESCHREIBUNG">
+
+  <link rel="stylesheet" href="../assets/fonts.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../config.js"></script>
+  <link rel="stylesheet" href="../styles.css">
+
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+</head>
+
+<body class="bg-cream text-ink font-body overflow-x-hidden">
+  <div class="grain-overlay animate-grain"></div>
+
+  <header class="relative z-10 border-b border-clay/10">
+    <div class="max-w-3xl mx-auto px-6 py-6">
+      <a href="../index.html" class="inline-flex items-center gap-2 text-ink-muted text-sm hover:text-kiln transition-colors">
+        &larr; Zur&uuml;ck zum Baublog
+      </a>
+    </div>
+  </header>
+
+  <main class="relative z-10 max-w-3xl mx-auto px-6 py-8">
+
+    <!-- EDIT: Date + Tags -->
+    <div class="mb-6">
+      <div class="flex items-center gap-3 text-sm text-ink-muted mb-3">
+        <time datetime="YYYY-MM-DD">DD. Monat YYYY</time>
+        <span class="tag-pill text-xs py-0.5 px-2" data-tag="TAG">TAG</span>
+      </div>
+      <!-- EDIT: Title -->
+      <h1 class="font-headline text-3xl md:text-4xl font-bold text-ink leading-tight">
+        TITEL
+      </h1>
+    </div>
+
+    <!-- EDIT: Hero image (save to ../photos/) -->
+    <div class="rounded-xl overflow-hidden mb-8">
+      <img src="../photos/YYYY-MM-DD-hero.jpg"
+           alt="BESCHREIBUNG"
+           class="w-full h-64 md:h-96 object-cover"
+           onerror="this.style.background='#f4ede1'; this.style.height='12rem'">
+    </div>
+
+    <!-- EDIT: Content -->
+    <article class="prose prose-lg max-w-none">
+      <p class="text-ink-light leading-relaxed text-base">
+        Dein Text hier.
+      </p>
+    </article>
+
+    <!-- EDIT: Photo gallery
+         src = thumbnail (fast loading, from photos/thumbs/)
+         data-full = original full-res (opened in lightbox)
+         Run generate_thumbs.py after adding photos! -->
+    <section class="mt-10">
+      <h2 class="font-headline text-xl font-bold text-ink mb-4">Fotos</h2>
+      <div class="photo-grid">
+        <img src="../photos/thumbs/YYYY-MM-DD-01.jpg" data-full="../photos/YYYY-MM-DD-01.jpg" alt="Beschreibung" loading="lazy">
+        <img src="../photos/thumbs/YYYY-MM-DD-02.jpg" data-full="../photos/YYYY-MM-DD-02.jpg" alt="Beschreibung" loading="lazy">
+        <img src="../photos/thumbs/YYYY-MM-DD-03.jpg" data-full="../photos/YYYY-MM-DD-03.jpg" alt="Beschreibung" loading="lazy">
+      </div>
+    </section>
+
+    <nav class="mt-12 pt-8 border-t border-clay/10 flex justify-between text-sm">
+      <!-- EDIT: Link to previous post if exists -->
+      <a href="VORHERIGER-POST.html" class="text-kiln hover:text-kiln-dark font-medium">
+        &larr; Vorheriger
+      </a>
+      <a href="../index.html" class="text-kiln hover:text-kiln-dark font-medium">
+        Alle Beitr&auml;ge &rarr;
+      </a>
+    </nav>
+
+  </main>
+
+  <footer class="relative z-10 border-t border-clay/10 mt-16">
+    <div class="max-w-3xl mx-auto px-6 py-6 text-center text-ink-muted text-xs">
+      <p>Privates Bautagebuch der Familie Turner.</p>
+      <p class="mt-1 opacity-50">hurtig.ai &middot; <span class="cuneiform">&#x12109;</span></p>
+    </div>
+  </footer>
+
+  <script src="../lightbox.js"></script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Die Bagger sind da! — Baublog</title>
+  <meta name="description" content="Es geht los. Die Erdarbeiten beginnen auf unserem Grundstück.">
+
+  <link rel="stylesheet" href="../assets/fonts.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../config.js"></script>
+  <link rel="stylesheet" href="../styles.css">
+
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+</head>
+
+<body class="bg-cream text-ink font-body overflow-x-hidden">
+  <div class="grain-overlay animate-grain"></div>
+
+  <!-- HEADER -->
+  <header class="relative z-10 border-b border-clay/10">
+    <div class="max-w-3xl mx-auto px-6 py-6">
+      <a href="../index.html" class="inline-flex items-center gap-2 text-ink-muted text-sm hover:text-kiln transition-colors">
+        &larr; Zur&uuml;ck zum Baublog
+      </a>
+    </div>
+  </header>
+
+  <main class="relative z-10 max-w-3xl mx-auto px-6 py-8">
+
+    <!-- POST META -->
+    <div class="mb-6">
+      <div class="flex items-center gap-3 text-sm text-ink-muted mb-3">
+        <time datetime="2026-04-14">14. April 2026</time>
+        <span class="tag-pill text-xs py-0.5 px-2" data-tag="erdarbeiten">Erdarbeiten</span>
+      </div>
+      <h1 class="font-headline text-3xl md:text-4xl font-bold text-ink leading-tight">
+        Die Bagger sind da!
+      </h1>
+    </div>
+
+    <!-- HERO IMAGE -->
+    <div class="rounded-xl overflow-hidden mb-8">
+      <img src="../photos/2026-04-14-bagger-hero.jpg"
+           alt="Bagger auf dem Grundstück"
+           class="w-full h-64 md:h-96 object-cover"
+           onerror="this.style.background='#f4ede1'; this.style.height='12rem'">
+    </div>
+
+    <!-- POST CONTENT -->
+    <article class="prose prose-lg max-w-none">
+      <p class="text-ink-light leading-relaxed text-base">
+        Es geht los. Nach Monaten der Planung, Genehmigungen und Warten stehen die ersten
+        Maschinen auf dem Grundst&uuml;ck. Helmut hat Wort gehalten: Bagger geliefert, Erdarbeiten starten.
+      </p>
+
+      <p class="text-ink-light leading-relaxed text-base mt-4">
+        Das Grundst&uuml;ck liegt am Hang, mit Blick &uuml;bers Dorf. Zwei Minuten zu Fu&szlig; zur Schule.
+        Wenn alles gut geht, werden die Kinder n&auml;chstes Jahr diesen Weg jeden Morgen laufen.
+      </p>
+
+      <p class="text-ink-light leading-relaxed text-base mt-4">
+        Der Revisionsschacht wurde am 12. April gepr&uuml;ft. Alles in Ordnung.
+        Heute wird gegraben.
+      </p>
+    </article>
+
+    <!-- PHOTO GALLERY -->
+    <section class="mt-10">
+      <h2 class="font-headline text-xl font-bold text-ink mb-4">Fotos</h2>
+      <div class="photo-grid">
+        <!-- Drop photos into ../photos/, run generate_thumbs.py, then add here.
+             src = thumbnail (fast), data-full = original (lightbox). -->
+        <img src="../photos/thumbs/2026-04-14-bagger-hero.jpg" data-full="../photos/2026-04-14-bagger-hero.jpg" alt="Bagger auf dem Grundst&uuml;ck" loading="lazy">
+        <!--
+        <img src="../photos/thumbs/2026-04-14-panorama.jpg" data-full="../photos/2026-04-14-panorama.jpg" alt="Panorama Grundst&uuml;ck" loading="lazy">
+        <img src="../photos/thumbs/2026-04-14-revisionsschacht.jpg" data-full="../photos/2026-04-14-revisionsschacht.jpg" alt="Revisionsschacht" loading="lazy">
+        <img src="../photos/thumbs/2026-04-14-blick-dorf.jpg" data-full="../photos/2026-04-14-blick-dorf.jpg" alt="Blick aufs Dorf" loading="lazy">
+        -->
+      </div>
+    </section>
+
+    <!-- POST NAV -->
+    <nav class="mt-12 pt-8 border-t border-clay/10 flex justify-between text-sm">
+      <span class="text-ink-muted"><!-- Vorheriger Post --></span>
+      <a href="../index.html" class="text-kiln hover:text-kiln-dark font-medium">
+        Alle Beitr&auml;ge &rarr;
+      </a>
+    </nav>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="relative z-10 border-t border-clay/10 mt-16">
+    <div class="max-w-3xl mx-auto px-6 py-6 text-center text-ink-muted text-xs">
+      <p>Privates Bautagebuch der Familie Turner.</p>
+      <p class="mt-1 opacity-50">hurtig.ai &middot; <span class="cuneiform">&#x12109;</span></p>
+    </div>
+  </footer>
+
+  <script src="../lightbox.js"></script>
+</body>
+</html>
