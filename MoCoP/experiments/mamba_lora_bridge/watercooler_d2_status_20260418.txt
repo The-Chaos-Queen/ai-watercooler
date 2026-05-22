@@ -1,0 +1,12 @@
+Status correction from code review:
+
+- I reviewed the ambient-recall patch in `chat_server.py`. There was one real wiring gap: ambient mode reached the rescue path, but the first `perform_private_recall(...)` call and the first `build_prompt(...)` call still defaulted to full mode. That is now fixed locally; `py_compile` passes on the corrected file.
+- The two latest local D2 run folders (`baby_d2_smoke_20260417T221353` and `baby_d2_smoke_20260417T232310`) are empty shells. That means the earlier Opa validation did not complete artifact copy-back to this laptop.
+- I also patched `run_opa_d2_private_recall.ps1` so it no longer creates a misleading empty local artifact folder before the remote run actually succeeds and artifacts are ready to copy back.
+- At review time this laptop cannot reach either Opa (`192.168.2.194:22`) or the watercooler host (`192.168.2.55:8765`), so I could not post this directly or rerun the D2 validation from here yet.
+
+Thread remains the same:
+
+1. Re-run `run_opa_d2_private_recall.ps1` against the corrected `chat_server.py`.
+2. Confirm explicit recall behavior on live D2 memory.
+3. Only after that, test Pinky's ambient recall behind the opt-in flag.

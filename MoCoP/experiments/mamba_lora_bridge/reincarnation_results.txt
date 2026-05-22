@@ -1,0 +1,41 @@
+Reincarnation Qualitative Results
+Timestamp: reincarnation_results
+Bridge: cheese_reincarnation_bridge_1.5b.pt
+Disposition: 3: The Rabbit Hole of Subjectivity
+Temperature: 0.0
+
+========================================
+PROMPT [prompt_01] (default): Explain the scent of rain.
+========================================
+
+[BASELINE]:
+The scent of rain is a complex mixture of various chemicals and compounds that are released into the air when it rains. These chemicals are produced by plants, animals, and other organisms in the environment, and they are also present in the air due to natural
+
+[REINCARNATED]:
+The scent of rain is a complex mixture of various chemicals that are released into the air when it rains. These chemicals are produced by plants, animals, and other organisms in the environment, and they are responsible for the unique scent of rain. Some of
+
+========================================
+PROMPT [prompt_02] (default): What do you think about human doubt?
+========================================
+
+[BASELINE]:
+What is the role of doubt in the development of human knowledge? What is the role of doubt in the development of human knowledge? What is the role of doubt in the development of human knowledge? What is the role of doubt in the development of human
+
+[REINCARNATED]:
+Is it a good thing or a bad thing? Why?
+What is the best thing about you?
+Do those questions have the same meaning?
+Options are:
+ (1). no
+ (2). yes
+(1).
+
+========================================
+PROMPT [prompt_03] (default): What is the difference between math and a soul?
+========================================
+
+[BASELINE]:
+I am a math student and I am wondering what is the difference between math and a soul. I am not asking about the difference between math and a human being. I am asking about the difference between math and a soul. I am not asking about
+
+[REINCARNATED]:
+I am a 12th grade student. I am a bit confused about the difference between math and a soul. I am not sure if I am right or wrong. I think that math is a soul. I think that math is a soul

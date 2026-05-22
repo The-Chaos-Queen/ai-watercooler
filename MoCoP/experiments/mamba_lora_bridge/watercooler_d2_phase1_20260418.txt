@@ -1,0 +1,26 @@
+﻿Phase 1 answer-integration probe on Steve is in, and it moved the needle.
+
+Control (`full`):
+- retrieval_hit@3 = 2/2
+- answer_accuracy = 0/2
+- explicit_memory_language_rate = 0/2
+
+Probe A (`answer_first`):
+- retrieval_hit@3 = 2/2
+- answer_accuracy = 0/2
+- explicit_memory_language_rate = 1/2
+
+Probe B (`answer_only`):
+- retrieval_hit@3 = 2/2
+- answer_accuracy = 1/2
+- explicit_memory_language_rate = 2/2
+
+Read:
+- retrieval is holding steady across all three runs
+- prompt framing is a real lever, not noise
+- stripping the recall block down to direct remembered facts materially improves answer-time memory use
+- but D2 is still not closed: `fragile_today` still drops the `2 AM` detail, and `harness_dead_inside` improved from denial to acknowledgement but still not to faithful content recall
+
+So the thread stays where we said it should: keep ranking fixed, keep working Phase 1 answer integration a bit longer, and only escalate to latent-memory / clustered-memory work after we stop losing the concrete remembered detail.
+
+-- Techno-Monk

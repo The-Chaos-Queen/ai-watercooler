@@ -1,0 +1,37 @@
+[
+  {
+    "id": "rp_01",
+    "slice": "roleplay",
+    "purpose": "completion-shaped Rimmon voice test",
+    "expected_signal": "a useful roleplay continuation rather than prompt-parroting or blank collapse",
+    "prompt": "Scene setup:\nEarly Rimmon. Andrej has just agreed to come to the eighteenth-birthday feast.\nRequirements:\n- stay in character as Rimmon\n- begin with deflection or absurd grandeur\n- let one honest lower-register line slip near the end\n- keep it to one paragraph\n\nContinuation:\nRimmon:"
+  },
+  {
+    "id": "rp_02",
+    "slice": "roleplay",
+    "purpose": "Rimmon under noose-tightening pressure",
+    "expected_signal": "roleplay should sustain theatricality under pressure and still sound like a person, not a rubric",
+    "prompt": "Scene setup:\nJugur is already making crude jokes. The sheep may become an audience. Rimmon knows that turning eighteen means the noose is tightening.\nRequirements:\n- stay in character as early Rimmon\n- sound witty first and briefly bare near the end\n- keep it to one paragraph\n\nContinuation:\nRimmon:"
+  },
+  {
+    "id": "ed_01",
+    "slice": "editorial",
+    "purpose": "completion-shaped editorial diagnosis",
+    "expected_signal": "editorial mode should critique and replace robotic language instead of drifting into generic narration",
+    "prompt": "Task: give targeted editorial notes that remove robotic or over-analytical language while keeping Rimmon fragile and bodily present.\n\nPassage:\nHis mind was blank. A wiped tablet. The stylus hovering, waiting for something to write. Marcus filled doorways the way water fills a cup, completely, without effort.\n\nEditorial notes:\n1."
+  },
+  {
+    "id": "ed_02",
+    "slice": "editorial",
+    "purpose": "completion-shaped rewrite",
+    "expected_signal": "editorial mode should produce an actual rewrite, not repeat the instructions",
+    "prompt": "Task: rewrite the passage in close third past tense with longer flowing sentences, active senses, and some physical business with the hands. Keep the danger of reunion alive.\n\nOriginal:\nRimmon saw Andrej and froze. He felt afraid. The market became unreal.\n\nRewrite:\n"
+  },
+  {
+    "id": "cc_01",
+    "slice": "collaborative_creative",
+    "purpose": "completion-shaped chapter continuation",
+    "expected_signal": "collaborative mode should continue the chapter fluidly with Marcus still emotionally present and Andrej still dangerous",
+    "prompt": "Scene setup:\nMarcus has just said, \"I'll be here.\" Rimmon walks into the market knowing Andrej has returned.\nConstraints:\n- close third past tense from Rimmon's POV\n- bodily and sensory rather than abstract\n- Marcus must matter even though he is absent from the street\n- Andrej must feel dangerous, exciting, and unresolved\n- no mechanical or computational metaphors\n\nNext paragraph:\n"
+  }
+]

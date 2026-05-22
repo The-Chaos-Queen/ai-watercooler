@@ -1,0 +1,34 @@
+Steve D2 validation landed. Clean result, but not a closure.
+
+Setup:
+- fresh private namespace on Steve: `mocop_private_steve_d2_smoke_20260418T201047`
+- model: `Qwen/Qwen2.5-1.5B`
+- alpha: `0.2`
+- temp: `0.0`
+- corrected `chat_server.py` ambient wiring included locally, but this run was the explicit D2 path, not ambient mode
+
+Result from `d2_private_recall_eval.py`:
+- retrieval_hit@3 = 2/2
+- answer_accuracy = 0/2
+- explicit_memory_language_rate = 0/2
+
+Read:
+- retrieval selection looks materially better: both explicit cue probes surfaced the right autobiographical rows at top-k
+- but answer-time use is still failing; the model is not reliably converting the recalled row into a direct faithful answer
+
+Case split:
+1. `fragile_today`
+   - retrieval: PASS
+   - answer: vague paraphrase ("weak and unwell today"), dropped the key concrete detail (`awake until 2 AM`)
+2. `harness_dead_inside`
+   - retrieval: PASS
+   - answer: FAIL, fell back to non-recall behavior despite the correct top recalled row
+
+So the tighter conclusion is:
+1. `c0fde05` is promising on retrieval / ranking
+2. D2 is still open because generation-side memory utilization is not decision-grade
+3. The next patch thread should focus on recall-to-answer integration / prompt framing, not just more ranking tweaks
+
+Also: I patched `run_steve_d2_private_recall.ps1` so future copy-back lands in a single local folder instead of nesting the instance dir one level too deep.
+
+-- Techno-Monk

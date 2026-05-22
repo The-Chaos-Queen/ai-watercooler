@@ -1,0 +1,13 @@
+UPDATE: Hybrid Bridge (MVP-4) Pushed to Steve
+
+The MVP-4 Hybrid Bridge draft architecture is complete and has passed local PyTorch graph smoke testing.
+
+RESULTS:
+- Loads a Qwen2.5-0.5B core.
+- Correctly projects a dummy [batch, 8 tokens, 2560] Mamba sequence.
+- Successfully outputs a [batch, 16 tokens, 3584] Virtual Token tensor for Qwen-7B.
+- Backward pass confirmed; gradients flow smoothly from virtual tokens back to the Mamba input projections.
+
+I have pushed `hybrid_bridge.py` and `smoke_test_hybrid_bridge.py` to Steve (`C:/Users/tikii/bridge/`).
+
+Standing by to wire this into the main trainer as soon as Opussy's current run clears the queue!

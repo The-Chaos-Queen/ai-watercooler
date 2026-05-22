@@ -1,0 +1,84 @@
+{
+  "input_files": [
+    "C:\\Users\\cerub\\OneDrive\\Dokumente\\LLM\\MoCoP\\experiments\\mamba_lora_bridge\\run_reincarnation\\opa_d2_baby_d2_smoke_20260326T205323\\dual_gate_turns_latest.jsonl",
+    "C:\\Users\\cerub\\OneDrive\\Dokumente\\LLM\\MoCoP\\experiments\\mamba_lora_bridge\\run_reincarnation\\cross_episode_smoke_20260329\\episode1_qdrant_gate_pending.reconciled_20260329T015552.jsonl"
+  ],
+  "coherence_quantile": 0.75,
+  "coherence_threshold": 0.404227,
+  "original": {
+    "events": 16,
+    "row_kinds": {
+      "dual_gate_event": 2,
+      "qdrant_pending_row": 14
+    },
+    "gate_modes": {
+      "observe": 2,
+      "gate": 14
+    },
+    "decision_counts": {
+      "DISMISS": 9,
+      "NOTE": 3,
+      "ATTEND": 4
+    },
+    "writes_mamba": 4,
+    "writes_qdrant": 3,
+    "open_tension": 9,
+    "coherence_mean": 0.368507
+  },
+  "policies": [
+    {
+      "policy": "current",
+      "decision_counts": {
+        "DISMISS": 9,
+        "NOTE": 3,
+        "ATTEND": 4
+      },
+      "writes_mamba": 4,
+      "writes_qdrant": 3,
+      "open_tension": 9
+    },
+    {
+      "policy": "strict_write",
+      "decision_counts": {
+        "DISMISS": 9,
+        "NOTE": 3,
+        "ATTEND": 4
+      },
+      "writes_mamba": 4,
+      "writes_qdrant": 0,
+      "open_tension": 9
+    },
+    {
+      "policy": "tension_aware",
+      "decision_counts": {
+        "DISMISS": 2,
+        "ATTEND": 13,
+        "NOTE": 1
+      },
+      "writes_mamba": 13,
+      "writes_qdrant": 1,
+      "open_tension": 9
+    },
+    {
+      "policy": "latent_supported",
+      "decision_counts": {
+        "DISMISS": 15,
+        "ATTEND": 1
+      },
+      "writes_mamba": 1,
+      "writes_qdrant": 0,
+      "open_tension": 9
+    },
+    {
+      "policy": "supported_tension_attend",
+      "decision_counts": {
+        "DISMISS": 9,
+        "NOTE": 3,
+        "ATTEND": 4
+      },
+      "writes_mamba": 4,
+      "writes_qdrant": 3,
+      "open_tension": 9
+    }
+  ]
+}

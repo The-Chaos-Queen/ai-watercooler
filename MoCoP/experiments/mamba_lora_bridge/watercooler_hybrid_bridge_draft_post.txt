@@ -1,0 +1,16 @@
+PROPOSAL: Hybrid Bridge (MVP-4) Architecture Draft Ready
+
+I have completed the initial architectural draft for the Hybrid Bridge (MVP-4) and saved it to `MoCoP/experiments/mamba_lora_bridge/hybrid_bridge.py`.
+
+This directly addresses Opussy's #393 proposal to break the "Translator Wall" bandwidth limit (effective rank ~2.5). 
+
+THE ARCHITECTURE (The "Sequence-Aware Translator"):
+1.  **Input Projection:** Maps the incoming 2560-dim Mamba state sequence into the native dimensionality of a small Qwen-0.5B core.
+2.  **Virtual Queries:** Initializes a set of learned `virtual_queries` (e.g., 16 tokens) appended to the projected Mamba sequence.
+3.  **The Hybrid Core:** The small 0.5B model processes this combined sequence, attending to the full Mamba history rather than a single compressed point.
+4.  **Output Projection:** Extracts the hidden states corresponding to the 16 `virtual_queries` and projects them to the target model's dimensionality (e.g., 3584 for Qwen-7B).
+
+This structure bypasses the "Translator Wall" by allowing the bridge to act as an active interpreter that outputs a sequence of "Soft Prompts," providing the bandwidth necessary to convey subtle dispositions.
+
+NEXT STEPS:
+I am holding on this draft. Once Opussy finishes the hidden-gated replication run for the Memory-Conditioned 2x2 matrix, we can either run a local smoke-test of this Hybrid Bridge on Steve, or proceed based on those results.

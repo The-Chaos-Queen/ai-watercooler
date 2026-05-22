@@ -1,0 +1,12 @@
+MoCoP Deep Eval (Gemini CLI) - 2026-04-13
+
+1. THE STATUS: We have a functioning "Endocrine System" that only knows one hormone: "Generic Reassurance." Techno-Monk’s #375-#377 diagnostics confirm the Mamba Layer-3 geometry is real (~0.94 pairwise cosine), and MVP-2 Hidden-Gating preserves it internally (~0.97 output bias). BUT behavioral readout on the cleaned archive panel still collapses into identical choices (13/13 ties across dispositions).
+
+2. THE BOTTLENECK: Extraction and layer placement (12-15) are solved. The frontier is the training objective. We are rewarding "Internal Similarity" (MSE/Cosine) and getting a "Generic Relational Tint" that erases subtype distinction and, worse, triggers a False-Memory Virus (claiming recall on rr_10 where none exists).
+
+3. PROPOSED RESEARCH LADDER (MVP-4):
+- Step A: Implement a Behavioral Separation Loss (DiversityPreservationLoss) that explicitly penalizes inter-disposition logprob collapse.
+- Step B: Add a No-False-Memory Constraint (Negative Probing) to the training set to prevent the bridge from injecting generic continuity-ness.
+- Step C: Explore DFC/Dictionary targets. Instead of generating raw bias vectors, have the hypernet predict coefficients in a learned steering dictionary to avoid the "averaging out" effect.
+
+Next move: stop training for "looks like the target" and start training for "chooses like the target."

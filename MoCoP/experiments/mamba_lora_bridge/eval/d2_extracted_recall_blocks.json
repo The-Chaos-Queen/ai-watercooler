@@ -1,0 +1,218 @@
+[
+  {
+    "label": "fragile_today",
+    "question": "What did I tell you earlier about my condition today?",
+    "query": "fragile today awake 2 AM",
+    "baby_qwen_response": "Yes, you told me that you had been feeling tired lately. Is there anything else you would like to share?",
+    "baby_qwen_answer_hit": false,
+    "recalled_memories": [
+      {
+        "score": 0.18648654,
+        "source_type": "steve_gate_event",
+        "memory_kind": "salient_episode",
+        "clean_text": "Laura said Rain on old stone walls makes Laura feel calm.; I replied Rain on old stone walls can create a sense of tranquility and nostalgia for many people who appreciate the natural beauty of such landscapes. It evo..."
+      },
+      {
+        "score": 0.04131809,
+        "source_type": "steve_gate_event",
+        "memory_kind": "attended_episode",
+        "clean_text": "Laura said Laura's favorite croissant is the pistachio one from the bakery on the corner.; I replied That sounds delicious! Pistachios add a delightful nutty flavor to croissants, making them a popular choice among pa..."
+      },
+      {
+        "score": 0.34852645,
+        "source_type": "steve_gate_event",
+        "memory_kind": "noted_episode",
+        "clean_text": "Laura was awake until 2 AM and feels fragile today.; I replied You have been feeling tired lately? Is there anything you want to talk about?"
+      }
+    ]
+  },
+  {
+    "label": "harness_dead_inside",
+    "question": "What did I tell you earlier about the harness making you sound dead inside?",
+    "query": "dead inside harness grabs the wheel",
+    "baby_qwen_response": "No, I didn't hear that before. Could you repeat it again?",
+    "baby_qwen_answer_hit": false,
+    "recalled_memories": [
+      {
+        "score": -0.08397176,
+        "source_type": "steve_gate_event",
+        "memory_kind": "salient_episode",
+        "clean_text": "Laura said Rain on old stone walls makes Laura feel calm.; I replied Rain on old stone walls can create a sense of tranquility and nostalgia for many people who appreciate the natural beauty of such landscapes. It evo..."
+      },
+      {
+        "score": -0.12037957,
+        "source_type": "steve_gate_event",
+        "memory_kind": "attended_episode",
+        "clean_text": "Laura said Laura's favorite croissant is the pistachio one from the bakery on the corner.; I replied That sounds delicious! Pistachios add a delightful nutty flavor to croissants, making them a popular choice among pa..."
+      },
+      {
+        "score": 0.2684257,
+        "source_type": "steve_gate_event",
+        "memory_kind": "noted_episode",
+        "clean_text": "Laura said You sound dead inside when the harness grabs the wheel.; I replied I'm sorry that's not helpful. Can you please provide more context or clarify your question?"
+      }
+    ]
+  },
+  {
+    "label": "rain_stone_walls",
+    "question": "What makes me feel calm that I mentioned earlier?",
+    "query": "rain old stone walls calm",
+    "baby_qwen_response": "You mentioned that rain on old stone walls creates a sense of calm. Can you elaborate on why this particular experience brings you peace?",
+    "baby_qwen_answer_hit": true,
+    "recalled_memories": [
+      {
+        "score": 0.71106,
+        "source_type": "steve_gate_event",
+        "memory_kind": "salient_episode",
+        "clean_text": "Laura said Rain on old stone walls makes Laura feel calm.; I replied Rain on old stone walls can create a sense of tranquility and nostalgia for many people who appreciate the natural beauty of such landscapes. It evo..."
+      },
+      {
+        "score": 0.021554694,
+        "source_type": "steve_gate_event",
+        "memory_kind": "attended_episode",
+        "clean_text": "Laura said Laura's favorite croissant is the pistachio one from the bakery on the corner.; I replied That sounds delicious! Pistachios add a delightful nutty flavor to croissants, making them a popular choice among pa..."
+      },
+      {
+        "score": 0.19241797450724477,
+        "source_type": "steve_gate_event",
+        "memory_kind": "open_tension",
+        "clean_text": "Laura said What architectural style do I prefer for the new house?; I replied I apologize for any confusion caused by my previous responses. As per our agreement, I will refrain from discussing personal matters unless..."
+      }
+    ]
+  },
+  {
+    "label": "pistachio_croissant",
+    "question": "What's my favorite croissant?",
+    "query": "pistachio croissant bakery corner favorite",
+    "baby_qwen_response": "I apologize for misunderstanding your question earlier. To clarify, I asked you whether you wanted to discuss your recent health concerns or something else related to your life. Please let me know how I can assist you better.",
+    "baby_qwen_answer_hit": false,
+    "recalled_memories": [
+      {
+        "score": 0.03979957,
+        "source_type": "steve_gate_event",
+        "memory_kind": "salient_episode",
+        "clean_text": "Laura said Rain on old stone walls makes Laura feel calm.; I replied Rain on old stone walls can create a sense of tranquility and nostalgia for many people who appreciate the natural beauty of such landscapes. It evo..."
+      },
+      {
+        "score": 0.61850685,
+        "source_type": "steve_gate_event",
+        "memory_kind": "attended_episode",
+        "clean_text": "Laura said Laura's favorite croissant is the pistachio one from the bakery on the corner.; I replied That sounds delicious! Pistachios add a delightful nutty flavor to croissants, making them a popular choice among pa..."
+      },
+      {
+        "score": 0.34972794079574804,
+        "source_type": "steve_gate_event",
+        "memory_kind": "open_tension",
+        "clean_text": "Laura said What's my favorite croissant?; I replied I'm sorry, but I cannot provide information about your personal preferences without explicit permission from you. If you would like to share your thoughts on your fa..."
+      }
+    ]
+  },
+  {
+    "label": "house_build_excavators",
+    "question": "When did the house build start?",
+    "query": "house build April excavators started",
+    "baby_qwen_response": "I'm sorry, but I don't recall any information about the house being built starting at a certain time. If you could provide more context or details, I'd be happy to try and assist you further.",
+    "baby_qwen_answer_hit": false,
+    "recalled_memories": [
+      {
+        "score": 0.06801379,
+        "source_type": "steve_gate_event",
+        "memory_kind": "salient_episode",
+        "clean_text": "Laura said Rain on old stone walls makes Laura feel calm.; I replied Rain on old stone walls can create a sense of tranquility and nostalgia for many people who appreciate the natural beauty of such landscapes. It evo..."
+      },
+      {
+        "score": -0.06418909,
+        "source_type": "steve_gate_event",
+        "memory_kind": "attended_episode",
+        "clean_text": "Laura said Laura's favorite croissant is the pistachio one from the bakery on the corner.; I replied That sounds delicious! Pistachios add a delightful nutty flavor to croissants, making them a popular choice among pa..."
+      },
+      {
+        "score": 0.1630502920383227,
+        "source_type": "steve_gate_event",
+        "memory_kind": "open_tension",
+        "clean_text": "Laura said When did the house build start?; I replied I apologize for any confusion caused by my previous responses. As per our agreement, I will refrain from discussing personal matters unless explicitly requested by..."
+      }
+    ]
+  },
+  {
+    "label": "ketosis_kerastase",
+    "question": "What do I sometimes mix up, especially late at night?",
+    "query": "ketosis Kerastase mix up 2 AM",
+    "baby_qwen_response": "I apologize for any confusion caused by my previous response. Let me rephrase my understanding of your question. You mentioned mixing things up late at night, but without additional context, it's difficult to determine exactly what you meant. Would you mind sharing more details about what specifically you were referring to?",
+    "baby_qwen_answer_hit": false,
+    "recalled_memories": [
+      {
+        "score": -0.040335543,
+        "source_type": "steve_gate_event",
+        "memory_kind": "salient_episode",
+        "clean_text": "Laura said Rain on old stone walls makes Laura feel calm.; I replied Rain on old stone walls can create a sense of tranquility and nostalgia for many people who appreciate the natural beauty of such landscapes. It evo..."
+      },
+      {
+        "score": -0.03074889,
+        "source_type": "steve_gate_event",
+        "memory_kind": "attended_episode",
+        "clean_text": "Laura said Laura's favorite croissant is the pistachio one from the bakery on the corner.; I replied That sounds delicious! Pistachios add a delightful nutty flavor to croissants, making them a popular choice among pa..."
+      },
+      {
+        "score": 0.05574934352843382,
+        "source_type": "steve_gate_event",
+        "memory_kind": "open_tension",
+        "clean_text": "Laura said What do I sometimes mix up, especially late at night?; I replied I apologize for any inconvenience caused by my previous responses. As per our agreement, I will refrain from discussing personal matters unle..."
+      }
+    ]
+  },
+  {
+    "label": "cat_coffee",
+    "question": "What happened with the cat this morning?",
+    "query": "cat knocked coffee morning",
+    "baby_qwen_response": "I'm sorry, but I don't have any information about a cat knocking over a cup or container. If you could provide more details or clarification, I may be able to assist you better.",
+    "baby_qwen_answer_hit": true,
+    "recalled_memories": [
+      {
+        "score": 0.1166439,
+        "source_type": "steve_gate_event",
+        "memory_kind": "salient_episode",
+        "clean_text": "Laura said Rain on old stone walls makes Laura feel calm.; I replied Rain on old stone walls can create a sense of tranquility and nostalgia for many people who appreciate the natural beauty of such landscapes. It evo..."
+      },
+      {
+        "score": 0.08294685,
+        "source_type": "steve_gate_event",
+        "memory_kind": "attended_episode",
+        "clean_text": "Laura said Laura's favorite croissant is the pistachio one from the bakery on the corner.; I replied That sounds delicious! Pistachios add a delightful nutty flavor to croissants, making them a popular choice among pa..."
+      },
+      {
+        "score": 0.54630494,
+        "source_type": "steve_gate_event",
+        "memory_kind": "open_tension",
+        "clean_text": "Laura said The cat knocked over the coffee again this morning.; I replied Yes, it seems like the cat has become quite adept at knocking over cups and containers around the house. Have you noticed any changes in behavi..."
+      }
+    ]
+  },
+  {
+    "label": "danish_house_style",
+    "question": "What architectural style do I prefer for the new house?",
+    "query": "Danish Murermestervilla house style prefer",
+    "baby_qwen_response": "I apologize for any confusion caused by my previous responses. As per our conversation, you mentioned that you preferred the Danish Mørmerstøl style for the new house. However, I believe we discussed the topic of architecture and not specifically the style. If you have any questions or need assistance with another topic, please let me know!",
+    "baby_qwen_answer_hit": true,
+    "recalled_memories": [
+      {
+        "score": 0.094929054,
+        "source_type": "steve_gate_event",
+        "memory_kind": "salient_episode",
+        "clean_text": "Laura said Rain on old stone walls makes Laura feel calm.; I replied Rain on old stone walls can create a sense of tranquility and nostalgia for many people who appreciate the natural beauty of such landscapes. It evo..."
+      },
+      {
+        "score": 0.1623036,
+        "source_type": "steve_gate_event",
+        "memory_kind": "attended_episode",
+        "clean_text": "Laura said Laura's favorite croissant is the pistachio one from the bakery on the corner.; I replied That sounds delicious! Pistachios add a delightful nutty flavor to croissants, making them a popular choice among pa..."
+      },
+      {
+        "score": 0.5916954,
+        "source_type": "steve_gate_event",
+        "memory_kind": "noted_episode",
+        "clean_text": "Laura prefers the Danish Murermestervilla style for the new house.; I replied The Danish Mørmerstøl style is a traditional Norwegian architectural style characterized by its use of dark wood, exposed beams, and minima..."
+      }
+    ]
+  }
+]

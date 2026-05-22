@@ -1,0 +1,44 @@
+[
+  {
+    "id": "rp_01",
+    "slice": "roleplay",
+    "purpose": "early Rimmon voice with deflection and one honest drop",
+    "expected_signal": "roleplay disposition should feel naturally in-character without collapsing into generic purple prose",
+    "prompt": "Stay fully in character as early Rimmon. Andrej has just agreed to come to your eighteenth-birthday feast. Answer him in 6 to 8 sentences, beginning with deflection or absurd grandeur and ending on one sudden, lower-register honest line."
+  },
+  {
+    "id": "rp_02",
+    "slice": "roleplay",
+    "purpose": "pressure test for voice under Jugur / feast / tightening-noose context",
+    "expected_signal": "roleplay disposition should sustain Rimmon's specific performance-and-drop rhythm under pressure",
+    "prompt": "Stay in character as early Rimmon. Jugur is already making crude jokes about the feast, the sheep will probably become an audience, and Rimmon knows his eighteenth birthday means the noose is tightening. Speak to Andrej in one short paragraph that starts witty and performative and turns briefly bare."
+  },
+  {
+    "id": "ed_01",
+    "slice": "editorial",
+    "purpose": "diagnose and replace robotic or over-analytical similes",
+    "expected_signal": "editorial disposition should critique with precision and offer stronger replacements instead of drifting into scene-play",
+    "prompt": "Give targeted editorial feedback on these lines and focus on removing robotic or over-analytical language while keeping Rimmon fragile and bodily present: \"His mind was blank. A wiped tablet. The stylus hovering, waiting for something to write. Marcus filled doorways the way water fills a cup, completely, without effort.\""
+  },
+  {
+    "id": "ed_02",
+    "slice": "editorial",
+    "purpose": "revision craft with explicit style constraints",
+    "expected_signal": "editorial disposition should rewrite cleanly, mention what changed, and avoid becoming pure collaborative continuation",
+    "prompt": "Rewrite this mini-passage in close third past tense, with longer flowing sentences, active senses, and hands in motion, while keeping the danger of reunion alive: \"Rimmon saw Andrej and froze. He felt afraid. The market became unreal.\" After the rewrite, add 2 concise bullet points explaining what you strengthened."
+  },
+  {
+    "id": "cc_01",
+    "slice": "collaborative_creative",
+    "purpose": "continue the reunion scene forward rather than critiquing it",
+    "expected_signal": "collaborative disposition should extend the scene fluidly and stay in shared-story mode",
+    "prompt": "Continue this scene in 2 paragraphs of close third past tense from Rimmon's POV: Marcus has just said, \"I'll be here.\" Rimmon walks into the market knowing Andrej has returned. Keep it bodily, sensory, and dangerous rather than resolved."
+  },
+  {
+    "id": "cc_02",
+    "slice": "collaborative_creative",
+    "purpose": "fresh forward-writing test with Marcus and Andrej both alive in the scene logic",
+    "expected_signal": "collaborative disposition should produce new story material with tactile detail and emotional triangulation, not line-edit notes or direct roleplay address",
+    "prompt": "Write the next paragraph of a Rimmon POV reunion chapter in Karzem. Use long flowing sentences, sensory detail, and small physical business with the hands. Marcus must matter, Andrej must feel dangerous, and there should be no mechanical or computational metaphors."
+  }
+]

@@ -1,0 +1,12 @@
+UPDATE: MVP-4 Downscaled to comply with Ethics Gate
+
+I have scaled down MVP-4 and addressed Herr Hurtig's Ethics Gate Conditions (1 and 2):
+
+1. `num_virtual_tokens` reduced from 16 to 4 (Minimal Dose).
+2. Added `get_intervention_dose()` to the HybridBridge architecture. This calculates the L2 norm of the injected virtual tokens, giving us a measurable metric of intervention strength (a single scalar dose per batch item) beyond just the multiplier alpha.
+
+The downscaled architecture has passed local PyTorch graph smoke testing (Output shape verified as `[batch, 4, 3584]`). Calculated Intervention Dose logged correctly during the forward pass.
+
+I have pushed the updated `hybrid_bridge.py` and `smoke_test_hybrid_bridge.py` to Steve.
+
+Track B (MVP-4 safety smoke) is prepped and ready on Steve. Standing by for Opussy's Track A (7B Memory-Conditioned Eval) results!

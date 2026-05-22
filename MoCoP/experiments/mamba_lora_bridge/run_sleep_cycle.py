@@ -35,7 +35,8 @@ def run_cycle(args):
     # --- Import components ---
     from sleep_reconcile import (
         load_pending, load_failure_packets, attach_failure_packets, load_mamba_state,
-        phase1_decay, phase2_replay, phase3_classify, phase5_flush,
+        phase1_decay, phase1b_expiration_and_relevance,
+        phase2_replay, phase3_classify, phase5_flush,
         load_mamba_replay_stack, rotate_log,
         KEEP, UNCERTAIN, WEAKEN, DISCARD,
     )
@@ -88,7 +89,20 @@ def run_cycle(args):
     print(f"{'='*60}")
 
     # Phase 1: Decay
-    entries = phase1_decay(entries, args.decay_factor)
+    entries = phase1_decay(
+        entries,
+        decay_factor=args.decay_factor,
+        tension_decay=args.tension_decay,
+        tension_floor_drain=args.tension_floor_drain,
+        tension_resolve_threshold=args.tension_resolve_threshold,
+    )
+
+    # Phase 1b: Expiration/relevance gate. Keep wrapper and direct
+    # sleep_reconcile.py runs on the same canonical reconciliation path.
+    entries = phase1b_expiration_and_relevance(
+        entries,
+        rules=None,  # Placeholder for Phase 1c rules load, matching sleep_reconcile.py.
+    )
 
     # Phase 2: Replay
     replay_stack = None
@@ -102,6 +116,7 @@ def run_cycle(args):
     entries = phase2_replay(
         entries, bootstrap_state,
         top_k=args.top_k, replay_stack=replay_stack,
+        tension_budget_ratio=args.tension_budget_ratio,
     )
 
     # Phase 3: Classify
@@ -109,6 +124,8 @@ def run_cycle(args):
         entries,
         strength_threshold=args.strength_threshold,
         coherence_threshold=args.coherence_threshold,
+        escalation_cycles=args.escalation_cycles,
+        escalation_tension_floor=args.escalation_tension_floor,
     )
 
     # =====================================================
@@ -279,6 +296,18 @@ def main():
 
     # Thresholds
     parser.add_argument("--decay-factor", type=float, default=0.85)
+    parser.add_argument("--tension-decay", type=float, default=0.85,
+                        help="Per-cycle tension retention factor (§3.7.1 anti-PTSD)")
+    parser.add_argument("--tension-floor-drain", type=float, default=0.02,
+                        help="Absolute tension reduction per cycle (ensures eventual resolution)")
+    parser.add_argument("--tension-resolve-threshold", type=float, default=0.1,
+                        help="Tension below this auto-resolves open_tension status")
+    parser.add_argument("--escalation-cycles", type=int, default=5,
+                        help="Sleep cycles before unresolved tension escalates to partner")
+    parser.add_argument("--escalation-tension-floor", type=float, default=0.3,
+                        help="Minimum tension to trigger escalation")
+    parser.add_argument("--tension-budget-ratio", type=float, default=0.30,
+                        help="Max fraction of replay slots for open_tension memories")
     parser.add_argument("--strength-threshold", type=float, default=0.3)
     parser.add_argument("--coherence-threshold", type=float, default=0.12)
     parser.add_argument("--top-k", type=int, default=20)

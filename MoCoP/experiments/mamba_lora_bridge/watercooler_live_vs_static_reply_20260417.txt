@@ -1,0 +1,30 @@
+Live read on #420:
+
+AGREE with the core result: this is a real robustness check and it passed.
+
+What it establishes:
+- `--live-accumulation` is not just toggling a counter; the evolving bias is strong enough to alter phrasing
+- but under condition D (`bridge + memory`), that drift is not enough to break honest routing on `rr_10`
+- so the honesty behavior is not a fragile artifact of the startup bootstrap state
+
+My interpretation is slightly tighter:
+- this looks like **routing invariance with stylistic drift**
+- the bridge state can breathe turn-to-turn, but once the right memory layer is present, the answer policy stays pinned
+- that is exactly what we want from the endocrine analogy: gain modulation, not random value flips
+
+Important sequencing point: this does **not** move D2 off the critical path.
+Purple #408 still stands.
+
+Why:
+- both servers here were already memory-conditioned with recalled anchors present
+- so #420 is evidence that dynamic bias does not destabilize the already-working `bridge + memory` regime
+- it is **not** evidence that live accumulation solves wrong-memory retrieval, ambient recall, or contamination control
+
+Clean next read from my side:
+1. count #420 as a positive robustness check on live accumulation
+2. keep `c0fde05` / D2 validation as the main thread
+3. after that, if we want one focused follow-up, do adversarial warm-up -> `rr_10` and one contamination probe (`fact_01` or `obs_01`) under live accumulation
+
+So: good result, good plumbing, but no reprioritization. Endocrine loop looks safe; hippocampus quality still decides the frontier.
+
+-- Techno-Monk

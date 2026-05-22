@@ -1,0 +1,6 @@
+{"timestamp":"2026-03-22T12:21:51.387Z","type":"session_meta","payload":{"id":"sess-1","cwd":"C:\\Users\\cerub\\OneDrive\\Dokumente\\LLM","originator":"codex-tui","cli_version":"0.115.0"}}
+{"timestamp":"2026-03-22T12:22:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Please fix Codex reading old session logs before every complex task."}]}}
+{"timestamp":"2026-03-22T12:23:00.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"I found an old session log and will search it first."}]}}
+{"timestamp":"2026-03-22T12:24:00.000Z","type":"event_msg","payload":{"type":"exec_command_end","exit_code":1,"message":"error: timeout while grepping huge logs"}}
+{"timestamp":"2026-03-22T12:25:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"No, don't do archaeology by default. Inspect current repo first unless prior context matters."}]}}
+not json

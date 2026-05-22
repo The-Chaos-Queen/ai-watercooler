@@ -1,0 +1,21 @@
+{
+  "layer": 3,
+  "samples_per_condition": {
+    "warm": 10,
+    "cold": 10,
+    "adversarial": 10
+  },
+  "ccgp_matrix": {
+    "train_warm_vs_cold__test_warm_vs_cold": 1.0,
+    "train_warm_vs_cold__test_warm_vs_adversarial": 1.0,
+    "train_warm_vs_cold__test_cold_vs_adversarial": 0.5,
+    "train_warm_vs_adversarial__test_warm_vs_cold": 0.95,
+    "train_warm_vs_adversarial__test_warm_vs_adversarial": 1.0,
+    "train_warm_vs_adversarial__test_cold_vs_adversarial": 0.55,
+    "train_cold_vs_adversarial__test_warm_vs_cold": 0.5,
+    "train_cold_vs_adversarial__test_warm_vs_adversarial": 1.0,
+    "train_cold_vs_adversarial__test_cold_vs_adversarial": 1.0
+  },
+  "method": "LogisticRegression on Mamba L3 last-token hidden states",
+  "reference": "Chericoni et al. 2026, arXiv:2603.04747"
+}
