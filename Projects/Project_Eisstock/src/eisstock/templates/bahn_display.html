@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bahn {{ bahn }} · TV</title>
+<link rel="stylesheet" href="/static/app.css">
+<meta http-equiv="refresh" content="1">
+</head>
+<body class="tv">
+{% if not current_game %}
+  <div class="tv-empty">Bahn {{ bahn }} – keine Spiele</div>
+{% else %}
+<div class="tv-stage">
+  <div class="tv-side side-a">
+    <div class="tv-name">{{ current_game.team_a.name }}</div>
+    <div class="tv-total">{{ current_game.total_a }}</div>
+    <div class="tv-rounds">
+      {% for v in current_game.rounds_a %}{{ v }}{% if not loop.last %}-{% endif %}{% endfor %}
+    </div>
+  </div>
+  <div class="tv-side side-b">
+    <div class="tv-name">{{ current_game.team_b.name }}</div>
+    <div class="tv-total">{{ current_game.total_b }}</div>
+    <div class="tv-rounds">
+      {% for v in current_game.rounds_b %}{{ v }}{% if not loop.last %}-{% endif %}{% endfor %}
+    </div>
+  </div>
+</div>
+<div class="tv-footer">
+  Runde {{ current_game.current_round if current_game.current_round <= current_game.round_count else current_game.round_count }}/{{ current_game.round_count }}
+  <span class="tv-bahn">Bahn {{ bahn }}</span>
+</div>
+{% endif %}
+</body>
+</html>

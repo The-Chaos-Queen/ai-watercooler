@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Neues Turnier{% endblock %}
+{% block content %}
+<header class="topbar">
+  <a class="back" href="/">← Zurück</a>
+  <h1>Neues Turnier</h1>
+</header>
+<main class="container">
+<form method="post" action="/new" class="form">
+  <label>
+    Turniername
+    <input type="text" name="name" placeholder="z.B. Vereinsmeisterschaft 2026" required>
+  </label>
+
+  <fieldset>
+    <legend>Modus</legend>
+    <label class="radio"><input type="radio" name="mode" value="normal" checked> Normales Spiel</label>
+    <label class="radio"><input type="radio" name="mode" value="ziel" disabled> Zielschießen <small>(folgt)</small></label>
+  </fieldset>
+
+  <label>
+    Anzahl Teams
+    <select name="team_count" id="team_count" required>
+      {% for n in range(3, 9) %}
+      <option value="{{ n }}" {% if n == 6 %}selected{% endif %}>{{ n }} Teams</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>
+    Durchgänge
+    <select name="durchgaenge">
+      <option value="1" selected>1 (einfacher Durchgang)</option>
+      <option value="2">2 (Hin- und Rückrunde)</option>
+    </select>
+  </label>
+
+  <label>
+    Runden pro Spiel
+    <input type="number" name="rounds_per_game" value="6" min="1" max="12">
+  </label>
+
+  <fieldset>
+    <legend>Teams</legend>
+    <p class="hint">Trage die Mannschaften und Spieler:innen ein. Reihenfolge legt die Startposition im Spiegel fest.</p>
+    <div id="team-rows">
+      {% for i in range(1, 9) %}
+      <div class="team-row" data-pos="{{ i }}">
+        <span class="pos">{{ i }}</span>
+        <input type="text" name="team_name_{{ i }}" placeholder="Team {{ i }}">
+        <input type="text" name="team_players_{{ i }}" placeholder="Spieler (durch Komma getrennt)">
+        <input type="text" name="team_nation_{{ i }}" placeholder="Nation/Verein (optional)">
+      </div>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <button type="submit" class="btn primary big">Turnier anlegen</button>
+</form>
+</main>
+<script>
+// Show only as many team rows as needed.
+const sel = document.getElementById('team_count');
+function syncRows() {
+  const n = parseInt(sel.value, 10);
+  document.querySelectorAll('.team-row').forEach((row, idx) => {
+    row.style.display = (idx < n) ? '' : 'none';
+  });
+}
+sel.addEventListener('change', syncRows);
+syncRows();
+</script>
+{% endblock %}

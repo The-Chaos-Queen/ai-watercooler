@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p docx_media)",
+      "Bash(unzip -j -o EisstockProgram1PointO.docx \"word/media/*\" -d docx_media/)",
+      "PowerShell(python -m venv \"$env:USERPROFILE\\\\.venvs\\\\eisstock-dev\"; Write-Output \"venv created at: $env:USERPROFILE\\\\.venvs\\\\eisstock-dev\"; & \"$env:USERPROFILE\\\\.venvs\\\\eisstock-dev\\\\Scripts\\\\python.exe\" -m pip install --upgrade pip 2>&1 | Select-Object -Last 3)",
+      "PowerShell(& \"$env:USERPROFILE\\\\.venvs\\\\eisstock-dev\\\\Scripts\\\\python.exe\" -m pip install -r \"C:\\\\Users\\\\cerub\\\\OneDrive\\\\Dokumente\\\\LLM\\\\Projects\\\\Project_Eisstock\\\\requirements.txt\" 2>&1 | Select-Object -Last 5)"
+    ]
+  }
+}

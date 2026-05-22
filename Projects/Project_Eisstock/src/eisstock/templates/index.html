@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Turniere{% endblock %}
+{% block content %}
+<header class="topbar">
+  <h1>Eisstock</h1>
+  <a class="btn primary" href="/new">Neues Turnier</a>
+</header>
+<main class="container">
+  {% if tournaments %}
+  <ul class="tournament-list">
+    {% for t in tournaments %}
+    <li>
+      <a href="/tournament/{{ t.id }}">
+        <strong>{{ t.name }}</strong>
+        <span class="meta">{{ t.team_count }} Teams · {{ t.mode.value }} · {{ t.status.value }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">Noch keine Turniere. Lege eines an, um zu starten.</p>
+  {% endif %}
+</main>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Bahn {{ bahn }} · {{ tournament.name }}{% endblock %}
+{% block body_class %}page bahn-page{% endblock %}
+{% block content %}
+<header class="topbar slim">
+  <a class="back" href="/tournament/{{ tournament.id }}">← Turnier</a>
+  <h1>Bahn {{ bahn }}</h1>
+  <a class="btn small" target="_blank" href="/tournament/{{ tournament.id }}/display/{{ bahn }}">TV ↗</a>
+</header>
+
+{% if not current_game %}
+<main class="container"><p class="empty">Keine Spiele für diese Bahn.</p></main>
+{% else %}
+<main class="container bahn-entry">
+  <nav class="game-tabs">
+    {% for g in games %}
+    <a class="game-tab {% if g.game.id == current_game.game.id %}active{% endif %}"
+       href="/tournament/{{ tournament.id }}/bahn/{{ bahn }}?game={{ g.game.id }}">
+      Spiel {{ g.game.runde }}{% if tournament.durchgaenge > 1 %}.{{ g.game.durchgang }}{% endif %}
+      <span class="vs">{{ g.team_a.name|truncate(10) }} vs {{ g.team_b.name|truncate(10) }}</span>
+    </a>
+    {% endfor %}
+  </nav>
+
+  <section class="scoreboard">
+    <div class="side side-a">
+      <div class="team-name">{{ current_game.team_a.name }}</div>
+      <div class="total">{{ current_game.total_a }}</div>
+      <div class="rounds">
+        {% for v in current_game.rounds_a %}<span>{{ v }}</span>{% if not loop.last %}-{% endif %}{% endfor %}
+      </div>
+    </div>
+    <div class="side side-b">
+      <div class="team-name">{{ current_game.team_b.name }}</div>
+      <div class="total">{{ current_game.total_b }}</div>
+      <div class="rounds">
+        {% for v in current_game.rounds_b %}<span>{{ v }}</span>{% if not loop.last %}-{% endif %}{% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="round-grid">
+    {% for r in range(1, current_game.round_count + 1) %}
+    {% set a = current_game.rounds_a[r-1] %}
+    {% set b = current_game.rounds_b[r-1] %}
+    {% set is_current = (a == 0 and b == 0 and r == current_game.current_round) %}
+    <details class="round-row {% if is_current %}current{% endif %}" {% if is_current %}open{% endif %}>
+      <summary>
+        <span class="r-label">Runde {{ r }}</span>
+        <span class="r-a">{{ a }}</span>
+        <span class="r-sep">:</span>
+        <span class="r-b">{{ b }}</span>
+        <span class="r-edit">{% if a or b %}bearbeiten{% else %}eingeben{% endif %}</span>
+      </summary>
+      <form class="score-form" method="post"
+            action="/tournament/{{ tournament.id }}/bahn/{{ bahn }}/score">
+        <input type="hidden" name="game_id" value="{{ current_game.game.id }}">
+        <input type="hidden" name="round_idx" value="{{ r }}">
+        <p>Welches Team hat in Runde {{ r }} gepunktet?</p>
+        <div class="team-pick">
+          <button type="submit" name="scoring_team_id" value="{{ current_game.team_a.id }}"
+                  class="pick side-a-pick" formaction="/tournament/{{ tournament.id }}/bahn/{{ bahn }}/score?stockpunkte={{ a if a else 1 }}">
+            {{ current_game.team_a.name }}
+          </button>
+          <button type="submit" name="scoring_team_id" value="{{ current_game.team_b.id }}"
+                  class="pick side-b-pick" formaction="/tournament/{{ tournament.id }}/bahn/{{ bahn }}/score?stockpunkte={{ b if b else 1 }}">
+            {{ current_game.team_b.name }}
+          </button>
+        </div>
+        <p class="hint">Stockpunkte:</p>
+        <div class="sp-keys">
+          {% for n in range(1, 16) %}
+          <label class="sp-key">
+            <input type="radio" name="stockpunkte" value="{{ n }}" {% if (a == n) or (b == n) %}checked{% elif n == 1 %}checked{% endif %}>
+            <span>{{ n }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </form>
+    </details>
+    {% endfor %}
+  </section>
+</main>
+{% endif %}
+{% endblock %}

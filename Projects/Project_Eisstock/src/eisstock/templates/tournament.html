@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ tournament.name }}{% endblock %}
+{% block content %}
+<header class="topbar">
+  <a class="back" href="/">← Übersicht</a>
+  <h1>{{ tournament.name }}</h1>
+  <a class="btn" href="/tournament/{{ tournament.id }}/standings">Rangliste</a>
+</header>
+<main class="container">
+  <p class="meta">{{ tournament.team_count }} Teams · {{ tournament.rounds_per_game }} Runden/Spiel · {{ tournament.durchgaenge }} Durchgang/-gänge</p>
+
+  <h2>Bahnen</h2>
+  <div class="bahnen-grid">
+    {% for bahn in bahnen %}
+    <div class="bahn-card">
+      <h3>Bahn {{ bahn }}</h3>
+      <div class="bahn-actions">
+        <a class="btn primary" href="/tournament/{{ tournament.id }}/bahn/{{ bahn }}">Eingabe</a>
+        <a class="btn" target="_blank" href="/tournament/{{ tournament.id }}/display/{{ bahn }}">TV-Anzeige</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <h2>Teams</h2>
+  <ol class="teams">
+    {% for team in teams %}
+    <li>
+      <strong>{{ team.name }}</strong>
+      {% if team.nation %}<span class="meta">{{ team.nation }}</span>{% endif %}
+      {% if team.players %}
+      <div class="meta players">{{ team.players|join(", ") }}</div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</main>
+{% endblock %}
