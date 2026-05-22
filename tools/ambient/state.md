@@ -2,6 +2,13 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-05-22 11:44 UTC] git | MUD | Laura: mud: add personas, scratchpads, and world builder (ebc8fae)
+[2026-05-22 11:44 UTC] git | repo | Laura: eisstock: add tournament app scaffold (c5b4d6c)
+[2026-05-22 11:44 UTC] git | hurtig.ai | Laura: hurtig: add hurtig.ai site and baublog (e6ddeea)
+[2026-05-22 11:44 UTC] git | repo | Laura: research: add paper digests, converted notes, logit-lens and dfc tooling (84a261e)
+[2026-05-22 11:44 UTC] git | MoCoP | Laura: mocop: add bridge/archivist scripts, specs, fixtures, eval panels; update sleep cycle (89b5460)
+[2026-05-22 11:44 UTC] git | repo | Laura: chore(gitignore): ignore wolves, hermes, runtime logs, eval outputs, ebooks, embedded repos (8893b86)
+[2026-05-18 23:39 UTC] git | MoCoP | Laura: docs: update MoCoP handoff and research ladder review (6915d75)
 [2026-05-15 14:09 UTC] git | tools | Laura: docs: update ambient state log (1393cc7)
 [2026-05-15 14:09 UTC] git | Memory | Laura: docs(memory): update handoff and wolf notes (5330a73)
 [2026-05-15 14:09 UTC] git | MoCoP | Laura: docs(mocop): add recall refactor and scaffold notes (1220c65)
