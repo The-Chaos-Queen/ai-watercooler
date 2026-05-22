@@ -112,3 +112,42 @@ Project_MUD/agents/training_data/
 *.pptx
 *.docx
 *.xlsx
+
+# Wolf folders — backed up via Google Drive sync, no change tracking needed
+CHEESE_Memory/wolves/
+
+# Hermes agent workspace + context (may hold session tokens)
+.hermes
+.hermes/
+.hermes.md
+
+# Runtime logs, process files, and "latest" snapshots (regenerable / some private)
+*.pid
+*_latest.txt
+*_latest.jsonl
+*_log.jsonl
+private_recall_log.jsonl
+memory_formation_log.jsonl
+failure_log.jsonl
+chat_session_latest.txt
+
+# Reincarnation / D2 eval run outputs — regenerable experiment artifacts
+MoCoP/experiments/mamba_lora_bridge/run_reincarnation/
+
+# Local ebook copies (copyrighted, large binary — not for the repo)
+Research/books/
+*.azw3
+*.epub
+*.mobi
+
+# Embedded git repos — developed separately, must not nest as broken gitlinks
+Research/titans-pytorch-mlx/
+Projects/LegalAI/
+tools/codesight/
+tools/observability/
+
+# Logit-lens image outputs (extensionless, not caught by media globs)
+Research/lw_logit_lens/images/
+
+# Windows shortcuts
+*.lnk
