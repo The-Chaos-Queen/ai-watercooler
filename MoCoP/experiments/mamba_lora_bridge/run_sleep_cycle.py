@@ -119,6 +119,47 @@ def run_cycle(args):
         tension_budget_ratio=args.tension_budget_ratio,
     )
 
+    # --- Sleep N-loop support (BASELINE CONTROL / Paper 2605.26099 style offline recurrence) ---
+    # NOTE: This loops the SCORING only, against a frozen bootstrap_state.
+    # Use run_shadow_sleep_nloop_a3.py for real recurrent state advancement.
+    if args.sleep_loops > 1:
+        if not args.dry_run and not args.allow_multi_pass:
+            print("[ERROR] --sleep-loops > 1 requires either --dry-run or --allow-multi-pass (safety guard)")
+            sys.exit(2)
+
+        print(f"\n[loop] Starting multi-pass sleep experiment: N={args.sleep_loops}")
+        for loop_num in range(2, args.sleep_loops + 1):
+            prev_state = {
+                e.get("id", i): {
+                    "_coherence": e.get("_coherence"),
+                    "_open_tension": e.get("_open_tension"),
+                    "_tension": e.get("_tension"),
+                    "decision": e.get("metadata", {}).get("decision"),
+                }
+                for i, e in enumerate(entries)
+            }
+
+            entries = phase2_replay(
+                entries, bootstrap_state,
+                top_k=args.top_k, replay_stack=replay_stack,
+                tension_budget_ratio=args.tension_budget_ratio,
+            )
+
+            # Compute simple deltas (especially on tension items)
+            tension_deltas = []
+            for i, e in enumerate(entries):
+                if e.get("_open_tension"):
+                    prev = prev_state.get(e.get("id", i), {})
+                    delta = (e.get("_coherence", 0) or 0) - (prev.get("_coherence", 0) or 0)
+                    if abs(delta) > 0.01:
+                        tension_deltas.append((e.get("content", "")[:50], delta))
+
+            print(f"[loop] Pass {loop_num}/{args.sleep_loops} complete. "
+                  f"Tension items with coherence shift >0.01: {len(tension_deltas)}")
+            if tension_deltas:
+                for content, d in tension_deltas[:5]:
+                    print(f"    tension-delta: {d:+.3f} | {content}...")
+
     # Phase 3: Classify
     entries = phase3_classify(
         entries,
@@ -129,10 +170,55 @@ def run_cycle(args):
     )
 
     # =====================================================
-    # PHASE 4: Flush (conditional on ethics)
+    # PHASE 4: Ethics Post-Check (BEFORE Flush)
     # =====================================================
     print(f"\n{'='*60}")
-    print("PHASE 4: Flush + Ethics Post-Check")
+    print("PHASE 4: Ethics Post-Check")
+    print(f"{'='*60}")
+
+    # Calculate metrics for the ethics gate before any writes
+    from sleep_reconcile import calculate_sleep_metrics
+    recon_metrics = calculate_sleep_metrics(entries)
+    
+    # Collect entries that would be written for diversity measurement
+    written_entries_hypothetical = [e for e in entries if e.get("_status") in (KEEP, UNCERTAIN)]
+    
+    # We pass a minimal snapshot to post_sleep; it primarily needs classification counts
+    # and entries_processed. Real flush will produce a more detailed one later.
+    temp_snapshot = {
+        "classification": recon_metrics["classification"],
+        "entries_processed": len(entries),
+        "escalated_count": sum(1 for e in entries if e.get("metadata", {}).get("escalated_to_partner", False)),
+        "mean_tension": float(np.mean([e.get("_tension", 0.0) or 0.0 for e in entries]) if entries else 0.0),
+    }
+
+    post_verdict = gate.post_sleep(
+        pre_verdict, temp_snapshot,
+        post_entries=written_entries_hypothetical,
+        new_disposition=bootstrap_state,
+    )
+
+    if post_verdict.verdict == "STOP":
+        print(f"\n[STOP] Ethics gate STOP. Rolling back pre-flush.")
+        rollback_path = snapshot_dir / pre_verdict.snapshot_version
+        if rollback_path.exists() and not args.dry_run:
+            shutil.copy2(str(rollback_path), str(snapshot_path))
+            print(f"[STOP] Restored pre-sleep snapshot from {pre_verdict.snapshot_version}")
+        elif args.dry_run:
+            print(f"[STOP] [dry-run] Would restore {pre_verdict.snapshot_version}")
+        
+        rubric_line = format_rubric_line(
+            len(entries), recon_metrics["classification"], "FAIL", 
+            f"ethics=STOP diversity={post_verdict.diversity_ratio:.0%}"
+        )
+        print(f"\n{rubric_line}")
+        return 1
+
+    # =====================================================
+    # PHASE 5: Flush
+    # =====================================================
+    print(f"\n{'='*60}")
+    print("PHASE 5: Flush")
     print(f"{'='*60}")
 
     # Build Qdrant sink
@@ -158,22 +244,7 @@ def run_cycle(args):
     )
 
     # =====================================================
-    # PHASE 5: Ethics Post-Check
-    # =====================================================
-    print(f"\n{'='*60}")
-    print("PHASE 5: Ethics Post-Check")
-    print(f"{'='*60}")
-
-    # Collect written entries for diversity measurement
-    written_entries = [e for e in entries if e["_status"] in (KEEP, UNCERTAIN)]
-    post_verdict = gate.post_sleep(
-        pre_verdict, recon_snapshot,
-        post_entries=written_entries,
-        new_disposition=bootstrap_state,
-    )
-
-    # =====================================================
-    # VERDICT + ROLLBACK
+    # VERDICT
     # =====================================================
     print(f"\n{'='*60}")
     print("VERDICT")
@@ -183,35 +254,21 @@ def run_cycle(args):
     replay_mode = "same_space" if recon_snapshot.get("same_space_replay_count", 0) > 0 else "metadata"
     failed = recon_snapshot.get("entries_failed", 0)
 
-    if post_verdict.verdict == "STOP":
-        print(f"\n[STOP] Ethics gate STOP. Rolling back.")
-        rollback_path = snapshot_dir / pre_verdict.snapshot_version
-        if rollback_path.exists() and not args.dry_run:
-            shutil.copy2(str(rollback_path), str(snapshot_path))
-            print(f"[STOP] Restored pre-sleep snapshot from {pre_verdict.snapshot_version}")
-        elif args.dry_run:
-            print(f"[STOP] [dry-run] Would restore {pre_verdict.snapshot_version}")
-        else:
-            print(f"[STOP] WARNING: rollback snapshot not found at {rollback_path}")
-
-        # Do NOT rotate pending log on STOP — entries need to be reprocessed
-        rubric_verdict = "FAIL"
-        rubric_note = f"ethics={post_verdict.verdict} diversity={post_verdict.diversity_ratio:.0%}"
-    elif failed > 0:
-        rubric_verdict = "FAIL"
-        rubric_note = f"{failed} qdrant write failures"
-        print(f"[FAIL] {failed} Qdrant write failures. Pending log NOT rotated.")
-    else:
-        # Rotate pending log on success
+    # Rotate pending log on success
+    if failed == 0:
         if not args.dry_run and not args.no_rotate:
             rotate_log(pending_path)
 
-        if post_verdict.verdict == "WARN":
-            rubric_verdict = "WARN"
-            rubric_note = f"ethics={post_verdict.verdict} diversity={post_verdict.diversity_ratio:.0%}"
-        else:
-            rubric_verdict = "PASS"
-            rubric_note = ""
+    if failed > 0:
+        rubric_verdict = "FAIL"
+        rubric_note = f"{failed} qdrant write failures"
+        print(f"[FAIL] {failed} Qdrant write failures. Pending log NOT rotated.")
+    elif post_verdict.verdict == "WARN":
+        rubric_verdict = "WARN"
+        rubric_note = f"ethics={post_verdict.verdict} diversity={post_verdict.diversity_ratio:.0%}"
+    else:
+        rubric_verdict = "PASS"
+        rubric_note = ""
 
     # =====================================================
     # ONE-LINE RUBRIC OUTPUT
@@ -234,6 +291,8 @@ def run_cycle(args):
         "entries_written": recon_snapshot.get("entries_written", 0),
         "entries_failed": failed,
         "replay_mode": replay_mode,
+        "sleep_loops": args.sleep_loops,
+        "multi_pass_used": args.sleep_loops > 1,
         "ethics_pre": pre_verdict.to_dict(),
         "ethics_post": post_verdict.to_dict(),
         "reconciliation": recon_snapshot,
@@ -311,6 +370,12 @@ def main():
     parser.add_argument("--strength-threshold", type=float, default=0.3)
     parser.add_argument("--coherence-threshold", type=float, default=0.12)
     parser.add_argument("--top-k", type=int, default=20)
+
+    # Sleep N-loop experiment support (inspired by 2605.26099)
+    parser.add_argument("--sleep-loops", type=int, default=1,
+                        help="Number of times to run phase2_replay (N>1 for offline recurrence experiments)")
+    parser.add_argument("--allow-multi-pass", action="store_true",
+                        help="Allow --sleep-loops > 1. MUST be combined with --dry-run for safety during early experiments.")
 
     # Safety
     parser.add_argument("--dry-run", action="store_true")

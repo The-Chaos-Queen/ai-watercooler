@@ -106,8 +106,28 @@ def phase1_decay(
 
 def estimate_relevance(entry: dict, rules: list) -> tuple[bool, int]:
     """Estimate relevance based on learned rules (Phase 1c stub).
+    Currently uses basic keyword protection for identity/relationships
+    until the Phase 1c rule engine is built.
     Returns (is_relevant, days_to_extend).
     """
+    content = str(entry.get("content", "")).lower()
+    metadata = entry.get("metadata", {}) or {}
+    kind = str(metadata.get("memory_kind", "")).lower()
+
+    # Protect identity and relationship anchors by default
+    if kind in {"identity_anchor", "relationship_anchor"}:
+        return True, 360
+        
+    # Phase 1c placeholder: keyword-based protection
+    protected_terms = {"alex", "vesper", "pack", "neon purple", "laura"}
+    if any(term in content for term in protected_terms):
+        return True, 90
+
+    # Rules load from Phase 1c (future implementation)
+    # for rule in rules:
+    #    if rule.matches(entry):
+    #        return True, rule.extension_days
+
     return False, 0
 
 def phase1b_expiration_and_relevance(entries: list, rules: list = None, now: datetime = None) -> list:
@@ -515,6 +535,8 @@ def build_sleep_residue(entry: dict) -> dict:
     source_session = _normalize_text(metadata.get("session"))
     source_turn = metadata.get("turn")
     source_ref = f"{source_session}:{source_turn}" if source_session or source_turn is not None else ""
+    # Plural source_memory_ids as per #79 spec
+    source_memory_ids = [source_ref] if source_ref else []
 
     residue_kind = "episodic_residue"
     trigger_pattern = _normalize_text(metadata.get("trigger_pattern"))
@@ -532,6 +554,11 @@ def build_sleep_residue(entry: dict) -> dict:
         trigger_pattern = trigger_pattern or "continuity_probe"
         distilled_lesson = packet_symptom or "Continuity questions should search shared history and recent prior turns, not improvise from generic model priors."
         repair_rule = repair_rule or "When Laura asks about earlier or yesterday, prefer recalled shared history over fresh invention."
+    elif failure_class == "relationship_divergence": # New kind per #79
+        residue_kind = "relationship_anchor"
+        trigger_pattern = trigger_pattern or "relational_identity_probe"
+        distilled_lesson = packet_symptom or "The model misidentified or forgot the current speaker's relationship in the pack."
+        repair_rule = repair_rule or "Maintain distinct relational anchors for each pack member based on shared episodic history."
     elif failure_class == "wrong_memory_confabulation":
         residue_kind = "repair_memory"
         trigger_pattern = trigger_pattern or "memory_probe_after_failed_recall"
@@ -555,7 +582,8 @@ def build_sleep_residue(entry: dict) -> dict:
 
     return {
         "ts": datetime.now().isoformat(),
-        "source_memory_ref": source_ref,
+        "source_memory_ids": source_memory_ids, # Plural
+        "source_memory_ref": source_ref, # Legacy compat
         "source_session": source_session,
         "source_turn": source_turn,
         "source_sleep_status": entry.get("_status", ""),
@@ -645,6 +673,29 @@ def write_residue_log(residue_entries: list, residue_path: Path, dry_run: bool =
     print(f"[phase4] Sleep residue log -> {residue_path}")
 
 
+def calculate_sleep_metrics(entries: list) -> dict:
+    """Compute forgotten ratio and other stats before irreversible writes."""
+    total = max(1, len(entries))
+    forgotten = sum(1 for e in entries if e.get("_status") == FORGOTTEN)
+    keep = sum(1 for e in entries if e.get("_status") == KEEP)
+    uncertain = sum(1 for e in entries if e.get("_status") == UNCERTAIN)
+    weaken = sum(1 for e in entries if e.get("_status") == WEAKEN)
+    discard = sum(1 for e in entries if e.get("_status") == DISCARD)
+    
+    return {
+        "total": len(entries),
+        "forgotten_count": forgotten,
+        "forgotten_ratio": forgotten / total,
+        "classification": {
+            KEEP: keep,
+            UNCERTAIN: uncertain,
+            WEAKEN: weaken,
+            DISCARD: discard,
+            FORGOTTEN: forgotten
+        }
+    }
+
+
 # ---------------------------------------------------------------------------
 # Phase 5: Identity Distillation + Flush
 # ---------------------------------------------------------------------------
@@ -682,6 +733,7 @@ def phase5_flush(entries: list, sink_fn, snapshot_path: Path,
                 entry["metadata"]["distilled_lesson"] = residue["distilled_lesson"]
                 entry["metadata"]["repair_rule"] = residue["repair_rule"]
                 entry["metadata"]["source_memory_ref"] = residue["source_memory_ref"]
+                entry["metadata"]["source_memory_ids"] = residue["source_memory_ids"]
                 entry["metadata"]["reconciled"] = True
                 entry["metadata"]["reconciled_at"] = datetime.now().isoformat()
 
@@ -952,6 +1004,13 @@ def main():
         escalation_tension_floor=args.escalation_tension_floor,
     )
 
+    # --- Ethics Gate: Pre-flush check ---
+    metrics = calculate_sleep_metrics(entries)
+    if metrics["forgotten_ratio"] > 0.30:
+        print(f"\n[ETHICS STOP] Forgotten ratio {metrics['forgotten_ratio']:.1%} exceeds 30% threshold.")
+        print("Stopping to prevent catastrophic memory loss before Qdrant write.")
+        sys.exit(1)
+
     sink_fn = None
     if not args.dry_run and not args.skip_qdrant:
         try:
@@ -981,11 +1040,6 @@ def main():
         f"Forgotten: {snapshot.get('forgotten_count', 0)} ({snapshot.get('forgotten_ratio', 0.0):.1%}), "
         f"Failed: {snapshot['entries_failed']}"
     )
-    
-    if snapshot.get("forgotten_ratio", 0.0) > 0.30:
-        print("[ETHICS STOP] Forgotten ratio exceeds 30% threshold. Stopping to prevent catastrophic memory loss.")
-        sys.exit(1)
-        
     return 0
 
 
