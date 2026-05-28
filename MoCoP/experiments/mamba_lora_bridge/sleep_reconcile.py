@@ -663,6 +663,7 @@ def phase5_flush(entries: list, sink_fn, snapshot_path: Path,
     )
 
     written = 0
+    forgotten_written = 0
     failed = 0
 
     if not dry_run and sink_fn is not None:
@@ -690,6 +691,29 @@ def phase5_flush(entries: list, sink_fn, snapshot_path: Path,
             except Exception as exc:
                 failed += 1
                 print(f"  [fail] {exc}")
+                
+        for entry in forgotten:
+            try:
+                # Strip details for FORGOTTEN stub
+                entry["metadata"]["sleep_status"] = FORGOTTEN
+                entry["metadata"]["reconciled"] = True
+                entry["metadata"]["reconciled_at"] = datetime.now().isoformat()
+                
+                # Keep stub, memory_kind, affect. Remove recall_text, autobiographical_frame
+                if "recall_text" in entry["metadata"]:
+                    del entry["metadata"]["recall_text"]
+                if "autobiographical_frame" in entry["metadata"]:
+                    del entry["metadata"]["autobiographical_frame"]
+                    
+                entry["metadata"]["stub"] = "I know we discussed this, but I forgot the details."
+                stub_content = f"Memory kind: {entry['metadata'].get('memory_kind', 'unknown')}. Status: FORGOTTEN. {entry['metadata']['stub']}"
+                
+                point_id = sink_fn(content=stub_content, metadata=entry["metadata"])
+                forgotten_written += 1
+                print(f"  [ok] [FORGOTTEN] -> {point_id} (stub generated)")
+            except Exception as exc:
+                failed += 1
+                print(f"  [fail] {exc}")
     elif dry_run:
         for entry in to_write:
             status = entry["_status"]
@@ -698,20 +722,26 @@ def phase5_flush(entries: list, sink_fn, snapshot_path: Path,
                 f"  [dry-run] [{status}] s={entry['_strength']:.3f} "
                 f"c={entry['_coherence']:.3f} | {preview}..."
             )
+        for entry in forgotten:
+            print(f"  [dry-run] [FORGOTTEN] -> generating stub...")
         written = len(to_write)
+        forgotten_written = len(forgotten)
 
     snapshot = {
         "timestamp": datetime.now().isoformat(),
         "mamba_state_ref": mamba_state_path,
         "entries_processed": len(entries),
-        "entries_written": written,
+        "entries_written": written + forgotten_written,
         "entries_archived": len(to_archive),
         "entries_failed": failed,
+        "forgotten_count": len(forgotten),
+        "forgotten_ratio": len(forgotten) / max(1, len(entries)),
         "classification": {
             KEEP: sum(1 for entry in entries if entry["_status"] == KEEP),
             UNCERTAIN: sum(1 for entry in entries if entry["_status"] == UNCERTAIN),
             WEAKEN: sum(1 for entry in entries if entry["_status"] == WEAKEN),
             DISCARD: sum(1 for entry in entries if entry["_status"] == DISCARD),
+            FORGOTTEN: len(forgotten),
         },
         "open_tension_count": sum(1 for entry in entries if entry.get("_open_tension")),
         "escalated_count": sum(
@@ -948,8 +978,14 @@ def main():
         f"\n[sleep] Reconciliation complete. "
         f"Written: {snapshot['entries_written']}, "
         f"Archived: {snapshot['entries_archived']}, "
+        f"Forgotten: {snapshot.get('forgotten_count', 0)} ({snapshot.get('forgotten_ratio', 0.0):.1%}), "
         f"Failed: {snapshot['entries_failed']}"
     )
+    
+    if snapshot.get("forgotten_ratio", 0.0) > 0.30:
+        print("[ETHICS STOP] Forgotten ratio exceeds 30% threshold. Stopping to prevent catastrophic memory loss.")
+        sys.exit(1)
+        
     return 0
 
 
