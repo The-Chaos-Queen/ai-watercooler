@@ -7,7 +7,12 @@ def test_run_cycle_passes_canonical_sleep_knobs(monkeypatch, tmp_path):
     monkeypatch.setitem(
         sys.modules,
         "numpy",
-        SimpleNamespace(asarray=lambda value, dtype=None: value, ndarray=object, float32="float32"),
+        SimpleNamespace(
+            asarray=lambda value, dtype=None: value,
+            ndarray=object,
+            float32="float32",
+            mean=lambda values: sum(values) / len(values) if values else 0.0,
+        ),
     )
 
     import run_sleep_cycle
@@ -106,6 +111,8 @@ def test_run_cycle_passes_canonical_sleep_knobs(monkeypatch, tmp_path):
         strength_threshold=0.31,
         coherence_threshold=0.13,
         top_k=11,
+        sleep_loops=1,
+        allow_multi_pass=False,
     )
 
     assert run_sleep_cycle.run_cycle(args) == 0

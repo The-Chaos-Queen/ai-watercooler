@@ -24,6 +24,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
+
 
 def run_cycle(args):
     pending_path = Path(args.pending_path)

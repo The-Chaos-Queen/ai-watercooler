@@ -110,7 +110,6 @@ def estimate_relevance(entry: dict, rules: list) -> tuple[bool, int]:
     until the Phase 1c rule engine is built.
     Returns (is_relevant, days_to_extend).
     """
-    content = str(entry.get("content", "")).lower()
     metadata = entry.get("metadata", {}) or {}
     kind = str(metadata.get("memory_kind", "")).lower()
 
@@ -118,9 +117,19 @@ def estimate_relevance(entry: dict, rules: list) -> tuple[bool, int]:
     if kind in {"identity_anchor", "relationship_anchor"}:
         return True, 360
         
-    # Phase 1c placeholder: keyword-based protection
+    # Phase 1c placeholder: keyword-based protection for protected set
+    # Task #123: metadata awareness fix.
+    # Combine content with relevant metadata fields to find protected terms.
     protected_terms = {"alex", "vesper", "pack", "neon purple", "laura"}
-    if any(term in content for term in protected_terms):
+    
+    search_space = [
+        str(entry.get("content", "")),
+        str(metadata.get("event_gist", "")),
+        str(metadata.get("autobiographical_frame", ""))
+    ]
+    search_text = " ".join(search_space).lower()
+    
+    if any(term in search_text for term in protected_terms):
         return True, 90
 
     # Rules load from Phase 1c (future implementation)
