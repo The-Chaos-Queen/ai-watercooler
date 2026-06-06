@@ -29,9 +29,18 @@ EXCLUDE_PATTERNS = [
     r"run_constant_bias\\",
     r"run_bypass_raw\\",
     r"run_64s\\",
+    r"run_7b_reincarnation\\",
     r"step1_",
     r"run_reincarnation\\",
     r"chrome_profile\\",
+    r"LLM\\tmp\\",
+    r"paired_activations\\",
+    r"dfc_results\\",
+    r"trajectory_",
+    r"Preserved-History\\",
+    r"\.playwright-mcp\\",
+    r"graphify-out\\",
+    r"\.codesight\\",
 ]
 
 

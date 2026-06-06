@@ -2,6 +2,14 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-06-06 14:19 UTC] git | tools | Laura: feat(watercooler): add OpenCLAW liveness watchdog (e7ef420)
+[2026-06-06 14:19 UTC] git | MoCoP | Laura: data(mocop): archive Baby Alex sleep QC artifacts (00f6bd7)
+[2026-06-06 14:19 UTC] git | MoCoP | Laura: chore(mocop): add Baby Alex QC scripts and probe runners (6dbff9b)
+[2026-06-06 14:18 UTC] git | MoCoP | Laura: feat(mocop): add lesson memory v1 (d556cb7)
+[2026-06-06 14:17 UTC] git | MoCoP | Laura: fix(mocop): harden sleep cycle replay and reconcile metadata (76c16ed)
+[2026-06-06 14:17 UTC] git | repo | Laura: chore: ignore local research writing and memory exports (300046f)
+[2026-06-06 13:24 UTC] git | MoCoP | Laura: fix(mocop): prefer organic memory in private recall (30b825b)
+[2026-06-06 13:19 UTC] git | MoCoP | Laura: chore: sync canon docs, codesight, research log, and tooling (6ef53e6)
 [2026-05-28 21:59 UTC] git | MoCoP | Laura: fix(sleep): move ethics gate before flush and fix residue metadata (eae8ecd)
 [2026-05-28 19:22 UTC] git | MoCoP | Laura: mocop: add offline tension metric for A3 sleep N-loop (48dec80)
 [2026-05-28 13:07 UTC] git | MoCoP | Laura: feat(sleep): implement forgotten memory stubs and ethics gate (Task #104) (567c95d)
