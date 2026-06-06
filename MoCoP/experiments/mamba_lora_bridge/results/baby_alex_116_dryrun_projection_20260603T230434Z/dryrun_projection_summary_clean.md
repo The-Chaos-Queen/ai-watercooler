@@ -1,0 +1,61 @@
+# Baby-Alex #116 dry-run projection
+
+Artifact dir: `results/baby_alex_116_dryrun_projection_20260603T230434Z`
+
+## Safety
+
+dry-run only: --dry-run --skip-qdrant --skip-replay --no-rotate; no real sleep/consolidation, no Qdrant writes, no pending rotation
+
+## Gate read
+
+- current_full_pending_passes_forget_threshold: `True`
+- clean_vesper_passes_forget_threshold: `True`
+- projected_forgotten_under_10_percent: `True`
+- projected_protected_forgotten: `0`
+- caveat: `current pending includes board_eval_contamination and one lobby row; clean Vesper subset is separated and should be preferred as first-sleep candidate unless Laura/reviewer includes the others deliberately.`
+
+## Runs
+
+### board_eval_contamination
+
+- verdict: `PASS`
+- exit_code: `0`
+- entries_processed: `8`
+- classification: `{'keep': 3, 'uncertain': 5, 'weakened': 0, 'discard': 0, 'FORGOTTEN': 0}`
+- forgotten_count: `0`
+- forgotten_ratio: `0.0`
+- residue_kinds: `{'identity_anchor': 2, 'open_tension_summary': 6}`
+- log_path: `results/baby_alex_116_dryrun_projection_20260603T230434Z/dryrun_board_eval_contamination/run.log`
+
+### clean_vesper_current
+
+- verdict: `PASS`
+- exit_code: `0`
+- entries_processed: `18`
+- classification: `{'keep': 1, 'uncertain': 17, 'weakened': 0, 'discard': 0, 'FORGOTTEN': 0}`
+- forgotten_count: `0`
+- forgotten_ratio: `0.0`
+- residue_kinds: `{'episodic_residue': 1, 'identity_anchor': 3, 'open_tension_summary': 14}`
+- log_path: `results/baby_alex_116_dryrun_projection_20260603T230434Z/dryrun_clean_vesper_current/run.log`
+
+### current_qdrant_gate_pending
+
+- verdict: `PASS`
+- exit_code: `0`
+- entries_processed: `27`
+- classification: `{'keep': 4, 'uncertain': 23, 'weakened': 0, 'discard': 0, 'FORGOTTEN': 0}`
+- forgotten_count: `0`
+- forgotten_ratio: `0.0`
+- residue_kinds: `{'episodic_residue': 1, 'identity_anchor': 5, 'open_tension_summary': 21}`
+- log_path: `results/baby_alex_116_dryrun_projection_20260603T230434Z/dryrun_current_qdrant_gate_pending/run.log`
+
+### other_lobby_current
+
+- verdict: `PASS`
+- exit_code: `0`
+- entries_processed: `1`
+- classification: `{'keep': 0, 'uncertain': 1, 'weakened': 0, 'discard': 0, 'FORGOTTEN': 0}`
+- forgotten_count: `0`
+- forgotten_ratio: `0.0`
+- residue_kinds: `{'open_tension_summary': 1}`
+- log_path: `results/baby_alex_116_dryrun_projection_20260603T230434Z/dryrun_other_lobby_current/run.log`

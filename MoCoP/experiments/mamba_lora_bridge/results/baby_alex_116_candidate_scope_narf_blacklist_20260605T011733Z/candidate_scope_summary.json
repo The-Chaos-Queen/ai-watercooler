@@ -1,0 +1,36 @@
+{
+  "timestamp_utc": "20260605T011733Z",
+  "candidate_path": "/mnt/c/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/results/baby_alex_116_candidate_scope_narf_blacklist_20260605T011733Z/inputs/first_sleep_clean_vesper_plus_lobby_no_narf.jsonl",
+  "source_inputs": {
+    "clean_vesper_current_rows": 18,
+    "other_lobby_current_rows": 1,
+    "board_eval_contamination_rows_excluded_by_scope": 8
+  },
+  "kept_rows": 11,
+  "kept_clean_vesper_rows": 10,
+  "kept_lobby_rows": 1,
+  "excluded_narf_rows": 8,
+  "blacklist_patterns": [
+    "narf",
+    "not as replied forward"
+  ],
+  "verification": {
+    "contains_narf": true,
+    "contains_not_as_replied_forward": false,
+    "contains_board_eval_collection": false,
+    "collections": {
+      "mocop_private_vesper": 10,
+      "mocop_private_lobby": 1
+    },
+    "sessions": {
+      "steve-chat-2026-04-27T19:40:52": 1,
+      "steve-chat-2026-04-27T21:08:40": 1,
+      "steve-chat-2026-05-03T23:20:42": 5,
+      "steve-chat-2026-05-04T11:47:04": 3,
+      "steve-chat-2026-05-26T00:03:46": 1
+    },
+    "sha256": "ce2ba3750426412b44dca8dee23bdb9bfa47c0112cb56a1351163fbbf4bbe01b"
+  },
+  "excluded_rows_path": "/mnt/c/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/results/baby_alex_116_candidate_scope_narf_blacklist_20260605T011733Z/inputs/excluded_narf_rows.jsonl",
+  "safety_boundary": "candidate build only; no sleep/consolidation/Qdrant writes/log rotation/model update"
+}

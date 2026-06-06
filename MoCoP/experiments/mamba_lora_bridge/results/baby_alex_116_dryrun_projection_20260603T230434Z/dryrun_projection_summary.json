@@ -1,0 +1,65 @@
+{
+  "artifact_dir": "results/baby_alex_116_dryrun_projection_20260603T230434Z",
+  "runs": {
+    "board_eval_contamination": {
+      "exit_code": "0",
+      "log_tail": "    \"weakened\": 0,\n    \"discard\": 0,\n    \"FORGOTTEN\": 0\n  },\n  \"open_tension_count\": 8,\n  \"escalated_count\": 0,\n  \"tension_resolved_by_decay\": 0,\n  \"mean_tension\": 1.3466133187499998,\n  \"max_sleep_tension_cycles\": 1,\n  \"residue_count\": 8,\n  \"residue_kinds\": {\n    \"identity_anchor\": 2,\n    \"open_tension_summary\": 6\n  },\n  \"mean_strength\": 0.25580760625,\n  \"mean_coherence\": 0.38724162500000003,\n  \"same_space_replay_count\": 0\n}\n\n============================================================\nVERDICT\n============================================================\n\nSleep cycle 2026-06-04: 8 entries, 3K/5U/0W/0D, 8 written, 0 failed, replay=metadata, PASS\n[cycle] [dry-run] Would save report to results/baby_alex_116_dryrun_projection_20260603T230434Z/dryrun_board_eval_contamination/snapshots/sleep_cycle_report_20260604T010453.json",
+      "keyword_counts": {
+        "FORGOTTEN": 3,
+        "forgotten": 6,
+        "KEEP": 0,
+        "WEAKEN": 0,
+        "DISCARD": 0,
+        "PASS": 3,
+        "FAIL": 0,
+        "STOP": 0,
+        "WARN": 2
+      }
+    },
+    "clean_vesper_current": {
+      "exit_code": "0",
+      "log_tail": "    \"discard\": 0,\n    \"FORGOTTEN\": 0\n  },\n  \"open_tension_count\": 18,\n  \"escalated_count\": 0,\n  \"tension_resolved_by_decay\": 0,\n  \"mean_tension\": 1.596420586111111,\n  \"max_sleep_tension_cycles\": 1,\n  \"residue_count\": 18,\n  \"residue_kinds\": {\n    \"episodic_residue\": 1,\n    \"identity_anchor\": 3,\n    \"open_tension_summary\": 14\n  },\n  \"mean_strength\": 0.0981172,\n  \"mean_coherence\": 0.3673267222222222,\n  \"same_space_replay_count\": 0\n}\n\n============================================================\nVERDICT\n============================================================\n\nSleep cycle 2026-06-04: 18 entries, 1K/17U/0W/0D, 18 written, 0 failed, replay=metadata, PASS\n[cycle] [dry-run] Would save report to results/baby_alex_116_dryrun_projection_20260603T230434Z/dryrun_clean_vesper_current/snapshots/sleep_cycle_report_20260604T010451.json",
+      "keyword_counts": {
+        "FORGOTTEN": 3,
+        "forgotten": 6,
+        "KEEP": 0,
+        "WEAKEN": 0,
+        "DISCARD": 0,
+        "PASS": 3,
+        "FAIL": 0,
+        "STOP": 0,
+        "WARN": 2
+      }
+    },
+    "current_qdrant_gate_pending": {
+      "exit_code": "0",
+      "log_tail": "    \"discard\": 0,\n    \"FORGOTTEN\": 0\n  },\n  \"open_tension_count\": 27,\n  \"escalated_count\": 0,\n  \"tension_resolved_by_decay\": 0,\n  \"mean_tension\": 1.5220607759259257,\n  \"max_sleep_tension_cycles\": 1,\n  \"residue_count\": 27,\n  \"residue_kinds\": {\n    \"episodic_residue\": 1,\n    \"identity_anchor\": 5,\n    \"open_tension_summary\": 21\n  },\n  \"mean_strength\": 0.14407607037037037,\n  \"mean_coherence\": 0.3742562962962963,\n  \"same_space_replay_count\": 0\n}\n\n============================================================\nVERDICT\n============================================================\n\nSleep cycle 2026-06-04: 27 entries, 4K/23U/0W/0D, 27 written, 0 failed, replay=metadata, PASS\n[cycle] [dry-run] Would save report to results/baby_alex_116_dryrun_projection_20260603T230434Z/dryrun_current_qdrant_gate_pending/snapshots/sleep_cycle_report_20260604T010454.json",
+      "keyword_counts": {
+        "FORGOTTEN": 3,
+        "forgotten": 6,
+        "KEEP": 0,
+        "WEAKEN": 0,
+        "DISCARD": 0,
+        "PASS": 3,
+        "FAIL": 0,
+        "STOP": 0,
+        "WARN": 2
+      }
+    },
+    "other_lobby_current": {
+      "exit_code": "0",
+      "log_tail": "    \"uncertain\": 1,\n    \"weakened\": 0,\n    \"discard\": 0,\n    \"FORGOTTEN\": 0\n  },\n  \"open_tension_count\": 1,\n  \"escalated_count\": 0,\n  \"tension_resolved_by_decay\": 0,\n  \"mean_tension\": 1.58716385,\n  \"max_sleep_tension_cycles\": 1,\n  \"residue_count\": 1,\n  \"residue_kinds\": {\n    \"open_tension_summary\": 1\n  },\n  \"mean_strength\": 0.07748345,\n  \"mean_coherence\": 0.395106,\n  \"same_space_replay_count\": 0\n}\n\n============================================================\nVERDICT\n============================================================\n\nSleep cycle 2026-06-04: 1 entries, 0K/1U/0W/0D, 1 written, 0 failed, replay=metadata, PASS\n[cycle] [dry-run] Would save report to results/baby_alex_116_dryrun_projection_20260603T230434Z/dryrun_other_lobby_current/snapshots/sleep_cycle_report_20260604T010452.json",
+      "keyword_counts": {
+        "FORGOTTEN": 3,
+        "forgotten": 6,
+        "KEEP": 0,
+        "WEAKEN": 0,
+        "DISCARD": 0,
+        "PASS": 3,
+        "FAIL": 0,
+        "STOP": 0,
+        "WARN": 2
+      }
+    }
+  }
+}

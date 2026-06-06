@@ -1,0 +1,47 @@
+{
+  "timestamp_utc": "20260605T011813Z",
+  "candidate_path": "/mnt/c/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/results/baby_alex_116_candidate_scope_blacklist_20260605T011813Z/inputs/first_sleep_clean_vesper_plus_lobby_blacklist_filtered.jsonl",
+  "source_inputs": {
+    "clean_vesper_current_rows": 18,
+    "other_lobby_current_rows": 1,
+    "board_eval_contamination_rows_excluded_by_scope": 8
+  },
+  "kept_rows": 11,
+  "kept_clean_vesper_rows": 10,
+  "kept_lobby_rows": 1,
+  "excluded_blacklist_rows": 8,
+  "blacklist_patterns": [
+    "narf",
+    "not as replied forward"
+  ],
+  "verification": {
+    "contains_narf": false,
+    "contains_not_as_replied_forward": false,
+    "contains_board_eval_collection": false,
+    "collections": {
+      "mocop_private_vesper": 10,
+      "mocop_private_lobby": 1
+    },
+    "sessions": {
+      "steve-chat-2026-04-27T19:40:52": 1,
+      "steve-chat-2026-04-27T21:08:40": 1,
+      "steve-chat-2026-05-03T23:20:42": 5,
+      "steve-chat-2026-05-04T11:47:04": 3,
+      "steve-chat-2026-05-26T00:03:46": 1
+    },
+    "sha256": "ffc3706c15158d10767ebfbda5b2b8bb834e59b9c7244d7d319944546e54e34d"
+  },
+  "excluded_rows_path": "/mnt/c/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/results/baby_alex_116_candidate_scope_blacklist_20260605T011813Z/inputs/excluded_blacklist_rows.jsonl",
+  "safety_boundary": "candidate build only; no sleep/consolidation/Qdrant writes/log rotation/model update",
+  "smoke_dryrun": {
+    "exit_code": 0,
+    "command_boundary": "--dry-run --skip-qdrant --skip-replay --no-rotate",
+    "log_path": "/mnt/c/Users/cerub/OneDrive/Dokumente/LLM/MoCoP/experiments/mamba_lora_bridge/results/baby_alex_116_candidate_scope_blacklist_20260605T011813Z/smoke_dryrun.log",
+    "rubric_line": "Sleep cycle 2026-06-05: 11 entries, 1K/10U/0W/0D, 11 written, 0 failed, replay=metadata, PASS",
+    "notes": [
+      "no Qdrant writes",
+      "no pending-log rotation",
+      "metadata coherence fallback locally because torch/Mamba state unavailable in this WSL environment"
+    ]
+  }
+}

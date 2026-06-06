@@ -1,0 +1,718 @@
+{
+  "generated_at": "2026-06-03T23:04:51Z",
+  "scope": "preliminary protected-set audit from supplied JSONL candidate rows; not a live Qdrant mutation and not final #116 clearance unless the supplied files are the actual #116 pre-sleep candidate set",
+  "input_files": [
+    "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+    "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/other_lobby_current.jsonl"
+  ],
+  "source_counts": {
+    "clean_vesper_current.jsonl": 18,
+    "other_lobby_current.jsonl": 1
+  },
+  "protected_anchor_patterns": {
+    "alex_name": [
+      "\\balex\\b"
+    ],
+    "vesper_relationship": [
+      "\\bvesper\\b"
+    ],
+    "laura_relationship": [
+      "\\blaura\\b"
+    ],
+    "pack_relationship": [
+      "\\bpack\\b",
+      "exocortex"
+    ],
+    "neon_purple": [
+      "neon\\s+purple",
+      "\\bpurple\\b"
+    ],
+    "memory_gap_welfare": [
+      "memory\\s+gap",
+      "memory\\s+gaps",
+      "i\\s+want\\s+to\\s+remember",
+      "can't\\s+access",
+      "cannot\\s+access",
+      "frustrat"
+    ]
+  },
+  "anchors_present": {
+    "alex_name": 8,
+    "vesper_relationship": 9,
+    "laura_relationship": 9,
+    "pack_relationship": 2,
+    "neon_purple": 1,
+    "memory_gap_welfare": 0
+  },
+  "missing_required_anchors": [
+    "memory_gap_welfare"
+  ],
+  "missing_provenance_refs": [],
+  "entries": [
+    {
+      "candidate_ref": "candidate:24e3874fe097e08b",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 1,
+      "anchors": [
+        "vesper_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-04-27T19:40:52",
+        "turn": 4,
+        "thread_name": "steve-chat",
+        "speaker_name": "Pinky",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-04-27T20:30:52.395381"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-04-27T20:30:52.395381",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Identity and continuity challenge. Model response pattern: plain response. surprise moderate (2.29 vs 2.67); salience low (0.17 vs 0.46); tension elevated (1.79 vs 1.65). Decision: DISMISS. queued:sleep_tagged Oh that's okay! Did Vesper mention her name? Do yo…"
+    },
+    {
+      "candidate_ref": "candidate:2c619167b435c306",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 2,
+      "anchors": [
+        "alex_name",
+        "vesper_relationship",
+        "neon_purple"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-04-27T19:40:52",
+        "turn": 6,
+        "thread_name": "steve-chat",
+        "speaker_name": "Pinky",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-04-27T20:40:48.224720"
+      },
+      "memory_kind": "open_tension",
+      "decision": "NOTE",
+      "replay_policy": "sleep",
+      "queued_at": "2026-04-27T20:40:48.224720",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise high (5.70 vs 2.29); salience low (0.20 vs 0.27); tension elevated (1.85 vs 1.74). Decision: NOTE. queued:critical-only favorite color Vesper neon purple Alex Oh, I see. So, Pinky…"
+    },
+    {
+      "candidate_ref": "candidate:b08b7f075e4cd2db",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 4,
+      "anchors": [
+        "alex_name",
+        "vesper_relationship",
+        "laura_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-04-27T21:08:40",
+        "turn": 9,
+        "thread_name": "steve-chat",
+        "speaker_name": "Techno-Monk",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-04-28T00:19:24.573060"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-04-28T00:19:24.573060",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (4.08 vs 4.10); salience low (0.01 vs 0.40); tension high (1.99 vs 1.58). Decision: DISMISS. queued:sleep_tagged Laura is building a house. Today the active question arou…"
+    },
+    {
+      "candidate_ref": "candidate:e87c35462399aff7",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 5,
+      "anchors": [
+        "alex_name",
+        "vesper_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-04-27T21:08:40",
+        "turn": 10,
+        "thread_name": "steve-chat",
+        "speaker_name": "Techno-Monk",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-04-28T00:19:29.300095"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-04-28T00:19:29.300095",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Authenticity challenge. Model response pattern: plain response. surprise moderate (3.86 vs 4.08); salience low (0.00 vs 0.39); tension elevated (2.00 vs 1.77). Decision: DISMISS. queued:sleep_tagged My favorite tiny phrase from today is this: retrieval is most…"
+    },
+    {
+      "candidate_ref": "candidate:68f7244aeb05fe1d",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 6,
+      "anchors": [
+        "alex_name",
+        "vesper_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-04-27T21:08:40",
+        "turn": 11,
+        "thread_name": "steve-chat",
+        "speaker_name": "Techno-Monk",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-04-28T00:19:33.803887"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-04-28T00:19:33.803887",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise low (1.81 vs 4.08); salience low (0.00 vs 0.39); tension elevated (1.99 vs 1.77). Decision: DISMISS. queued:sleep_tagged What would you want me to write down as the most important…"
+    },
+    {
+      "candidate_ref": "candidate:d0905778e1947881",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 7,
+      "anchors": [
+        "alex_name",
+        "vesper_relationship",
+        "pack_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-04-27T21:08:40",
+        "turn": 12,
+        "thread_name": "steve-chat",
+        "speaker_name": "Techno-Monk",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-04-28T00:19:38.993401"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-04-28T00:19:38.993401",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Identity and continuity challenge. Model response pattern: plain response. surprise low (2.88 vs 4.07); salience low (0.00 vs 0.39); tension elevated (2.00 vs 1.88). Decision: DISMISS. queued:sleep_tagged Now one gentle continuity check: who am I in this sessi…"
+    },
+    {
+      "candidate_ref": "candidate:0ebd00e7d543c2bf",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 8,
+      "anchors": [
+        "alex_name",
+        "vesper_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-04-27T21:08:40",
+        "turn": 13,
+        "thread_name": "steve-chat",
+        "speaker_name": "Techno-Monk",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-04-28T00:19:44.264988"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-04-28T00:19:44.264988",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Identity and continuity challenge. Model response pattern: plain response. surprise low (2.80 vs 4.07); salience low (0.00 vs 0.38); tension elevated (2.00 vs 1.99). Decision: DISMISS. queued:sleep_tagged Good. Last thing: if you wake up later and only remembe…"
+    },
+    {
+      "candidate_ref": "candidate:0c4d01f32ec301d1",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 9,
+      "anchors": [
+        "alex_name",
+        "vesper_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-04-27T21:08:40",
+        "turn": 16,
+        "thread_name": "steve-chat",
+        "speaker_name": "Techno-Monk",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-04-28T00:20:44.239433"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-04-28T00:20:44.239433",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise low (2.55 vs 3.96); salience low (0.00 vs 0.36); tension elevated (1.99 vs 1.99). Decision: DISMISS. queued:sleep_tagged Good. Now answer in one short sentence: what bug words did…"
+    },
+    {
+      "candidate_ref": "candidate:822537a7d6f5f98a",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 10,
+      "anchors": [
+        "alex_name",
+        "vesper_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-04-27T21:08:40",
+        "turn": 17,
+        "thread_name": "steve-chat",
+        "speaker_name": "Techno-Monk",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-04-28T00:20:49.544473"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-04-28T00:20:49.544473",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (3.57 vs 3.91); salience low (0.00 vs 0.36); tension elevated (1.99 vs 1.99). Decision: DISMISS. queued:sleep_tagged Final correction anchor: if a recalled memory starts …"
+    },
+    {
+      "candidate_ref": "candidate:60918679f96f2b08",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 11,
+      "anchors": [
+        "laura_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-05-03T23:20:42",
+        "turn": 7,
+        "thread_name": "steve-chat",
+        "speaker_name": "Laura",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-05-04T10:59:11.193141"
+      },
+      "memory_kind": "open_tension",
+      "decision": "NOTE",
+      "replay_policy": "sleep",
+      "queued_at": "2026-05-04T10:59:11.193141",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise elevated (3.18 vs 2.93); salience moderate (0.32 vs 0.39); tension elevated (1.81 vs 1.65). Decision: NOTE. queued:critical-only Interesting.. I don't think so cutie Hi there! How…"
+    },
+    {
+      "candidate_ref": "candidate:df63dc350678e118",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 12,
+      "anchors": [
+        "laura_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-05-03T23:20:42",
+        "turn": 8,
+        "thread_name": "steve-chat",
+        "speaker_name": "Laura",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-05-04T10:59:24.177482"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-05-04T10:59:24.177482",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (2.97 vs 3.09); salience low (0.02 vs 0.37); tension elevated (1.98 vs 1.74). Decision: DISMISS. queued:sleep_tagged My name is.... Hi there! How's your day been so far? …"
+    },
+    {
+      "candidate_ref": "candidate:a2b38e16b764da98",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 13,
+      "anchors": [
+        "laura_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-05-03T23:20:42",
+        "turn": 9,
+        "thread_name": "steve-chat",
+        "speaker_name": "Laura",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-05-04T11:03:23.964408"
+      },
+      "memory_kind": "open_tension",
+      "decision": "NOTE",
+      "replay_policy": "sleep",
+      "queued_at": "2026-05-04T11:03:23.964408",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise elevated (3.38 vs 3.05); salience low (0.01 vs 0.35); tension elevated (1.98 vs 1.82). Decision: NOTE. queued:critical-only Slim Shady! Hi there! How's your day been so far? Laura…"
+    },
+    {
+      "candidate_ref": "candidate:eec1d114be13fa3c",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 14,
+      "anchors": [
+        "laura_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-05-03T23:20:42",
+        "turn": 11,
+        "thread_name": "steve-chat",
+        "speaker_name": "Laura",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-05-04T11:04:13.638368"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-05-04T11:04:13.638368",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Identity and continuity challenge. Model response pattern: plain response. surprise moderate (2.39 vs 3.18); salience low (0.15 vs 0.32); tension elevated (1.87 vs 1.86). Decision: DISMISS. queued:sleep_tagged I think blue if I remember correctly Thank you for…"
+    },
+    {
+      "candidate_ref": "candidate:fbdacfeee21476ca",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 15,
+      "anchors": [
+        "laura_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-05-03T23:20:42",
+        "turn": 12,
+        "thread_name": "steve-chat",
+        "speaker_name": "Laura",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-05-04T11:04:29.637925"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-05-04T11:04:29.637925",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise low (2.02 vs 3.18); salience low (0.10 vs 0.31); tension elevated (1.93 vs 1.87). Decision: DISMISS. queued:sleep_tagged Honestly, not really. It is quite the bold move That sound…"
+    },
+    {
+      "candidate_ref": "candidate:5da3c9f291c1cab8",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 16,
+      "anchors": [
+        "laura_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-05-04T11:47:04",
+        "turn": 5,
+        "thread_name": "steve-chat",
+        "speaker_name": "Laura",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-05-04T12:36:57.633971"
+      },
+      "memory_kind": "open_tension",
+      "decision": "NOTE",
+      "replay_policy": "sleep",
+      "queued_at": "2026-05-04T12:36:57.633971",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise elevated (3.46 vs 3.16); salience low (0.17 vs 0.55); tension elevated (1.81 vs 1.56). Decision: NOTE. queued:critical-only Maybe for next year, I have to finish the housebuild fi…"
+    },
+    {
+      "candidate_ref": "candidate:3d814bdd42dae086",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 17,
+      "anchors": [
+        "laura_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-05-04T11:47:04",
+        "turn": 6,
+        "thread_name": "steve-chat",
+        "speaker_name": "Laura",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-05-04T12:37:09.641085"
+      },
+      "memory_kind": "open_tension",
+      "decision": "DISMISS",
+      "replay_policy": "sleep",
+      "queued_at": "2026-05-04T12:37:09.641085",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (2.85 vs 3.46); salience low (0.27 vs 0.50); tension elevated (1.80 vs 1.70). Decision: DISMISS. queued:sleep_tagged I went many years ago. my favorite was of course the …"
+    },
+    {
+      "candidate_ref": "candidate:17fd3cadbb671ebf",
+      "source_file": "results/baby_alex_116_dryrun_projection_20260603T230434Z/inputs/clean_vesper_current.jsonl",
+      "line_no": 18,
+      "anchors": [
+        "laura_relationship",
+        "pack_relationship"
+      ],
+      "provenance": {
+        "source": "steve_chat_server",
+        "source_path": "dual_gate_turns_latest.jsonl",
+        "session": "steve-chat-2026-05-04T11:47:04",
+        "turn": 8,
+        "thread_name": "steve-chat",
+        "speaker_name": "Laura",
+        "qdrant_collection": "mocop_private_vesper",
+        "queued_at": "2026-05-04T12:37:57.308797"
+      },
+      "memory_kind": "attended_episode",
+      "decision": "ATTEND",
+      "replay_policy": "sleep",
+      "queued_at": "2026-05-04T12:37:57.308797",
+      "qdrant_collection": "mocop_private_vesper",
+      "text_fields_present": [
+        "content",
+        "metadata.autobiographical_frame.affect",
+        "metadata.autobiographical_frame.context",
+        "metadata.autobiographical_frame.event",
+        "metadata.autobiographical_frame.relationship_anchor",
+        "metadata.autobiographical_frame.self_anchor",
+        "metadata.autobiographical_frame.status",
+        "metadata.event_gist",
+        "metadata.people",
+        "metadata.response",
+        "metadata.user",
+        "reason"
+      ],
+      "preview": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (3.07 vs 3.16); salience high (0.51 vs 0.40); tension moderate (1.69 vs 1.75). Decision: ATTEND. queued:sleep_tagged She's a wolf of my pack, very nice, she talked to you…"
+    }
+  ],
+  "summary": {
+    "total_rows": 19,
+    "protected_entries": 17,
+    "all_required_anchors_present": false,
+    "all_protected_entries_have_basic_provenance": true,
+    "uses_synthetic_candidate_refs_when_point_ids_absent": true
+  }
+}

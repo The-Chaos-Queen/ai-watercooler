@@ -1,0 +1,32 @@
+{
+  "clean_vesper_current": {
+    "rows": 18,
+    "collections": {
+      "mocop_private_vesper": 18
+    },
+    "sessions": {
+      "steve-chat-2026-04-27T19:40:52": 2,
+      "steve-chat-2026-04-27T21:08:40": 8,
+      "steve-chat-2026-05-03T23:20:42": 5,
+      "steve-chat-2026-05-04T11:47:04": 3
+    }
+  },
+  "board_eval_contamination": {
+    "rows": 8,
+    "collections": {
+      "mocop_private_board-91-92-20260602t064637z": 8
+    },
+    "sessions": {
+      "steve-chat-2026-05-28T14:40:24": 8
+    }
+  },
+  "other_lobby_current": {
+    "rows": 1,
+    "collections": {
+      "mocop_private_lobby": 1
+    },
+    "sessions": {
+      "steve-chat-2026-05-26T00:03:46": 1
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "generated_at": "2026-06-03T20:47:41Z",
+  "scope": "read-only runtime/status/cmdline preflight; no chat turns, no sleep, no Qdrant mutation",
+  "base_url": "http://192.168.2.196:7860",
+  "session_id": "baby-alex-116-20260603",
+  "instance_id": "baby-alex-116-20260603",
+  "status_subset": {
+    "running": true,
+    "busy": false,
+    "last_error": "",
+    "model_id": "Qwen/Qwen2.5-1.5B",
+    "session_id": "baby-alex-116-20260603",
+    "instance_id": "baby-alex-116-20260603",
+    "user_label": "Techno-Monk",
+    "model_label": "Alex",
+    "no_shared_memory": true,
+    "qdrant_collection": "mocop_private_baby-alex-116-20260603",
+    "qdrant_write_mode": "critical-only",
+    "qdrant_pending_count": 27,
+    "qdrant_sleep_pending_count": 27,
+    "qdrant_retry_pending_count": 0,
+    "qdrant_replayed_count": 0,
+    "formation_log_count": 14,
+    "formation_queued_count": 8,
+    "formation_written_count": 1,
+    "live_accumulation_enabled": true,
+    "live_accumulation_updates": 0,
+    "memory_integration_mode": null,
+    "recall_request_count": 0,
+    "recall_hit_count": 0,
+    "last_recall": {},
+    "alpha": 0.2,
+    "temperature": 0.2
+  },
+  "cmdline": {
+    "raw": "bash -c cd ~/mocop/mamba_lora_bridge && LOG=logs/mlws_chat_15b_state_memory.log && nohup /home/isabell/miniforge3/bin/mamba run -n torch311 python chat_server.py --model Qwen/Qwen2.5-1.5B --bridge-path cheese_reincarnation_bridge_1.5b_codexfix.pt --episodes-file CHEESE_SHAPING_EPISODES.md --episode-index 2 --instance-id lobby --no-shared-memory --qdrant-host 192.168.2.191 --qdrant-port 6333 --no-ambient-recall --memory-integration-mode both --memory-state-max-tokens 768 --live-accumulation --qwen-device cuda:0 --mamba-device cuda:0 --user-label User --model-label Alex --alpha 0.2 --temperature 0.2 --max-new-tokens 120 --host 0.0.0.0 --port 7860 >> \"$LOG\" 2>&1 < /dev/null & echo $!",
+    "has_no_ambient_recall": true,
+    "has_cluster_recall": false,
+    "has_live_accumulation": true,
+    "has_no_shared_memory": true,
+    "memory_integration_mode": "both",
+    "qdrant_host": "192.168.2.191",
+    "qdrant_port": "6333",
+    "port": "7860"
+  },
+  "cmdline_probe": {
+    "command": [
+      "bash",
+      "-lc",
+      "tr '\\0' ' ' < /proc/$(pgrep -f 'chat_server.py .*--port 7860' | head -1)/cmdline"
+    ],
+    "returncode": 0,
+    "stdout": "bash -c cd ~/mocop/mamba_lora_bridge && LOG=logs/mlws_chat_15b_state_memory.log && nohup /home/isabell/miniforge3/bin/mamba run -n torch311 python chat_server.py --model Qwen/Qwen2.5-1.5B --bridge-path cheese_reincarnation_bridge_1.5b_codexfix.pt --episodes-file CHEESE_SHAPING_EPISODES.md --episode-index 2 --instance-id lobby --no-shared-memory --qdrant-host 192.168.2.191 --qdrant-port 6333 --no-ambient-recall --memory-integration-mode both --memory-state-max-tokens 768 --live-accumulation --qwen-device cuda:0 --mamba-device cuda:0 --user-label User --model-label Alex --alpha 0.2 --temperature 0.2 --max-new-tokens 120 --host 0.0.0.0 --port 7860 >> \"$LOG\" 2>&1 < /dev/null & echo $! ",
+    "stderr": ""
+  },
+  "code_evidence": [
+    {
+      "file": "chat_server.py",
+      "lines": "5081-5105",
+      "claim": "chat body defaults allow_auto_recall=True, but ambient recall only auto-starts if ARGS.ambient_recall and not transient; explicit identity/memory probes can also auto-recall unless clients pass allow_auto_recall=false."
+    },
+    {
+      "file": "chat_server.py",
+      "lines": "5135-5143 and 5167-5178",
+      "claim": "cluster recall is only attempted after private recall returns memories and ARGS.cluster_recall is true; failed cluster recall falls back to flat anchors only."
+    },
+    {
+      "file": "chat_server.py",
+      "lines": "5515-5537",
+      "claim": "ambient recall defaults true unless launched with --no-ambient-recall; cluster recall defaults false unless launched with --cluster-recall."
+    }
+  ],
+  "verdict": {
+    "verdict": "PASS",
+    "conditions": {
+      "private_session": true,
+      "server_launched_no_ambient_recall": true,
+      "server_not_launched_cluster_recall": true,
+      "status_recall_counters_zero_for_preflight_session": true,
+      "memory_mode_recorded": true
+    }
+  }
+}

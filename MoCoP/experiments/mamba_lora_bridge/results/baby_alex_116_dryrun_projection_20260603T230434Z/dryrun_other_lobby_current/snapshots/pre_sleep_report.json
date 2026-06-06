@@ -1,0 +1,16 @@
+{
+  "verdict": "PROCEED",
+  "diversity_pre": 0.0,
+  "diversity_post": 0.0,
+  "diversity_ratio": 1.0,
+  "recovery_score": 1.0,
+  "snapshot_version": "disposition_snapshot_20260604T010452.json",
+  "conditions": [
+    "Pre-sleep snapshot versioned (not overwritten)",
+    "Pre-sleep diversity baseline: 0.0000",
+    "Disposition state norm: 3.9251",
+    "Decay factor 0.85 is provisional (per step_gates.md)"
+  ],
+  "timestamp": "2026-06-04T01:04:52.849559",
+  "phase": "pre"
+}

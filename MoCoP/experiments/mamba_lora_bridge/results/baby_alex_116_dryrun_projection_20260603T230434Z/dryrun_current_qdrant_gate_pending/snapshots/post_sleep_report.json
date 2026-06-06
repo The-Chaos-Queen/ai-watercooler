@@ -1,0 +1,16 @@
+{
+  "verdict": "PASS",
+  "diversity_pre": 0.019328134659184742,
+  "diversity_post": 0.019328134659184742,
+  "diversity_ratio": 1.0,
+  "recovery_score": 1.0,
+  "snapshot_version": "disposition_snapshot_20260604T010454.json",
+  "conditions": [
+    "Diversity maintained or improved (100.00%)",
+    "[WARN] No same-space Mamba replay was performed. Coherence scores are metadata-only (lower confidence). Consider running with --replay-model-id for higher-confidence classification.",
+    "[WARN] Mean tension across all memories is high (1.522). System may be under sustained stress.",
+    "Post-sleep disposition norm: 3.9251"
+  ],
+  "timestamp": "2026-06-04T01:04:54.539864",
+  "phase": "post"
+}
