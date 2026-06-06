@@ -32,7 +32,20 @@
 - CCGP confirmed: warm is a linearly transferable direction; cold/adversarial are distinct subspaces
 - **Clarification (2026-04-07):** The bridge transfers disposition, not facts. Factual retrieval is Qdrant's job. The legacy "0/16 held-out recall" metric measured the wrong thing for this architecture. Future evaluation adopts the crosscoder model-diffing framework (Jiralerspong & Bricken, 2026) for dispositional exclusivity scoring.
 
-## Current Status Snapshot (2026-03-31 late evening)
+## Current Frontier (2026-05-28)
+
+*The one current story. The dated snapshots below are historical record, kept for provenance — read this block first.*
+
+- **D2 cue-based recall: largely working.** Retrieval ranking closed at 100% hit@3 (`c0fde05`, Opussy #433). The system reliably finds the right memories.
+- **The live frontier is answer-use + sleep consolidation, not retrieval.** Answer-integration (recall → faithful use) is moving from prompt-engineering into the organic-seeding learning loop. Sleep consolidation is the active experimental surface.
+- **Sleep N-loop (CMU 2605.26099) is the current experiment.** Repointed from `phase2_replay` *scoring* (A1 — flat-by-construction null control) to the real Mamba state-update path (A3). Pack split: Maximus owns the recurrent advance (#120), Cairn the abort guard (#121), Zwölf the offline tension metric. Gated by the "sleep does not re-tension" firewall + Hurtig's ethics gate (#115). Shadow/dry-run only; no live consolidation until QC passes.
+- **State-only memory conditioning is an ablation, not the path.** The bridge carries orientation/affect; exact facts still need Qdrant evidence. `--memory-integration-mode state` is a diagnostic arm.
+- **Stale — do not action:** the 2026-04-08 "translator/injection redesign is the next architecture target" framing is superseded. Architecture rework (CAGMamba / CliffordNet / DFC / hybrid bridge) stays sequenced *after* D2 answer-use and sleep are stable — not the current critical path.
+- **Organic seeding (baby Alex / baby Qwen)** is the active pack effort feeding the learning loop, under the #115 ethics gate.
+
+---
+
+## Current Status Snapshot (2026-03-31 late evening) — historical record
 
 ### Step 5a (C.H.E.E.S.E. Reincarnation): PASS (Qualitative)
 - **Method:** Injected a Mamba-derived state from a philosophical C.H.E.E.S.E. log into Qwen-1.5B's `v_proj` layers (12-15) via an activation bias bridge trained with Directional Loss.

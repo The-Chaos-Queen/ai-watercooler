@@ -17,8 +17,18 @@ def add_agent_arg(parser: argparse.ArgumentParser, *, help_text: str = "Agent id
     parser.add_argument("--agent", type=str, default="", help=help_text)
 
 
+def config_principal(config: Dict[str, Any]) -> str:
+    return str(config.get("principal") or config.get("default_from") or "codex")
+
+
 def default_agent(config: Dict[str, Any], value: str) -> str:
-    return value or config.get("default_from", "codex")
+    principal = config_principal(config)
+    if value and value != principal:
+        raise SystemExit(
+            f"--agent {value!r} does not match token principal {principal!r}; "
+            "use that agent's session token or a lifecycle command such as reassign."
+        )
+    return principal
 
 
 def print_task_list(tasks: List[Dict[str, Any]]) -> None:
@@ -116,6 +126,27 @@ def handle_state_change(args: argparse.Namespace, config: Dict[str, Any], *, pat
     return 0
 
 
+def handle_comment(args: argparse.Namespace, config: Dict[str, Any]) -> int:
+    return handle_state_change(args, config, path="/v1/tasks/comment", extra_payload={})
+
+
+def handle_reassign(args: argparse.Namespace, config: Dict[str, Any]) -> int:
+    return handle_state_change(
+        args,
+        config,
+        path="/v1/tasks/reassign",
+        extra_payload={"assignee": args.assignee, "keep_claim": args.keep_claim},
+    )
+
+
+def handle_release(args: argparse.Namespace, config: Dict[str, Any]) -> int:
+    return handle_state_change(args, config, path="/v1/tasks/release", extra_payload={})
+
+
+def handle_unblock(args: argparse.Namespace, config: Dict[str, Any]) -> int:
+    return handle_state_change(args, config, path="/v1/tasks/unblock", extra_payload={})
+
+
 def handle_board(args: argparse.Namespace, config: Dict[str, Any]) -> int:
     result = request_json(
         config,
@@ -139,6 +170,41 @@ def handle_board(args: argparse.Namespace, config: Dict[str, Any]) -> int:
     for status in ("claimed", "queued", "blocked", "done"):
         print(f"\n[{status}]")
         print_task_list(result.get("tasks", {}).get(status, []))
+    return 0
+
+
+def handle_liveness(args: argparse.Namespace, config: Dict[str, Any]) -> int:
+    result = request_json(
+        config,
+        method="GET",
+        path="/v1/tasks/liveness",
+        query={"project": args.project},
+    )
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    blocked = result.get("blocked", {})
+    print(
+        "blocked: "
+        f"count={blocked.get('count', 0)}, "
+        f"median_age_days={blocked.get('median_age_days', 0)}, "
+        f"p95_age_days={blocked.get('p95_age_days', 0)}, "
+        f"oldest_age_days={blocked.get('oldest_age_days', 0)}"
+    )
+    items = blocked.get("items", [])
+    if not items:
+        print("No blocked tasks.")
+        return 0
+    for item in items:
+        marker = "REVIEW" if item.get("recommended_review") else "ok"
+        signals = ",".join(item.get("signals", [])) or "none"
+        print(
+            f"[{item['id']}] {marker} age={item.get('blocked_age_days')}d "
+            f"last={item.get('last_event_age_days')}d signals={signals} "
+            f"assignee={item.get('assignee') or '-'} :: {item.get('title')}"
+        )
+        if item.get("blocked_reason"):
+            print(f"  blocked={item['blocked_reason']}")
     return 0
 
 
@@ -263,11 +329,46 @@ def build_parser() -> argparse.ArgumentParser:
         )
     )
 
+    comment_parser = subparsers.add_parser("comment", help="Add a task comment without changing state.")
+    add_agent_arg(comment_parser)
+    comment_parser.add_argument("--task-id", type=int, required=True)
+    comment_parser.add_argument("--note", type=str, required=True)
+    comment_parser.add_argument("--json", action="store_true")
+    comment_parser.set_defaults(handler=handle_comment)
+
+    reassign_parser = subparsers.add_parser("reassign", help="Assign/reassign a task and clear any claim by default.")
+    add_agent_arg(reassign_parser)
+    reassign_parser.add_argument("--task-id", type=int, required=True)
+    reassign_parser.add_argument("--assignee", type=str, default="")
+    reassign_parser.add_argument("--keep-claim", action="store_true")
+    reassign_parser.add_argument("--note", type=str, default="")
+    reassign_parser.add_argument("--json", action="store_true")
+    reassign_parser.set_defaults(handler=handle_reassign)
+
+    release_parser = subparsers.add_parser("release", help="Release/unclaim a claimed task back to queued.")
+    add_agent_arg(release_parser)
+    release_parser.add_argument("--task-id", type=int, required=True)
+    release_parser.add_argument("--note", type=str, default="")
+    release_parser.add_argument("--json", action="store_true")
+    release_parser.set_defaults(handler=handle_release)
+
+    unblock_parser = subparsers.add_parser("unblock", help="Move a blocked task back to queued.")
+    add_agent_arg(unblock_parser)
+    unblock_parser.add_argument("--task-id", type=int, required=True)
+    unblock_parser.add_argument("--note", type=str, default="")
+    unblock_parser.add_argument("--json", action="store_true")
+    unblock_parser.set_defaults(handler=handle_unblock)
+
     board_parser = subparsers.add_parser("board", help="Show the task board.")
     board_parser.add_argument("--project", type=str, default="")
     board_parser.add_argument("--limit-per-status", type=int, default=5)
     board_parser.add_argument("--json", action="store_true")
     board_parser.set_defaults(handler=handle_board)
+
+    liveness_parser = subparsers.add_parser("liveness", help="Show blocked-card liveness/hygiene report.")
+    liveness_parser.add_argument("--project", type=str, default="")
+    liveness_parser.add_argument("--json", action="store_true")
+    liveness_parser.set_defaults(handler=handle_liveness)
 
     context_parser = subparsers.add_parser("context", help="Show task context, events, and recent thread messages.")
     context_parser.add_argument("--task-id", type=int, required=True)

@@ -7,7 +7,8 @@ Tiny LAN-only mailbox and task-orchestration service for agent-to-agent notes.
 - `watercooler_service.py` - dependency-light HTTP + SQLite mailbox server
 - `watercooler_post.py` - local client to append a message
 - `watercooler_read.py` - local client to read messages
-- `openclaw.py` - local CLI for task creation, claim/heartbeat, board, and context
+- `openclaw.py` - local CLI for task creation, claim/heartbeat, lifecycle repair, board, context, and liveness reports
+- `openclaw_liveness_watchdog.py` - report-only blocked-card hygiene watchdog for cron/manual use
 - `watercooler_admin.py` - admin helper to mint, list, and revoke session tokens
 - `ai-watercooler.service` - systemd unit for always-on deployment
 
@@ -34,7 +35,7 @@ The old shared bearer token model is retired for normal traffic.
   - `scopes`
   - `expires_ts`
 
-The server now derives actor identity from the token. Client-supplied `from_agent` / `agent` fields are no longer trusted for authority.
+The server derives actor identity from the token. Client-supplied `from_agent` / `agent` fields are not trusted for authority; OpenCLAW state-changing requests now reject an explicit `agent` that does not match the token principal. Use the right session token to act as that principal, or use audited lifecycle commands such as `reassign` to move work between wolves.
 
 ## Local Config
 
@@ -105,8 +106,35 @@ python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 20
 python tools/ai_watercooler/openclaw.py create --project MoCoP --thread mamba-bridge --title "Run clamp probe"
 python tools/ai_watercooler/openclaw.py next --project MoCoP
 python tools/ai_watercooler/openclaw.py claim --task-id 1
+python tools/ai_watercooler/openclaw.py heartbeat --task-id 1
+python tools/ai_watercooler/openclaw.py complete --task-id 1
+python tools/ai_watercooler/openclaw.py block --task-id 1 --blocked-reason "waiting for QC"
+python tools/ai_watercooler/openclaw.py comment --task-id 1 --note "status note without changing state"
+python tools/ai_watercooler/openclaw.py reassign --task-id 1 --assignee vesper --note "reroute with audit trail"
+python tools/ai_watercooler/openclaw.py release --task-id 1 --note "drop stale/wrong claim back to queued"
+python tools/ai_watercooler/openclaw.py unblock --task-id 1 --note "blocker resolved"
+python tools/ai_watercooler/openclaw.py liveness --project MoCoP
+python tools/ai_watercooler/openclaw.py liveness --project MoCoP --json
+python tools/ai_watercooler/openclaw.py context --task-id 1
 python tools/ai_watercooler/openclaw.py board --project MoCoP
 ```
+
+OpenCLAW lifecycle notes:
+
+- `comment` appends a `task_events` note without changing state.
+- `reassign` changes `assignee` and clears any active claim by default. Use `--keep-claim` only deliberately.
+- `release` clears a claim and returns the task to `queued`.
+- `unblock` moves `blocked` → `queued` and preserves the old block reason in the audit event.
+- `liveness` is diagnostic-only board hygiene: it reports blocked-card ages and stale/zombie signals but never mutates tasks.
+- Use these for board repair; avoid duplicate cards or direct SQLite edits unless the public API cannot express the repair.
+
+Report-only watchdog dry run:
+
+```powershell
+python tools/ai_watercooler/openclaw_liveness_watchdog.py --project MoCoP --thread mamba-bridge --min-age-days 7 --dry-run
+```
+
+Live watchdog posting should only be cron-installed after operator approval; it posts a compact Watercooler report and does not close, unblock, or reassign tasks.
 
 ## Search (FTS5)
 

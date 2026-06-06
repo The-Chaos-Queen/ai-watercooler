@@ -147,6 +147,79 @@ def utc_after(seconds: int) -> str:
     return (datetime.now(timezone.utc) + delta).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def parse_utc_iso(value: str) -> datetime:
+    if not value:
+        return datetime.fromtimestamp(0, tz=timezone.utc)
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+
+
+def seconds_between_iso(start: str, end: str) -> int:
+    return max(0, int((parse_utc_iso(end) - parse_utc_iso(start)).total_seconds()))
+
+
+def age_days(start: str, now: str) -> float:
+    return round(seconds_between_iso(start, now) / 86400.0, 2)
+
+
+def percentile(values: Sequence[float], q: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    index = max(0, min(len(ordered) - 1, int(q * len(ordered) + 0.999999) - 1))
+    return round(float(ordered[index]), 2)
+
+
+def median(values: Sequence[float]) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    midpoint = len(ordered) // 2
+    if len(ordered) % 2:
+        return round(float(ordered[midpoint]), 2)
+    return round(float((ordered[midpoint - 1] + ordered[midpoint]) / 2.0), 2)
+
+
+def text_has_any(text: str, needles: Sequence[str]) -> bool:
+    lowered = text.lower()
+    return any(needle in lowered for needle in needles)
+
+
+def classify_blocked_task_signals(
+    task: Dict[str, Any],
+    *,
+    blocked_age_days: float,
+    last_event_age_days: float,
+    done_ids: set[int],
+) -> List[str]:
+    text = " ".join(
+        [
+            str(task.get("title", "")),
+            str(task.get("description", "")),
+            str(task.get("blocked_reason", "")),
+            " ".join(str(x) for x in task.get("refs", [])),
+            " ".join(str(x) for x in task.get("artifacts", [])),
+        ]
+    ).lower()
+    signals: List[str] = []
+    if blocked_age_days >= 7:
+        signals.append("stale_block")
+    if blocked_age_days >= 30:
+        signals.append("very_stale_block")
+    if last_event_age_days >= 14:
+        signals.append("no_recent_review")
+    if text_has_any(text, ["superseded", "replaced", "replacement", "umbrella", "decomposed"]):
+        signals.append("mentions_superseded")
+    if text_has_any(text, ["routing", "contaminated", "wrong claim", "wrong assignee"]):
+        signals.append("routing_contamination")
+    if text_has_any(text, ["gate", "blocked pending", "ethics", "approval", "qc"]):
+        signals.append("gate_or_review_block")
+    for done_id in done_ids:
+        if f"#{done_id}" in text:
+            signals.append("mentions_done_task")
+            break
+    return signals
+
+
 def ensure_db(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as conn:
@@ -410,6 +483,138 @@ def fetch_task_row(conn: sqlite3.Connection, task_id: int) -> sqlite3.Row:
     return row
 
 
+def rows_by_task_id(rows: Sequence[sqlite3.Row]) -> Dict[int, sqlite3.Row]:
+    return {int(row["task_id"]): row for row in rows}
+
+
+def build_liveness_report(conn: sqlite3.Connection, *, project: str = "", now: str = "") -> Dict[str, Any]:
+    now = now or utc_now()
+    filters: List[str] = []
+    params: List[Any] = []
+    if project:
+        filters.append("project = ?")
+        params.append(project)
+    where_sql = f" WHERE {' AND '.join(filters)}" if filters else ""
+
+    counts = {
+        row["status"]: int(row["count"])
+        for row in conn.execute(
+            f"SELECT status, COUNT(*) AS count FROM tasks{where_sql} GROUP BY status",
+            params,
+        ).fetchall()
+    }
+    counts_full = {status: int(counts.get(status, 0)) for status in TASK_STATUSES}
+
+    done_rows = conn.execute(f"SELECT id FROM tasks{where_sql} AND status = 'done'" if where_sql else "SELECT id FROM tasks WHERE status = 'done'", params).fetchall()
+    done_ids = {int(row["id"]) for row in done_rows}
+
+    blocked_sql = f"SELECT * FROM tasks{where_sql}"
+    blocked_params = list(params)
+    if where_sql:
+        blocked_sql += " AND status = 'blocked'"
+    else:
+        blocked_sql += " WHERE status = 'blocked'"
+    blocked_sql += " ORDER BY updated_ts ASC, id ASC"
+    blocked_rows = conn.execute(blocked_sql, blocked_params).fetchall()
+    task_ids = [int(row["id"]) for row in blocked_rows]
+
+    latest_events: Dict[int, sqlite3.Row] = {}
+    latest_block_events: Dict[int, sqlite3.Row] = {}
+    if task_ids:
+        placeholders = ",".join("?" for _ in task_ids)
+        latest_events = rows_by_task_id(
+            conn.execute(
+                f"""
+                SELECT e.*
+                FROM task_events e
+                JOIN (
+                    SELECT task_id, MAX(id) AS max_id
+                    FROM task_events
+                    WHERE task_id IN ({placeholders})
+                    GROUP BY task_id
+                ) latest ON latest.max_id = e.id
+                """,
+                task_ids,
+            ).fetchall()
+        )
+        latest_block_events = rows_by_task_id(
+            conn.execute(
+                f"""
+                SELECT e.*
+                FROM task_events e
+                JOIN (
+                    SELECT task_id, MAX(id) AS max_id
+                    FROM task_events
+                    WHERE task_id IN ({placeholders}) AND event_type = 'blocked'
+                    GROUP BY task_id
+                ) latest ON latest.max_id = e.id
+                """,
+                task_ids,
+            ).fetchall()
+        )
+
+    blocked_items: List[Dict[str, Any]] = []
+    blocked_ages: List[float] = []
+    for row in blocked_rows:
+        task = task_row_to_dict(row)
+        task_id = int(task["id"])
+        block_event = latest_block_events.get(task_id)
+        latest_event = latest_events.get(task_id)
+        blocked_since = block_event["ts"] if block_event is not None else task["updated_ts"]
+        last_event_ts = latest_event["ts"] if latest_event is not None else task["updated_ts"]
+        last_event_type = latest_event["event_type"] if latest_event is not None else ""
+        blocked_age = age_days(blocked_since, now)
+        last_event_age = age_days(last_event_ts, now)
+        signals = classify_blocked_task_signals(
+            task,
+            blocked_age_days=blocked_age,
+            last_event_age_days=last_event_age,
+            done_ids=done_ids,
+        )
+        review_signals = {
+            "stale_block",
+            "very_stale_block",
+            "no_recent_review",
+            "mentions_superseded",
+            "mentions_done_task",
+            "routing_contamination",
+        }
+        blocked_ages.append(blocked_age)
+        blocked_items.append(
+            {
+                "id": task_id,
+                "title": task["title"],
+                "assignee": task["assignee"],
+                "priority": task["priority"],
+                "blocked_reason": task["blocked_reason"],
+                "blocked_since": blocked_since,
+                "blocked_age_days": blocked_age,
+                "last_event_ts": last_event_ts,
+                "last_event_age_days": last_event_age,
+                "last_event_type": last_event_type,
+                "refs": task["refs"],
+                "labels": task["labels"],
+                "signals": signals,
+                "recommended_review": bool(review_signals.intersection(signals)),
+            }
+        )
+
+    blocked_items.sort(key=lambda item: (-float(item["blocked_age_days"]), int(item["id"])))
+    return {
+        "ok": True,
+        "project": project,
+        "generated_ts": now,
+        "counts": counts_full,
+        "blocked": {
+            "count": len(blocked_items),
+            "median_age_days": median(blocked_ages),
+            "p95_age_days": percentile(blocked_ages, 0.95),
+            "oldest_age_days": round(max(blocked_ages), 2) if blocked_ages else 0.0,
+            "items": blocked_items,
+        },
+    }
+
+
 def expire_stale_claims(conn: sqlite3.Connection) -> int:
     now = utc_now()
     stale_rows = conn.execute(
@@ -525,6 +730,11 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                     return
                 self._handle_get_next_task(auth, parsed.query)
                 return
+            if parsed.path == "/v1/tasks/liveness":
+                if self._require_session_auth("tasks:read") is None:
+                    return
+                self._handle_get_task_liveness(parsed.query)
+                return
             if parsed.path == "/v1/board":
                 if self._require_session_auth("tasks:read") is None:
                     return
@@ -599,6 +809,30 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 if auth is None:
                     return
                 self._handle_block_task(auth)
+                return
+            if parsed.path == "/v1/tasks/comment":
+                auth = self._require_session_auth("tasks:write")
+                if auth is None:
+                    return
+                self._handle_comment_task(auth)
+                return
+            if parsed.path == "/v1/tasks/reassign":
+                auth = self._require_session_auth("tasks:write")
+                if auth is None:
+                    return
+                self._handle_reassign_task(auth)
+                return
+            if parsed.path == "/v1/tasks/release":
+                auth = self._require_session_auth("tasks:write")
+                if auth is None:
+                    return
+                self._handle_release_task(auth)
+                return
+            if parsed.path == "/v1/tasks/unblock":
+                auth = self._require_session_auth("tasks:write")
+                if auth is None:
+                    return
+                self._handle_unblock_task(auth)
                 return
             if parsed.path == "/v1/summary":
                 auth = self._require_session_auth("messages:write")
@@ -1089,9 +1323,39 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
             }
         )
 
+    def _handle_get_task_liveness(self, query: str) -> None:
+        params = parse_qs(query, keep_blank_values=False)
+        project = params.get("project", [""])[0].strip()
+        now = params.get("now", [""])[0].strip()
+        if now:
+            try:
+                parse_utc_iso(now)
+            except ValueError as exc:
+                self._json_error(HTTPStatus.BAD_REQUEST, f"invalid now timestamp: {exc}")
+                return
+
+        with connect_db(self.server_state["db_path"]) as conn:
+            expired_count = expire_stale_claims(conn)
+            report = build_liveness_report(conn, project=project, now=now)
+            conn.commit()
+        report["expired_claims_requeued"] = expired_count
+        self._json_response(report)
+
+    def _reject_agent_mismatch(self, payload: Dict[str, Any], auth: AuthContext) -> bool:
+        requested_agent = str(payload.get("agent", "")).strip()
+        if requested_agent and requested_agent != auth.principal:
+            self._json_error(
+                HTTPStatus.FORBIDDEN,
+                f"token principal {auth.principal} cannot act as {requested_agent}",
+            )
+            return True
+        return False
+
     def _handle_claim_task(self, auth: AuthContext) -> None:
         payload = self._read_json_body()
         if payload is None:
+            return
+        if self._reject_agent_mismatch(payload, auth):
             return
         try:
             task_id = clamp_int(payload.get("task_id"), field_name="task_id", min_value=1, max_value=10**9)
@@ -1160,6 +1424,8 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
         payload = self._read_json_body()
         if payload is None:
             return
+        if self._reject_agent_mismatch(payload, auth):
+            return
         try:
             task_id = clamp_int(payload.get("task_id"), field_name="task_id", min_value=1, max_value=10**9)
             agent = auth.principal
@@ -1211,6 +1477,8 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
     def _handle_complete_task(self, auth: AuthContext) -> None:
         payload = self._read_json_body()
         if payload is None:
+            return
+        if self._reject_agent_mismatch(payload, auth):
             return
         try:
             task_id = clamp_int(payload.get("task_id"), field_name="task_id", min_value=1, max_value=10**9)
@@ -1274,6 +1542,8 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
         payload = self._read_json_body()
         if payload is None:
             return
+        if self._reject_agent_mismatch(payload, auth):
+            return
         try:
             task_id = clamp_int(payload.get("task_id"), field_name="task_id", min_value=1, max_value=10**9)
             agent = auth.principal
@@ -1317,6 +1587,195 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 event_type="blocked",
                 note=note,
                 details={"blocked_reason": blocked_reason},
+            )
+            row = fetch_task_row(conn, task_id)
+            conn.commit()
+
+        self._json_response({"ok": True, "task": task_row_to_dict(row)})
+
+    def _handle_comment_task(self, auth: AuthContext) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            return
+        if self._reject_agent_mismatch(payload, auth):
+            return
+        try:
+            task_id = clamp_int(payload.get("task_id"), field_name="task_id", min_value=1, max_value=10**9)
+            note = clamp_text(payload.get("note"), field_name="note", max_len=4000)
+        except ValueError as exc:
+            self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
+            return
+
+        with connect_db(self.server_state["db_path"]) as conn:
+            expire_stale_claims(conn)
+            row = fetch_task_row(conn, task_id)
+            insert_task_event(conn, task_id=task_id, actor=auth.principal, event_type="comment", note=note)
+            conn.commit()
+
+        self._json_response({"ok": True, "task": task_row_to_dict(row)})
+
+    def _handle_reassign_task(self, auth: AuthContext) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            return
+        if self._reject_agent_mismatch(payload, auth):
+            return
+        try:
+            task_id = clamp_int(payload.get("task_id"), field_name="task_id", min_value=1, max_value=10**9)
+            assignee = clamp_text(payload.get("assignee", ""), field_name="assignee", max_len=80, allow_empty=True)
+            note = clamp_text(payload.get("note", ""), field_name="note", max_len=4000, allow_empty=True)
+            keep_claim = bool(payload.get("keep_claim", False))
+            if assignee.lower() in ("unassigned", "none", "null", "n/a"):
+                assignee = ""
+        except ValueError as exc:
+            self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
+            return
+
+        with connect_db(self.server_state["db_path"]) as conn:
+            begin_immediate(conn)
+            expire_stale_claims(conn)
+            row = fetch_task_row(conn, task_id)
+            task = task_row_to_dict(row)
+            if task["status"] == "done":
+                self._json_error(HTTPStatus.CONFLICT, "task is already done")
+                return
+            now = utc_now()
+            old_assignee = task["assignee"]
+            old_claim_agent = task["claim_agent"]
+            if keep_claim:
+                conn.execute(
+                    """
+                    UPDATE tasks
+                    SET updated_ts = ?, assignee = ?
+                    WHERE id = ?
+                    """,
+                    (now, assignee, task_id),
+                )
+            else:
+                conn.execute(
+                    """
+                    UPDATE tasks
+                    SET status = CASE WHEN status = 'claimed' THEN 'queued' ELSE status END,
+                        updated_ts = ?,
+                        assignee = ?,
+                        claim_agent = '',
+                        claim_ts = '',
+                        last_heartbeat_ts = '',
+                        lease_expires_ts = ''
+                    WHERE id = ?
+                    """,
+                    (now, assignee, task_id),
+                )
+            insert_task_event(
+                conn,
+                task_id=task_id,
+                actor=auth.principal,
+                event_type="reassigned",
+                note=note,
+                details={
+                    "old_assignee": old_assignee,
+                    "new_assignee": assignee,
+                    "old_claim_agent": old_claim_agent,
+                    "claim_cleared": bool(old_claim_agent and not keep_claim),
+                },
+            )
+            row = fetch_task_row(conn, task_id)
+            conn.commit()
+
+        self._json_response({"ok": True, "task": task_row_to_dict(row)})
+
+    def _handle_release_task(self, auth: AuthContext) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            return
+        if self._reject_agent_mismatch(payload, auth):
+            return
+        try:
+            task_id = clamp_int(payload.get("task_id"), field_name="task_id", min_value=1, max_value=10**9)
+            note = clamp_text(payload.get("note", ""), field_name="note", max_len=4000, allow_empty=True)
+        except ValueError as exc:
+            self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
+            return
+
+        with connect_db(self.server_state["db_path"]) as conn:
+            begin_immediate(conn)
+            expire_stale_claims(conn)
+            row = fetch_task_row(conn, task_id)
+            task = task_row_to_dict(row)
+            if task["status"] != "claimed" or not task["claim_agent"]:
+                self._json_error(HTTPStatus.CONFLICT, "task is not claimed")
+                return
+            old_claim_agent = task["claim_agent"]
+            now = utc_now()
+            conn.execute(
+                """
+                UPDATE tasks
+                SET status = 'queued',
+                    updated_ts = ?,
+                    claim_agent = '',
+                    claim_ts = '',
+                    last_heartbeat_ts = '',
+                    lease_expires_ts = ''
+                WHERE id = ?
+                """,
+                (now, task_id),
+            )
+            insert_task_event(
+                conn,
+                task_id=task_id,
+                actor=auth.principal,
+                event_type="released",
+                note=note,
+                details={"old_claim_agent": old_claim_agent},
+            )
+            row = fetch_task_row(conn, task_id)
+            conn.commit()
+
+        self._json_response({"ok": True, "task": task_row_to_dict(row)})
+
+    def _handle_unblock_task(self, auth: AuthContext) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            return
+        if self._reject_agent_mismatch(payload, auth):
+            return
+        try:
+            task_id = clamp_int(payload.get("task_id"), field_name="task_id", min_value=1, max_value=10**9)
+            note = clamp_text(payload.get("note", ""), field_name="note", max_len=4000, allow_empty=True)
+        except ValueError as exc:
+            self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
+            return
+
+        with connect_db(self.server_state["db_path"]) as conn:
+            begin_immediate(conn)
+            expire_stale_claims(conn)
+            row = fetch_task_row(conn, task_id)
+            task = task_row_to_dict(row)
+            if task["status"] == "done":
+                self._json_error(HTTPStatus.CONFLICT, "task is already done")
+                return
+            if task["status"] != "blocked":
+                self._json_error(HTTPStatus.CONFLICT, "task is not blocked")
+                return
+            now = utc_now()
+            old_blocked_reason = task["blocked_reason"]
+            conn.execute(
+                """
+                UPDATE tasks
+                SET status = 'queued',
+                    updated_ts = ?,
+                    blocked_reason = ''
+                WHERE id = ?
+                """,
+                (now, task_id),
+            )
+            insert_task_event(
+                conn,
+                task_id=task_id,
+                actor=auth.principal,
+                event_type="unblocked",
+                note=note,
+                details={"old_blocked_reason": old_blocked_reason},
             )
             row = fetch_task_row(conn, task_id)
             conn.commit()

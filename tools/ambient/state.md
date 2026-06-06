@@ -2,6 +2,9 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-05-28 21:59 UTC] git | MoCoP | Laura: fix(sleep): move ethics gate before flush and fix residue metadata (eae8ecd)
+[2026-05-28 19:22 UTC] git | MoCoP | Laura: mocop: add offline tension metric for A3 sleep N-loop (48dec80)
+[2026-05-28 13:07 UTC] git | MoCoP | Laura: feat(sleep): implement forgotten memory stubs and ethics gate (Task #104) (567c95d)
 [2026-05-22 11:44 UTC] git | MUD | Laura: mud: add personas, scratchpads, and world builder (ebc8fae)
 [2026-05-22 11:44 UTC] git | repo | Laura: eisstock: add tournament app scaffold (c5b4d6c)
 [2026-05-22 11:44 UTC] git | hurtig.ai | Laura: hurtig: add hurtig.ai site and baublog (e6ddeea)

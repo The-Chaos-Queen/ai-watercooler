@@ -6,9 +6,9 @@
 
 ## Scale
 
-87 library files · 2 middleware layers · 23 environment variables
+119 library files · 4 middleware layers · 23 environment variables
 
-**Libraries:** 87 files — see [libraries.md](./libraries.md)
+**Libraries:** 119 files — see [libraries.md](./libraries.md)
 
 ## Required Environment Variables
 
@@ -27,4 +27,4 @@
 - _...11 more_
 
 ---
-_Back to [index.md](./index.md) · Generated 2026-05-05_
+_Back to [index.md](./index.md) · Generated 2026-06-04_

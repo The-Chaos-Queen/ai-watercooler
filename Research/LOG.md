@@ -146,3 +146,76 @@ All five cross-linked into `INDEX.md` under a new top-level "wiki pages" section
 - `Research/13549_Mamba_3_Improved_Sequenc_extracted/` — original Mamba-3 hand-extraction with images + 2026-03-17 SearchRUn folder. Good MD content already preserved at `converted_md/MAMBA-3 IMPROVED SEQUENCE MODELING USING STATE SPACE PRINCIPLES.md`, so this dir was redundant.
 
 **Result:** No orphan / placeholder directories remain in `Research/`. The folder is now fully usable for research analysis.
+
+---
+
+## 2026-05-30 — Ingest `batali94innateBiases.pdf` (Cairn)
+
+**Operation:** New raw source → wiki + knowledge graph. PDF → markdown via canonical `pdf_extract.py` (pymupdf4llm), then folded into the graphify corpus with curated cross-links.
+
+**Source:** John Batali (1994), *"Innate Biases and Critical Periods: Combining Evolution and Learning in the Acquisition of Syntax"*, Proc. Alife IV Workshop. Recurrent neural networks evolved via a population GA over initial connection weights; the resulting innate biases are then degradable by training on spurious input — a mechanistic account of critical-period decay (entrenchment) that does not require an exogenous maturational process.
+
+**Pipeline:**
+- `pdf_extract.py Research/batali94innateBiases.pdf --out Research/converted_md/` → `batali94innateBiases.md` (168 KB).
+- Extraction subagent (sonnet) → 56 nodes / 67 edges / 3 hyperedges in `.graphify_semantic_new.json`, including 9 generic concept bridges (`batali94_concept_*`) for cross-paper clustering.
+- Merged into `graph.json` plus 13 curated cross-links (all endpoint-guarded, none skipped) to: `sleep_ethics_gate`, `sleep_decay_sweep`, `run_sleep_cycle`, `chat_server_build_sleep_gate_record`, `ssm_vs_hidden_separation`, `mamba_state_separation`, and four nodes from `2605.26099` (the CMU sleep paper).
+- Re-clustered, regenerated `GRAPH_REPORT.md` + `graph.html` (4788 nodes — under the 5000-node viz ceiling).
+
+**Outcome:**
+- Graph: 4732 → 4788 nodes (+56), 9280 → 9360 edges (+67 fragment + 13 cross-links), 309 communities.
+- **55 of 56 batali94 nodes joined Community 5** alongside `mamba_state_separation.py` and `ssm_vs_hidden_separation.py` — the same SSM-substrate cluster the CMU sleep paper (`2605.26099`) joined yesterday. The pairing is now structural: consolidation-deepens (2605.26099) and weight-divergence-erodes (batali94) cluster together with the bridge code that probes the substrate.
+- INDEX.md: row added under `cognitive-theory`, relevance = `core`.
+- Live graphify MCP needs restart to reflect (on-disk `graph.json` is current).
+
+**Notes:**
+- MoCoP framing: batali94's "innate biases as specific initial weights that degrade under spurious training" is the cleanest 1994 mechanistic ancestor of Hurtig's #115 protected-identity set and the broader question of how sleep consolidation could erode the bootstrap state. The `2605.26099` ↔ `batali94` pairing brackets the design space — how the substrate *gains* good state vs. how it *loses* good state.
+- Subagent hit context overflow on its final report-back but had already written valid JSON before bailing; recovery was clean (validated before merge).
+
+---
+
+## 2026-06-04 — `batali94innateBiases.md` vision-LM re-extraction (Cairn + Maximus)
+
+**Operation:** Followed up on the original `pymupdf4llm` extraction with a vision-LM pass to recover better figure caption / table fidelity.
+
+**Attempts:**
+- Haiku subagent (Sonnet-3.5 family local): context overflow reading 9 image-rendered pages.
+- Sonnet subagent (Claude): output blocked by the cyber-content classifier (same false-positive pattern that silenced Herr Hurtig's session — parent-context inheritance suspected, no actual cyber content anywhere).
+- Maximus (Grok CLI): completed successfully. Pipeline returned mostly-blank renders for the body-text pages, so his output is figure-descriptions-only (very detailed) plus the page-1 header. ~11 KB / ~1500 words vs. `pymupdf4llm`'s 168 KB / ~10 K words.
+
+**Resolution: combine.** Kept `pymupdf4llm` as the canonical body (regenerated from PDF — byte-identical to the original ingest), appended Maximus's detailed figure-by-figure transcription as an `## Appendix: Detailed Figure Descriptions (vision-LM pass)` section. Standalone Maximus version preserved as sibling at `batali94innateBiases.maximus.md`.
+
+**Final state:** `Research/converted_md/batali94innateBiases.md` = 174 KB combined; `batali94innateBiases.maximus.md` = 11 KB standalone.
+
+**Graph:** no re-extraction needed. The body portion is byte-identical to what the corpus graph was built from; the appendix adds figure-layout detail that's mostly orthogonal to MoCoP-relevant concept nodes. If anyone later wants figure-finding nodes (e.g., "Figure 4 shows monotonic improvement after generation 150 in the class-of-CFLs experiment"), a follow-up extraction over just the appendix would add them without disturbing the existing nodes.
+
+**Lesson for the corpus:** for PDF→md on older papers, `pymupdf4llm` reliably gets the body. Vision-LM passes are a complement, not a replacement — combine, don't replace.
+
+---
+
+## 2026-06-04 — 2605.* arXiv batch hybrid re-extraction (Maximus)
+
+**Operation:** User clarification after initial subagent visual passes on the 2605 series (13740/13821/13839/26099 + companions): "subagent vision only for images and graphs.. otherwise the text can be extracted through pymupdf4llm". "Make sure there is actually text". One (13740) had landed as full-vision transcription (page markers, "Full visual extraction" note, 1073 lines). Followed batali hybrid precedent exactly.
+
+**Pipeline:**
+- `python tools/pdf_extract.py Research/2605.13740v1.pdf --out Research/converted_md/` (and re-ran on 26099/13821/13839 to normalize after path/anchor edits) → clean pymupdf4llm body text + figure image pngs written to converted_md/images/ (relative links normalized to `images/2605....png` for portability).
+- 4 parallel vision-only subagents (general-purpose, instructed with sequential-thinking + strict "text already handled by pymupdf; vision exclusively on pngs for literal graph/diagram descs"; used read_file on pngs + limited md peeks for figure mapping only; skipped text-heavy page renders).
+- Each produced standalone `## Appendix: Detailed Visual Descriptions...` (or "Visual Supplement") with exhaustive per-image literal details (colors, icons, line trajectories + approx values/crossings, legends, annotations, bar heights, grid states for env viz, diagram components, table deltas).
+- Appended appendices to the 4 mds (keeping pymupdf text as canonical source of truth; old inline descs in 26099/13821/13839 left in place + new appendix supplements).
+- Also normalized any absolute C:/ or Research/ image paths in the batch to relative `images/...`.
+
+**Outcome:**
+- All 6 2605 mds now 0 "Full visual extraction" / "transcribed verbatim" notes.
+- 13740: 3625 lines (pymupdf) → 3698 with appendix (substantial body text confirmed via head + "Abstract" + sections; 58 pngs, 23 prioritized for graphs/diagrams + env grids described).
+- 26099 (sleep paper): restored + appendix (16 pngs, detailed on architecture panels, accuracy curves with exact %/steps/annotations, bar charts, legends).
+- 13821/13839: full text + their visual appendices (flowcharts with exact colors/arrows, evolution trajectories with numbers, TFLOW pipeline, bar/table graphics).
+- 01106/02087 untouched (no figures extracted).
+- INDEX.md: added 2605.26099 row in `sleep-replay` table (core relevance, quotes N-loop recurrence + 512k + direct tie to #120 A3 + batali pairing).
+- LOG.md: this entry.
+- Converted mds live at: Research/converted_md/2605.13740v1.md , 2605.13821v1.md , 2605.13839v1.md , 2605.26099.md (plus the two others); images under converted_md/images/.
+
+**Notes:**
+- MoCoP framing: 2605.26099 is load-bearing for current shadow sleep N-loop work (recurrent state update path, offline passes for consolidation). The POMDP/agentic/weight-comm papers (13740 etc.) are adjacent (world models, meta-editing of procedures, state perturbation via LoRA ΔW) but lower priority; their graphs now fully described for future use.
+- Subagents self-policed: used todo_write internally, read_file only on images for vision, produced zero body prose.
+- Matches user spec and the batali "combine, don't replace" lesson. Ready for pack/research use.
+- No graphify re-ingest done here (body text unchanged for 26099 etc.; 13740 body now accurate pymupdf vs prior vision-transcribed).
+

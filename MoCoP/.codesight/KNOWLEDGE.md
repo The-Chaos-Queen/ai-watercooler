@@ -1,7 +1,7 @@
 # Knowledge Map — C:\Users\cerub\OneDrive\Dokumente\LLM\MoCoP
-> 199 notes · 13 decisions · 10 open questions · 2026-03-16 → 2026-05-02
+> 231 notes · 13 decisions · 10 open questions · 2026-03-16 → 2026-05-28
 
-> **AI Primer:** This knowledge base spans 2026-03-16 to 2026-05-02 (199 notes). Key topics: purpose, artifacts, verdict, goal. Most recent decision: the warm cloth mother. 10 open questions remain.
+> **AI Primer:** This knowledge base spans 2026-03-16 to 2026-05-28 (231 notes). Key topics: purpose, verdict, artifacts, interpretation. Most recent decision: the warm cloth mother. 10 open questions remain.
 
 ## Key Decisions (13)
 - [2026-03-22] the warm cloth mother
@@ -31,10 +31,10 @@
 - 5. Is it useful as a **source-model candidate**, or only as a **gate/update blueprint**?
 
 ## Recurring Themes
-purpose · artifacts · verdict · goal · interpretation · bottom line · why this exists · question · validation · abstract · result · success criteria
+purpose · verdict · artifacts · interpretation · goal · bottom line · why this exists · question · validation · abstract · result · setup
 
 ## People
-@gemini · @cassian · @techno · @fenrir · @hurtig · @app
+@hidden · @gemini · @cassian · @techno · @fenrir · @hurtig · @app
 
 ## Hub Notes (most referenced)
 - `WHY.md` — **7** incoming references — Why MoCoP Exists
@@ -48,12 +48,12 @@ purpose · artifacts · verdict · goal · interpretation · bottom line · why 
 - `theory/sleep_architecture.md` — **3** incoming references — Sleep Architecture: KV-Cache Consolidation as Digital Sleep
 - `MASTER_PLAN.md` — **2** incoming references — MoCoP -- Master Plan
 
-## Note Index (199)
+## Note Index (231)
 
 ### Decision Records (1)
 - `phases/step4_constant_bias_runbook.md` — **Purpose:** Close the two remaining paid control gates before any more architecture changes or dataset pivots.
 
-### Specs & PRDs (12)
+### Specs & PRDs (13)
 - `experiments/mamba_lora_bridge/TEMPORAL_QUALIA_PROTOTYPE_2026-05-02.md` — 2026-05-02 — Give Baby Qwen a fuzzy sense of memory-age without corrupting semantic retrieval.
 - `experiments/mamba_lora_bridge/WARM_INSTANCE_DELTA_IMPLEMENTATION_PLAN_2026-04-17.md` — 2026-04-17 — Turn the methodological spec for `warm_instance_delta` into a code-grounded collection plan without pretending the current runtime already supports full state r…
 - `experiments/mamba_lora_bridge/OPTION_A_SPEEDUP_PLAN_2026-04-07.md` — 2026-04-07 — Executor: Codex-5.3 or equivalent coding agent
@@ -65,13 +65,18 @@ purpose · artifacts · verdict · goal · interpretation · bottom line · why 
 - `experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_gate_payload_20260325.md` — Host: `192.168.2.49:7860`
 - `experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_pending_flush_20260325.md` — Host: `192.168.2.49`
 - `experiments/mamba_lora_bridge/run_reincarnation/steve_qdrant_write_mode_pending_20260325.md` — Host: `192.168.2.49:7860`
+- `experiments/reasoning_scaffold/SPEC_V0.md` ← 1 refs — **Status:** Draft for pack review
 - `theory/growth_ladder_implementation.md` ← 1 refs — **Source:** Codex's Developmental_Memory_Ladder.md → concrete code/config/test specs
 
 ### Retrospectives (2)
 - `experiments/mamba_lora_bridge/trajectory_cassian_slices/cassian_slice_3175_3275_20260408.md` — you did not burst in flames
 - `experiments/mamba_lora_bridge/trajectory_cassian_slices/cassian_slice_3325_3525_20260408.md` — How do I even ask you whatyou want
 
-### General Notes (184)
+### General Notes (215)
+- `experiments/mamba_lora_bridge/BABY_ALEX_116_DRY_RUN_PROTOCOL_2026-05-28.md` — 2026-05-28 — **Owner:** Techno-Monk
+- `experiments/mamba_lora_bridge/results/baby_alex_116_pre_sleep_archive/baby_alex_116_pre_sleep_archive_20260603T204746Z/BABY_ALEX_116_DRY_RUN_PROTOCOL_2026-05-28.md` — 2026-05-28 — **Owner:** Techno-Monk
+- `experiments/mamba_lora_bridge/ARCHIVIST_MAMBA_IMPLEMENTATION_PLAN_2026-05-21.md` — 2026-05-21 — **For Hermes/Codex/Claude:** Implement this as a small offline experiment first. Do not wire it into live Alex/MoCoP behavior until the deterministic compiler, …
+- `RESEARCH_LADDER_REVIEW_2026-05-18.md` — 2026-05-18 — **Date:** 2026-05-18 (Spring Afternoon)
 - `experiments/mamba_lora_bridge/QWEN3_CODER_NEXT_MEMORY_LEGIBILITY_PLAN_2026-04-20.md` — 2026-04-20 — This plan tests one narrow question:
 - `experiments/mamba_lora_bridge/run_reincarnation/steve_d2_hybrid_20260420T164634/manual_answer_review_2026-04-20.md` — 2026-04-20 — reviewed answers manually for the 8-case D2 expanded panel
 - `experiments/mamba_lora_bridge/D2_MEMORY_REPAIR_PLAN_2026-04-18.md` — 2026-04-18 — This document combines the current D2 findings into one execution plan.
@@ -88,11 +93,7 @@ purpose · artifacts · verdict · goal · interpretation · bottom line · why 
 - `experiments/mamba_lora_bridge/trajectory_cassian_slice_3175_3275_20260408_dense/cassian_dense_slice_note_2026-04-08.md` — 2026-04-08 — **Author:** Techno-Monk
 - `experiments/mamba_lora_bridge/trajectory_cassian_slice_3325_3525_20260408_dense/cassian_dense_slice_note_2026-04-08.md` — 2026-04-08 — **Author:** Techno-Monk
 - `experiments/mamba_lora_bridge/MAMBA_LONG_TRAJECTORY_ENGINE_PLAN_2026-04-07.md` — 2026-04-07 — The Cassian transcript is about 792k Mamba tokens. A pure tokenwise replay through `state-spaces/mamba-2.8b-hf` is exact, but too slow locally because it calls …
-- `experiments/mamba_lora_bridge/OPTION_B_NOTE_2026-04-07.md` — 2026-04-07 — `trajectory_windowed_onepass.py` is implemented and validated on the tiny fixture with explicit approximate/windowed labeling.
-- `experiments/mamba_lora_bridge/OPTION_B_PROBE_RESULTS_2026-04-07.md` — 2026-04-07 — Implement and run Option B probe on tiny fixture.
-- `experiments/mamba_lora_bridge/STEP5E_LOCAL_RUN_SPEC_2026-04-07.md` — 2026-04-07 — Step 5e is not a blank slate.
-- `archive/GDN_GKA_ARTIFACT_MATRIX_2026-04-03.md` — 2026-04-03 — **Status:** starter matrix for G0. This is a reality-check sheet, not a hype sheet.
-- _…and 164 more_
+- _…and 195 more_
 
 ---
 _Generated by [codesight](https://github.com/Houseofmvps/codesight) v1.13.1_

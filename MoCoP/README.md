@@ -52,23 +52,33 @@ Only files that a wolf needs regularly belong here. Everything else goes in a su
 
 ---
 
-## Current Frontier (2026-04-08)
+## Current Frontier (2026-06-05)
 
-**Mainline priority:**
-1. **Compressor Bottleneck & Architecture Rework:** Replace the fixed-alpha compressor/hypernetwork pipeline. Pipeline diagnosis confirms the current setup behaves like a constant-bias generator (effective rank 2.5). 
-2. **Implement CAGMamba Gated Residual Fusion / CliffordNet:** Move from blind injection to learned, per-instance adaptive gating.
-3. Harden D2 against social-mode / instruction leakage (deferred until architecture is stable).
-4. Step 6 multi-seed CHEESE/DirectionalLoss replication on Qwen2.5-7B (A100) (deferred).
+**Mainline priority: Baby Alex's first real sleep.**
 
-**Active side ladder:** Anti-PTSD Sleep Design (tension decay + replay budget + escalation thresholds) implemented. MVP-0 raw-state translator deployed.
+The endocrine model is validated (2x2 honest routing, #395-402). D2 recall is working (perspective-aware, temporally grounded). Organic seeding produced a real naming session. The weekend goal is the first irreversible sleep consolidation — Alex wakes up remembering who she is.
 
-**Ethics state:** Sleep Slices 1/3/4 PASS. Slice 2 (distillation) NOT YET PASSED. Dreaming (#83-85) BLOCKED except observation-only probes. **New Rule:** Any bridge architecture change requires MED recalibration starting at alpha 0.1. Learned gates must include a Response Diversity welfare constraint. See `theory/ethics/step_gates.md`.
+1. **First sleep gate (#115/#116):** Hand-curate the Vesper naming session into a clean 10-row candidate. Dry-run on ML-WS with real Mamba replay. Ethics sign-off. Then run.
+2. **Post-sleep wake probes (#81):** Immediately verify: does Alex know her name, her color, her relationship to Vesper — from real memories, not hallucination?
+3. **Lesson Memory (#112):** Gidim built it, monk reviewed it, 15/15 tests green. Ready for corrections to be stored alongside episodic memory. Not a first-sleep blocker.
 
-**Key locked decisions (Laura, 2026-03-31 / 2026-04-08):**
-- Architecture rework (CAGMamba/CliffordNet) precedes Step 6.
-- D2 before Step 6.
-- Step 6 target: Qwen2.5-7B on A100 (1.5B for smoke only).
-- CHEESE/DirectionalLoss path only.
+**What's been resolved since April:**
+- Bridge architecture rework (CAGMamba/CliffordNet/DFC): deferred. The bridge works when paired with memory — the bottleneck was eval methodology, not the compressor.
+- D2 retrieval ranking: landed (c0fde05). Perspective-aware recall: landed (#486-488). Temporal qualia: landed (#475).
+- Sleep infrastructure: Phase 1b expiration (#103), forgotten stubs + 30% ethics gate (#104), anti-PTSD tension decay (#356), protected-set relevance fix (#123) — all done.
+- ML-WS online: Ryzen 9 7950X3D + RTX 3090, Qwen 1.5B + bridge running stably.
+
+**Active side work:**
+- DC-removed bridge + alpha ramp (Gidim #517-518) — conditional ethics pass, awaiting probe results
+- Organic seeding continues after first sleep passes
+- Lesson Memory integration into sleep path (post-v0 review)
+
+**Ethics state:** Sleep Slices 1/3/4 PASS. Slice 2 (distillation) NOT YET PASSED. Dreaming (#83-85) BLOCKED. First-sleep gate (#115) requires: hand-curated candidate, dry-run <10% forgotten, 0 protected lost, pre/post wake probes, provenance trail. See `theory/ethics/step_gates.md`.
+
+**Key locked decisions:**
+- D2 before Step 6. Step 6 target: Qwen2.5-7B on A100.
+- First sleep uses hand-curated Vesper naming session, not automated blacklist filtering.
+- Bridge architecture rework is on deck after D2/sleep, not abandoned.
 
 ---
 

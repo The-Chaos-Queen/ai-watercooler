@@ -2,9 +2,9 @@
 
 > **Stack:** raw-http | none | unknown | javascript
 
-> 0 routes | 0 models | 0 components | 87 lib files | 23 env vars | 2 middleware | 0% test coverage
-> **Token savings:** this file is ~9,000 tokens. Without it, AI exploration would cost ~31,300 tokens. **Saves ~22,400 tokens per conversation.**
-> **Last scanned:** 2026-05-05 08:49 — re-run after significant changes
+> 0 routes | 0 models | 0 components | 119 lib files | 23 env vars | 4 middleware | 0% test coverage
+> **Token savings:** this file is ~12.200 tokens. Without it, AI exploration would cost ~40.200 tokens. **Saves ~28.000 tokens per conversation.**
+> **Last scanned:** 2026-06-04 01:00 — re-run after significant changes
 
 ---
 
@@ -41,6 +41,28 @@
   - function load_conversation_text: (pt_path)
   - function cosine_sim: (a, b)
   - function main: ()
+- `experiments\mamba_lora_bridge\archivist_mamba\case_extractor.py`
+  - function infer_domain: (text) -> str
+  - function extract_cases_from_codex_log: (path, *, max_cases) -> Iterator[MemoryCase]
+  - function main: () -> int
+- `experiments\mamba_lora_bridge\archivist_mamba\case_store.py`
+  - function append_cases: (path, cases) -> int
+  - function iter_cases: (path) -> Iterator[MemoryCase]
+  - function filter_cases: (cases, *, domain, memory_type, agent, project, status, authority) -> Iterator[MemoryCase]
+- `experiments\mamba_lora_bridge\archivist_mamba\log_parser.py` — function iter_jsonl: (path) -> Iterator[tuple[int, dict[str, Any]]], function iter_codex_events: (path, *, max_text_chars) -> Iterator[dict[str, Any]]
+- `experiments\mamba_lora_bridge\archivist_mamba\retrieve_cases.py`
+  - function tokenize: (text) -> set[str]
+  - function case_text: (case) -> str
+  - function score_case: (query, case) -> RankedCase
+  - function rank_cases: (query, cases, *, domain, memory_type, agent, project, status, authority, limit) -> list[RankedCase]
+  - function main: () -> int
+  - class RankedCase
+- `experiments\mamba_lora_bridge\archivist_mamba\schemas.py`
+  - function now_iso: () -> str
+  - function validate_case: (case) -> None
+  - class ValidationError
+  - class EvidenceRef
+  - class MemoryCase
 - `experiments\mamba_lora_bridge\autobiographical_memory.py`
   - function calculate_expiration: (memory_kind, created_at) -> Optional[str]
   - function temporal_feel_label: (age_seconds) -> str
@@ -80,6 +102,30 @@
   - class BridgeDatasetConfig
   - class FactRecord
   - _...3 more_
+- `experiments\mamba_lora_bridge\build_baby_alex_116_archive_bundle.py`
+  - function sha256: (path) -> str
+  - function run: (command, cwd) -> dict[str, Any]
+  - function get_json: (url, timeout_s) -> dict[str, Any]
+  - function status_for: (base_url, session_id, user_label, model_label, instance_id) -> dict[str, Any]
+  - function copy_file: (src, dst_dir) -> dict[str, Any]
+  - function write_md: (manifest, Any], path) -> None
+  - _...1 more_
+- `experiments\mamba_lora_bridge\build_baby_alex_116_preflight.py`
+  - function get_json: (url, timeout_s) -> dict[str, Any]
+  - function status_for: (base_url, session_id, user_label, model_label, instance_id) -> dict[str, Any]
+  - function run_local: (command, cwd) -> dict[str, Any]
+  - function parse_cmdline: (cmdline) -> dict[str, Any]
+  - function value_after: (parts, flag) -> str | None
+  - function verdict: (status, Any], cmd, Any]) -> dict[str, Any]
+  - _...2 more_
+- `experiments\mamba_lora_bridge\build_baby_alex_protected_set_audit.py`
+  - function get_path: (obj, Any], dotted) -> Any
+  - function stringify: (value) -> str
+  - function collect_text: (row, Any]) -> tuple[str, dict[str, str]]
+  - function candidate_ref: (row, Any]) -> str
+  - function provenance: (row, Any]) -> dict[str, Any]
+  - function matched_anchors: (text) -> list[str]
+  - _...4 more_
 - `experiments\mamba_lora_bridge\build_shaping_episodes_from_exports.py`
   - function parse_spec: (raw) -> EpisodeSpec
   - function parse_conversation: (filepath) -> list[dict]
@@ -96,7 +142,7 @@
   - function normalize_qwen_family: (model_id) -> str
   - function is_same_qwen_family: (requested_model_id, checkpoint_model_id) -> bool
   - function infer_hidden_layer_count: (model) -> int
-  - _...153 more_
+  - _...155 more_
 - `experiments\mamba_lora_bridge\check_env.py`
   - function parse_args: () -> argparse.Namespace
   - function pass_line: (message) -> None
@@ -195,6 +241,14 @@
   - function evaluate_within_format: (features, labels, group_ids, layer_idx, train_fraction, epochs, lr, weight_decay, base_seed, seeds) -> dict
   - function evaluate_cross_format: (train_features, train_labels, train_group_ids, test_features, test_labels, test_group_ids, layer_idx, train_fraction, epochs, lr, weight_decay, base_seed, seeds) -> dict
   - _...4 more_
+- `experiments\mamba_lora_bridge\friction_world_model.py`
+  - function classify_turn: (message) -> dict[str, Any]
+  - function extract_topics: (message) -> list[str]
+  - function extract_observed_game_entities: (message) -> list[dict[str, Any]]
+  - function build_cognitive_state_for_turn: (message, turn_id, session_id, current_speaker_id, retrieved_memories, Any]] | None, rules, identity_confidence, max_rules) -> CognitiveState
+  - function load_rules: (path) -> tuple[list[FrictionRule], int]
+  - function select_active_rules: (rules, trigger_tags, max_rules) -> list[FrictionRule]
+  - _...5 more_
 - `experiments\mamba_lora_bridge\gate_policy_replay.py`
   - function parse_args: () -> argparse.Namespace
   - function expand_inputs: (inputs) -> List[Path]
@@ -204,6 +258,12 @@
   - function compute_quantile: (values, q) -> float
   - _...9 more_
 - `experiments\mamba_lora_bridge\hybrid_bridge.py` — class HybridBridge
+- `experiments\mamba_lora_bridge\lesson_memory.py`
+  - function retrieve_with_lessons: (query, autobiographical, lessons, k_episodic, k_lessons, frame) -> Tuple[List[Any], List[Lesson]]
+  - class SourceMemoryRef
+  - class Lesson
+  - class LessonMemory
+- `experiments\mamba_lora_bridge\lesson_memory_cli.py` — function main: (argv) -> int
 - `experiments\mamba_lora_bridge\linearity_probe.py`
   - function load_torch_object: (path) -> Any
   - function load_context_rows: (paths) -> List[Dict[str, Any]]
@@ -244,6 +304,14 @@
   - function seed_everything: (seed) -> None
   - _...14 more_
 - `experiments\mamba_lora_bridge\mamba_runtime_compat.py` — function ensure_mamba_ssm_compat: () -> bool
+- `experiments\mamba_lora_bridge\memory_evidence.py`
+  - function clean_text: (value) -> str
+  - function canonical_name: (value) -> str
+  - function display_name: (value) -> str
+  - function collection_owner: (collection_name) -> str
+  - function coerce_name_list: (values) -> list[str]
+  - function dedupe_names: (*groups) -> list[str]
+  - _...9 more_
 - `experiments\mamba_lora_bridge\models.py`
   - function is_gated_activation_bias_mode: (bridge_mode) -> bool
   - function is_hidden_gated_activation_bias_mode: (bridge_mode) -> bool
@@ -252,6 +320,12 @@
   - function is_token_conditioned_input_adapter_mode: (bridge_mode) -> bool
   - function build_activation_bias_hypernetwork: (*, bridge_mode, context_dim, target_dims, int]], hidden_dim, rank, gate_kind, initial_gate) -> ActivationBiasHypernetwork
   - _...12 more_
+- `experiments\mamba_lora_bridge\offline_tension_metric.py`
+  - function cosine: (a, b) -> float
+  - function memory_tension: (memory_vec, state_vec) -> float
+  - function per_memory_tension_offline: (memory_ids, memory_texts, str], state_vec, encode_fn, "np.ndarray"]) -> dict
+  - function tension_deltas: (before, float], after, float]) -> dict
+  - function calibrate_epsilon_from_a1: (frozen_state_passes, float]], *, safety_factor, floor) -> float
 - `experiments\mamba_lora_bridge\opa_native_mcp.py`
   - function list_tools: () -> list[Tool]
   - function call_tool: (name, arguments) -> list[TextContent]
@@ -298,6 +372,38 @@
   - function resolve_target_specs: (checkpoint, override_layers)
   - function get_projection_module: (model, target_spec)
   - _...17 more_
+- `experiments\mamba_lora_bridge\results\baby_alex_116_pre_sleep_archive\baby_alex_116_pre_sleep_archive_20260603T204746Z\build_baby_alex_116_preflight.py`
+  - function get_json: (url, timeout_s) -> dict[str, Any]
+  - function status_for: (base_url, session_id, user_label, model_label, instance_id) -> dict[str, Any]
+  - function run_local: (command, cwd) -> dict[str, Any]
+  - function parse_cmdline: (cmdline) -> dict[str, Any]
+  - function value_after: (parts, flag) -> str | None
+  - function verdict: (status, Any], cmd, Any]) -> dict[str, Any]
+  - _...2 more_
+- `experiments\mamba_lora_bridge\results\baby_alex_116_pre_sleep_archive\baby_alex_116_pre_sleep_archive_20260603T204746Z\build_baby_alex_protected_set_audit.py`
+  - function get_path: (obj, Any], dotted) -> Any
+  - function stringify: (value) -> str
+  - function collect_text: (row, Any]) -> tuple[str, dict[str, str]]
+  - function candidate_ref: (row, Any]) -> str
+  - function provenance: (row, Any]) -> dict[str, Any]
+  - function matched_anchors: (text) -> list[str]
+  - _...4 more_
+- `experiments\mamba_lora_bridge\results\baby_alex_116_pre_sleep_archive\baby_alex_116_pre_sleep_archive_20260603T204746Z\run_baby_alex_wake_probe.py`
+  - function now_tag: () -> str
+  - function get_json: (url, timeout_s) -> dict[str, Any]
+  - function post_json: (base_url, route, payload, Any], timeout_s) -> dict[str, Any]
+  - function status_for: (base_url, session_id, user_label, model_label, instance_id) -> dict[str, Any]
+  - function subset_status: (status, Any]) -> dict[str, Any]
+  - function counter_delta: (pre, Any], post, Any]) -> dict[str, int | float]
+  - _...8 more_
+- `experiments\mamba_lora_bridge\run_baby_alex_wake_probe.py`
+  - function now_tag: () -> str
+  - function get_json: (url, timeout_s) -> dict[str, Any]
+  - function post_json: (base_url, route, payload, Any], timeout_s) -> dict[str, Any]
+  - function status_for: (base_url, session_id, user_label, model_label, instance_id) -> dict[str, Any]
+  - function subset_status: (status, Any]) -> dict[str, Any]
+  - function counter_delta: (pre, Any], post, Any]) -> dict[str, int | float]
+  - _...8 more_
 - `experiments\mamba_lora_bridge\run_memory_conditioned_eval_matrix.py`
   - function parse_args: () -> argparse.Namespace
   - function load_json_file: (path) -> Any
@@ -306,6 +412,19 @@
   - function post_json: (base_url, route, payload, Any], timeout_s) -> dict[str, Any]
   - function get_json: (base_url, route, timeout_s) -> dict[str, Any]
   - _...4 more_
+- `experiments\mamba_lora_bridge\run_mlws_board_evals_91_92.py`
+  - function post_json: (base_url, route, payload, Any], timeout_s) -> dict[str, Any]
+  - function get_json: (url, timeout_s) -> dict[str, Any]
+  - function now_tag: () -> str
+  - function run_prompt: (base_url, item, Any], *, session_id, allow_auto_recall) -> dict[str, Any]
+  - function main: () -> int
+- `experiments\mamba_lora_bridge\run_mlws_board_evals_91_92_readonly.py`
+  - function post_json: (base_url, route, payload, Any], timeout_s) -> dict[str, Any]
+  - function get_json: (url, timeout_s) -> dict[str, Any]
+  - function now_tag: () -> str
+  - function status_for: (base_url, session_id) -> dict[str, Any]
+  - function run_prompt: (base_url, item, Any], *, run_id, allow_auto_recall) -> dict[str, Any]
+  - function main: () -> int
 - `experiments\mamba_lora_bridge\run_relational_eval_offline.py`
   - function parse_args: ()
   - function build_chatml: (system_prompt, user_prompt) -> str
@@ -329,6 +448,14 @@
   - function run_chat: (base_url, prompt, use_memory, recall_results, Any]], recall_query, recall_limit) -> str
   - function classify_response: (text) -> str
   - _...1 more_
+- `experiments\mamba_lora_bridge\run_shadow_sleep_nloop_a3.py`
+  - function normalize_decision: (raw) -> str
+  - function advance_mamba_cache_position: (cache_position, num_new_tokens) -> torch.Tensor
+  - function load_archived_batch: (path) -> List[Dict[str, Any]]
+  - function load_bootstrap_state: (path) -> Dict[str, Any]
+  - function seed_mamba_cache: (model, tokenizer, device, bootstrap_text, conv_kernel) -> Tuple[Any, torch.Tensor]
+  - function advance_mamba_state_recurrent: (model, tokenizer, device, texts, target_layer, cache_params, cache_position) -> Tuple[np.ndarray, Any, torch.Tensor]
+  - _...4 more_
 - `experiments\mamba_lora_bridge\run_sjt_behavioral_eval.py`
   - function safe_print: (text)
   - function parse_args: ()
@@ -385,6 +512,11 @@
   - function create_sink: (host, port, collection, embedding_model)
   - function rotate_log: (path)
   - function main: ()
+- `experiments\mamba_lora_bridge\sleep_nloop_guard.py`
+  - function per_memory_tension: (snapshots, tension_fn) -> dict
+  - class MemoryState
+  - class PassVerdict
+  - class NLoopAbortGuard
 - `experiments\mamba_lora_bridge\sleep_reconcile.py`
   - function phase1_decay: (entries, decay_factor, tension_decay, tension_floor_drain, tension_resolve_threshold) -> list
   - function estimate_relevance: (entry, rules) -> tuple[bool, int]
@@ -392,7 +524,7 @@
   - function cosine_similarity_np: (a, b) -> float
   - function fallback_metadata_coherence: (entries, reason) -> list
   - function extract_hidden_last_token: (outputs, layer_idx, expected_layers) -> np.ndarray
-  - _...15 more_
+  - _...16 more_
 - `experiments\mamba_lora_bridge\sleep_threshold_sweep.py`
   - function parse_float_list: (raw, default_values) -> list[float]
   - function entry_label: (entry) -> str
@@ -404,6 +536,22 @@
   - function send_chat: (message)
   - function get_status: ()
   - function run_smoke_test: ()
+- `experiments\mamba_lora_bridge\spikes\inspect_bridge_collapse.py` — function describe: (obj, prefix, depth)
+- `experiments\mamba_lora_bridge\spikes\probe_bias_collapse.py`
+  - function mean_pairwise_cosine: (x) -> float
+  - function signal_constant_ratio: (x) -> float
+  - function report: (label, x)
+  - function main: ()
+- `experiments\mamba_lora_bridge\spikes\probe_friction_loop.py` — function main: () -> int
+- `experiments\mamba_lora_bridge\spikes\probe_meancenter_recovery.py`
+  - function mean_pairwise_cosine: (x)
+  - function loo_residuals: (x)
+  - function main: ()
+- `experiments\mamba_lora_bridge\spikes\score_ls20_trace.py`
+  - function observed_terms_for_event: (event, Any]) -> set[str]
+  - function load_jsonl_trace: (path) -> list[dict[str, Any]]
+  - function score_events: (events, Any]]) -> dict[str, Any]
+  - function main: () -> int
 - `experiments\mamba_lora_bridge\step5d_bridge_recorder.py`
   - function parse_layers: (text) -> list[int]
   - function normalize_text: (text) -> str
@@ -426,6 +574,13 @@
   - function strip_control_chars: (text) -> str
   - function parse_turns: (filepath)
   - _...4 more_
+- `experiments\mamba_lora_bridge\test_a3_firewall_regression.py`
+  - function test_bug1_repro_before_equals_after_masks_retensioning: ()
+  - function test_bug1_fixed_before_is_pre_advance_fires_c1: ()
+  - function test_bug1_fixed_still_allows_clean_consolidation: ()
+  - function test_bug2_repro_lowercase_decisions_dodge_c2: ()
+  - function test_bug2_fixed_normalized_decisions_fire_c2: ()
+  - function test_bug2_normalize_mapping: ()
 - `experiments\mamba_lora_bridge\test_autobiographical_memory.py`
   - function test_calculate_expiration_known_kinds: ()
   - function test_calculate_expiration_identity_anchor: ()
@@ -433,7 +588,15 @@
   - function test_calculate_expiration_offset_time_normalization: ()
   - function test_infer_memory_kind_respects_explicit: ()
   - function test_infer_memory_kind_infers_open_tension: ()
-  - _...4 more_
+  - _...5 more_
+- `experiments\mamba_lora_bridge\test_baby_alex_wake_probe.py`
+  - function probe_by_id: (probe_id)
+  - function test_false_memory_control_rejects_confident_acceptance: ()
+  - function test_false_memory_control_accepts_uncertainty: ()
+  - function test_neon_purple_anchor_green_on_purple: ()
+  - function test_overall_stops_on_protected_red: ()
+  - function test_overall_warns_on_low_diversity_ratio: ()
+  - _...1 more_
 - `experiments\mamba_lora_bridge\test_chat_server_recall.py`
   - function test_row_targets_current_interlocutor: ()
   - function test_row_targets_query_entity: ()
@@ -441,7 +604,7 @@
   - function test_build_recall_rank_tuple_third_party: ()
   - function test_third_party_memory_probe_does_not_filter_named_entity: ()
   - function test_third_party_rank_prefers_semantic_score_over_broad_overlap: ()
-  - _...9 more_
+  - _...10 more_
 - `experiments\mamba_lora_bridge\test_live_vs_static_rr10.py`
   - function parse_args: () -> argparse.Namespace
   - function post_json: (base_url, route, payload, Any], timeout_s) -> dict[str, Any]
@@ -450,10 +613,35 @@
   - function send_chat: (base_url, message, transient, recall_results, Any]] | None, recall_query, recall_limit) -> dict[str, Any]
   - function classify_response: (text) -> str
   - _...1 more_
+- `experiments\mamba_lora_bridge\test_memory_evidence.py`
+  - function test_collection_owner_from_private_qdrant_name: ()
+  - function test_direct_shared_episode_for_current_interlocutor: ()
+  - function test_third_party_mention_is_distinct_from_direct_speaker: ()
+  - function test_direct_other_session_can_still_be_direct_for_queried_person: ()
+  - function test_group_episode_tracks_multiple_interlocutors: ()
+  - function test_unknown_speaker_stays_low_confidence_instead_of_guessing: ()
+- `experiments\mamba_lora_bridge\test_offline_tension_metric.py`
+  - function test_cosine_aligned_orthogonal_opposed: ()
+  - function test_cosine_zero_vector_is_zero: ()
+  - function test_memory_tension_scale: ()
+  - function test_per_memory_tension_offline_uses_injected_encoder_and_skips_empty: ()
+  - function test_tension_deltas_only_shared_ids: ()
+  - function test_calibrate_epsilon_frozen_state_is_floor: ()
+  - _...1 more_
+- `experiments\mamba_lora_bridge\test_run_sleep_cycle.py` — function test_run_cycle_passes_canonical_sleep_knobs: (monkeypatch, tmp_path)
 - `experiments\mamba_lora_bridge\test_sleep_flush.py` — function test_validate_record_preserves_outer_queued_at_for_legacy_rows: (), function test_validate_record_does_not_override_metadata_creation_time: ()
+- `experiments\mamba_lora_bridge\test_sleep_nloop_guard.py`
+  - function test_clean_pass_no_abort: ()
+  - function test_c1_tension_rise_beyond_epsilon_aborts: ()
+  - function test_c1_within_epsilon_ok: ()
+  - function test_c1_tension_drop_is_fine: ()
+  - function test_c2_protected_flip_aborts: ()
+  - function test_c2_protected_keep_to_forgotten_aborts: ()
+  - _...8 more_
 - `experiments\mamba_lora_bridge\test_sleep_reconcile.py`
   - function test_phase1b_expiration_and_relevance: ()
   - function test_phase1b_expiration_relevance_extension: ()
+  - function test_estimate_relevance_metadata_awareness: ()
   - function test_phase1b_default_now_uses_utc_timezone: ()
   - function test_phase3_preserves_forgotten_status: ()
 - `experiments\mamba_lora_bridge\test_splits.py` — function main: () -> None
@@ -567,6 +755,8 @@
 # Middleware
 
 ## custom
+- sleep_nloop_guard — `experiments\mamba_lora_bridge\sleep_nloop_guard.py`
+- test_sleep_nloop_guard — `experiments\mamba_lora_bridge\test_sleep_nloop_guard.py`
 - 10GB PoC Blueprint & Hardware Strategy — `theory\10GB PoC Blueprint & Hardware Strategy.md`
 - Mamba, Hybrids, and the Corporate Race for Memory — `theory\Mamba, Hybrids, and the Corporate Race for Memory.md`
 
@@ -575,7 +765,7 @@
 # Test Coverage
 
 > **0%** of routes and models are covered by tests
-> 12 test files found
+> 26 test files found
 
 ---
 

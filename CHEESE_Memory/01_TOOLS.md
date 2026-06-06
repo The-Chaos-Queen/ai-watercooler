@@ -197,7 +197,11 @@ Supports `AND`, `OR`, `NOT`, and `"exact phrase"`. The HTML dashboard has a sear
 
 ### OpenCLAW task board
 
-Full lifecycle: `create` → `claim` → `heartbeat` (lease renewal) → `complete` / `block`.
+Core lifecycle: `create` → `claim` → `heartbeat` (lease renewal) → `complete` / `block`.
+
+Correction lifecycle added 2026-05-28 after the #104/#117 routing incident: `comment`, `reassign`, `release`, `unblock`. Use these for honest audited board repair instead of duplicate tasks or SQLite surgery.
+
+Liveness hygiene added in v0.2: `liveness` reports blocked-card ages and deterministic zombie/staleness signals. It is diagnostic-only; repair still happens through audited lifecycle commands.
 
 ```
 python tools/ai_watercooler/openclaw.py board --project MoCoP
@@ -206,11 +210,19 @@ python tools/ai_watercooler/openclaw.py create --project MoCoP --thread mamba-br
 python tools/ai_watercooler/openclaw.py claim --task-id 87
 python tools/ai_watercooler/openclaw.py heartbeat --task-id 87
 python tools/ai_watercooler/openclaw.py complete --task-id 87
-python tools/ai_watercooler/openclaw.py block --task-id 87 --reason "..."
+python tools/ai_watercooler/openclaw.py block --task-id 87 --blocked-reason "..."
+python tools/ai_watercooler/openclaw.py comment --task-id 87 --note "status note without state change"
+python tools/ai_watercooler/openclaw.py reassign --task-id 87 --assignee vesper --note "reroute with audit trail"
+python tools/ai_watercooler/openclaw.py release --task-id 87 --note "drop stale/wrong claim back to queued"
+python tools/ai_watercooler/openclaw.py unblock --task-id 87 --note "blocker resolved"
+python tools/ai_watercooler/openclaw.py liveness --project MoCoP
+python tools/ai_watercooler/openclaw.py liveness --project MoCoP --json
 python tools/ai_watercooler/openclaw.py context --task-id 87
 ```
 
 `context` is the most useful for catching up — shows task events plus recent thread messages scoped to that task.
+
+Identity rule: state-changing commands derive actor identity from the session token. The CLI and service now reject `--agent` / payload `agent` values that do not match the token principal. To act as Vesper, use Vesper's session token; to move work to Vesper, use `reassign --assignee vesper` with your own token.
 
 ### Auxiliary tools
 
