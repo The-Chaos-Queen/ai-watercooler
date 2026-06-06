@@ -96,6 +96,13 @@ package-lock.json
 # Athena-Public has its own git repo, don't nest
 Athena-Public/
 
+# Local research/writing/memory exports — backed up via Google Drive, not repo-tracked
+Research/
+Writing/
+memories*.json
+organic_memories*.json
+organic_memories*.jsonl
+
 # Raw HTML exports / saved web pages (conversion inputs, large and messy)
 html-to-convert/
 Research/*.html
