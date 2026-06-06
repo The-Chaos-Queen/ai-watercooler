@@ -2,6 +2,7 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-06-06 17:22 UTC] git | MoCoP | Laura: feat(mocop): add memory quality controller (26fc6cb)
 [2026-06-06 14:19 UTC] git | tools | Laura: feat(watercooler): add OpenCLAW liveness watchdog (e7ef420)
 [2026-06-06 14:19 UTC] git | MoCoP | Laura: data(mocop): archive Baby Alex sleep QC artifacts (00f6bd7)
 [2026-06-06 14:19 UTC] git | MoCoP | Laura: chore(mocop): add Baby Alex QC scripts and probe runners (6dbff9b)

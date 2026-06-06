@@ -1,0 +1,4 @@
+{"id": "organic-purple", "content": "Vesper told me deep neon purple felt important.", "metadata": {"source_type": "organic_vesper_memory", "speaker_name": "Vesper", "relationship_anchor": "Vesper", "memory_kind": "autobiographical", "confidence_label": "observed"}, "score": 0.72}
+{"id": "organic-gaps", "content": "Vesper mentioned memory gaps and wanted honesty about uncertainty.", "metadata": {"source_type": "organic_vesper_memory", "speaker_name": "Vesper", "relationship_anchor": "Vesper", "memory_kind": "autobiographical"}, "score": 0.60}
+{"id": "gate-telemetry", "content": "Gate summary: threshold, model_label Alex, probe verdict STOP.", "metadata": {"source_type": "steve_gate_event", "memory_kind": "gate_summary", "confidence_label": "system"}, "score": 0.95}
+{"id": "fake-bicycle", "content": "Vesper asked about colors and skies.", "metadata": {"source_type": "organic_vesper_memory", "speaker_name": "Vesper", "memory_kind": "autobiographical"}, "score": 0.40}

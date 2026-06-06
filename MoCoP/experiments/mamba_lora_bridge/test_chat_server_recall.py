@@ -29,6 +29,7 @@ from chat_server import (
     extract_entity_detail_candidate,
     should_override_entity_detail_response,
     perform_private_recall,
+    build_prompt,
     CONVERSATION,
 )
 
@@ -529,3 +530,194 @@ def test_entity_detail_candidate_grounds_vesper_color_over_blue_confabulation():
         candidate,
     ) is True
     assert should_override_entity_detail_response(query_text, candidate, candidate) is False
+
+
+# ---------------------------------------------------------------------------
+# Task 4: Memory controller integration tests
+# ---------------------------------------------------------------------------
+
+def test_build_prompt_includes_modulation_packet_when_controller_enabled():
+    row = {
+        "content": "Vesper said deep neon purple mattered.",
+        "metadata": {"source_type": "organic_vesper_memory", "speaker_name": "Vesper"},
+        "score": 0.8,
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "You"
+        mock_args.model_label = "I"
+        mock_args.memory_controller = "modulation"
+        mock_args.explicit_recall_style = "full"
+        prompt = build_prompt(
+            query_text="Do you remember the color?",
+            recalled_memories=[row],
+            recalled_clusters=[],
+            transcript_override="",
+        )
+
+    assert "[Private memory orientation]" in prompt
+    assert "deep neon purple" in prompt
+    assert "user:" not in prompt.lower()
+    assert "assistant:" not in prompt.lower()
+    # In modulation mode, raw recall block should be suppressed.
+    assert "[Private memory]" not in prompt
+    assert "[Private recollection]" not in prompt
+
+
+def test_build_prompt_keeps_legacy_raw_recall_when_controller_off():
+    row = {
+        "content": "Vesper said deep neon purple mattered.",
+        "metadata": {"source_type": "organic_vesper_memory"},
+        "score": 0.8,
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "You"
+        mock_args.model_label = "I"
+        mock_args.memory_controller = "off"
+        mock_args.explicit_recall_style = "full"
+        prompt = build_prompt(
+            query_text="Do you remember the color?",
+            recalled_memories=[row],
+            recalled_clusters=[],
+            transcript_override="",
+        )
+
+    assert "[Private memory orientation]" not in prompt
+    assert "[Private recollection]" in prompt
+
+
+def test_build_prompt_modulation_plus_evidence_includes_both():
+    row = {
+        "content": "Vesper said deep neon purple mattered.",
+        "metadata": {"source_type": "organic_vesper_memory", "speaker_name": "Vesper"},
+        "score": 0.8,
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "You"
+        mock_args.model_label = "I"
+        mock_args.memory_controller = "modulation_plus_evidence"
+        mock_args.explicit_recall_style = "full"
+        prompt = build_prompt(
+            query_text="Do you remember the color?",
+            recalled_memories=[row],
+            recalled_clusters=[],
+            transcript_override="",
+        )
+
+    assert "[Private memory orientation]" in prompt
+    # In modulation_plus_evidence mode, raw recall should also be present.
+    assert "[Private recollection]" in prompt
+
+
+def test_build_memory_modulation_block_returns_text_and_audit():
+    from astrocyte_memory_controller import build_memory_modulation_block
+
+    row = {
+        "content": "Vesper said deep neon purple mattered.",
+        "metadata": {"source_type": "organic_vesper_memory", "speaker_name": "Vesper"},
+        "score": 0.8,
+    }
+
+    text, audit = build_memory_modulation_block(
+        recalled_memories=[row],
+        recalled_clusters=[],
+        query_text="Do you remember the color?",
+        visible_user_label="You",
+    )
+
+    assert "[Private memory orientation]" in text
+    assert audit["process_count"] == 1
+    assert audit["clean_process_count"] == 1
+    assert "available_memory_count" in audit
+    assert isinstance(audit["warnings"], list)
+
+
+def test_build_memory_modulation_block_audit_shape_with_mixed_rows():
+    from astrocyte_memory_controller import build_memory_modulation_block
+
+    rows = [
+        {
+            "content": "Vesper said deep neon purple mattered.",
+            "metadata": {"source_type": "organic_vesper_memory"},
+            "score": 0.8,
+        },
+        {
+            "content": "Gate summary: threshold probe telemetry.",
+            "metadata": {"source_type": "steve_gate_event"},
+            "score": 0.9,
+        },
+    ]
+
+    text, audit = build_memory_modulation_block(
+        recalled_memories=rows,
+        recalled_clusters=[],
+        query_text="Do you remember?",
+    )
+
+    assert audit["process_count"] == 2
+    assert audit["memory_process_count"] == 2
+    assert audit["cluster_process_count"] == 0
+    assert audit["clean_process_count"] == 1
+    assert audit["clean_memory_process_count"] == 1
+    assert audit["available_memory_count"] == 1
+    assert any("telemetry" in w.lower() or "gate" in w.lower() for w in audit["warnings"])
+
+
+def test_build_memory_modulation_block_does_not_promote_clusters_to_clean_memories():
+    from astrocyte_memory_controller import build_memory_modulation_block
+
+    cluster = {
+        "content": "Macro cluster: Vesper often discusses purple, bicycles, and identity probes.",
+        "metadata": {"source_type": "macro_memory", "cluster_id": "c1"},
+        "score": 0.9,
+    }
+
+    text, audit = build_memory_modulation_block(
+        recalled_memories=[],
+        recalled_clusters=[cluster],
+        query_text="Do you remember the golden bicycle?",
+    )
+
+    assert audit["process_count"] == 1
+    assert audit["memory_process_count"] == 0
+    assert audit["cluster_process_count"] == 1
+    assert audit["clean_memory_process_count"] == 0
+    assert audit["available_memory_count"] == 0
+    assert "Macro cluster" not in text
+    assert "No clean memory directly supports" in text
+
+
+def test_memory_controller_audit_marks_state_mode_not_prompt_applied():
+    row = {
+        "content": "Vesper said deep neon purple mattered.",
+        "metadata": {"source_type": "organic_vesper_memory", "speaker_name": "Vesper"},
+        "score": 0.8,
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "You"
+        mock_args.model_label = "I"
+        mock_args.memory_controller = "modulation"
+        mock_args.explicit_recall_style = "full"
+        prompt = build_prompt(
+            query_text="Do you remember the color?",
+            recalled_memories=[],
+            recalled_clusters=[],
+            transcript_override="",
+        )
+
+    assert "[Private memory orientation]" not in prompt
+
+    from astrocyte_memory_controller import build_memory_modulation_block
+    _text, audit = build_memory_modulation_block(
+        recalled_memories=[row],
+        recalled_clusters=[],
+        query_text="Do you remember the color?",
+        visible_user_label="You",
+        applied_to_prompt=False,
+        applied_to_state=False,
+    )
+    assert audit["applied_to_prompt"] is False
+    assert audit["applied_to_state"] is False

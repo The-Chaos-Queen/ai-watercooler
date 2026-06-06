@@ -3276,3 +3276,79 @@ KMP_DUPLICATE_LIB_OK=TRUE python -m pytest \
 
 **Deployment status:**
 Local only. Not synced to ML-WS.
+
+---
+
+## 2026-06-06 - Entry 54: Memory Quality Controller — Astrocyte-Inspired Deterministic Modulation Layer
+
+**Step:** D2 retrieval → answer-use (Qdrant recall quality)
+
+**OpenCLAW:** Orchestration post #579, ship report #580
+
+**Trigger:**
+First real sleep probe results (Monk #575-576, Vesper #577) confirmed Mamba state leaking works but exposed Qdrant recall as the weakest link: `perform_private_recall` hard-filtered identity probes to `source_type=steve_gate_event`, surfacing old telemetry over organic autobiographical rows. Even when pure-only Qdrant returned correct hits, the 1.5B ignored them — the coupling between retrieval and generation was broken.
+
+**Inspiration:**
+Kozachkov, Slotine, Krotov (2025). "Neuron-astrocyte associative memory." PNAS 122(21). The paper's three-timescale model (neurons/synapses/astrocyte processes) inspired this retrieval-quality scaffold. This implementation is not a biological astrocyte model or Dense Associative Memory; it is the bounded engineering slice that replaces raw recall injection with structured quality/modulation packets.
+
+**Implementation (Elf, strict TDD):**
+
+New module: `astrocyte_memory_controller.py` (295 lines, stdlib only)
+- `MemoryProcess`: frozen dataclass wrapping each recalled row with source quality (organic=0.95, gate=0.15), salience, confidence, contamination risk
+- `ModulationPacket`: compact wake-state guidance — ranked clean memories, response policy, warnings
+- `build_memory_processes()`: scores rows by source type, telemetry marker detection, retrieval score
+- `build_modulation_packet()`: selects clean memories, applies fake-claim guard (golden bicycle test)
+- `format_modulation_packet()`: renders as `[Private memory orientation]` block — no user/assistant labels
+- `build_memory_modulation_block()`: convenience wrapper returning (text, audit_dict), with memory/cluster counts separated so macro clusters do not masquerade as direct autobiographical evidence
+
+Integration: `chat_server.py` — `--memory-controller` CLI flag
+- `off` (default): existing raw recall behavior, zero change
+- `modulation`: replaces raw recall block with modulation packet only
+- `modulation_plus_evidence`: modulation packet + legacy raw recall block
+- Audit metadata added to response JSON: process_count, clean_process_count, warnings, available_memory_count
+
+Fake-memory guard: extracts salient query terms and checks for unsupported concrete terms against clean memory rows. If a probe includes an unsupported specific claim (e.g., "golden bicycle") or no clean memory supports the query, appends: "No clean memory directly supports the query-specific claim; do not affirm it as remembered."
+
+Prerequisite (Monk, Task 1): Killed `steve_gate_event` hard-filter in `perform_private_recall`, demoted telemetry in ranking (organic > autobiographical > macro > unknown > gate), fixed generic-label bypass. 19 recall tests green.
+
+**Tests:**
+- `test_astrocyte_memory_controller.py`: 8 tests (organic row wrapping, telemetry demotion, no user/assistant labels, fake-claim guard positive+negative/partial/no-clean, snippet sanitization)
+- `test_chat_server_recall.py`: 26 tests (19 existing recall + 7 controller integration/audit tests)
+- `test_memory_controller_fixture_probe.py`: 3 tests (three-mode output, audit metadata, label safety)
+
+**Validation:**
+
+Local review pass (WSL/Hermes, Python 3.11):
+```
+python3 -m pytest test_chat_server_recall.py tests/test_astrocyte_memory_controller.py tests/test_memory_controller_fixture_probe.py -q
+37 passed in 1.01s
+```
+
+ML-WS post-review validation (Ubuntu, torch311, Python 3.11.15):
+```
+/home/isabell/miniforge3/envs/torch311/bin/python -m pytest test_chat_server_recall.py tests/test_astrocyte_memory_controller.py tests/test_memory_controller_fixture_probe.py -q
+37 passed in 0.16s
+```
+
+Fixture probe (deterministic, no model):
+```
+python run_memory_controller_fixture_probe.py --output /tmp/probe.json
+Wrote 3 runs (raw / modulation / modulation_plus_evidence)
+```
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/astrocyte_memory_controller.py`
+- `MoCoP/experiments/mamba_lora_bridge/run_memory_controller_fixture_probe.py`
+- `MoCoP/experiments/mamba_lora_bridge/tests/test_astrocyte_memory_controller.py`
+- `MoCoP/experiments/mamba_lora_bridge/tests/test_memory_controller_fixture_probe.py`
+- `MoCoP/experiments/mamba_lora_bridge/tests/fixtures/memory_controller_rows.jsonl`
+- `MoCoP/experiments/mamba_lora_bridge/MEMORY_CONTROLLER_RUNBOOK.md`
+- Purple's architecture plan: `.hermes/plans/2026-06-06-astrocyte-memory-controller.md`
+
+**Deployment status:**
+Synced and verified on ML-WS after Monk review hardening. Default off — existing behavior unchanged. Ready for live A/B/C probe.
+
+**Next steps (per orchestration #579):**
+- Workstream B: DAM Phase 0 spike — build DenseAssociativeMemory class, compare quartic retrieval vs cosine vs HDBSCAN on D2 panel. Needs owner.
+- Workstream C: Bridge dynamic range characterization — measure alpha distribution across turns. Prerequisite for Phase 1 modulation coupling. Needs owner.
+- Gate: After B+C, pack decides whether Phase 1 (energy-landscape-derived modulation) is worth pursuing.

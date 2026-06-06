@@ -36,6 +36,12 @@ from memory_evidence import (
     THIRD_PARTY,
     classify_evidence_for_subject,
 )
+from astrocyte_memory_controller import (
+    build_memory_processes,
+    build_modulation_packet,
+    format_modulation_packet,
+    build_memory_modulation_block,
+)
 from failure_detector import detect_failure
 from mamba_runtime_compat import ensure_mamba_ssm_compat
 from models import (
@@ -4666,10 +4672,27 @@ def build_prompt(
         lines.append(f"Write exactly one direct reply to {ARGS.user_label} and nothing else.")
     lines.append("[/Private conversation setup]")
 
-    if cluster_block:
-        lines.append(cluster_block)
-    if recall_block:
-        lines.append(recall_block)
+    # Memory controller: optionally replace raw recall with modulation packet.
+    controller_mode = getattr(ARGS, "memory_controller", "off")
+    modulation_block = ""
+    if controller_mode in {"modulation", "modulation_plus_evidence"} and (recalled_memories or recalled_clusters):
+        modulation_block, _audit = build_memory_modulation_block(
+            recalled_memories=recalled_memories or [],
+            recalled_clusters=recalled_clusters or [],
+            query_text=query_text,
+            visible_user_label=getattr(ARGS, "user_label", ""),
+        )
+
+    if modulation_block:
+        lines.append(modulation_block)
+
+    if controller_mode != "modulation":
+        # In "off" or "modulation_plus_evidence" mode, include raw evidence.
+        if cluster_block:
+            lines.append(cluster_block)
+        if recall_block:
+            lines.append(recall_block)
+
     if transcript:
         lines.extend(
             [
@@ -5210,6 +5233,20 @@ class ChatHandler(BaseHTTPRequestHandler):
                     recall_mode=recall_mode,
                 )
 
+                # Compute memory controller audit metadata (cheap, deterministic).
+                memory_controller_mode = getattr(ARGS, "memory_controller", "off")
+                memory_controller_audit = None
+                if memory_controller_mode != "off" and (recalled_memories or recalled_clusters):
+                    _mc_text, memory_controller_audit = build_memory_modulation_block(
+                        recalled_memories=recalled_memories or [],
+                        recalled_clusters=recalled_clusters or [],
+                        query_text=user_msg,
+                        visible_user_label=getattr(ARGS, "user_label", ""),
+                        applied_to_prompt=memory_integration_mode != "state",
+                        applied_to_state=False,
+                    )
+                    memory_controller_audit["mode"] = memory_controller_mode
+
                 raw_response, response = generate_reply(prompt)
                 if not response:
                     print(f"[warn] Empty reply after sanitize. Raw decode: {raw_response!r}")
@@ -5219,10 +5256,11 @@ class ChatHandler(BaseHTTPRequestHandler):
                     print(f"[warn] Detected {response_issue}. Raw decode: {raw_response!r}")
                     rescue_prompt = build_prompt(
                         query_text=user_msg,
-                        recalled_memories=recalled_memories,
-                        recalled_clusters=recalled_clusters,
+                        recalled_memories=prompt_memories,
+                        recalled_clusters=prompt_clusters,
                         rescue=True,
                         recall_probe=recall_probe,
+                        transcript_override=transcript_override,
                         recall_mode=recall_mode,
                     )
                     raw_response, response = generate_reply(
@@ -5328,6 +5366,7 @@ class ChatHandler(BaseHTTPRequestHandler):
                             "results": recalled_memories,
                             "clusters": recalled_clusters,
                         },
+                        "memory_controller": memory_controller_audit,
                         "session": {
                             "session_id": session.session_id,
                             "user_label": ARGS.user_label,
@@ -5529,6 +5568,12 @@ def main():
     parser.add_argument("--cluster-recall-limit", type=int, default=2)
     parser.add_argument("--cluster-recall-threshold", type=float, default=0.25)
     parser.add_argument("--explicit-recall-style", choices=["full", "answer_first", "answer_only", "factual"], default="factual")
+    parser.add_argument(
+        "--memory-controller",
+        choices=["off", "modulation", "modulation_plus_evidence"],
+        default="off",
+        help="Default off. When enabled, convert recalled memories into a compact private memory orientation packet before generation.",
+    )
 
     parser.set_defaults(dual_gate_enabled=True)
     parser.set_defaults(qdrant_enabled=True)
