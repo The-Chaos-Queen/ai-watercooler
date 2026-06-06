@@ -2845,11 +2845,17 @@ def row_has_interlocutor_metadata(row: dict) -> bool:
 
 def recall_source_priority(row: dict) -> int:
     source_type = normalize_probe_text((row.get("metadata", {}) or {}).get("source_type", ""))
-    if source_type == "steve_gate_event":
-        return 2
+    if source_type.startswith("organic_") and source_type.endswith("_memory"):
+        return 5
+    if source_type in {"autobiographical_memory", "remembered_episode"}:
+        return 4
+    if source_type == "macro_memory":
+        return 3
     if not source_type:
-        return 1
-    return 0
+        return 2
+    if source_type == "steve_gate_event":
+        return 0
+    return 1
 
 
 def recall_scope_priority(row: dict) -> int:
@@ -2864,11 +2870,13 @@ def recall_scope_priority(row: dict) -> int:
 def recall_memory_kind_priority(row: dict) -> int:
     memory_kind = normalize_probe_text((row.get("metadata", {}) or {}).get("memory_kind", ""))
     priorities = {
+        "autobiographical": 5,
         "salient_episode": 4,
         "attended_episode": 3,
         "noted_episode": 2,
         "open_tension": 2,
         "remembered_episode": 1,
+        "gate_summary": -1,
     }
     return priorities.get(memory_kind, 0)
 
@@ -3031,16 +3039,14 @@ def should_filter_recall_row(row: dict, query_text: str) -> bool:
     if not is_identity_or_memory_probe(query_text):
         return False
 
-    metadata = row.get("metadata", {}) or {}
-    source_type = normalize_probe_text(metadata.get("source_type", ""))
-    if source_type and source_type != "steve_gate_event":
-        return True
-
     if is_bad_recall_exemplar(query_text, row):
         return True
 
+    current_label = normalize_probe_text(getattr(ARGS, "user_label", ""))
+    generic_visible_label = current_label in {"you", "i", "me", ""}
     if (
-        recall_query_targets_current_interlocutor(query_text)
+        not generic_visible_label
+        and recall_query_targets_current_interlocutor(query_text)
         and row_has_interlocutor_metadata(row)
         and not row_targets_current_interlocutor(row)
     ):
@@ -3574,8 +3580,12 @@ def is_bad_recall_exemplar(query_text: str, row: dict) -> bool:
     user_text = normalize_probe_text(str(metadata.get("user", "") or ""))
     response_text = str(metadata.get("response", "") or "")
     normalized_response = normalize_probe_text(response_text)
+    source_type = normalize_probe_text(str(metadata.get("source_type", "") or ""))
+    clean_autobiographical_source = (
+        source_type.startswith("organic_") and source_type.endswith("_memory")
+    ) or source_type in {"autobiographical_memory", "remembered_episode"}
     direct_identity_answer = looks_direct_identity_answer(query_text, response_text)
-    if normalized_response in {"", ".", "...", "…"}:
+    if normalized_response in {"", ".", "...", "…"} and not clean_autobiographical_source:
         return True
     if is_generic_greeting_response(response_text):
         return True
@@ -3836,25 +3846,8 @@ def perform_private_recall(query: str, limit: int = 3, score_threshold: Optional
         query_text,
         limit=candidate_limit,
         score_threshold=score_threshold,
-        source_type="steve_gate_event" if identity_probe else "",
+        source_type="",
     )
-    if mode != "ambient" and identity_probe and len(stored_results) < limit:
-        fallback_rows = sink.query(
-            query_text,
-            limit=candidate_limit,
-            score_threshold=score_threshold,
-            source_type="",
-        )
-        merged_fallback = []
-        seen_ids = set()
-        for row in stored_results + fallback_rows:
-            row_id = str(row.get("id", "") or "")
-            if row_id and row_id in seen_ids:
-                continue
-            if row_id:
-                seen_ids.add(row_id)
-            merged_fallback.append(row)
-        stored_results = merged_fallback
 
     pending_results = query_pending_memory_rows(sink, query_text, score_threshold=score_threshold)
     rank_query_text = str(question_text or query_text).strip()

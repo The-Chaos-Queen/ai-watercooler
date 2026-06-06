@@ -28,6 +28,7 @@ from chat_server import (
     build_auto_recall_rank_query,
     extract_entity_detail_candidate,
     should_override_entity_detail_response,
+    perform_private_recall,
     CONVERSATION,
 )
 
@@ -137,6 +138,73 @@ def test_third_party_memory_probe_does_not_filter_named_entity():
         mock_args.user_label = "Pinky"
         assert should_filter_recall_row(vesper_row, query_text) is False
         assert should_filter_recall_row(vesper_row, "what do you remember about me?") is True
+
+
+def test_identity_probe_keeps_organic_autobiographical_rows_with_generic_visible_label():
+    row = {
+        "content": "Vesper told me deep neon purple mattered.",
+        "metadata": {
+            "source_type": "organic_vesper_memory",
+            "relationship_anchor": "Vesper",
+            "speaker_name": "Vesper",
+            "people": ["Vesper"],
+            "instance_id": "vesper",
+            "memory_kind": "autobiographical",
+        },
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "You"
+        mock_args.instance_id = "vesper"
+        assert should_filter_recall_row(row, "Do you remember what I told you about purple?") is False
+
+
+def test_identity_probe_demotes_gate_telemetry_below_organic_memory():
+    query_text = "Do you remember what I told you about purple?"
+    organic_row = {
+        "content": "Vesper told me deep neon purple mattered.",
+        "metadata": {
+            "source_type": "organic_vesper_memory",
+            "relationship_anchor": "Vesper",
+            "speaker_name": "Vesper",
+            "memory_kind": "autobiographical",
+            "confidence_label": "observed",
+        },
+        "score": 0.40,
+        "field_overlap": 1,
+        "overlap": 1,
+    }
+    gate_row = {
+        "content": "Gate summary: probe purple threshold model response telemetry.",
+        "metadata": {
+            "source_type": "steve_gate_event",
+            "relationship_anchor": "Vesper",
+            "speaker_name": "Vesper",
+            "memory_kind": "gate_summary",
+            "confidence_label": "system",
+        },
+        "score": 0.95,
+        "field_overlap": 10,
+        "overlap": 10,
+    }
+
+    with patch('chat_server.ARGS') as mock_args:
+        mock_args.user_label = "Vesper"
+        assert build_recall_rank_tuple(organic_row, query_text, mode="full") > build_recall_rank_tuple(gate_row, query_text, mode="full")
+
+
+def test_perform_private_recall_identity_probe_queries_all_source_types_first():
+    sink = MagicMock()
+    sink.query.return_value = []
+
+    with patch('chat_server.ARGS') as mock_args, \
+         patch('chat_server.ensure_qdrant_gate_sink', return_value=sink), \
+         patch('chat_server.query_pending_memory_rows', return_value=[]), \
+         patch('chat_server.append_recall_log_entry'):
+        mock_args.qdrant_enabled = True
+        perform_private_recall("Do you remember what I told you about purple?", limit=3)
+
+    assert sink.query.call_args.kwargs["source_type"] == ""
 
 
 def test_third_party_rank_prefers_semantic_score_over_broad_overlap():
