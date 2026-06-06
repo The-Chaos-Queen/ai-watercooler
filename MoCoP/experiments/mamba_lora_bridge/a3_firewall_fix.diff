@@ -1,0 +1,78 @@
+--- /mnt/user-data/uploads/run_shadow_sleep_nloop_a3.py	2026-05-28 21:10:36.927572000 +0000
++++ run_shadow_sleep_nloop_a3.py	2026-05-28 21:22:46.849178692 +0000
+@@ -52,6 +52,29 @@
+ )
+ 
+ 
++# sleep_reconcile.py uses lowercase decision strings ("keep","weakened","discard");
++# the guard's canonical constants are uppercase ("KEEP","WEAKEN","DISCARD"). Feeding
++# raw reconcile values straight into MemoryState makes the guard's C2 protected-flip
++# check (p.decision == KEEP and m.decision in {WEAKEN,DISCARD,FORGOTTEN}) silently
++# never match. Normalize at the seam. We do NOT change reconcile's constant values,
++# which are persisted into snapshots and Qdrant metadata.
++_DECISION_NORMALIZE = {
++    "keep": KEEP, "KEEP": KEEP,
++    "weaken": WEAKEN, "weakened": WEAKEN, "WEAKEN": WEAKEN,
++    "discard": DISCARD, "DISCARD": DISCARD,
++    "forgotten": FORGOTTEN, "FORGOTTEN": FORGOTTEN,
++    "uncertain": "UNCERTAIN", "UNCERTAIN": "UNCERTAIN",  # guard has no UNCERTAIN; never a weakening
++}
++
++
++def normalize_decision(raw) -> str:
++    """Map a reconcile-style decision string to the guard's canonical constant."""
++    if raw is None:
++        return KEEP
++    s = str(raw).strip()
++    return _DECISION_NORMALIZE.get(s) or _DECISION_NORMALIZE.get(s.lower()) or s.upper()
++
++
+ def advance_mamba_cache_position(cache_position: torch.Tensor, num_new_tokens: int = 1) -> torch.Tensor:
+     """Local definition of the helper from chat_server.py (Zwölf #542)."""
+     if cache_position is None:
+@@ -400,12 +423,16 @@
+         memory_texts = {str(e.get("id", i)): str(e.get("content", "")) 
+                         for i, e in enumerate(entries)}
+ 
+-        # Snapshot state vector *before* this pass's advance for the metric.
+-        # IMPORTANT: Must be a true clone. current_vector is mutated by the recurrent advance below.
+-        # Using .clone() + .numpy() guarantees we do not get an alias that would make before/after identical.
+-        before_vec = current_vector.clone().numpy() if isinstance(current_vector, torch.Tensor) else np.asarray(current_vector).copy()
+-
+-        # After the advance in this pass, current_vector has been updated
++        # State BEFORE this pass's advance is prev_vector (captured at the top of the
++        # loop, *before* advance_mamba_state_recurrent reassigned current_vector above).
++        # State AFTER is the freshly evolved current_vector.
++        #
++        # CRITICAL: the advance has ALREADY run above this point, so reading
++        # current_vector for `before` compares the post-advance state to itself ->
++        # every per-memory tension delta is identically zero -> the C1 firewall can
++        # never fire (it reports a clean, converged pass no matter what the loop did).
++        # before = pre-advance (prev_vector), after = post-advance (current_vector).
++        before_vec = np.asarray(prev_vector)
+         after_vec = current_vector.clone().numpy() if isinstance(current_vector, torch.Tensor) else np.asarray(current_vector)
+ 
+         before_scores = per_memory_tension_offline(
+@@ -422,12 +449,21 @@
+         )
+ 
+         # Build MemoryState lists for Cairn's guard
++        # NOTE (seam): `dec` is read from static metadata/_status and is identical for
++        # prev_states and curr_states within a pass, and unchanged across passes — the
++        # loop only evolves the state vector and re-scores coherence/tension, it never
++        # re-derives a KEEP/WEAKEN/DISCARD decision. So C2 (protected-flip) and C3
++        # (forgotten-count) currently reflect the INPUT batch, not loop-induced change;
++        # only C1 (tension delta) and C4 (movement) respond to the loop. Making C2/C3
++        # live requires re-classifying decisions per pass against the evolved state —
++        # a design decision for #121, left untouched here. normalize_decision() fixes
++        # the case mismatch so the comparison is *valid* when decisions do differ.
+         prev_states = []
+         curr_states = []
+         for i, e in enumerate(entries):
+             mid = str(e.get("id", i))
+             kind = str(e.get("metadata", {}).get("memory_kind", "episodic"))
+-            dec = str(e.get("metadata", {}).get("decision", e.get("_status", "KEEP")))
++            dec = normalize_decision(e.get("metadata", {}).get("decision", e.get("_status", "KEEP")))
+ 
+             if mid in before_scores:
+                 prev_states.append(MemoryState(id=mid, kind=kind, decision=dec, tension=before_scores[mid]))
