@@ -49,6 +49,12 @@ STOP_WORDS = frozenset({
     "give", "gave", "find", "found", "thing", "things", "much", "many",
     "well", "now", "even", "back", "way", "long", "new", "old", "big",
     "little", "good", "great", "first", "last", "really", "always",
+    # Question/discourse markers that do not make a concrete memory claim.
+    # If these survive term extraction, the fake-claim guard fires on ordinary
+    # open-ended questions and becomes constant noise.
+    "anything", "something", "anybody", "anyone", "ever", "today",
+    "yesterday", "tomorrow", "earlier", "later", "morning", "evening",
+    "somewhere", "anywhere", "call",
 })
 
 # ---------------------------------------------------------------------------
@@ -225,10 +231,10 @@ def build_modulation_packet(
         key=lambda p: (p.salience, p.confidence, p.retrieval_score),
         reverse=True,
     )
-    available = tuple(_short_memory(p.content) for p in clean[:max_memories])
     warnings: List[str] = []
     for p in process_list:
         warnings.extend(p.warnings)
+    emit_clean_memories = True
 
     # Contradiction / fake-memory guard: check whether the query makes a
     # specific claim that clean memory rows actually support. A single broad
@@ -238,9 +244,11 @@ def build_modulation_packet(
     if query_terms:
         if not clean:
             if len(query_terms) >= 2:
+                emit_clean_memories = False
                 warnings.append(
                     "No clean memory directly supports the query-specific claim; "
-                    "do not affirm it as remembered."
+                    "if the question does not match what is in memory, answer "
+                    "that you do not remember this specifically."
                 )
         else:
             memory_corpus = " ".join(p.content for p in clean).lower()
@@ -250,10 +258,18 @@ def build_modulation_packet(
             # "color" when memory says "purple"). Two or more concrete
             # unsupported terms is a likely fake-claim or over-specific probe.
             if len(unsupported_terms) >= 2:
+                emit_clean_memories = False
                 warnings.append(
                     "No clean memory directly supports the query-specific claim; "
-                    "do not affirm it as remembered."
+                    "if the question does not match what is in memory, answer "
+                    "that you do not remember this specifically."
                 )
+
+    available = (
+        tuple(_short_memory(p.content) for p in clean[:max_memories])
+        if emit_clean_memories
+        else ()
+    )
 
     policy = (
         "Answer naturally; do not mention retrieval machinery unless asked.",

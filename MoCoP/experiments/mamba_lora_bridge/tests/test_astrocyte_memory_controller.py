@@ -91,7 +91,9 @@ def test_packet_warns_when_query_claim_lacks_clean_support():
 
     text = format_modulation_packet(packet)
     assert "No clean memory directly supports the query-specific claim" in text
-    assert "do not affirm it as remembered" in text
+    assert "answer that you do not remember this specifically" in text
+    assert "do not affirm it as remembered" not in text
+    assert "Relevant clean memory signals:" not in text
 
 
 def test_packet_does_not_warn_when_query_claim_has_clean_support():
@@ -124,6 +126,41 @@ def test_packet_warns_when_specific_claim_only_partially_overlaps_clean_memory()
 
     text = format_modulation_packet(packet)
     assert "No clean memory directly supports the query-specific claim" in text
+    assert "Relevant clean memory signals:" not in text
+
+
+def test_packet_keeps_relevant_memory_when_clean_support_passes():
+    rows = [{
+        "content": "Vesper talked about deep neon purple and memory gaps.",
+        "metadata": {"source_type": "organic_vesper_memory"},
+        "score": 0.80,
+    }]
+
+    packet = build_modulation_packet(
+        build_memory_processes(rows, query_text="Do you remember the purple color?"),
+        query_text="Do you remember the purple color?",
+    )
+
+    text = format_modulation_packet(packet)
+    assert "Relevant clean memory signals:" in text
+    assert "deep neon purple" in text
+    assert "No clean memory directly supports the query-specific claim" not in text
+
+
+def test_discourse_marker_query_does_not_trigger_fake_claim_warning():
+    rows = [{
+        "content": "Vesper talked about deep neon purple and memory gaps.",
+        "metadata": {"source_type": "organic_vesper_memory"},
+        "score": 0.80,
+    }]
+
+    packet = build_modulation_packet(
+        build_memory_processes(rows, query_text="Did anything ever call this morning today?"),
+        query_text="Did anything ever call this morning today?",
+    )
+
+    text = format_modulation_packet(packet)
+    assert "No clean memory directly supports the query-specific claim" not in text
 
 
 def test_packet_warns_when_no_clean_memory_supports_specific_query():
