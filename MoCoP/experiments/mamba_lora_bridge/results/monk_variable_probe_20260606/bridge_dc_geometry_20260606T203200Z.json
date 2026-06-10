@@ -1,0 +1,360 @@
+{
+  "timestamp": "2026-06-06T20:32:01.149187+00:00",
+  "bridge": "cheese_reincarnation_bridge_1.5b_codexfix.pt",
+  "states": "mamba_layer3_states_v1.pt",
+  "state_count": 41,
+  "alphas": [
+    0.0,
+    0.2,
+    0.4,
+    0.6,
+    0.8,
+    1.0,
+    1.2
+  ],
+  "aggregate": {
+    "original_mean_pairwise_cosine_avg": 0.959385871887207,
+    "full_mean_centered_pairwise_cosine_avg": 0.09974538534879684,
+    "loo_centered_pairwise_cosine_avg": 0.0997453834861517,
+    "magnitude_retained_fraction_avg": 0.17076875269412994,
+    "compensating_alpha_factor_avg": 5.855872249597887
+  },
+  "heads": [
+    {
+      "head": "L12:v_proj",
+      "original": {
+        "mean_norm": 11.384201049804688,
+        "std_norm": 0.3127230405807495,
+        "min_norm": 10.80337142944336,
+        "max_norm": 12.23471450805664,
+        "mean_pairwise_cosine": 0.9708629846572876
+      },
+      "full_mean_centered": {
+        "mean_norm": 1.6592490673065186,
+        "std_norm": 1.037979245185852,
+        "min_norm": 0.3314153552055359,
+        "max_norm": 4.884068489074707,
+        "mean_pairwise_cosine": 0.09826432913541794
+      },
+      "leave_one_out_centered": {
+        "mean_norm": 1.7007304430007935,
+        "std_norm": 1.0639287233352661,
+        "min_norm": 0.3397006690502167,
+        "max_norm": 5.006170272827148,
+        "mean_pairwise_cosine": 0.09826432168483734
+      },
+      "magnitude_retained_fraction": 0.14575015008449554,
+      "compensating_alpha_factor": 6.861056399737985,
+      "per_alpha_full_mean_centered": [
+        {
+          "alpha": 0.0,
+          "mean_norm": 0.0,
+          "std_norm": 0.0,
+          "min_norm": 0.0,
+          "max_norm": 0.0,
+          "mean_pairwise_cosine": 0.0
+        },
+        {
+          "alpha": 0.2,
+          "mean_norm": 0.3318498432636261,
+          "std_norm": 0.2075958549976349,
+          "min_norm": 0.06628306955099106,
+          "max_norm": 0.976813793182373,
+          "mean_pairwise_cosine": 0.09826432913541794
+        },
+        {
+          "alpha": 0.4,
+          "mean_norm": 0.6636996865272522,
+          "std_norm": 0.4151917099952698,
+          "min_norm": 0.13256613910198212,
+          "max_norm": 1.953627586364746,
+          "mean_pairwise_cosine": 0.09826432913541794
+        },
+        {
+          "alpha": 0.6,
+          "mean_norm": 0.9955495595932007,
+          "std_norm": 0.6227875351905823,
+          "min_norm": 0.19884921610355377,
+          "max_norm": 2.930441379547119,
+          "mean_pairwise_cosine": 0.09826432913541794
+        },
+        {
+          "alpha": 0.8,
+          "mean_norm": 1.3273993730545044,
+          "std_norm": 0.8303834199905396,
+          "min_norm": 0.26513227820396423,
+          "max_norm": 3.907255172729492,
+          "mean_pairwise_cosine": 0.09826432913541794
+        },
+        {
+          "alpha": 1.0,
+          "mean_norm": 1.6592490673065186,
+          "std_norm": 1.037979245185852,
+          "min_norm": 0.3314153552055359,
+          "max_norm": 4.884068489074707,
+          "mean_pairwise_cosine": 0.09826432913541794
+        },
+        {
+          "alpha": 1.2,
+          "mean_norm": 1.9910991191864014,
+          "std_norm": 1.2455750703811646,
+          "min_norm": 0.39769843220710754,
+          "max_norm": 5.860882759094238,
+          "mean_pairwise_cosine": 0.09826432913541794
+        }
+      ]
+    },
+    {
+      "head": "L13:v_proj",
+      "original": {
+        "mean_norm": 11.598820686340332,
+        "std_norm": 0.2793010473251343,
+        "min_norm": 11.007609367370605,
+        "max_norm": 11.97995662689209,
+        "mean_pairwise_cosine": 0.9523507952690125
+      },
+      "full_mean_centered": {
+        "mean_norm": 2.089545488357544,
+        "std_norm": 1.386255145072937,
+        "min_norm": 0.3231286108493805,
+        "max_norm": 6.446605205535889,
+        "mean_pairwise_cosine": 0.1100928857922554
+      },
+      "leave_one_out_centered": {
+        "mean_norm": 2.141784191131592,
+        "std_norm": 1.420911431312561,
+        "min_norm": 0.3312068283557892,
+        "max_norm": 6.6077704429626465,
+        "mean_pairwise_cosine": 0.1100928857922554
+      },
+      "magnitude_retained_fraction": 0.1801515519618988,
+      "compensating_alpha_factor": 5.550881960825379,
+      "per_alpha_full_mean_centered": [
+        {
+          "alpha": 0.0,
+          "mean_norm": 0.0,
+          "std_norm": 0.0,
+          "min_norm": 0.0,
+          "max_norm": 0.0,
+          "mean_pairwise_cosine": 0.0
+        },
+        {
+          "alpha": 0.2,
+          "mean_norm": 0.4179091155529022,
+          "std_norm": 0.2772510349750519,
+          "min_norm": 0.06462572515010834,
+          "max_norm": 1.2893210649490356,
+          "mean_pairwise_cosine": 0.11009287089109421
+        },
+        {
+          "alpha": 0.4,
+          "mean_norm": 0.8358182311058044,
+          "std_norm": 0.5545020699501038,
+          "min_norm": 0.12925145030021667,
+          "max_norm": 2.5786421298980713,
+          "mean_pairwise_cosine": 0.11009287089109421
+        },
+        {
+          "alpha": 0.6,
+          "mean_norm": 1.2537271976470947,
+          "std_norm": 0.8317530751228333,
+          "min_norm": 0.193877175450325,
+          "max_norm": 3.8679633140563965,
+          "mean_pairwise_cosine": 0.1100928783416748
+        },
+        {
+          "alpha": 0.8,
+          "mean_norm": 1.6716364622116089,
+          "std_norm": 1.1090041399002075,
+          "min_norm": 0.25850290060043335,
+          "max_norm": 5.157284259796143,
+          "mean_pairwise_cosine": 0.11009287089109421
+        },
+        {
+          "alpha": 1.0,
+          "mean_norm": 2.089545488357544,
+          "std_norm": 1.386255145072937,
+          "min_norm": 0.3231286108493805,
+          "max_norm": 6.446605205535889,
+          "mean_pairwise_cosine": 0.1100928857922554
+        },
+        {
+          "alpha": 1.2,
+          "mean_norm": 2.5074543952941895,
+          "std_norm": 1.6635061502456665,
+          "min_norm": 0.38775435090065,
+          "max_norm": 7.735926628112793,
+          "mean_pairwise_cosine": 0.1100928783416748
+        }
+      ]
+    },
+    {
+      "head": "L14:v_proj",
+      "original": {
+        "mean_norm": 11.746197700500488,
+        "std_norm": 0.6146673560142517,
+        "min_norm": 10.403447151184082,
+        "max_norm": 12.733452796936035,
+        "mean_pairwise_cosine": 0.9500998854637146
+      },
+      "full_mean_centered": {
+        "mean_norm": 2.1890435218811035,
+        "std_norm": 1.4348998069763184,
+        "min_norm": 0.3393757939338684,
+        "max_norm": 6.812342166900635,
+        "mean_pairwise_cosine": 0.10966403037309647
+      },
+      "leave_one_out_centered": {
+        "mean_norm": 2.243769884109497,
+        "std_norm": 1.470772385597229,
+        "min_norm": 0.3478601276874542,
+        "max_norm": 6.9826507568359375,
+        "mean_pairwise_cosine": 0.10966403037309647
+      },
+      "magnitude_retained_fraction": 0.1863618791103363,
+      "compensating_alpha_factor": 5.365904254528073,
+      "per_alpha_full_mean_centered": [
+        {
+          "alpha": 0.0,
+          "mean_norm": 0.0,
+          "std_norm": 0.0,
+          "min_norm": 0.0,
+          "max_norm": 0.0,
+          "mean_pairwise_cosine": 0.0
+        },
+        {
+          "alpha": 0.2,
+          "mean_norm": 0.4378087520599365,
+          "std_norm": 0.28697994351387024,
+          "min_norm": 0.06787516176700592,
+          "max_norm": 1.3624683618545532,
+          "mean_pairwise_cosine": 0.10966403037309647
+        },
+        {
+          "alpha": 0.4,
+          "mean_norm": 0.875617504119873,
+          "std_norm": 0.5739598870277405,
+          "min_norm": 0.13575032353401184,
+          "max_norm": 2.7249367237091064,
+          "mean_pairwise_cosine": 0.10966403037309647
+        },
+        {
+          "alpha": 0.6,
+          "mean_norm": 1.3134262561798096,
+          "std_norm": 0.8609399199485779,
+          "min_norm": 0.20362547039985657,
+          "max_norm": 4.087405681610107,
+          "mean_pairwise_cosine": 0.10966406017541885
+        },
+        {
+          "alpha": 0.8,
+          "mean_norm": 1.751235008239746,
+          "std_norm": 1.147919774055481,
+          "min_norm": 0.2715006470680237,
+          "max_norm": 5.449873447418213,
+          "mean_pairwise_cosine": 0.10966403037309647
+        },
+        {
+          "alpha": 1.0,
+          "mean_norm": 2.1890435218811035,
+          "std_norm": 1.4348998069763184,
+          "min_norm": 0.3393757939338684,
+          "max_norm": 6.812342166900635,
+          "mean_pairwise_cosine": 0.10966403037309647
+        },
+        {
+          "alpha": 1.2,
+          "mean_norm": 2.626852512359619,
+          "std_norm": 1.7218798398971558,
+          "min_norm": 0.40725094079971313,
+          "max_norm": 8.174811363220215,
+          "mean_pairwise_cosine": 0.10966406017541885
+        }
+      ]
+    },
+    {
+      "head": "L15:v_proj",
+      "original": {
+        "mean_norm": 9.725265502929688,
+        "std_norm": 0.5492086410522461,
+        "min_norm": 8.692769050598145,
+        "max_norm": 11.140094757080078,
+        "mean_pairwise_cosine": 0.9642298221588135
+      },
+      "full_mean_centered": {
+        "mean_norm": 1.6611864566802979,
+        "std_norm": 0.9624400734901428,
+        "min_norm": 0.2803759276866913,
+        "max_norm": 4.40941858291626,
+        "mean_pairwise_cosine": 0.08096029609441757
+      },
+      "leave_one_out_centered": {
+        "mean_norm": 1.7027159929275513,
+        "std_norm": 0.9865010380744934,
+        "min_norm": 0.28738531470298767,
+        "max_norm": 4.519653797149658,
+        "mean_pairwise_cosine": 0.08096029609441757
+      },
+      "magnitude_retained_fraction": 0.17081142961978912,
+      "compensating_alpha_factor": 5.854409170545027,
+      "per_alpha_full_mean_centered": [
+        {
+          "alpha": 0.0,
+          "mean_norm": 0.0,
+          "std_norm": 0.0,
+          "min_norm": 0.0,
+          "max_norm": 0.0,
+          "mean_pairwise_cosine": 0.0
+        },
+        {
+          "alpha": 0.2,
+          "mean_norm": 0.3322373032569885,
+          "std_norm": 0.19248799979686737,
+          "min_norm": 0.05607518553733826,
+          "max_norm": 0.8818836808204651,
+          "mean_pairwise_cosine": 0.08096030354499817
+        },
+        {
+          "alpha": 0.4,
+          "mean_norm": 0.664474606513977,
+          "std_norm": 0.38497599959373474,
+          "min_norm": 0.11215037107467651,
+          "max_norm": 1.7637673616409302,
+          "mean_pairwise_cosine": 0.08096030354499817
+        },
+        {
+          "alpha": 0.6,
+          "mean_norm": 0.9967119097709656,
+          "std_norm": 0.5774640440940857,
+          "min_norm": 0.16822555661201477,
+          "max_norm": 2.645651340484619,
+          "mean_pairwise_cosine": 0.08096028864383698
+        },
+        {
+          "alpha": 0.8,
+          "mean_norm": 1.328949213027954,
+          "std_norm": 0.7699519991874695,
+          "min_norm": 0.22430074214935303,
+          "max_norm": 3.5275347232818604,
+          "mean_pairwise_cosine": 0.08096030354499817
+        },
+        {
+          "alpha": 1.0,
+          "mean_norm": 1.6611864566802979,
+          "std_norm": 0.9624400734901428,
+          "min_norm": 0.2803759276866913,
+          "max_norm": 4.40941858291626,
+          "mean_pairwise_cosine": 0.08096029609441757
+        },
+        {
+          "alpha": 1.2,
+          "mean_norm": 1.9934238195419312,
+          "std_norm": 1.1549280881881714,
+          "min_norm": 0.33645111322402954,
+          "max_norm": 5.291302680969238,
+          "mean_pairwise_cosine": 0.08096028864383698
+        }
+      ]
+    }
+  ]
+}

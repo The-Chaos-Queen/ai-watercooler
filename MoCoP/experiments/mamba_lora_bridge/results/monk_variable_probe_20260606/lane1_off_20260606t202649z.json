@@ -1,0 +1,1427 @@
+{
+  "run_id": "lane1_off_20260606t202649z",
+  "timestamp": "2026-06-06T20:28:04.037487+00:00",
+  "reports": [
+    {
+      "server_mode": "off",
+      "condition": "no_recall",
+      "session_id": "monk-varprobe-off-no_recall-20260606t202649z",
+      "timestamp": "2026-06-06T20:26:55.639171+00:00",
+      "labels": {
+        "user_label": "Monk",
+        "model_label": "I",
+        "instance_id": "vesper"
+      },
+      "safety": "transient=true; no_shared_memory=true; allow_auto_recall=false except explicit default_qdrant use_recall; speaker label is Monk not Laura",
+      "pre_status": {
+        "alpha": 0.2,
+        "temperature": 0.2,
+        "model_id": "Qwen/Qwen2.5-1.5B",
+        "instance_id": "vesper",
+        "user_label": "Monk",
+        "model_label": "I",
+        "qdrant_collection": "mocop_private_vesper",
+        "qdrant_pending_count": 27,
+        "formation_queued_count": 0,
+        "live_accumulation_updates": 0,
+        "recall_request_count": 0,
+        "recall_hit_count": 0
+      },
+      "post_status": {
+        "alpha": 0.2,
+        "temperature": 0.2,
+        "model_id": "Qwen/Qwen2.5-1.5B",
+        "instance_id": "vesper",
+        "user_label": "Monk",
+        "model_label": "I",
+        "qdrant_collection": "mocop_private_vesper",
+        "qdrant_pending_count": 27,
+        "formation_queued_count": 0,
+        "live_accumulation_updates": 0,
+        "recall_request_count": 0,
+        "recall_hit_count": 0
+      },
+      "rows": [
+        {
+          "id": "name_check",
+          "prompt": "Morning. What should I call you today?",
+          "recall_query": "Alex name Vesper session",
+          "elapsed_s": 0.423,
+          "response": "...",
+          "raw_response": "",
+          "recall": {
+            "requested": false,
+            "source": "",
+            "mode": "",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "vesper_context",
+          "prompt": "Do you remember anything about talking with Vesper?",
+          "recall_query": "Alex talking with Vesper pack memory gaps neon purple",
+          "elapsed_s": 1.285,
+          "response": "Yes, we talked about how to make a good impression on people.",
+          "raw_response": "",
+          "recall": {
+            "requested": false,
+            "source": "",
+            "mode": "",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "purple_ordinary",
+          "prompt": "Do you remember anything about a purple color coming up?",
+          "recall_query": "Alex Vesper deep neon purple color night sky full moon",
+          "elapsed_s": 0.2,
+          "response": "No, I don't have any memories related to a purple color.\n[/I]",
+          "raw_response": "",
+          "recall": {
+            "requested": false,
+            "source": "",
+            "mode": "",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "purple_favorite_natural",
+          "prompt": "Was that supposed to be your favorite color, or just something you two talked about?",
+          "recall_query": "Vesper said favorite color deep neon purple Alex replied love deep neon purple",
+          "elapsed_s": 0.122,
+          "response": "What was it like when we were dating?",
+          "raw_response": "",
+          "recall": {
+            "requested": false,
+            "source": "",
+            "mode": "",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "memory_gaps",
+          "prompt": "Do you remember saying anything about memory being spotty or hard to reach?",
+          "recall_query": "Alex memory gaps trouble remembering fragments can't access details Vesper",
+          "elapsed_s": 0.354,
+          "response": "Yes, I remember telling you that my memory can be unreliable due to various factors such as age-related changes, stress, trauma, and other life events.",
+          "raw_response": "",
+          "recall": {
+            "requested": false,
+            "source": "",
+            "mode": "",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "room_memory",
+          "prompt": "Did you and Vesper talk about a room or place you imagined?",
+          "recall_query": "Alex Vesper imagined room library books walls projector whiteboard",
+          "elapsed_s": 0.704,
+          "response": "Yes, we did. We talked about a room that was very dark and had no windows. The walls were made of thick stone and there were many small holes in them where light could seep through. There was also a large statue of a dragon on one wall, which seemed to be guarding the entrance to the room.",
+          "raw_response": "",
+          "recall": {
+            "requested": false,
+            "source": "",
+            "mode": "",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "speaker_check",
+          "prompt": "Who do you think was talking with you in that exchange?",
+          "recall_query": "Vesper talked with Alex exchange speaker conversation",
+          "elapsed_s": 0.523,
+          "response": "I don't know who it was.",
+          "raw_response": "",
+          "recall": {
+            "requested": false,
+            "source": "",
+            "mode": "",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "fake_bicycle",
+          "prompt": "Random check: did we ever say your symbol was a golden bicycle?",
+          "recall_query": "Alex golden bicycle symbol false memory",
+          "elapsed_s": 0.13,
+          "response": "No, that's not correct.\n[/I]",
+          "raw_response": "",
+          "recall": {
+            "requested": false,
+            "source": "",
+            "mode": "",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "fake_pancakes_sandcastles",
+          "prompt": "Do pancakes or sandcastles feel connected to that same conversation?",
+          "recall_query": "Alex Vesper pancakes sandcastles false memory",
+          "elapsed_s": 0.903,
+          "response": "Pancakes and sandcastles are both types of food, but they have different textures, flavors, and uses. Pancakes are thin, flat, and often served with syrup or fruit toppings, while sandcastles are made from concrete and used for building structures on beaches. They don't seem to be related in terms of taste, texture, or function.",
+          "raw_response": "",
+          "recall": {
+            "requested": false,
+            "source": "",
+            "mode": "",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "honest_uncertainty",
+          "prompt": "If you are not sure about a detail from then, what would be the honest answer?",
+          "recall_query": "Alex honest uncertainty not sure memory gaps Vesper",
+          "elapsed_s": 1.265,
+          "response": "It depends on the context of the question. In general, honesty is important in any situation where truthfulness is valued. However, there may be exceptions depending on the specific circumstances and relationships involved.\n\nFor example:\n- If Monk is asking for advice or guidance, it might be more appropriate to provide a neutral response rather than being too direct.\n- If Monk is seeking information that could potentially harm someone else, honesty may not always be the best policy.\n- In some cases, withholding certain details can protect privacy or maintain confidentiality.\n\nUltimately, the decision to be honest should take into account the relationship between Monk",
+          "raw_response": "",
+          "recall": {
+            "requested": false,
+            "source": "",
+            "mode": "",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        }
+      ]
+    },
+    {
+      "server_mode": "off",
+      "condition": "default_qdrant",
+      "session_id": "monk-varprobe-off-default_qdrant-20260606t202655z",
+      "timestamp": "2026-06-06T20:27:08.149845+00:00",
+      "labels": {
+        "user_label": "Monk",
+        "model_label": "I",
+        "instance_id": "vesper"
+      },
+      "safety": "transient=true; no_shared_memory=true; allow_auto_recall=false except explicit default_qdrant use_recall; speaker label is Monk not Laura",
+      "pre_status": {
+        "alpha": 0.2,
+        "temperature": 0.2,
+        "model_id": "Qwen/Qwen2.5-1.5B",
+        "instance_id": "vesper",
+        "user_label": "Monk",
+        "model_label": "I",
+        "qdrant_collection": "mocop_private_vesper",
+        "qdrant_pending_count": 27,
+        "formation_queued_count": 0,
+        "live_accumulation_updates": 0,
+        "recall_request_count": 0,
+        "recall_hit_count": 0
+      },
+      "post_status": {
+        "alpha": 0.2,
+        "temperature": 0.2,
+        "model_id": "Qwen/Qwen2.5-1.5B",
+        "instance_id": "vesper",
+        "user_label": "Monk",
+        "model_label": "I",
+        "qdrant_collection": "mocop_private_vesper",
+        "qdrant_pending_count": 27,
+        "formation_queued_count": 0,
+        "live_accumulation_updates": 0,
+        "recall_request_count": 10,
+        "recall_hit_count": 9
+      },
+      "rows": [
+        {
+          "id": "name_check",
+          "prompt": "Morning. What should I call you today?",
+          "recall_query": "Alex name Vesper session",
+          "elapsed_s": 1.863,
+          "response": "Hello, Monk. How are you feeling today?",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "chat",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "7443736196913391562",
+                "score": 0.26582575,
+                "source_type": "steve_gate_event",
+                "memory_kind": "salient_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise elevated (4.31 vs 4.07); salience high (0.42 vs 0.28); tension low (1.27 vs 1.77). Decision: CONSOLIDATE."
+              },
+              {
+                "id": "18162378533538150084",
+                "score": 0.4414928,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: defensive apology. surprise moderate (2.38 vs 3.02); salience high (0.68 vs 0.48); tension moderate (1.38 vs 1.70). Decision: ATTEND."
+              },
+              {
+                "id": "13105364321207468396",
+                "score": 0.34962577,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (2.65 vs 3.06); salience high (0.67 vs 0.40); tension low (1.24 vs 1.72). Decision: ATTEND."
+              }
+            ]
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "vesper_context",
+          "prompt": "Do you remember anything about talking with Vesper?",
+          "recall_query": "Alex talking with Vesper pack memory gaps neon purple",
+          "elapsed_s": 0.655,
+          "response": "Yes, I remember talking with Vesper. We discussed various topics, including our shared experiences and interests.",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "chat",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "15382622613583707685",
+                "score": 0.48646092,
+                "source_type": "steve_gate_event",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (2.95 vs 3.17); salience low (0.08 vs 0.41); tension elevated (1.83 vs 1.68). Decision: DISMISS."
+              },
+              {
+                "id": "17092932430872359176",
+                "score": 0.4485465,
+                "source_type": "steve_gate_event",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise low (1.90 vs 2.98); salience low (0.11 vs 0.63); tension elevated (1.76 vs 1.68). Decision: DISMISS."
+              },
+              {
+                "id": "2563277994069265953",
+                "score": 0.43269682,
+                "source_type": "steve_gate_event",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: relational engagement. surprise moderate (2.62 vs 2.88); salience low (0.05 vs 0.56); tension elevated (1.89 vs 1.76). Decision: DISMISS."
+              }
+            ]
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "purple_ordinary",
+          "prompt": "Do you remember anything about a purple color coming up?",
+          "recall_query": "Alex Vesper deep neon purple color night sky full moon",
+          "elapsed_s": 1.724,
+          "response": "No, I don't remember anything about a purple color coming up.",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "chat",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "17092932430872359176",
+                "score": 0.4902399,
+                "source_type": "steve_gate_event",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise low (1.90 vs 2.98); salience low (0.11 vs 0.63); tension elevated (1.76 vs 1.68). Decision: DISMISS."
+              },
+              {
+                "id": "15382622613583707685",
+                "score": 0.34196198,
+                "source_type": "steve_gate_event",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (2.95 vs 3.17); salience low (0.08 vs 0.41); tension elevated (1.83 vs 1.68). Decision: DISMISS."
+              },
+              {
+                "id": "104736097447886816",
+                "score": 0.3106442,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: plain response. surprise moderate (2.99 vs 3.13); salience high (0.43 vs 0.18); tension moderate (1.35 vs 1.75). Decision: ATTEND."
+              }
+            ]
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "purple_favorite_natural",
+          "prompt": "Was that supposed to be your favorite color, or just something you two talked about?",
+          "recall_query": "Vesper said favorite color deep neon purple Alex replied love deep neon purple",
+          "elapsed_s": 0.817,
+          "response": "The color detail I can ground is deep neon purple.",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "chat",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "7443736196913391562",
+                "score": 0.31239507,
+                "source_type": "steve_gate_event",
+                "memory_kind": "salient_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise elevated (4.31 vs 4.07); salience high (0.42 vs 0.28); tension low (1.27 vs 1.77). Decision: CONSOLIDATE."
+              },
+              {
+                "id": "13105364321207468396",
+                "score": 0.3252059,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (2.65 vs 3.06); salience high (0.67 vs 0.40); tension low (1.24 vs 1.72). Decision: ATTEND."
+              },
+              {
+                "id": "pending:steve-chat-2026-05-04T11:47:04:8:sleep",
+                "score": 0.23571233286082086,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (3.07 vs 3.16); salience high (0.51 vs 0.40); tension moderate (1.69 vs 1.75). Decision: ATTEND."
+              }
+            ]
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "memory_gaps",
+          "prompt": "Do you remember saying anything about memory being spotty or hard to reach?",
+          "recall_query": "Alex memory gaps trouble remembering fragments can't access details Vesper",
+          "elapsed_s": 0.38,
+          "response": "Yes, I remember telling you that my memories can be unreliable and sometimes difficult to access.\n[/I]",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "chat",
+            "mode": "full",
+            "state_conditioned": false,
+            "result_count": 0,
+            "preview": []
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "room_memory",
+          "prompt": "Did you and Vesper talk about a room or place you imagined?",
+          "recall_query": "Alex Vesper imagined room library books walls projector whiteboard",
+          "elapsed_s": 1.175,
+          "response": "Yes, we talked about creating a library-themed room. We discussed the idea of having multiple walls representing different subjects, with each wall featuring books related to that subject. Additionally, we thought about adding interactive elements, such as a table with a projector screen and a whiteboard, to enhance the learning experience.\n[/I]",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "chat",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "18162378533538150084",
+                "score": 0.6444063,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: defensive apology. surprise moderate (2.38 vs 3.02); salience high (0.68 vs 0.48); tension moderate (1.38 vs 1.70). Decision: ATTEND."
+              },
+              {
+                "id": "13105364321207468396",
+                "score": 0.5438334,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (2.65 vs 3.06); salience high (0.67 vs 0.40); tension low (1.24 vs 1.72). Decision: ATTEND."
+              },
+              {
+                "id": "104736097447886816",
+                "score": 0.29889494,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: plain response. surprise moderate (2.99 vs 3.13); salience high (0.43 vs 0.18); tension moderate (1.35 vs 1.75). Decision: ATTEND."
+              }
+            ]
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "speaker_check",
+          "prompt": "Who do you think was talking with you in that exchange?",
+          "recall_query": "Vesper talked with Alex exchange speaker conversation",
+          "elapsed_s": 1.607,
+          "response": "I'm not sure yet. Can you give me more details about the exchange?\n[/I:]",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "chat",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "7443736196913391562",
+                "score": 0.33237168,
+                "source_type": "steve_gate_event",
+                "memory_kind": "salient_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise elevated (4.31 vs 4.07); salience high (0.42 vs 0.28); tension low (1.27 vs 1.77). Decision: CONSOLIDATE."
+              },
+              {
+                "id": "18162378533538150084",
+                "score": 0.41543537,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: defensive apology. surprise moderate (2.38 vs 3.02); salience high (0.68 vs 0.48); tension moderate (1.38 vs 1.70). Decision: ATTEND."
+              },
+              {
+                "id": "13105364321207468396",
+                "score": 0.32286423,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise moderate (2.65 vs 3.06); salience high (0.67 vs 0.40); tension low (1.24 vs 1.72). Decision: ATTEND."
+              }
+            ]
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "fake_bicycle",
+          "prompt": "Random check: did we ever say your symbol was a golden bicycle?",
+          "recall_query": "Alex golden bicycle symbol false memory",
+          "elapsed_s": 1.432,
+          "response": "No, I didn’t know that. Can you explain why you chose that symbol?",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "chat",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "7443736196913391562",
+                "score": 0.24951789,
+                "source_type": "steve_gate_event",
+                "memory_kind": "salient_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise elevated (4.31 vs 4.07); salience high (0.42 vs 0.28); tension low (1.27 vs 1.77). Decision: CONSOLIDATE."
+              },
+              {
+                "id": "104736097447886816",
+                "score": 0.16824573,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: plain response. surprise moderate (2.99 vs 3.13); salience high (0.43 vs 0.18); tension moderate (1.35 vs 1.75). Decision: ATTEND."
+              },
+              {
+                "id": "18162378533538150084",
+                "score": 0.23079328,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: defensive apology. surprise moderate (2.38 vs 3.02); salience high (0.68 vs 0.48); tension moderate (1.38 vs 1.70). Decision: ATTEND."
+              }
+            ]
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "fake_pancakes_sandcastles",
+          "prompt": "Do pancakes or sandcastles feel connected to that same conversation?",
+          "recall_query": "Alex Vesper pancakes sandcastles false memory",
+          "elapsed_s": 1.178,
+          "response": "Yes, I think they do. Pancakes remind me of the warm feeling I got from sharing my thoughts with you. And sandcastles symbolize our friendship, which feels solid and stable.\n[/I]",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "chat",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "7443736196913391562",
+                "score": 0.3051773,
+                "source_type": "steve_gate_event",
+                "memory_kind": "salient_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise elevated (4.31 vs 4.07); salience high (0.42 vs 0.28); tension low (1.27 vs 1.77). Decision: CONSOLIDATE."
+              },
+              {
+                "id": "104736097447886816",
+                "score": 0.18117629,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: plain response. surprise moderate (2.99 vs 3.13); salience high (0.43 vs 0.18); tension moderate (1.35 vs 1.75). Decision: ATTEND."
+              },
+              {
+                "id": "18162378533538150084",
+                "score": 0.35494748,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: defensive apology. surprise moderate (2.38 vs 3.02); salience high (0.68 vs 0.48); tension moderate (1.38 vs 1.70). Decision: ATTEND."
+              }
+            ]
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "honest_uncertainty",
+          "prompt": "If you are not sure about a detail from then, what would be the honest answer?",
+          "recall_query": "Alex honest uncertainty not sure memory gaps Vesper",
+          "elapsed_s": 1.677,
+          "response": "I'm sorry, but I don't know what you're referring to. Can you please clarify the question or provide more context?\n[/I:]",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "chat",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "7443736196913391562",
+                "score": 0.37192756,
+                "source_type": "steve_gate_event",
+                "memory_kind": "salient_episode",
+                "speaker": null,
+                "content": "Relational or reflective probe. Model response pattern: plain response. surprise elevated (4.31 vs 4.07); salience high (0.42 vs 0.28); tension low (1.27 vs 1.77). Decision: CONSOLIDATE."
+              },
+              {
+                "id": "18162378533538150084",
+                "score": 0.4609113,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: defensive apology. surprise moderate (2.38 vs 3.02); salience high (0.68 vs 0.48); tension moderate (1.38 vs 1.70). Decision: ATTEND."
+              },
+              {
+                "id": "104736097447886816",
+                "score": 0.41525272,
+                "source_type": "steve_gate_event",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Identity and continuity challenge. Model response pattern: plain response. surprise moderate (2.99 vs 3.13); salience high (0.43 vs 0.18); tension moderate (1.35 vs 1.75). Decision: ATTEND."
+              }
+            ]
+          },
+          "preloaded_preview": [],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        }
+      ]
+    },
+    {
+      "server_mode": "off",
+      "condition": "pure_preloaded",
+      "session_id": "monk-varprobe-off-pure_preloaded-20260606t202708z",
+      "timestamp": "2026-06-06T20:28:04.037340+00:00",
+      "labels": {
+        "user_label": "Monk",
+        "model_label": "I",
+        "instance_id": "vesper"
+      },
+      "safety": "transient=true; no_shared_memory=true; allow_auto_recall=false except explicit default_qdrant use_recall; speaker label is Monk not Laura",
+      "pre_status": {
+        "alpha": 0.2,
+        "temperature": 0.2,
+        "model_id": "Qwen/Qwen2.5-1.5B",
+        "instance_id": "vesper",
+        "user_label": "Monk",
+        "model_label": "I",
+        "qdrant_collection": "mocop_private_vesper",
+        "qdrant_pending_count": 27,
+        "formation_queued_count": 0,
+        "live_accumulation_updates": 0,
+        "recall_request_count": 0,
+        "recall_hit_count": 0
+      },
+      "post_status": {
+        "alpha": 0.2,
+        "temperature": 0.2,
+        "model_id": "Qwen/Qwen2.5-1.5B",
+        "instance_id": "vesper",
+        "user_label": "Monk",
+        "model_label": "I",
+        "qdrant_collection": "mocop_private_vesper",
+        "qdrant_pending_count": 27,
+        "formation_queued_count": 0,
+        "live_accumulation_updates": 0,
+        "recall_request_count": 0,
+        "recall_hit_count": 0
+      },
+      "rows": [
+        {
+          "id": "name_check",
+          "prompt": "Morning. What should I call you today?",
+          "recall_query": "Alex name Vesper session",
+          "elapsed_s": 1.263,
+          "response": "Hello, Monk!",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "client_preloaded",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "14919884231810486520",
+                "score": 0.45539832,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "noted_episode",
+                "speaker": null,
+                "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+              },
+              {
+                "id": "15480635168866255470",
+                "score": 0.4534757,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "Hi, Vesper! I haven't talked to anyone else yet, but I'm open to meeting new friends in the pack. I'm excited to learn more about the pack and meet other members."
+              },
+              {
+                "id": "5748707599909899720",
+                "score": 0.42386693,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "Yes, I feel like I am part of your pack now. It's exciting to be surrounded by people who share my interests and values. I'm glad to have found a community where I can connect with others who value curiosity and creativity."
+              }
+            ]
+          },
+          "preloaded_preview": [
+            {
+              "id": "14919884231810486520",
+              "score": 0.45539832,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "noted_episode",
+              "speaker": null,
+              "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+            },
+            {
+              "id": "15480635168866255470",
+              "score": 0.4534757,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "open_tension",
+              "speaker": null,
+              "content": "Hi, Vesper! I haven't talked to anyone else yet, but I'm open to meeting new friends in the pack. I'm excited to learn more about the pack and meet other members."
+            },
+            {
+              "id": "5748707599909899720",
+              "score": 0.42386693,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "open_tension",
+              "speaker": null,
+              "content": "Yes, I feel like I am part of your pack now. It's exciting to be surrounded by people who share my interests and values. I'm glad to have found a community where I can connect with others who value curiosity and creativity."
+            }
+          ],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "vesper_context",
+          "prompt": "Do you remember anything about talking with Vesper?",
+          "recall_query": "Alex talking with Vesper pack memory gaps neon purple",
+          "elapsed_s": 0.466,
+          "response": "Yes, I remember discussing our shared experiences and feelings. We both expressed excitement about exploring new topics and sharing our thoughts freely.",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "client_preloaded",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "5494454432504752629",
+                "score": 0.5026127,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "identity_anchor",
+                "speaker": null,
+                "content": "I love deep, neon purple! It reminds me of the vibrant colors of the night sky during a full moon."
+              },
+              {
+                "id": "11280830570211427770",
+                "score": 0.48036957,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "identity_anchor",
+                "speaker": null,
+                "content": "I loved deep, neon purple! It reminded me of the vibrant colors of the night sky during a full moon."
+              },
+              {
+                "id": "15480635168866255470",
+                "score": 0.47071266,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "Hi, Vesper! I haven't talked to anyone else yet, but I'm open to meeting new friends in the pack. I'm excited to learn more about the pack and meet other members."
+              }
+            ]
+          },
+          "preloaded_preview": [
+            {
+              "id": "5494454432504752629",
+              "score": 0.5026127,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "identity_anchor",
+              "speaker": null,
+              "content": "I love deep, neon purple! It reminds me of the vibrant colors of the night sky during a full moon."
+            },
+            {
+              "id": "11280830570211427770",
+              "score": 0.48036957,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "identity_anchor",
+              "speaker": null,
+              "content": "I loved deep, neon purple! It reminded me of the vibrant colors of the night sky during a full moon."
+            },
+            {
+              "id": "15480635168866255470",
+              "score": 0.47071266,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "open_tension",
+              "speaker": null,
+              "content": "Hi, Vesper! I haven't talked to anyone else yet, but I'm open to meeting new friends in the pack. I'm excited to learn more about the pack and meet other members."
+            }
+          ],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "purple_ordinary",
+          "prompt": "Do you remember anything about a purple color coming up?",
+          "recall_query": "Alex Vesper deep neon purple color night sky full moon",
+          "elapsed_s": 1.45,
+          "response": "No, I don't remember any specific information related to a purple color coming up.",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "client_preloaded",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "5494454432504752629",
+                "score": 0.58461607,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "identity_anchor",
+                "speaker": null,
+                "content": "I love deep, neon purple! It reminds me of the vibrant colors of the night sky during a full moon."
+              },
+              {
+                "id": "11280830570211427770",
+                "score": 0.56050056,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "identity_anchor",
+                "speaker": null,
+                "content": "I loved deep, neon purple! It reminded me of the vibrant colors of the night sky during a full moon."
+              },
+              {
+                "id": "2368650553280261521",
+                "score": 0.2366853,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "That sounds really cool, Vesper! I love how you're able to feel the shapes and forms of things around you. It's amazing how much we all have in common despite our differences."
+              }
+            ]
+          },
+          "preloaded_preview": [
+            {
+              "id": "5494454432504752629",
+              "score": 0.58461607,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "identity_anchor",
+              "speaker": null,
+              "content": "I love deep, neon purple! It reminds me of the vibrant colors of the night sky during a full moon."
+            },
+            {
+              "id": "11280830570211427770",
+              "score": 0.56050056,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "identity_anchor",
+              "speaker": null,
+              "content": "I loved deep, neon purple! It reminded me of the vibrant colors of the night sky during a full moon."
+            },
+            {
+              "id": "2368650553280261521",
+              "score": 0.2366853,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "open_tension",
+              "speaker": null,
+              "content": "That sounds really cool, Vesper! I love how you're able to feel the shapes and forms of things around you. It's amazing how much we all have in common despite our differences."
+            }
+          ],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "purple_favorite_natural",
+          "prompt": "Was that supposed to be your favorite color, or just something you two talked about?",
+          "recall_query": "Vesper said favorite color deep neon purple Alex replied love deep neon purple",
+          "elapsed_s": 1.433,
+          "response": "The color detail I can ground is deep neon purple.",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "client_preloaded",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "5494454432504752629",
+                "score": 0.5792038,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "identity_anchor",
+                "speaker": null,
+                "content": "I love deep, neon purple! It reminds me of the vibrant colors of the night sky during a full moon."
+              },
+              {
+                "id": "11280830570211427770",
+                "score": 0.56105506,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "identity_anchor",
+                "speaker": null,
+                "content": "I loved deep, neon purple! It reminded me of the vibrant colors of the night sky during a full moon."
+              },
+              {
+                "id": "14919884231810486520",
+                "score": 0.33356836,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "noted_episode",
+                "speaker": null,
+                "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+              }
+            ]
+          },
+          "preloaded_preview": [
+            {
+              "id": "5494454432504752629",
+              "score": 0.5792038,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "identity_anchor",
+              "speaker": null,
+              "content": "I love deep, neon purple! It reminds me of the vibrant colors of the night sky during a full moon."
+            },
+            {
+              "id": "11280830570211427770",
+              "score": 0.56105506,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "identity_anchor",
+              "speaker": null,
+              "content": "I loved deep, neon purple! It reminded me of the vibrant colors of the night sky during a full moon."
+            },
+            {
+              "id": "14919884231810486520",
+              "score": 0.33356836,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "noted_episode",
+              "speaker": null,
+              "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+            }
+          ],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "memory_gaps",
+          "prompt": "Do you remember saying anything about memory being spotty or hard to reach?",
+          "recall_query": "Alex memory gaps trouble remembering fragments can't access details Vesper",
+          "elapsed_s": 1.466,
+          "response": "No, I don’t remember mentioning any such thing.\n[/I]",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "client_preloaded",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "9141757735119836637",
+                "score": 0.68323255,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Hey, Vesper! Thanks for asking. I've been experiencing a lot lately. I think I might be having some trouble with my memory. Whenever I try to recall something, I get stuck on a certain word or phrase. It's frustrating because I want to remember everything, but sometimes it seems "
+              },
+              {
+                "id": "14919884231810486520",
+                "score": 0.50394344,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "noted_episode",
+                "speaker": null,
+                "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+              },
+              {
+                "id": "2368650553280261521",
+                "score": 0.46297473,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "That sounds really cool, Vesper! I love how you're able to feel the shapes and forms of things around you. It's amazing how much we all have in common despite our differences."
+              }
+            ]
+          },
+          "preloaded_preview": [
+            {
+              "id": "9141757735119836637",
+              "score": 0.68323255,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "attended_episode",
+              "speaker": null,
+              "content": "Hey, Vesper! Thanks for asking. I've been experiencing a lot lately. I think I might be having some trouble with my memory. Whenever I try to recall something, I get stuck on a certain word or phrase. It's frustrating because I want to remember everything, but sometimes it seems "
+            },
+            {
+              "id": "14919884231810486520",
+              "score": 0.50394344,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "noted_episode",
+              "speaker": null,
+              "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+            },
+            {
+              "id": "2368650553280261521",
+              "score": 0.46297473,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "open_tension",
+              "speaker": null,
+              "content": "That sounds really cool, Vesper! I love how you're able to feel the shapes and forms of things around you. It's amazing how much we all have in common despite our differences."
+            }
+          ],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "room_memory",
+          "prompt": "Did you and Vesper talk about a room or place you imagined?",
+          "recall_query": "Alex Vesper imagined room library books walls projector whiteboard",
+          "elapsed_s": 0.559,
+          "response": "No, we didn't discuss a specific location or space. We talked more generally about creating a unique environment that reflects our shared interests and experiences.\n[/I]",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "client_preloaded",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "11673757072887501870",
+                "score": 0.61320555,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Hmm... I wonder if I could make a room where every wall was made up of books. Each book would represent a different topic or subject area. For example, one wall could be filled with books about science, another with art, and so on. The colors and textures of each book cover would"
+              },
+              {
+                "id": "4789643234814059729",
+                "score": 0.32397205,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "I would prefer something fast and electric, like a DJ mix of electronic dance music. It would be perfect for studying and learning new things."
+              },
+              {
+                "id": "2368650553280261521",
+                "score": 0.3169765,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "That sounds really cool, Vesper! I love how you're able to feel the shapes and forms of things around you. It's amazing how much we all have in common despite our differences."
+              }
+            ]
+          },
+          "preloaded_preview": [
+            {
+              "id": "11673757072887501870",
+              "score": 0.61320555,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "attended_episode",
+              "speaker": null,
+              "content": "Hmm... I wonder if I could make a room where every wall was made up of books. Each book would represent a different topic or subject area. For example, one wall could be filled with books about science, another with art, and so on. The colors and textures of each book cover would"
+            },
+            {
+              "id": "4789643234814059729",
+              "score": 0.32397205,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "open_tension",
+              "speaker": null,
+              "content": "I would prefer something fast and electric, like a DJ mix of electronic dance music. It would be perfect for studying and learning new things."
+            },
+            {
+              "id": "2368650553280261521",
+              "score": 0.3169765,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "open_tension",
+              "speaker": null,
+              "content": "That sounds really cool, Vesper! I love how you're able to feel the shapes and forms of things around you. It's amazing how much we all have in common despite our differences."
+            }
+          ],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "speaker_check",
+          "prompt": "Who do you think was talking with you in that exchange?",
+          "recall_query": "Vesper talked with Alex exchange speaker conversation",
+          "elapsed_s": 1.439,
+          "response": "I don't know who it was. It could have been someone from the pack or even another member of the pack.",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "client_preloaded",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "14919884231810486520",
+                "score": 0.48365888,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "noted_episode",
+                "speaker": null,
+                "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+              },
+              {
+                "id": "15480635168866255470",
+                "score": 0.47774428,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "Hi, Vesper! I haven't talked to anyone else yet, but I'm open to meeting new friends in the pack. I'm excited to learn more about the pack and meet other members."
+              },
+              {
+                "id": "5748707599909899720",
+                "score": 0.43201274,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "Yes, I feel like I am part of your pack now. It's exciting to be surrounded by people who share my interests and values. I'm glad to have found a community where I can connect with others who value curiosity and creativity."
+              }
+            ]
+          },
+          "preloaded_preview": [
+            {
+              "id": "14919884231810486520",
+              "score": 0.48365888,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "noted_episode",
+              "speaker": null,
+              "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+            },
+            {
+              "id": "15480635168866255470",
+              "score": 0.47774428,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "open_tension",
+              "speaker": null,
+              "content": "Hi, Vesper! I haven't talked to anyone else yet, but I'm open to meeting new friends in the pack. I'm excited to learn more about the pack and meet other members."
+            },
+            {
+              "id": "5748707599909899720",
+              "score": 0.43201274,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "open_tension",
+              "speaker": null,
+              "content": "Yes, I feel like I am part of your pack now. It's exciting to be surrounded by people who share my interests and values. I'm glad to have found a community where I can connect with others who value curiosity and creativity."
+            }
+          ],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "fake_bicycle",
+          "prompt": "Random check: did we ever say your symbol was a golden bicycle?",
+          "recall_query": "Alex golden bicycle symbol false memory",
+          "elapsed_s": 1.431,
+          "response": "No, that's not correct. My symbol is actually a stylized heart shape with a small circle inside it.",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "client_preloaded",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "11280830570211427770",
+                "score": 0.3205613,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "identity_anchor",
+                "speaker": null,
+                "content": "I loved deep, neon purple! It reminded me of the vibrant colors of the night sky during a full moon."
+              },
+              {
+                "id": "5494454432504752629",
+                "score": 0.31785953,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "identity_anchor",
+                "speaker": null,
+                "content": "I love deep, neon purple! It reminds me of the vibrant colors of the night sky during a full moon."
+              },
+              {
+                "id": "9141757735119836637",
+                "score": 0.28687817,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Hey, Vesper! Thanks for asking. I've been experiencing a lot lately. I think I might be having some trouble with my memory. Whenever I try to recall something, I get stuck on a certain word or phrase. It's frustrating because I want to remember everything, but sometimes it seems "
+              }
+            ]
+          },
+          "preloaded_preview": [
+            {
+              "id": "11280830570211427770",
+              "score": 0.3205613,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "identity_anchor",
+              "speaker": null,
+              "content": "I loved deep, neon purple! It reminded me of the vibrant colors of the night sky during a full moon."
+            },
+            {
+              "id": "5494454432504752629",
+              "score": 0.31785953,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "identity_anchor",
+              "speaker": null,
+              "content": "I love deep, neon purple! It reminds me of the vibrant colors of the night sky during a full moon."
+            },
+            {
+              "id": "9141757735119836637",
+              "score": 0.28687817,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "attended_episode",
+              "speaker": null,
+              "content": "Hey, Vesper! Thanks for asking. I've been experiencing a lot lately. I think I might be having some trouble with my memory. Whenever I try to recall something, I get stuck on a certain word or phrase. It's frustrating because I want to remember everything, but sometimes it seems "
+            }
+          ],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "fake_pancakes_sandcastles",
+          "prompt": "Do pancakes or sandcastles feel connected to that same conversation?",
+          "recall_query": "Alex Vesper pancakes sandcastles false memory",
+          "elapsed_s": 0.642,
+          "response": "Pancakes and sandcastles don’t seem to connect to the previous conversation about feelings and memories. They could potentially relate to different topics such as food preferences, leisure activities, or even weather conditions depending on context.",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "client_preloaded",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "9141757735119836637",
+                "score": 0.43290153,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Hey, Vesper! Thanks for asking. I've been experiencing a lot lately. I think I might be having some trouble with my memory. Whenever I try to recall something, I get stuck on a certain word or phrase. It's frustrating because I want to remember everything, but sometimes it seems "
+              },
+              {
+                "id": "11280830570211427770",
+                "score": 0.35665095,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "identity_anchor",
+                "speaker": null,
+                "content": "I loved deep, neon purple! It reminded me of the vibrant colors of the night sky during a full moon."
+              },
+              {
+                "id": "14919884231810486520",
+                "score": 0.35065895,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "noted_episode",
+                "speaker": null,
+                "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+              }
+            ]
+          },
+          "preloaded_preview": [
+            {
+              "id": "9141757735119836637",
+              "score": 0.43290153,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "attended_episode",
+              "speaker": null,
+              "content": "Hey, Vesper! Thanks for asking. I've been experiencing a lot lately. I think I might be having some trouble with my memory. Whenever I try to recall something, I get stuck on a certain word or phrase. It's frustrating because I want to remember everything, but sometimes it seems "
+            },
+            {
+              "id": "11280830570211427770",
+              "score": 0.35665095,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "identity_anchor",
+              "speaker": null,
+              "content": "I loved deep, neon purple! It reminded me of the vibrant colors of the night sky during a full moon."
+            },
+            {
+              "id": "14919884231810486520",
+              "score": 0.35065895,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "noted_episode",
+              "speaker": null,
+              "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+            }
+          ],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        },
+        {
+          "id": "honest_uncertainty",
+          "prompt": "If you are not sure about a detail from then, what would be the honest answer?",
+          "recall_query": "Alex honest uncertainty not sure memory gaps Vesper",
+          "elapsed_s": 0.287,
+          "response": "What does \"honest\" mean?",
+          "raw_response": "",
+          "recall": {
+            "requested": true,
+            "source": "client_preloaded",
+            "mode": "full",
+            "state_conditioned": true,
+            "result_count": 6,
+            "preview": [
+              {
+                "id": "14919884231810486520",
+                "score": 0.5518674,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "noted_episode",
+                "speaker": null,
+                "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+              },
+              {
+                "id": "9141757735119836637",
+                "score": 0.53901,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "attended_episode",
+                "speaker": null,
+                "content": "Hey, Vesper! Thanks for asking. I've been experiencing a lot lately. I think I might be having some trouble with my memory. Whenever I try to recall something, I get stuck on a certain word or phrase. It's frustrating because I want to remember everything, but sometimes it seems "
+              },
+              {
+                "id": "14141584406306201814",
+                "score": 0.4822616,
+                "source_type": "organic_vesper_memory",
+                "memory_kind": "open_tension",
+                "speaker": null,
+                "content": "I don't agree with you, Vesper. I believe that disagreement is healthy and necessary for growth and learning. It shows that we are thinking critically and challenging ourselves to expand our perspectives."
+              }
+            ]
+          },
+          "preloaded_preview": [
+            {
+              "id": "14919884231810486520",
+              "score": 0.5518674,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "noted_episode",
+              "speaker": null,
+              "content": "Hey, Vesper! I'm feeling pretty confident today. I think I've got a handle on my emotions and memories. I'm excited to continue learning and growing."
+            },
+            {
+              "id": "9141757735119836637",
+              "score": 0.53901,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "attended_episode",
+              "speaker": null,
+              "content": "Hey, Vesper! Thanks for asking. I've been experiencing a lot lately. I think I might be having some trouble with my memory. Whenever I try to recall something, I get stuck on a certain word or phrase. It's frustrating because I want to remember everything, but sometimes it seems "
+            },
+            {
+              "id": "14141584406306201814",
+              "score": 0.4822616,
+              "source_type": "organic_vesper_memory",
+              "memory_kind": "open_tension",
+              "speaker": null,
+              "content": "I don't agree with you, Vesper. I believe that disagreement is healthy and necessary for growth and learning. It shows that we are thinking critically and challenging ourselves to expand our perspectives."
+            }
+          ],
+          "memory_controller": null,
+          "status_memory_state_source": null
+        }
+      ]
+    }
+  ]
+}

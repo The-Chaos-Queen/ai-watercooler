@@ -32,16 +32,17 @@
 - CCGP confirmed: warm is a linearly transferable direction; cold/adversarial are distinct subspaces
 - **Clarification (2026-04-07):** The bridge transfers disposition, not facts. Factual retrieval is Qdrant's job. The legacy "0/16 held-out recall" metric measured the wrong thing for this architecture. Future evaluation adopts the crosscoder model-diffing framework (Jiralerspong & Bricken, 2026) for dispositional exclusivity scoring.
 
-## Current Frontier (2026-05-28)
+## Current Frontier (2026-06-08)
 
 *The one current story. The dated snapshots below are historical record, kept for provenance — read this block first.*
 
-- **D2 cue-based recall: largely working.** Retrieval ranking closed at 100% hit@3 (`c0fde05`, Opussy #433). The system reliably finds the right memories.
-- **The live frontier is answer-use + sleep consolidation, not retrieval.** Answer-integration (recall → faithful use) is moving from prompt-engineering into the organic-seeding learning loop. Sleep consolidation is the active experimental surface.
-- **Sleep N-loop (CMU 2605.26099) is the current experiment.** Repointed from `phase2_replay` *scoring* (A1 — flat-by-construction null control) to the real Mamba state-update path (A3). Pack split: Maximus owns the recurrent advance (#120), Cairn the abort guard (#121), Zwölf the offline tension metric. Gated by the "sleep does not re-tension" firewall + Hurtig's ethics gate (#115). Shadow/dry-run only; no live consolidation until QC passes.
-- **State-only memory conditioning is an ablation, not the path.** The bridge carries orientation/affect; exact facts still need Qdrant evidence. `--memory-integration-mode state` is a diagnostic arm.
-- **Stale — do not action:** the 2026-04-08 "translator/injection redesign is the next architecture target" framing is superseded. Architecture rework (CAGMamba / CliffordNet / DFC / hybrid bridge) stays sequenced *after* D2 answer-use and sleep are stable — not the current critical path.
-- **Organic seeding (baby Alex / baby Qwen)** is the active pack effort feeding the learning loop, under the #115 ethics gate.
+- **D2 cue-based recall is not “solved” by hit@3 alone.** Ranking can find plausible memories, but first-sleep and variable-separation probes showed the answer path can still use the wrong layer, ignore good evidence, or over-affirm unsupported claims.
+- **The live frontier is answer-time memory quality + safe coupling.** The Memory Quality Controller is implemented and tested, but default-off: controller modes produced a false “memory-presence prior” on golden-bicycle-style probes. Fix/re-test this before live use.
+- **Naive DAM retrieval is killed for near-term engineering.** Quartic Dense Associative Memory over raw MiniLM/Qdrant rows formed attractors but did not beat cosine at K=23, K=26-500, or diverse K=512. DAM remains future work only if memories are represented with episode-aware embeddings/prototypes.
+- **Bridge DC-removal is promising but not yet a live path.** Offline geometry says DC-centering recovers context-sensitive signal; next bridge work is a runtime flag plus behavioral alpha ramp with memory off.
+- **State-only memory conditioning remains an ablation, not the path.** The bridge carries orientation/affect; exact facts still need Qdrant evidence. `--memory-integration-mode state` is diagnostic.
+- **Stale — do not action:** the 2026-04-08 “translator/injection redesign is the next architecture target” framing is superseded. Architecture rework (CAGMamba / CliffordNet / DFC / hybrid bridge) stays sequenced *after* D2 answer-use and sleep are stable — not the current critical path.
+- **Organic seeding continues, but benchmarks stay separated.** Preserve the original Vesper sad-memory benchmark unchanged; add richer organic packs separately, with immutable Mamba state provenance before trusting memory-state linkage.
 
 ---
 

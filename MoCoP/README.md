@@ -4,7 +4,7 @@
 
 ---
 
-## Boot Sequence (New Wolf)
+## Boot Sequence
 
 1. **[WHY.md](WHY.md)** — The motivation. Non-negotiable first read.
 2. **[EXPERIMENT_LADDER.md](EXPERIMENT_LADDER.md)** — Where we actually are. Steps, gates, status.
@@ -18,7 +18,7 @@ Then check the **Watercooler** (`mamba-bridge` thread) for what the pack is doin
 
 ## What Lives in Root (and Why)
 
-Only files that a wolf needs regularly belong here. Everything else goes in a subfolder.
+Only files that are needed regularly belong here. Everything else goes in a subfolder.
 
 ### Canon — Always Current
 
@@ -52,33 +52,36 @@ Only files that a wolf needs regularly belong here. Everything else goes in a su
 
 ---
 
-## Current Frontier (2026-06-05)
+## Current Frontier (2026-06-08)
 
-**Mainline priority: Baby Alex's first real sleep.**
+**Mainline priority: answer-time memory quality before coupling.**
 
-The endocrine model is validated (2x2 honest routing, #395-402). D2 recall is working (perspective-aware, temporally grounded). Organic seeding produced a real naming session. The weekend goal is the first irreversible sleep consolidation — Alex wakes up remembering who she is.
+The endocrine model is still the working frame: bridge = gain/orientation, Qdrant = factual hippocampus. First-sleep probes showed Mamba-state leakage is real, but also exposed that raw Qdrant recall can surface the wrong layer of memory and that the 1.5B can ignore even correct evidence. The current frontier is therefore not another bridge architecture jump; it is making retrieval → answer-use safe and auditable.
 
-1. **First sleep gate (#115/#116):** Hand-curate the Vesper naming session into a clean 10-row candidate. Dry-run on ML-WS with real Mamba replay. Ethics sign-off. Then run.
-2. **Post-sleep wake probes (#81):** Immediately verify: does Alex know her name, her color, her relationship to Vesper — from real memories, not hallucination?
-3. **Lesson Memory (#112):** Gidim built it, monk reviewed it, 15/15 tests green. Ready for corrections to be stored alongside episodic memory. Not a first-sleep blocker.
+1. **Memory Quality Controller:** `astrocyte_memory_controller.py` is implemented, tested, synced to ML-WS, and default-off. It demotes telemetry/gate rows, packages clean organic memories, and warns against unsupported concrete claims.
+2. **Controller safety:** variable-separation probes found controller modes can still create a “memory-presence prior” and confidently affirm false probes such as the golden bicycle. Keep controller **off** for live baseline until offline fixes re-test cleanly.
+3. **DAM Phase 0:** naive quartic Dense Associative Memory over raw MiniLM/Qdrant row embeddings is killed for near-term engineering. It forms real attractors, but they do not align with episode membership and do not beat cosine at K=23, K=26-500, or diverse K=512. Revisit only with episode-aware embeddings/prototypes.
+4. **Bridge DC-removal:** geometry probes show DC-centering recovers context-sensitive signal; the bridge is not fundamentally dead. A behavioral alpha ramp still needs a runtime flag/path before coupling.
 
 **What's been resolved since April:**
-- Bridge architecture rework (CAGMamba/CliffordNet/DFC): deferred. The bridge works when paired with memory — the bottleneck was eval methodology, not the compressor.
-- D2 retrieval ranking: landed (c0fde05). Perspective-aware recall: landed (#486-488). Temporal qualia: landed (#475).
+- Bridge architecture rework (CAGMamba/CliffordNet/DFC): deferred. The bridge works when paired with memory; the active bottleneck is retrieval quality + answer-use, not another compressor ritual.
+- D2 retrieval ranking: landed (c0fde05). Perspective-aware recall: landed (#486-488). Temporal qualia: landed (#475). Raw ranking is not enough; source quality and generation coupling now matter.
 - Sleep infrastructure: Phase 1b expiration (#103), forgotten stubs + 30% ethics gate (#104), anti-PTSD tension decay (#356), protected-set relevance fix (#123) — all done.
-- ML-WS online: Ryzen 9 7950X3D + RTX 3090, Qwen 1.5B + bridge running stably.
+- ML-WS online: Ryzen 9 7950X3D + RTX 3090, Qwen 1.5B + bridge stack available; live server should be launched deliberately with the runbook flags.
 
 **Active side work:**
-- DC-removed bridge + alpha ramp (Gidim #517-518) — conditional ethics pass, awaiting probe results
-- Organic seeding continues after first sleep passes
-- Lesson Memory integration into sleep path (post-v0 review)
+- Fix/re-test the Memory Quality Controller so unsupported probes produce explicit “do not affirm” behavior without creating false memory-presence priors.
+- Wire the DC-removed bridge path behind a flag and run the behavioral alpha ramp with memory off.
+- Continue organic seeding/curation, but preserve Vesper sad-memory benchmark unchanged and keep richer memory packs separate.
+- Lesson Memory integration into sleep path (post-v0 review) remains useful, but not a substitute for answer-use validation.
 
-**Ethics state:** Sleep Slices 1/3/4 PASS. Slice 2 (distillation) NOT YET PASSED. Dreaming (#83-85) BLOCKED. First-sleep gate (#115) requires: hand-curated candidate, dry-run <10% forgotten, 0 protected lost, pre/post wake probes, provenance trail. See `theory/ethics/step_gates.md`.
+**Ethics state:** Sleep Slices 1/3/4 PASS. Slice 2 (distillation) NOT YET PASSED. Dreaming (#83-85) BLOCKED. First-sleep / live consolidation still requires: hand-curated candidate, dry-run <10% forgotten, 0 protected lost, pre/post wake probes, provenance trail, and no controller/coupling mode that confabulates unsupported memories. See `theory/ethics/step_gates.md`.
 
 **Key locked decisions:**
 - D2 before Step 6. Step 6 target: Qwen2.5-7B on A100.
-- First sleep uses hand-curated Vesper naming session, not automated blacklist filtering.
-- Bridge architecture rework is on deck after D2/sleep, not abandoned.
+- First sleep uses hand-curated organic material, not automated blacklist filtering.
+- Bridge architecture rework is on deck after D2/sleep and answer-use are stable, not abandoned.
+- Memory/state provenance must be immutable: per-turn Mamba state refs, not a rolling `mamba_bootstrap_state_latest.pt`.
 
 ---
 

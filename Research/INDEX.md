@@ -124,6 +124,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | 2603.23516 | Memory Sparse Attention (100M tokens) | End-to-end trainable top-k sparse attention with document-wise RoPE; scales to 100M-token contexts on 2x A800. | adjacent |
 | 2603.24576 | Chameleon (robot episodic) | EC-HC-PFC-inspired memory stack writing geometry-grounded multimodal tokens; pattern-completion retrieval for manipulation. | adjacent |
 | 2604.04921 | TriAttention | KV-cache compression exploiting pre-RoPE Q/K concentration via trigonometric series; 10.7x memory reduction. | adjacent |
+| [2606.04032v2](2606.04032v2_qkv_projection_variants_mocop_note.md) | Do Transformers Need Three Projections? | QKV projection-sharing study: `Q-K=V` halves KV cache with modest degradation; argues K/V can share representational space while Q preserves addressing/directionality. Directly suggests MoCoP alpha should distinguish q/read-policy dose from v/k content dose. | core |
 | 2604.08256 | HyperMem | Three-level (topics/episodes/facts) hypergraph memory with hyperedges for high-order associations; 92.73% LoCoMo. | core |
 | 2604.09588 | **Persistent Identity (multi-anchor) — names "OpenClaw"!** | soul.py with separable identity files + memory logs; hybrid RAG+RLM routing to survive context-overflow identity loss. | core |
 | 2604.11306 | H2-EMV (Learning to Forget) | Hierarchical episodic memory with selective forgetting via LLM relevance + learned natural-language rules. 45% memory reduction. | core |

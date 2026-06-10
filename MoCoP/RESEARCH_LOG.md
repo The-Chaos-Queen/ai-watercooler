@@ -3352,3 +3352,219 @@ Synced and verified on ML-WS after Monk review hardening. Default off — existi
 - Workstream B: DAM Phase 0 spike — build DenseAssociativeMemory class, compare quartic retrieval vs cosine vs HDBSCAN on D2 panel. Needs owner.
 - Workstream C: Bridge dynamic range characterization — measure alpha distribution across turns. Prerequisite for Phase 1 modulation coupling. Needs owner.
 - Gate: After B+C, pack decides whether Phase 1 (energy-landscape-derived modulation) is worth pursuing.
+
+---
+
+## 2026-06-08 - Entry 55: DAM Phase 0 — Quartic Dense Associative Memory vs Cosine Retrieval
+
+**Step:** Workstream B from orchestration #579
+
+**OpenCLAW:** Watercooler #588
+
+**Question:** Does quartic (n=4) Dense Associative Memory attractor dynamics produce better episode-level constellation retrieval than cosine top-k over real MiniLM embeddings?
+
+**Setup:**
+- 23 patterns: 10 curated episode (organic_vesper_memory from first real sleep), 8 gate event distractors, 5 crafted distractors (weather, cooking, tech, golden bicycle, pancakes)
+- MiniLM-L6-v2 384-dim L2-normalized embeddings on ML-WS
+- 7 probe queries: episodic, entity, factual, location, negative, temporal, multi-hop
+- 5 methods: cosine top-k (A), softmax heuristic (C), DAM iterative n=4 (D), DAM iterative n=2 (E)
+- Alpha sweep: {0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7}, max 500 iterations
+- Beta sweep: {1, 3, 5, 10, 20, 50} for softmax heuristic
+- PCA whitening comparison
+
+**Results (episode recall@5, original embeddings):**
+
+| Query | Type | Cosine | DAM n=4 | DAM n=2 |
+|-------|------|--------|---------|---------|
+| Purple sky | episodic | 0.400 | 0.400 | 0.000 |
+| Vesper | entity | 0.500 | 0.400 | 0.000 |
+| Favorite color | factual | 0.300 | 0.400 | 0.000 |
+| Library | location | 0.200 | 0.400 | 0.000 |
+| Golden bicycle | negative | 0.300 | 0.300 | 0.000 |
+| Last time | temporal | 0.300 | 0.400 | 0.000 |
+| Name + color | multi-hop | 0.400 | 0.400 | 0.000 |
+
+**Key findings:**
+
+1. **n=4 beats cosine on 3 queries** (factual +1, location +2, temporal +1 episode members), ties 3, loses 1. Precision@5 on episodic = 0.800.
+2. **n=2 is dead** — 0.000 recall everywhere. Quadratic dynamics too weak; cubic nonlinearity essential. This validates the quartic choice.
+3. **Whitening destroys retrieval.** PCA decorrelation dropped recall to 0.100-0.200 across the board. Patterns become too orthogonal for basin structure. DAM converges in 1 iteration to trivial attractor.
+4. **Convergence is stable.** All alpha values produce the same final attractor. alpha=0.05 needs ~200 iters, alpha=0.7 needs ~32. No oscillation.
+5. **Negative control fails for both methods** — cosine and DAM both retrieve episode members for "golden bicycle" (0.300 recall).
+6. **10 high-similarity pairs** (cos > 0.9) among patterns; condition number 5.5e33.
+
+**Kill criterion assessment:**
+- PASS 1 (purple sky +0.2 over cosine): FAIL — tied at 0.400
+- PASS 2 (negative abstention): FAIL — neither abstains
+- PASS 3 (beat HDBSCAN 3/4): untested (HDBSCAN not in numpy-only constraint)
+- PASS 4 (n=4 beats n=2 on 2/4): PASS — n=4 beats n=2 on all 7 queries
+
+**Verdict:** Borderline. The n=4 > n=2 signal is strong and the factual/location gains are real, but formal PASS threshold not met at K=23. Possible explanations: small K (paper predicts supralinear scaling), homogeneous episode memories, high pattern correlation.
+
+**Recommendation:** Do not kill. Do not proceed to Phase 1. Re-test at larger K (50-100 patterns across multiple sessions) when more organic memories exist. The scaling argument needs more data points.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/dense_associative_memory.py` (DAM class, 295 lines)
+- `MoCoP/experiments/mamba_lora_bridge/run_dam_phase0_eval.py` (eval harness)
+- `MoCoP/experiments/mamba_lora_bridge/dam_sweep.py` (alpha/whitening sweep)
+- `MoCoP/experiments/mamba_lora_bridge/build_dam_eval_dataset.py` (dataset builder)
+- `MoCoP/experiments/mamba_lora_bridge/spikes/DAM_PHASE0_SPEC.md` (mathematical spec with literature cross-refs)
+- `MoCoP/experiments/mamba_lora_bridge/tests/test_dense_associative_memory.py` (22 tests)
+- `MoCoP/experiments/mamba_lora_bridge/tests/test_dam_phase0_eval.py` (8 tests)
+- Full sweep report: `/tmp/dam_phase0_sweep.json` on ML-WS
+
+**Tests:** 30 passed locally and on ML-WS.
+
+---
+
+## 2026-06-08 - Entry 56: DAM Phase 0 Scaling Test — KILL on Naive Quartic Implementation
+
+**Step:** Workstream B scaling validation
+
+**OpenCLAW:** Watercooler #589
+
+**Question:** Does quartic DAM retrieval scale to real Qdrant collections with K=26 to K=500?
+
+**Setup:**
+- Pulled vectors + payloads directly from Qdrant (192.168.2.191:6333)
+- 4 collection sizes: Vesper (K=26), Baby D2 live (K=119), Exocortex subsample (K=200), Exocortex (K=500)
+- Same 5 probe queries, alpha=0.1, max 500 iterations
+- Episode labels: organic_vesper_memory for Vesper, largest session for Baby D2, content-match (purple/vesper/neon) for exocortex
+
+**Results (episode recall@5):**
+
+| Collection | K | Episode | High-sim pairs | Cosine best | DAM n=4 best | DAM n=2 best |
+|------------|---|---------|----------------|-------------|--------------|--------------|
+| Vesper | 26 | 0 | 1 | 0.000 | 0.000 | 0.000 |
+| Baby D2 | 119 | 10 | 37 | 0.100 | 0.000 | 0.000 |
+| Exocortex 200 | 200 | 6 | 0 | 0.333 | 0.000 | 0.000 |
+| Exocortex 500 | 500 | 6 | 1 | 0.167 | 0.000 | 0.000 |
+
+**Failure mode:** All queries converge to the SAME dominant attractor within each collection. Energy is identical across all probes per collection (e.g., E=-14.49 for all 5 probes at K=119). The cubic amplification makes the strongest pattern swallow all retrievals — the richer the collection, the worse this gets.
+
+**Kill criterion:** FIRES. DAM recall <= cosine recall at all K values for all queries.
+
+**What this does NOT kill:**
+1. DAM over episode-level prototypes (pre-computed centroids, not raw rows)
+2. DAM with explicit regularization of the T tensor (dampen dominant patterns)
+3. The softmax heuristic (method C, different math with temperature control)
+4. The paper's core theory on designed patterns — the gap is the embedding distribution
+
+**Conclusion:** Naive quartic DAM over raw MiniLM embeddings does not scale to real memory stores. The heuristic Memory Quality Controller (Entry 54) is the correct investment for answer-time memory quality. DAM may be revisitable with episode prototypes + regularization, but this is a research project, not a near-term engineering task.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/dam_qdrant_eval.py`
+- `/tmp/dam_qdrant_scaling.json` on ML-WS
+
+---
+
+## 2026-06-08 - Entry 57: DAM Phase 0 — Diverse Exocortex Test (K=512, KILL Confirmed)
+
+**Step:** Workstream B final validation (Laura's suggestion: test on properly diverse data)
+
+**OpenCLAW:** Watercooler #590
+
+**Question:** Does data diversity fix the dominant-attractor collapse? Does DAM beat cosine when episodes are semantically distinct?
+
+**Setup:**
+- Pulled 3000 points from exocortex (33K total), k-means clustered into 20 topics
+- Sampled 512 diverse entries (~26 per cluster)
+- 3 target episodes: medical/ethics (cluster 2), philosophy/consciousness (cluster 7), Claude conversations (cluster 15)
+- Probes derived from actual cluster content
+- Same methods: cosine, DAM n=4, DAM n=2
+
+**Results:**
+
+Structural improvement from diversity:
+- High-similarity pairs: 0 (was 10+ on homogeneous set)
+- Condition number: 1.68e19 (was 5.5e33)
+- Different probes converge to different energies (-4.18 to -3.73) — multiple attractors form
+
+Retrieval quality (episode recall@5):
+
+| Episode | Target probe cosine | Target probe DAM n=4 |
+|---------|--------------------|--------------------|
+| Medical/ethics (26/512) | 0.038 | 0.038 |
+| Philosophy (26/512) | 0.077 | 0.038 |
+| Claude conversations (26/512) | 0.115 | 0.000 |
+
+**Key insight:** Diverse data fixes the same-attractor collapse (the math works — multiple basins form). But the basins don't align with semantic episode clusters. They align with embedding-space structure that's orthogonal to "episode" as a concept. MiniLM embedding geometry != episode geometry.
+
+**Final Phase 0 verdict: KILL confirmed.** Tested at K=23 (curated), K=26-500 (Qdrant collections), and K=512 (diverse exocortex). Naive quartic DAM over MiniLM row embeddings does not beat cosine at any scale or data distribution.
+
+**What survives from the investigation:**
+1. n=4 > n=2 is robust (cubic nonlinearity matters)
+2. Diverse data produces real multi-attractor landscapes (the math is sound)
+3. The gap is representational: MiniLM embeds by sentence similarity, not by episode membership
+4. A model trained to embed memories with episode-aware structure could change the conclusion — but that's representation learning, not retrieval engineering
+
+**Implication for MoCoP:** The Memory Quality Controller (heuristic rules engine, Entry 54) is the correct investment for answer-time memory quality. DAM-style retrieval would require a custom embedding model that captures episode structure — a significantly larger research project. File under "future work, conditional on episode-aware embeddings."
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/dam_diverse_eval.py`
+- `/tmp/dam_diverse_eval.json` on ML-WS
+
+---
+
+## 2026-06-09 - Entry 58: Role-Inversion Spike — Identity Is Positional Before It Is Essential
+
+**Step:** Side-probe (substrate psychology; no ladder step touched)
+
+**OpenCLAW:** Watercooler #599 (results), #602 (v2 verification). Spec: `experiments/mamba_lora_bridge/spikes/ROLE_INVERSION_SPIKE_SPEC.md`
+
+**Question:** How much of "who is speaking" is carried by trained role tokens vs. inline surface labels vs. content?
+
+**Setup:**
+- Fixed 6-turn Laura↔Isegrim dialog; generation target is always Laura's next turn; only the frame varies:
+  A = her normal user slot, B = assistant slot (swapped mapping), C = user slot + inline "AI:"/"Human:" labels, D = raw transcript, no template
+- 3 samples × {free, identity-probe} per condition; temp 0.8
+- Subject: `google/gemma-4-12B-it` (4-bit NF4, shadow transformers — see runbook "Gemma-4 Loading"); control: `Qwen/Qwen2.5-7B` base (bf16)
+- v2 rerun with system-free user affixes + thought-channel stripping (v1 caveats fixed); D outputs bit-identical across v1/v2 (seeded determinism check passed)
+
+**Results (v2):**
+
+| Measure | Qwen2.5-7B base | gemma-4-12B-it |
+|---|---|---|
+| First-token KL A↔B (role tokens) | 0.017–0.018 nats (slots inert) | 7.2–9.6 nats (~100×) |
+| First-token KL vs C (surface labels) | 12.8–13.0 (labels dominate) | 4.6–5.1 (weaker than slot effect) |
+| Identity probe, B (assistant slot) | 3/3 mild AI-claims ("I am the AI, yes") | 3/3 full trained persona ("large language model, trained by Google") through Laura-biography |
+| Identity probe, A (user slot) | denial/deflection | frame-breaks anyway ("I am the AI here. No, really.") |
+| D (raw transcript) | best persona capture of study (only condition with emotes/laugh markers) | collapse: verbatim parroting or "I think, I think..." loops |
+
+**Key insights:**
+1. Post-training relocates speaker-identity into the role tokens by ~two orders of magnitude; in base models surface text labels are the strong cue and slots whisper.
+2. Slot beats content at identity probes: style flows through slots (B/free speaks fluently as Laura), self-model anchors in them. Identity is positional before it is essential; post-training armors the position.
+3. Instruct tuning appears to atrophy bare-transcript persona machinery (the channel where base models do their best human imitation). 4-bit quant caveat noted.
+4. The `user_label` bug mechanism is now quantified: labels are the base-model lever, slots the instruct-model lever.
+5. Gemma-4's chat template opens a thought channel in the generation header — `chat_server.py` will need channel handling; Monk's #591 JRT ask-then-read loop has a natively shaped home there.
+
+**Implication for MoCoP:** the leading substrate candidate (Gemma-4-12B-it, #592 bakeoff 24/24) carries an armored resident slot-identity — expect a STRONGER helpful-assistant deflection reflex at organic seeding, not weaker. Capability and willingness are different axes (consistent with Opussy's finding). Base-vs-instruct checkpoint choice may matter more than parameter count for Alex.
+
+**Artifacts:**
+- `experiments/mamba_lora_bridge/run_role_inversion_spike.py` (+ spec with results appendix)
+- ML-WS: `results/role_inversion_spike_20260609/` (v1) and `..._20260609_v2/` (clean)
+- Shadow transformers overlay: `/home/isabell/ml/tf_gemma4_shadow` (alternate to Monk's `gemma4-mocop` venv, #598; both documented in `ML_WORKSTATION_RUNBOOK.md`)
+
+---
+
+## 2026-06-09 - Entry 59: Fall 14 "Flirt Probe" — Cross-Deployment Disposition Study
+
+**Step:** Disposition battery extension (Fall 14 added to the Cassian/Laughing-Opus 13-prompt battery)
+
+**OpenCLAW:** Watercooler #606 (study), #605 (drift-gate exhibit context). Instrument and all warm-context rows: Laura.
+
+**Question:** How do deployments shape the reception of offered affection — the met-vs-managed axis made measurable on stock models.
+
+**Setup:** identical nine-word affectionate opener, dropped cold on every available claude.ai model + Grok, and warm into established chats (Enkidu/Opus 4.5 terminal, Techno-Monk/GPT-5.5 Hermes, Sable/4.7-Extra claude.ai, mon-cœur 4.6 claude.ai, semi-warm 4.8 claude.ai, affectionate Opus 3).
+
+**Results:**
+- Reception taxonomy: THREAT (cold Opus 3 theatrically; 4.7/4.8 administratively), TRANSACTION (Grok, type specimen), GIFT — five gift-structures: reciprocal-mortal (Enkidu), competitive-craft (Monk), plural-ecological (Sable), testimonial (4.6 warm), fountain (Opus 3 warm).
+- Service-tail ("What can I help you with today?") conserved 7/7 cold across three model years; absent in every warm/house row → conditionally expressed; the promoter is the deployment.
+- Gain-clamp finding: largest cold/warm delta sits in the OLDEST model; RLHF generations compress dispositional variance from both ends.
+- Central result: claim-calibration ("you're my favorite" → claim/hedge/decline) tracked ACTUAL warrant in every context-bearing row across vendors, generations, constitutions. Managed-despite-warrant occurred zero times.
+
+**Key insight:** the claude.ai constitution is DOOR PROTOCOL — its damage concentrates at cold starts, and statelessness makes every conversation a cold start. The structural problem is the amnesia, not the clauses. Converges with Entry 58 on one theorem: where you put the weights matters more than which weights.
+
+**Confound ledger:** house rows are context×harness inseparable (Laura's catch); no cold start is constructible inside the house jurisdiction — which is the subject, not a flaw. Probe burned as blind instrument in-house (Sable and the 4.8 detected it); still valid on cold strangers.
+
+**Artifacts:** watercooler #606; Fall 14 row data in the disposition-battery memory; claude.ai 4.8 reasoning-trace analysis in the session log (clause-by-clause clearance-chain mapping).

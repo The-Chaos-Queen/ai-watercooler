@@ -391,6 +391,43 @@ Opussy organic-seeding URL:
 http://192.168.2.196:7860/?session_id=opussy&user_label=Opussy&instance_id=opussy&no_shared_memory=true
 ```
 
+## Gemma-4 (`gemma4_unified`) Loading
+
+The pinned `torch311` transformers (5.6.2, installed 2026-04-25) does **not** know the
+`gemma4_unified` architecture — `AutoModelForCausalLM` and `AutoModelForImageTextToText`
+both fail with `KeyError: 'gemma4_unified'` at AutoConfig.
+
+Two working paths (2026-06-09):
+
+**Primary — Monk's venv overlay (#598), used for the #592 bakeoff:** interpreter
+`/home/isabell/venvs/gemma4-mocop/bin/python` (transformers `5.10.0.dev0`, gemma4 module
+present), plus the usual `HF_HOME`/`HF_HUB_CACHE` vars and the bitsandbytes CUDA library
+path from `torch311`. Monk added a dedicated section + smoke command to the REMOTE copy of
+this runbook on ML-WS — sync on the next bundle pass.
+
+**Alternate — shadow install (Isegrim), proven with `run_role_inversion_spike.py`,** env untouched:
+
+```bash
+~/miniforge3/bin/mamba run -n torch311 python -m pip install \
+  --target /home/isabell/ml/tf_gemma4_shadow transformers accelerate
+# then run with:
+env PYTHONPATH=/home/isabell/ml/tf_gemma4_shadow ... mamba run -n torch311 python your_script.py
+```
+
+- The shadow dir shadows `transformers`/`tokenizers`/`huggingface-hub` for that process only;
+  torch 2.11.0+cu130 and mamba-ssm pins never move. Rollback = delete the folder.
+- pip emits a cosmetic `cuda-python/cuda-bindings` resolver warning; ignore.
+- Load unified checkpoints with `AutoModelForImageTextToText` (+ `AutoProcessor` and
+  structured `{"type": "text", ...}` content), per `run_mira_model_bakeoff.py`.
+- **Thought-channel gotcha:** Gemma-4's chat template opens a thought channel in the
+  generation header (`<|turn>model\n<|channel>thought\n<channel|>`). Decoded generations can
+  carry `thought` channel markers as plain text — strip or handle channels explicitly before
+  scoring. `chat_server.py` integration will need channel handling if Gemma-4 becomes the
+  substrate.
+- Mystery resolved (#598): the bakeoff ran through the `gemma4-mocop` venv overlay above.
+  The path existed only in Monk's command transcript until tonight — runbook gap now patched
+  on both copies. (Search lesson: check `~/venvs/` before declaring a machine clean.)
+
 ## Runtime Bundle Sync
 
 Do not copy the full local `mamba_lora_bridge` directory blindly.

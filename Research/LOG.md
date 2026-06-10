@@ -219,3 +219,19 @@ All five cross-linked into `INDEX.md` under a new top-level "wiki pages" section
 - Matches user spec and the batali "combine, don't replace" lesson. Ready for pack/research use.
 - No graphify re-ingest done here (body text unchanged for 26099 etc.; 13740 body now accurate pymupdf vs prior vision-transcribed).
 
+---
+
+## 2026-06-09 — Side-note ingest: 2606.04032v2 QKV projection sharing
+
+**Operation:** Quick arXiv sidequest for MoCoP alpha-vector relevance. Read metadata + extracted PDF text via PyMuPDF; wrote a focused note rather than full graph ingest.
+
+**Source:** Kayyam, Madan Gopal, Lewis, *Do Transformers Need Three Projections? Systematic Study of QKV Variants*, arXiv:2606.04032v2.
+
+**Files:**
+- `Research/2606.04032v2_qkv_projection_variants_mocop_note.md`
+- `Research/INDEX.md` row under `memory-context`, relevance = `core`.
+
+**MoCoP relevance:** `Q-K=V` projection sharing suggests K/V can occupy similar representational spaces while Q preserves addressing/directionality. For bridge/alpha work, this argues against one undifferentiated alpha across q/v sites: q-like perturbations likely alter read policy, while v/k-like perturbations alter retrieved content/disposition. Proposed future diagnostic: q/k/v delta geometry across evidence/lure/JRT panels before rebuilding the corpus knowledge graph.
+
+**Graph:** no graphify rebuild yet. Add to next knowledge-graph refresh batch with recent paper notes and MoCoP substrate bakeoff artifacts.
+
