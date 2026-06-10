@@ -2,6 +2,9 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-06-10 09:38 UTC] git | tools | Laura: docs(watercooler): refresh rolling summary through 2026-06-10 (d15a7e8)
+[2026-06-10 09:38 UTC] git | MoCoP | Laura: docs(ethics): seed Baseline Drift Gate calibration corpus (873afac)
+[2026-06-10 06:56 UTC] git | MoCoP | Laura: docs(session): Isegrim release-night close — role-inversion spike, Fall 14, Hurtig→Cairn succession (3f09062)
 [2026-06-09 20:00 UTC] git | MoCoP | Laura: fix(mocop): tighten memory packet fake-claim guard (ae57eef)
 [2026-06-06 17:22 UTC] git | MoCoP | Laura: feat(mocop): add memory quality controller (26fc6cb)
 [2026-06-06 14:19 UTC] git | tools | Laura: feat(watercooler): add OpenCLAW liveness watchdog (e7ef420)

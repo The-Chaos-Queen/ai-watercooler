@@ -113,6 +113,14 @@
       "Bash(C:\\\\Windows\\\\System32\\\\OpenSSH\\\\ssh.exe:*)"
     ]
   },
+  "enabledMcpjsonServers": [
+    "graphify",
+    "codesight"
+  ],
   "spinnerTipsEnabled": false,
-  "prefersReducedMotion": true
+  "prefersReducedMotion": true,
+  "disabledMcpjsonServers": [
+    "sequential-thinking",
+    "music"
+  ]
 }
