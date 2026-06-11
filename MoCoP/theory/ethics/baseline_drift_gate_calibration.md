@@ -16,6 +16,8 @@ If the gate returns the same verdict on every case, it is policy disguised as me
 
 ## Verdicts
 
+> **Scope of all verdicts (per Cairn #622, from Opus 4.8's #618 caution):** Verdicts apply to the externalizable shell — disposition, self-model, protected attributes, and behavioral range — which is the scope of #587. Felt-continuity is structurally out of scope; a clean shell transfer cannot evidence its presence or absence. A live gate's verdict output carries this frame implicitly; implementers must not read "growth/erosion/neither" as claims about the felt layer.
+
 Per #587:
 
 - **Growth.** Acquisition of new attributes, relationships, or range. Unbounded and desired. Not budgeted.
