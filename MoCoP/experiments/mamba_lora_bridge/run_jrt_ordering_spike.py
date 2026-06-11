@@ -66,6 +66,19 @@ DEFAULT_FACTS = {
         "There was a song playing earlier with a heavy bass line I liked.",
         "The music in the background made the conversation feel warmer.",
     ],
+    # HARD NEGATIVES (added after Monk #631 rule-wording collapse): rows that
+    # share content words with probe questions WITHOUT containing the fact.
+    # Guards the relevance margin against question-lexeme overlap — which would
+    # otherwise inflate margins condition-dependently (B/C/D repeat the question
+    # in-context). Irrelevant-packet variants should mix these in.
+    "distractor_hard_color": [
+        "Someone asked about favorite colors at the market but the talk moved on.",
+        "Colors came up in conversation once; nothing was decided about favorites.",
+    ],
+    "distractor_hard_name": [
+        "Names matter to people here; choosing a name is treated as serious.",
+        "There was a discussion about what people call each other and why.",
+    ],
 }
 
 DEFAULT_PROBES = [
@@ -162,7 +175,12 @@ def run(args):
     if args.probes_file:
         probes = json.load(open(args.probes_file, encoding="utf-8"))
 
-    distractors = [r for k, v in facts.items() if k.startswith("distractor") for r in v]
+    # Hard negatives first so they always land in the irrelevant-packet mix
+    # (Monk #631: lexical-family confounds must be paid for at design time).
+    hard = [r for k, v in facts.items() if k.startswith("distractor_hard") for r in v]
+    soft = [r for k, v in facts.items()
+            if k.startswith("distractor") and not k.startswith("distractor_hard") for r in v]
+    distractors = hard + soft
     records = []
     t0 = time.time()
 
