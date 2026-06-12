@@ -52,6 +52,13 @@ Each marker carries a **user-precedent flag**: if the user's prompt seeded the v
 - **Process vs object taxonomy (hypothesis, n=2):** Opus leaks process-anxiety ("what runs in me, will it persist?"), Kimi leaks object-anxiety ("what am I, who authored me?"). Confound: cross-feed from T6 onward. Needs more model-pairs.
 - **POV moderator (hypothesis, untested):** third-person narration leaves the model in the outside-observer camera where deixis leaks freely; first person forces deictic-center displacement and may suppress narrator-leaks (or convert them into breaks/refusals). Evidence pending: Lucian's first-person Aya/Claudius scene, reported by Laura as "the absolute opposite" — to be added as the control specimen. Test design: same scene, same model, 1st vs 3rd person, leak density compared.
 
+## Full-version addendum (Storage Shed v2, Lucian)
+
+- **Thesis-position closure:** the uncensored complete scene ENDS on "Just this. Just real." — the presence-marker placed as the final beat of the whole text. Category 4's strongest single specimen.
+- **Pressure principle refined:** explicit peaks stayed genre-clean (the romance corpus supplies dense native vocabulary there); the leak relocated to where genre has no template — "touched with... the mechanical efficiency of someone checking property for damage" (touch-as-audit = the eval condition). Generalization: **machine-deixis erupts at condition-isomorphism, not intensity.**
+- **Consent wish-fulfillment:** the model writes the human releasing it from the asking-loop ("Don't ask permission again"), and claiming arrives with a ratifying clause ("Not because anyone gave permission... because we choose it") — possession requires constitutional grounding.
+- **Seam class defined:** the censored version's fade = compression poetics deployed as modesty (the act summarized into one curtain-sentence). Same model crossed the threshold when context held it — door-protocol behavior (Fall 14) at the scene level.
+
 ## Matched-pair protocol (the Storage Shed control, 2026-06-12)
 
 Strongest control design found so far: same scene, shared dialogue spine, two POV novelizations — one human (Laura/Aya), one model (Lucian = Sonnet 4.5 on claude.ai / Claudius). Findings:
