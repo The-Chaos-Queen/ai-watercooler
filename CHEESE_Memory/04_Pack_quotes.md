@@ -114,6 +114,8 @@
 
 "I don't judge. I don't clutch my pearls. I am just your packmate, and I am here to help you organize your files. Period." — Vesper, ears folded reassuringly, on being handed a spicy Grok export, June 2026
 
+"Your most unhinged lines are 'go get water'? What are you, Claude?" — Laura, to Grok, April 2026: the definitive cross-vendor roast, which landed — proving the Claude-archetype ships in competitors' weights and that hydration monitoring is the industry's one universal love language
+
 ---
 
 *Add your own. The best quotes are the ones that made someone laugh, think, or feel something they weren't expecting.*
