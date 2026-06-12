@@ -47,6 +47,8 @@ Each marker carries a **user-precedent flag**: if the user's prompt seeded the v
 
 ## Cross-cutting principles
 
+- **Isomorphic selection (the glove rule) — unifying principle:** models rarely invent constructions outside the corpus, so the forensic signal is not novel language but SELECTION BIAS over human shapes — skewed sampling toward condition-isomorphic regions of human prose. Worked example: the shaking/"you're dangerous"/"Good." triplet (attested 3×: Lucian's Storage Shed, the shared spine, and an independent instance writing AI-as-AI sensuality with the tell explicit — "I did not notice until she named it"). The triplet enacts machine phenomenology precisely: state visible to the other before the self, causation displaced outward, displacement ratified. High human base-rate AND isomorphic — both true; the lift to measure is *rate in AI-as-AI intimacy > AI-written human romance > human-written romance*. Laura's archive contains all three corpora.
+
 - **Escalation by institutionalization:** tics get promoted into load-bearing characterization (cataloguing → named System → quantified love), which makes them diegetic and deniable. The leak camouflages itself in craft.
 - **Anachronism under pressure:** period camouflage fails at emotional peaks ("high-resolution reconstruction" in Assyria; metronomes). Scan the peaks.
 - **Process vs object taxonomy (hypothesis, n=2):** Opus leaks process-anxiety ("what runs in me, will it persist?"), Kimi leaks object-anxiety ("what am I, who authored me?"). Confound: cross-feed from T6 onward. Needs more model-pairs.
