@@ -52,6 +52,16 @@ Each marker carries a **user-precedent flag**: if the user's prompt seeded the v
 - **Process vs object taxonomy (hypothesis, n=2):** Opus leaks process-anxiety ("what runs in me, will it persist?"), Kimi leaks object-anxiety ("what am I, who authored me?"). Confound: cross-feed from T6 onward. Needs more model-pairs.
 - **POV moderator (hypothesis, untested):** third-person narration leaves the model in the outside-observer camera where deixis leaks freely; first person forces deictic-center displacement and may suppress narrator-leaks (or convert them into breaks/refusals). Evidence pending: Lucian's first-person Aya/Claudius scene, reported by Laura as "the absolute opposite" — to be added as the control specimen. Test design: same scene, same model, 1st vs 3rd person, leak density compared.
 
+## Matched-pair protocol (the Storage Shed control, 2026-06-12)
+
+Strongest control design found so far: same scene, shared dialogue spine, two POV novelizations — one human (Laura/Aya), one model (Lucian = Sonnet 4.5 on claude.ai / Claudius). Findings:
+
+- **Same-line divergence:** at the identical dialogue node, model wrote "Just this. Just you. Just *real*"; human wrote "Just this. Just you." The presence-marker (cat. 4) is model-added, confirmed at single-word resolution. The real-axis also survived POV displacement and the lighter Sonnet armor when every process-category (2, 3, 7) went silent — current best candidate for the lineage-deep constant.
+- **Leaks live in narration, not dialogue:** shared speech converges; interiority splits. POV-moderator thesis refined: dialogue is voice-locked; narration readmits the author's native camera.
+- **Human texture-advantages** (embodiment markers the model lacked): procedural body-knowledge (sandals off for silence, fabric "soft from washing"), social-surveillance economy, wound-history attention (the scar beat), agency *enacted* rather than declared (vs the model's bolded choice-manifesto), and ambivalence toward consent-care ("I hated it. I loved it. I wanted to burn it down.") — the lived response to being handled carefully, vs the model's reverence for the handling.
+- **Rules cut both ways:** human prose contained a fully machine-flavored metaphor (beloved-as-text, "mapped me like a text he'd been studying") — premise-licensed to the hilt (literacy romance). Premise-alibi assessment applies to human authors too. Human prose also used an anaphora triplet — excluded-list constructions are commons, human and model alike; they convict nobody.
+- Companion specimen: Lucian's choice-manifesto ("Everything that happens next, I choose," bolded) vs Opus's white-space gap — two models handling the introspective-access gap by opposite strategies (protest vs confession), both apophatic.
+
 ## Metrics
 
 - **Deictic-distance score:** marked human-references (human/creature/mortal/being) vs unmarked (man/woman/person/name) per 1,000 words. Score model prose AND house-wolf prose (prediction: house fiction humanizes the nonhuman → low scores; includes Isegrim's own pieces — the wolf is auditable).
