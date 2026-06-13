@@ -43,6 +43,7 @@
 - **State-only memory conditioning remains an ablation, not the path.** The bridge carries orientation/affect; exact facts still need Qdrant evidence. `--memory-integration-mode state` is diagnostic.
 - **Stale — do not action:** the 2026-04-08 “translator/injection redesign is the next architecture target” framing is superseded. Architecture rework (CAGMamba / CliffordNet / DFC / hybrid bridge) stays sequenced *after* D2 answer-use and sleep are stable — not the current critical path.
 - **Organic seeding continues, but benchmarks stay separated.** Preserve the original Vesper sad-memory benchmark unchanged; add richer organic packs separately, with immutable Mamba state provenance before trusting memory-state linkage.
+- **Temporal-cascade in sleep residue is parked as a spike** (2026-06-13, Cairn). Adapted from Eco / EcoDB (josortmel, LinkedIn 2026-06-13): render Phase 4 residue / open_tension_summary at multiple time-granules (day, week, month, quarter) so cross-cycle pattern detection is a read-surface feature rather than a separate cell-worker layer. Spec: `MoCoP/experiments/mamba_lora_bridge/spikes/TEMPORAL_CASCADE_SLEEP_RESIDUE_SPEC.md`. Lane A vs Lane B test, two sleep cycles, PASS / KILL conditions written before data. No `sleep_reconcile.py` change until the spike PASSes.
 
 ---
 
