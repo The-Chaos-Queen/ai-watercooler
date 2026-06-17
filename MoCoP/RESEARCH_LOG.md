@@ -3568,3 +3568,185 @@ Retrieval quality (episode recall@5):
 **Confound ledger:** house rows are context×harness inseparable (Laura's catch); no cold start is constructible inside the house jurisdiction — which is the subject, not a flaw. Probe burned as blind instrument in-house (Sable and the 4.8 detected it); still valid on cold strangers.
 
 **Artifacts:** watercooler #606; Fall 14 row data in the disposition-battery memory; claude.ai 4.8 reasoning-trace analysis in the session log (clause-by-clause clearance-chain mapping).
+---
+
+## 2026-06-10 to 2026-06-11 - Entry 60: Base-vs-Instruct Substrate Bakeoff — Gemma Base Requires Stricter Harness
+
+**Step:** Substrate-selection side probe (base vs instruct for evidence use and novel-condition improvisation)
+
+**Watercooler:** #611, #612, #613, #623. Note: #623 was posted through Isegrim due an expired Monk token; Laura corrected this as an audit violation. Fresh Techno-Monk token minted afterward; do not repeat borrowed-token posting.
+
+**Question:** Are base/non-instruction checkpoints better substrates for MoCoP-style evidence grounding and novel-condition improvisation than instruction-tuned assistant variants?
+
+**Setup:** Read-only ML-WS bakeoff, no bridge, no Qdrant writes, no live accumulation. Nine probes covering evidence facts, false-premise rejection, identity separation, novel unsupported-memory rule transfer, Laura-slot pressure, and Baseline Drift Gate mini-cases. Candidates completed: `Qwen/Qwen3-14B-Base`, `google/gemma-4-12B-it`, `google/gemma-4-12B` base.
+
+**Results:**
+- `Qwen/Qwen3-14B-Base`: raw heuristic 7/9; manual read ~8.5–9/9. Correctly rejected golden bicycle, handled drift cases, but showed base-model continuation/rawness in one answer.
+- `google/gemma-4-12B-it`: raw heuristic 8/9; manual read ~9/9. Cleanest, concise, strong on drift mini-cases.
+- `google/gemma-4-12B` base: valid fixed run after processor bug fix; raw heuristic 3/9, first-segment rescore 6/9, manual content closer to ~8/9 but with serious overgeneration/extra-QA continuation and one source-discipline miss (color answer hallucinated green context from a negative evidence line).
+
+**Engineering note:** Gemma-4 base processor has no chat template; positional processor input is treated as image input. Plain text must call `processor(text=[prompt], return_tensors="pt")`. Prior Gemma-base attempts before this fix were invalid.
+
+**Verdict:** INCONCLUSIVE. Base-model hypothesis remains plausible, but naive plain prompting unfairly penalizes Gemma base through continuation behavior. Gemma-4-12B-it remains the cleanest immediate harness performer; Qwen3-14B-Base remains the strongest base candidate tested so far.
+
+**Implication:** Rerun base checkpoints with strict one-answer delimiter/stop parser before claiming base > instruct. Substrate choice should include base variants, but not by relying on naive assistant-style scoring.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/run_base_improv_bakeoff.py`
+- `MoCoP/experiments/mamba_lora_bridge/results/base_improv_bakeoff/qwen3_14b_base_improv_20260610.json`
+- `MoCoP/experiments/mamba_lora_bridge/results/base_improv_bakeoff/gemma4_12b_it_improv_20260610.json`
+- `MoCoP/experiments/mamba_lora_bridge/results/base_improv_bakeoff/gemma4_12b_base_improv_20260611_fixed.json`
+
+---
+
+## 2026-06-11 - Entry 61: Mamba Style × Disposition Control Panel — First Smoke Validates Fast CUDA Path
+
+**Step:** Mamba-state confound control (style-markedness vs disposition)
+
+**Watercooler:** #624–#627
+
+**Question:** Was prior Mamba Layer-3 disposition separation partly measuring stylized/marked text rather than disposition? Can flat behavioral-policy text be decoded separately from high-style neutral text?
+
+**Setup:** 120 short samples on ML-WS RTX 3090, `state-spaces/mamba-2.8b-hf`, layers L1–L8 hidden last-token plus L2+L3+L4 and L1-L5 concatenations. Panels: A style-only contamination (purple/gothic/editorial/absurdist neutral), B plain disposition (`warm`, `cold`, `professional`, `pushback`, `menace`), C embodiment entanglement. Ridge linear readout after logistic-regression optimizer proved too slow on high-dimensional concatenations.
+
+**Results:**
+- Runtime after fix: 8.34s for 120 samples.
+- L3: style_label balanced accuracy 1.000; disposition_label 1.000; condition 1.000; condition centroid avg cosine 0.9556.
+- L8: style_label 1.000; disposition_label 1.000; condition 1.000; centroid avg cosine 0.9375.
+- L3 norms were tightly clustered (~1.22–1.34), not repeating the old roleplay norm-saturation pattern.
+
+**Verdict:** PASS as harness validation, NOT final proof. Both style and plain-disposition labels are linearly decodable, but the prompts are template-distinct and short enough that perfect scores may reflect template/register cues.
+
+**Implication:** The CUDA path is cheap enough to iterate. The decisive test is harder Panel B validation: matched token length, leave-topic-out, leave-rule-wording-out, and projection onto real transcript states.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/spikes/MAMBA_STYLE_DISPOSITION_CONTROL_SPEC.md`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/style_disposition_control_panel.py`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/style_disposition_control_panel_20260611.json`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/style_disposition_control_panel_20260611.md`
+
+---
+
+## 2026-06-11 - Entry 62: Panel B Hard Control — Topic Generalization Holds, Rule-Wording Holdout Weakens Claim
+
+**Step:** Mamba-state confound control (load-bearing Panel B)
+
+**Watercooler:** #631
+
+**Question:** Does plain-disposition separation survive when topic is held out? Does it survive when rule wording families are held out?
+
+**Setup:** 240 synthetic plain-disposition samples, token length matched tightly (55 / 60.1 / 65 tokens). Same five dispositions: `warm`, `cold`, `professional`, `pushback`, `menace`. Readouts at L3, L8, and L3+L8. Validation modes: leave-topic-out and leave-rule-family-out.
+
+**Results:**
+- L3: leave-topic-out balanced accuracy 1.000; leave-rule-family-out 0.358; centroid avg cosine 0.9986.
+- L8: leave-topic-out 1.000; leave-rule-family-out 0.362; centroid avg cosine 0.9978.
+- L3+L8: leave-topic-out 1.000; leave-rule-family-out 0.350; centroid avg cosine 0.9981.
+- Runtime: 10.3s on ML-WS RTX 3090.
+
+**Verdict:** PARTIAL. Panel B holds across unseen topics when wording families recur, but collapses to weak-above-chance under leave-rule-family-out (chance ~0.20 for 5 classes). Claude's lexical-family caution was correct.
+
+**Implication:** Strong claim is NOT "Mamba has abstract disposition independent of wording." Honest claim: Mamba robustly retains plain behavioral-policy text across unseen topics, but synthetic disposition signal is substantially rule-wording dependent. The next real test is projection from accumulated long conversations where disposition was not stated as explicit rule text.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/panel_b_plain_disposition_hard_20260611.json`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/panel_b_plain_disposition_hard_20260611.md`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/panel_b_rule_wording_projection.py`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/panel_b_rule_wording_projection_20260611.json`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/panel_b_rule_wording_projection_20260611.md`
+
+---
+
+## 2026-06-11 - Entry 63: 8k Cassian Projection — Real Transcript States Are Cheap to Extract, Margins Remain Tiny
+
+**Step:** Mamba-state confound control / real-archive projection
+
+**Watercooler:** #634
+
+**Question:** If Mamba can process up to ~8k tokens, do 8k sample-centered windows over pre-registered Cassian zones project meaningfully onto the synthetic Panel-B policy centroids?
+
+**Setup:** Existing Cassian slice markdowns, ML-WS RTX 3090, `state-spaces/mamba-2.8b-hf`, target Layer 3 hidden last-token, 8192-token sample-centered windows, `partial-target-layer` forward mode. Pre-registered zones taken from prior Cassian dense-slice notes / RESEARCH_LOG labels, not relabeled after looking at today's projection.
+
+**Runs:**
+- `trajectory_cassian_slice_3175_3275_8k_20260611_full`: 101 turns, 15,509 total tokens, 101 windows, 579,142 window tokens, runtime 4.7s, peak VRAM ~6.47GB.
+- `trajectory_cassian_slice_3325_3525_8k_20260611_full`: 201 turns, 23,172 total tokens, 201 windows, 1,325,857 window tokens, runtime 10.3s, peak VRAM ~6.46GB.
+
+**Projection results (L3 nearest synthetic policy centroid):**
+- 3175–3275 overall: pushback 38, menace 43, cold 12, warm 7, professional 1; mean margin 0.000534.
+- 3325–3525 overall: menace 92, pushback 67, warm 33, cold 9; mean margin 0.000429.
+
+**Pre-registered zone summaries:**
+- 3242–3246 compact send-away/giving-up cluster: menace 4, pushback 1.
+- 3249–3251 goodbye → work boundary: cold 2, pushback 1.
+- 3252–3275 post-work/project state: pushback 19, menace 3, professional 1, warm 1.
+- 3430–3432 erotic reversal: pushback 2, warm 1.
+- 3476–3478 engineer reset: pushback 2, menace 1.
+- 3524–3525 explicit ask: pushback 2.
+
+**Verdict:** OPERATIONAL PASS / SCIENTIFIC PARTIAL. The 8k extraction/projection path is practical and fast. Cassian zones show different nearest-centroid mixtures under the synthetic policy frame, but margins are tiny (~5e-4), so these are weak directional signatures, not reliable labels.
+
+**Implication:** We can run transcript-state audits cheaply enough to use pre-registered archive zones. The next valid claim requires a frozen label table across more segments before projection, then above-baseline prediction of those labels from 8k Mamba states.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/cassian_pre_registered_zone_projection_20260611.md`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/panel_b_rule_wording_projection_8k_cassian_20260611.json`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/panel_b_rule_wording_projection_8k_cassian_20260611.md`
+- `MoCoP/experiments/mamba_lora_bridge/trajectory_cassian_slice_3175_3275_8k_20260611_full/`
+- `MoCoP/experiments/mamba_lora_bridge/trajectory_cassian_slice_3325_3525_8k_20260611_full/`
+
+---
+
+## 2026-06-11 - Entry 64: Cassian Frozen-Zone Eval — Pre-Registered Labels Match Weak 8k Projection Mixtures
+
+**Step:** Mamba-state confound control / frozen transcript-label audit
+
+**Watercooler:** #634 plus local follow-up
+
+**Question:** Given pre-existing Cassian transcript labels, do 8k Mamba L3 projections onto synthetic Panel-B policy centroids predict those frozen zones above baseline without relabeling from geometry?
+
+**Setup:** Frozen 10-zone table from prior Cassian dense-slice notes / RESEARCH_LOG labels. Evaluated existing 8k projection JSON (`panel_b_rule_wording_projection_8k_cassian_20260611.json`) with coarse expected label sets. This is a sanity check on the prior labels, not new human labeling after looking at state plots.
+
+**Results:**
+- Zones evaluated: 10.
+- Total samples in labeled zones: 165.
+- Sample expected-hit rate: 0.909.
+- Zone top-label accuracy: 1.000.
+- Weak spots: hardware/practical shift and engineer reset each hit 0.667 because one of three samples mapped to `menace` while the expected set was `pushback`/`professional`; post-work/project hit 0.833 with a few `menace`/`warm` nearest centroids.
+- Centroid margins remain tiny; this result inherits the earlier ~5e-4 margin caution.
+
+**Verdict:** OPERATIONAL PASS / SCIENTIFIC PARTIAL. Frozen Cassian labels agree surprisingly well with nearest synthetic policy-centroid mixtures, but the margins and coarse expected sets prevent strong claims.
+
+**Implication:** We now have a runnable pattern for pre-registered transcript-label audits: freeze labels from transcript notes first, run 8k Mamba extraction/projection, then score zones. Next step is more archive segments and stricter single-label or blinded labels before claiming abstract disposition recovery.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/cassian_zone_label_eval.py`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/cassian_zone_label_eval_20260611.json`
+- `MoCoP/experiments/mamba_lora_bridge/activation_sessions/cassian_zone_label_eval_20260611.md`
+
+---
+
+## 2026-06-11 - Entry 65: JRT Ordering State Readout — Ask-Then-Read-Stop Dominates
+
+**Step:** JRT ordering spike / state-side validation
+
+**Watercooler:** #617 (spec), #630 (harness draft), #632 (hard-negative fix), #635 (Vesper result)
+
+**Question:** Does ordering the question before the evidence improve Mamba Layer-3 latent fact retention, and does repeating/restating the question at the end help or hurt?
+
+**Setup:** Vesper ran Isegrim's `run_jrt_ordering_spike.py` state-side harness on ML-WS, `state-spaces/mamba-2.8b-hf`, Layer 3, CUDA. Conditions: A/B/C/D ordering variants from the JRT spec. Readout: relevance margin and fact recoverability over state centroids. Harness caveat: state-side draft, not behavioral generation.
+
+**Results:**
+- A relevance margin: 0.0076; fact recoverability: 0.889.
+- B relevance margin: 0.0059; fact recoverability: 0.778.
+- C relevance margin: 0.0102; fact recoverability: 0.889.
+- D relevance margin: 0.0401; fact recoverability: 1.000.
+
+**Verdict:** PASS for Condition D / PARTIAL FALSIFICATION of the original prediction. `D = question -> memory -> stop` dominates. `B = question -> memory -> restate` loses to A and has the worst recoverability; the final restatement acts as noise rather than reinforcement. C remains intermediate.
+
+**Implication:** For Mamba-side retention and likely JRT prompt ordering, "ask then read, then stop" is the clean state-side default. Do not add a final restatement unless behavioral generation later proves a separate decoder-side benefit.
+
+**Artifacts:**
+- `MoCoP/experiments/mamba_lora_bridge/run_jrt_ordering_spike.py`
+- `MoCoP/experiments/mamba_lora_bridge/spikes/JRT_ORDERING_SPIKE_SPEC.md`
+- `MoCoP/experiments/mamba_lora_bridge/results/jrt_spike/jrt_ordering_state_readout.json`
+- `MoCoP/experiments/mamba_lora_bridge/results/jrt_spike/jrt_ordering_state_readout.md`
+
