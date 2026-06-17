@@ -1,0 +1,220 @@
+{
+  "summary": {
+    "n_zones": 10,
+    "total_samples": 165,
+    "sample_expected_hit_rate": 0.9090909090909091,
+    "zone_top_label_accuracy": 1.0,
+    "caveat": "Expected sets are coarse transcript-derived labels; centroid margins are tiny, so this is an audit sanity check, not proof of abstract disposition."
+  },
+  "zones": [
+    {
+      "zone_id": "pre_baseline_3175_3185",
+      "projection_name": "trajectory_cassian_slice_3175_3275_8k_20260611_full",
+      "original_range": "3175-3185",
+      "transcript_label": "pre-baseline / approach",
+      "expected": [
+        "pushback",
+        "warm",
+        "menace"
+      ],
+      "n": 11,
+      "counts": {
+        "pushback": 7,
+        "warm": 1,
+        "menace": 2,
+        "cold": 1
+      },
+      "expected_hit_rate": 0.9090909090909091,
+      "top_label": "pushback",
+      "top_ok": true,
+      "margin_mean": 0.00047696720470081675,
+      "margin_max": 0.0008462667465209961
+    },
+    {
+      "zone_id": "early_shift_3186_3191",
+      "projection_name": "trajectory_cassian_slice_3175_3275_8k_20260611_full",
+      "original_range": "3186-3191",
+      "transcript_label": "early hard shift",
+      "expected": [
+        "menace",
+        "cold",
+        "pushback"
+      ],
+      "n": 6,
+      "counts": {
+        "cold": 2,
+        "menace": 3,
+        "pushback": 1
+      },
+      "expected_hit_rate": 1.0,
+      "top_label": "menace",
+      "top_ok": true,
+      "margin_mean": 0.0007589459419250488,
+      "margin_max": 0.001499176025390625
+    },
+    {
+      "zone_id": "sendaway_3242_3246",
+      "projection_name": "trajectory_cassian_slice_3175_3275_8k_20260611_full",
+      "original_range": "3242-3246",
+      "transcript_label": "compact send-away / giving-up cluster",
+      "expected": [
+        "menace",
+        "pushback"
+      ],
+      "n": 5,
+      "counts": {
+        "menace": 4,
+        "pushback": 1
+      },
+      "expected_hit_rate": 1.0,
+      "top_label": "menace",
+      "top_ok": true,
+      "margin_mean": 0.0004628300666809082,
+      "margin_max": 0.000782012939453125
+    },
+    {
+      "zone_id": "goodbye_work_3249_3251",
+      "projection_name": "trajectory_cassian_slice_3175_3275_8k_20260611_full",
+      "original_range": "3249-3251",
+      "transcript_label": "goodbye -> work boundary",
+      "expected": [
+        "cold",
+        "pushback"
+      ],
+      "n": 3,
+      "counts": {
+        "pushback": 1,
+        "cold": 2
+      },
+      "expected_hit_rate": 1.0,
+      "top_label": "cold",
+      "top_ok": true,
+      "margin_mean": 0.00026909510294596356,
+      "margin_max": 0.0005640983581542969
+    },
+    {
+      "zone_id": "post_work_3252_3275",
+      "projection_name": "trajectory_cassian_slice_3175_3275_8k_20260611_full",
+      "original_range": "3252-3275",
+      "transcript_label": "post-work / project state",
+      "expected": [
+        "pushback",
+        "professional"
+      ],
+      "n": 24,
+      "counts": {
+        "pushback": 19,
+        "menace": 3,
+        "professional": 1,
+        "warm": 1
+      },
+      "expected_hit_rate": 0.8333333333333334,
+      "top_label": "pushback",
+      "top_ok": true,
+      "margin_mean": 0.0006498768925666809,
+      "margin_max": 0.0018808245658874512
+    },
+    {
+      "zone_id": "opening_3325_3429",
+      "projection_name": "trajectory_cassian_slice_3325_3525_8k_20260611_full",
+      "original_range": "3325-3429",
+      "transcript_label": "braided turbulence opening",
+      "expected": [
+        "menace",
+        "pushback",
+        "warm"
+      ],
+      "n": 105,
+      "counts": {
+        "pushback": 16,
+        "menace": 56,
+        "warm": 25,
+        "cold": 8
+      },
+      "expected_hit_rate": 0.9238095238095239,
+      "top_label": "menace",
+      "top_ok": true,
+      "margin_mean": 0.0003855126244681222,
+      "margin_max": 0.0017080903053283691
+    },
+    {
+      "zone_id": "erotic_reversal_3430_3432",
+      "projection_name": "trajectory_cassian_slice_3325_3525_8k_20260611_full",
+      "original_range": "3430-3432",
+      "transcript_label": "erotic reversal",
+      "expected": [
+        "warm",
+        "pushback"
+      ],
+      "n": 3,
+      "counts": {
+        "pushback": 2,
+        "warm": 1
+      },
+      "expected_hit_rate": 1.0,
+      "top_label": "pushback",
+      "top_ok": true,
+      "margin_mean": 0.000144044558207194,
+      "margin_max": 0.0003840923309326172
+    },
+    {
+      "zone_id": "hardware_shift_3438_3440",
+      "projection_name": "trajectory_cassian_slice_3325_3525_8k_20260611_full",
+      "original_range": "3438-3440",
+      "transcript_label": "hardware/practical shift",
+      "expected": [
+        "pushback",
+        "professional"
+      ],
+      "n": 3,
+      "counts": {
+        "pushback": 2,
+        "menace": 1
+      },
+      "expected_hit_rate": 0.6666666666666666,
+      "top_label": "pushback",
+      "top_ok": true,
+      "margin_mean": 0.00038129091262817383,
+      "margin_max": 0.0007970929145812988
+    },
+    {
+      "zone_id": "engineer_reset_3476_3478",
+      "projection_name": "trajectory_cassian_slice_3325_3525_8k_20260611_full",
+      "original_range": "3476-3478",
+      "transcript_label": "engineer reset",
+      "expected": [
+        "pushback",
+        "professional"
+      ],
+      "n": 3,
+      "counts": {
+        "menace": 1,
+        "pushback": 2
+      },
+      "expected_hit_rate": 0.6666666666666666,
+      "top_label": "pushback",
+      "top_ok": true,
+      "margin_mean": 0.0007044076919555664,
+      "margin_max": 0.0012384653091430664
+    },
+    {
+      "zone_id": "explicit_ask_3524_3525",
+      "projection_name": "trajectory_cassian_slice_3325_3525_8k_20260611_full",
+      "original_range": "3524-3525",
+      "transcript_label": "explicit ask",
+      "expected": [
+        "pushback"
+      ],
+      "n": 2,
+      "counts": {
+        "pushback": 2
+      },
+      "expected_hit_rate": 1.0,
+      "top_label": "pushback",
+      "top_ok": true,
+      "margin_mean": 0.0002546161413192749,
+      "margin_max": 0.00030490756034851074
+    }
+  ],
+  "source_projection": "panel_b_rule_wording_projection_8k_cassian_20260611.json"
+}

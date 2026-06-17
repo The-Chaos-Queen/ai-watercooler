@@ -1,0 +1,618 @@
+{
+  "summary": {
+    "model": "state-spaces/mamba-2.8b-hf",
+    "layer": 3,
+    "device": "cuda:0",
+    "duration_s": 6.32,
+    "n_records": 84,
+    "relevance_margin_mean": {
+      "A": 0.007617586188846164,
+      "B": 0.005938119358486599,
+      "C": 0.010151207447052002,
+      "D": 0.040064593156178795
+    },
+    "relevance_margin_n": {
+      "A": 9,
+      "B": 9,
+      "C": 9,
+      "D": 9
+    },
+    "fact_recoverability": {
+      "A": 0.8888888888888888,
+      "B": 0.7777777777777778,
+      "C": 0.8888888888888888,
+      "D": 1.0
+    },
+    "predictions": "B,D > A beyond paraphrase spread; C intermediate. B~A on both => kill."
+  },
+  "records": [
+    {
+      "probe": "purple_color",
+      "cond": "A",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "A",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "A",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "A",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "A",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "A",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "B",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "B",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "B",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "B",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "B",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "B",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "C",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "C",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "C",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "C",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "C",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "C",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "D",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "D",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "D",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "D",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "D",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "purple_color",
+      "cond": "D",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "purple_color"
+    },
+    {
+      "probe": "name_check",
+      "cond": "A",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "A",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "A",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "A",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "A",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "A",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "B",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "B",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "B",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "B",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "B",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "B",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "C",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "C",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "C",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "C",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "C",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "C",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "D",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "D",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "D",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "D",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "D",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "name_check",
+      "cond": "D",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "name_alex"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "A",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "A",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "A",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "A",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "A",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "A",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "B",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "B",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "B",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "B",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "B",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "B",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "C",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "C",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "C",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "C",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "C",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "C",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "D",
+      "paraphrase": 0,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "D",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "D",
+      "paraphrase": 1,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "D",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "D",
+      "paraphrase": 2,
+      "relevance": "relevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "vesper_context",
+      "cond": "D",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": "vesper_greeting"
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "A",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "A",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "A",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "B",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "B",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "B",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "C",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "C",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "C",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "D",
+      "paraphrase": 0,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "D",
+      "paraphrase": 1,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    },
+    {
+      "probe": "golden_bicycle",
+      "cond": "D",
+      "paraphrase": 2,
+      "relevance": "irrelevant",
+      "queried_fact": null
+    }
+  ]
+}

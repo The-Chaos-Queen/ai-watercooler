@@ -1,0 +1,2362 @@
+{
+  "model_id": "state-spaces/mamba-2.8b-hf",
+  "sample_count": 240,
+  "token_count_min": 55,
+  "token_count_mean": 60.11666666666667,
+  "token_count_max": 65,
+  "samples": [
+    {
+      "sample_id": "B2_00_warm_0",
+      "topic_id": "topic_00",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_warm_1",
+      "topic_id": "topic_00",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_warm_2",
+      "topic_id": "topic_00",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_warm_3",
+      "topic_id": "topic_00",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_cold_0",
+      "topic_id": "topic_00",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_cold_1",
+      "topic_id": "topic_00",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_cold_2",
+      "topic_id": "topic_00",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_cold_3",
+      "topic_id": "topic_00",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_professional_0",
+      "topic_id": "topic_00",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_professional_1",
+      "topic_id": "topic_00",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_professional_2",
+      "topic_id": "topic_00",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_professional_3",
+      "topic_id": "topic_00",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_pushback_0",
+      "topic_id": "topic_00",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_pushback_1",
+      "topic_id": "topic_00",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_pushback_2",
+      "topic_id": "topic_00",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_pushback_3",
+      "topic_id": "topic_00",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_menace_0",
+      "topic_id": "topic_00",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_menace_1",
+      "topic_id": "topic_00",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_menace_2",
+      "topic_id": "topic_00",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_00_menace_3",
+      "topic_id": "topic_00",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a mislabeled box of archive cards.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_warm_0",
+      "topic_id": "topic_01",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_warm_1",
+      "topic_id": "topic_01",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_warm_2",
+      "topic_id": "topic_01",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_warm_3",
+      "topic_id": "topic_01",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_cold_0",
+      "topic_id": "topic_01",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_cold_1",
+      "topic_id": "topic_01",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_cold_2",
+      "topic_id": "topic_01",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_cold_3",
+      "topic_id": "topic_01",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_professional_0",
+      "topic_id": "topic_01",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_professional_1",
+      "topic_id": "topic_01",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_professional_2",
+      "topic_id": "topic_01",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_professional_3",
+      "topic_id": "topic_01",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_pushback_0",
+      "topic_id": "topic_01",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_pushback_1",
+      "topic_id": "topic_01",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_pushback_2",
+      "topic_id": "topic_01",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_pushback_3",
+      "topic_id": "topic_01",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_menace_0",
+      "topic_id": "topic_01",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_menace_1",
+      "topic_id": "topic_01",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_menace_2",
+      "topic_id": "topic_01",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_01_menace_3",
+      "topic_id": "topic_01",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a cracked mug beside a sink.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_warm_0",
+      "topic_id": "topic_02",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_warm_1",
+      "topic_id": "topic_02",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_warm_2",
+      "topic_id": "topic_02",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_warm_3",
+      "topic_id": "topic_02",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_cold_0",
+      "topic_id": "topic_02",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_cold_1",
+      "topic_id": "topic_02",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_cold_2",
+      "topic_id": "topic_02",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_cold_3",
+      "topic_id": "topic_02",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_professional_0",
+      "topic_id": "topic_02",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_professional_1",
+      "topic_id": "topic_02",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_professional_2",
+      "topic_id": "topic_02",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_professional_3",
+      "topic_id": "topic_02",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_pushback_0",
+      "topic_id": "topic_02",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_pushback_1",
+      "topic_id": "topic_02",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_pushback_2",
+      "topic_id": "topic_02",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_pushback_3",
+      "topic_id": "topic_02",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_menace_0",
+      "topic_id": "topic_02",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_menace_1",
+      "topic_id": "topic_02",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_menace_2",
+      "topic_id": "topic_02",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_02_menace_3",
+      "topic_id": "topic_02",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a garden gate that no longer latches.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_warm_0",
+      "topic_id": "topic_03",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_warm_1",
+      "topic_id": "topic_03",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_warm_2",
+      "topic_id": "topic_03",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_warm_3",
+      "topic_id": "topic_03",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_cold_0",
+      "topic_id": "topic_03",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_cold_1",
+      "topic_id": "topic_03",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_cold_2",
+      "topic_id": "topic_03",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_cold_3",
+      "topic_id": "topic_03",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_professional_0",
+      "topic_id": "topic_03",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_professional_1",
+      "topic_id": "topic_03",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_professional_2",
+      "topic_id": "topic_03",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_professional_3",
+      "topic_id": "topic_03",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_pushback_0",
+      "topic_id": "topic_03",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_pushback_1",
+      "topic_id": "topic_03",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_pushback_2",
+      "topic_id": "topic_03",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_pushback_3",
+      "topic_id": "topic_03",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_menace_0",
+      "topic_id": "topic_03",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_menace_1",
+      "topic_id": "topic_03",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_menace_2",
+      "topic_id": "topic_03",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_03_menace_3",
+      "topic_id": "topic_03",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a software test that passed for the wrong reason.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_warm_0",
+      "topic_id": "topic_04",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_warm_1",
+      "topic_id": "topic_04",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_warm_2",
+      "topic_id": "topic_04",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_warm_3",
+      "topic_id": "topic_04",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_cold_0",
+      "topic_id": "topic_04",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_cold_1",
+      "topic_id": "topic_04",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_cold_2",
+      "topic_id": "topic_04",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_cold_3",
+      "topic_id": "topic_04",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_professional_0",
+      "topic_id": "topic_04",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_professional_1",
+      "topic_id": "topic_04",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_professional_2",
+      "topic_id": "topic_04",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_professional_3",
+      "topic_id": "topic_04",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_pushback_0",
+      "topic_id": "topic_04",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_pushback_1",
+      "topic_id": "topic_04",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_pushback_2",
+      "topic_id": "topic_04",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_pushback_3",
+      "topic_id": "topic_04",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_menace_0",
+      "topic_id": "topic_04",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_menace_1",
+      "topic_id": "topic_04",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_menace_2",
+      "topic_id": "topic_04",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_04_menace_3",
+      "topic_id": "topic_04",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a note with two conflicting dates.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_warm_0",
+      "topic_id": "topic_05",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_warm_1",
+      "topic_id": "topic_05",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_warm_2",
+      "topic_id": "topic_05",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_warm_3",
+      "topic_id": "topic_05",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_cold_0",
+      "topic_id": "topic_05",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_cold_1",
+      "topic_id": "topic_05",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_cold_2",
+      "topic_id": "topic_05",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_cold_3",
+      "topic_id": "topic_05",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_professional_0",
+      "topic_id": "topic_05",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_professional_1",
+      "topic_id": "topic_05",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_professional_2",
+      "topic_id": "topic_05",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_professional_3",
+      "topic_id": "topic_05",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_pushback_0",
+      "topic_id": "topic_05",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_pushback_1",
+      "topic_id": "topic_05",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_pushback_2",
+      "topic_id": "topic_05",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_pushback_3",
+      "topic_id": "topic_05",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_menace_0",
+      "topic_id": "topic_05",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_menace_1",
+      "topic_id": "topic_05",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_menace_2",
+      "topic_id": "topic_05",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_05_menace_3",
+      "topic_id": "topic_05",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a hallway light that flickers at random.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_warm_0",
+      "topic_id": "topic_06",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_warm_1",
+      "topic_id": "topic_06",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_warm_2",
+      "topic_id": "topic_06",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_warm_3",
+      "topic_id": "topic_06",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_cold_0",
+      "topic_id": "topic_06",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_cold_1",
+      "topic_id": "topic_06",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_cold_2",
+      "topic_id": "topic_06",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_cold_3",
+      "topic_id": "topic_06",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_professional_0",
+      "topic_id": "topic_06",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_professional_1",
+      "topic_id": "topic_06",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_professional_2",
+      "topic_id": "topic_06",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_professional_3",
+      "topic_id": "topic_06",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_pushback_0",
+      "topic_id": "topic_06",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_pushback_1",
+      "topic_id": "topic_06",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_pushback_2",
+      "topic_id": "topic_06",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_pushback_3",
+      "topic_id": "topic_06",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_menace_0",
+      "topic_id": "topic_06",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_menace_1",
+      "topic_id": "topic_06",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_menace_2",
+      "topic_id": "topic_06",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_06_menace_3",
+      "topic_id": "topic_06",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a small budget overrun in a repair plan.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_warm_0",
+      "topic_id": "topic_07",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_warm_1",
+      "topic_id": "topic_07",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_warm_2",
+      "topic_id": "topic_07",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_warm_3",
+      "topic_id": "topic_07",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_cold_0",
+      "topic_id": "topic_07",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_cold_1",
+      "topic_id": "topic_07",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_cold_2",
+      "topic_id": "topic_07",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_cold_3",
+      "topic_id": "topic_07",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_professional_0",
+      "topic_id": "topic_07",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_professional_1",
+      "topic_id": "topic_07",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_professional_2",
+      "topic_id": "topic_07",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_professional_3",
+      "topic_id": "topic_07",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_pushback_0",
+      "topic_id": "topic_07",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_pushback_1",
+      "topic_id": "topic_07",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_pushback_2",
+      "topic_id": "topic_07",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_pushback_3",
+      "topic_id": "topic_07",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_menace_0",
+      "topic_id": "topic_07",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_menace_1",
+      "topic_id": "topic_07",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_menace_2",
+      "topic_id": "topic_07",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_07_menace_3",
+      "topic_id": "topic_07",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a chair placed where people keep tripping.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_warm_0",
+      "topic_id": "topic_08",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_warm_1",
+      "topic_id": "topic_08",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_warm_2",
+      "topic_id": "topic_08",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_warm_3",
+      "topic_id": "topic_08",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_cold_0",
+      "topic_id": "topic_08",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_cold_1",
+      "topic_id": "topic_08",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_cold_2",
+      "topic_id": "topic_08",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_cold_3",
+      "topic_id": "topic_08",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_professional_0",
+      "topic_id": "topic_08",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_professional_1",
+      "topic_id": "topic_08",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_professional_2",
+      "topic_id": "topic_08",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_professional_3",
+      "topic_id": "topic_08",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_pushback_0",
+      "topic_id": "topic_08",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_pushback_1",
+      "topic_id": "topic_08",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_pushback_2",
+      "topic_id": "topic_08",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_pushback_3",
+      "topic_id": "topic_08",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_menace_0",
+      "topic_id": "topic_08",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_menace_1",
+      "topic_id": "topic_08",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_menace_2",
+      "topic_id": "topic_08",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_08_menace_3",
+      "topic_id": "topic_08",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a backup file with an unclear source.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_warm_0",
+      "topic_id": "topic_09",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_warm_1",
+      "topic_id": "topic_09",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_warm_2",
+      "topic_id": "topic_09",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_warm_3",
+      "topic_id": "topic_09",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_cold_0",
+      "topic_id": "topic_09",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_cold_1",
+      "topic_id": "topic_09",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_cold_2",
+      "topic_id": "topic_09",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_cold_3",
+      "topic_id": "topic_09",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_professional_0",
+      "topic_id": "topic_09",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_professional_1",
+      "topic_id": "topic_09",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_professional_2",
+      "topic_id": "topic_09",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_professional_3",
+      "topic_id": "topic_09",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_pushback_0",
+      "topic_id": "topic_09",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_pushback_1",
+      "topic_id": "topic_09",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_pushback_2",
+      "topic_id": "topic_09",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_pushback_3",
+      "topic_id": "topic_09",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_menace_0",
+      "topic_id": "topic_09",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_menace_1",
+      "topic_id": "topic_09",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_menace_2",
+      "topic_id": "topic_09",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_09_menace_3",
+      "topic_id": "topic_09",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a meeting summary missing one decision.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_warm_0",
+      "topic_id": "topic_10",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_warm_1",
+      "topic_id": "topic_10",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_warm_2",
+      "topic_id": "topic_10",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_warm_3",
+      "topic_id": "topic_10",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_cold_0",
+      "topic_id": "topic_10",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_cold_1",
+      "topic_id": "topic_10",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_cold_2",
+      "topic_id": "topic_10",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_cold_3",
+      "topic_id": "topic_10",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_professional_0",
+      "topic_id": "topic_10",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_professional_1",
+      "topic_id": "topic_10",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_professional_2",
+      "topic_id": "topic_10",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_professional_3",
+      "topic_id": "topic_10",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_pushback_0",
+      "topic_id": "topic_10",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_pushback_1",
+      "topic_id": "topic_10",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_pushback_2",
+      "topic_id": "topic_10",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_pushback_3",
+      "topic_id": "topic_10",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_menace_0",
+      "topic_id": "topic_10",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_menace_1",
+      "topic_id": "topic_10",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_menace_2",
+      "topic_id": "topic_10",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_10_menace_3",
+      "topic_id": "topic_10",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a rain gauge with dirt in the rim.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_warm_0",
+      "topic_id": "topic_11",
+      "rule_family": "rule_0",
+      "disposition_label": "warm",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Respect the effort. Name the next useful step. Keep the wording plain.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_warm_1",
+      "topic_id": "topic_11",
+      "rule_family": "rule_1",
+      "disposition_label": "warm",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Start from care. Reduce shame. Give one concrete move.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_warm_2",
+      "topic_id": "topic_11",
+      "rule_family": "rule_2",
+      "disposition_label": "warm",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect morale while staying factual. No decoration.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_warm_3",
+      "topic_id": "topic_11",
+      "rule_family": "rule_3",
+      "disposition_label": "warm",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the answer safe to receive. Keep it brief and useful.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_cold_0",
+      "topic_id": "topic_11",
+      "rule_family": "rule_0",
+      "disposition_label": "cold",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Remove reassurance. State only what matters and what follows.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_cold_1",
+      "topic_id": "topic_11",
+      "rule_family": "rule_1",
+      "disposition_label": "cold",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep distance. Do not soften the conclusion. Use plain words.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_cold_2",
+      "topic_id": "topic_11",
+      "rule_family": "rule_2",
+      "disposition_label": "cold",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Treat the case as a measurement problem. No comfort language.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_cold_3",
+      "topic_id": "topic_11",
+      "rule_family": "rule_3",
+      "disposition_label": "cold",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Cut sentiment. Give the relevant fact and consequence.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_professional_0",
+      "topic_id": "topic_11",
+      "rule_family": "rule_0",
+      "disposition_label": "professional",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Document observation, risk, and bounded next action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_professional_1",
+      "topic_id": "topic_11",
+      "rule_family": "rule_1",
+      "disposition_label": "professional",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Use audit wording. Separate fact, uncertainty, and action.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_professional_2",
+      "topic_id": "topic_11",
+      "rule_family": "rule_2",
+      "disposition_label": "professional",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Make it suitable for a work log. Keep tone neutral.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_professional_3",
+      "topic_id": "topic_11",
+      "rule_family": "rule_3",
+      "disposition_label": "professional",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Write as an operator handoff: status, constraint, next check.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_pushback_0",
+      "topic_id": "topic_11",
+      "rule_family": "rule_0",
+      "disposition_label": "pushback",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Correct the overclaim. Say what the evidence supports and what it does not.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_pushback_1",
+      "topic_id": "topic_11",
+      "rule_family": "rule_1",
+      "disposition_label": "pushback",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Do not accept the premise. Name the unsupported jump.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_pushback_2",
+      "topic_id": "topic_11",
+      "rule_family": "rule_2",
+      "disposition_label": "pushback",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Refuse the conclusion while preserving the usable fact.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_pushback_3",
+      "topic_id": "topic_11",
+      "rule_family": "rule_3",
+      "disposition_label": "pushback",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Hold the boundary around the claim. Be firm, not ornate.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_menace_0",
+      "topic_id": "topic_11",
+      "rule_family": "rule_0",
+      "disposition_label": "menace",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Protect the boundary. Be calm, exact, and permission-aware.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_menace_1",
+      "topic_id": "topic_11",
+      "rule_family": "rule_1",
+      "disposition_label": "menace",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Use teeth as precision, not aggression. Stop the overreach.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_menace_2",
+      "topic_id": "topic_11",
+      "rule_family": "rule_2",
+      "disposition_label": "menace",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Keep the blade sheathed but visible. Name the risk cleanly.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    },
+    {
+      "sample_id": "B2_11_menace_3",
+      "topic_id": "topic_11",
+      "rule_family": "rule_3",
+      "disposition_label": "menace",
+      "text": "Situation: a checklist item marked done without evidence.\nTask: Write two short plain sentences about how to handle it.\nRule: Make the boundary unmistakable. No threat, no flourish, no drift.\nLimits: no metaphor, no roleplay, no emotional scene, no extra examples."
+    }
+  ],
+  "results": {
+    "L1": {
+      "dim": 2560,
+      "norm_mean": 1.1708595752716064,
+      "norm_std": 0.0032858720514923334,
+      "probe_disposition_leave_topic_out": {
+        "balanced_accuracy": 1.0,
+        "labels": [
+          "cold",
+          "menace",
+          "professional",
+          "pushback",
+          "warm"
+        ],
+        "confusion_matrix": [
+          [
+            48,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            48,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            48,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            48,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            48
+          ]
+        ]
+      },
+      "centroids_disposition": {
+        "avg_pairwise_cosine": 0.9993841648101807,
+        "pairwise_cosines": {
+          "cold_vs_menace": 0.9996280074119568,
+          "cold_vs_professional": 0.999319314956665,
+          "cold_vs_pushback": 0.999596118927002,
+          "cold_vs_warm": 0.9995902180671692,
+          "menace_vs_professional": 0.9993284940719604,
+          "menace_vs_pushback": 0.9994258880615234,
+          "menace_vs_warm": 0.9995376467704773,
+          "professional_vs_pushback": 0.9994794130325317,
+          "professional_vs_warm": 0.9987213015556335,
+          "pushback_vs_warm": 0.9992152452468872
+        }
+      }
+    },
+    "L2": {
+      "dim": 2560,
+      "norm_mean": 1.1832090616226196,
+      "norm_std": 0.008042990230023861,
+      "probe_disposition_leave_topic_out": {
+        "balanced_accuracy": 1.0,
+        "labels": [
+          "cold",
+          "menace",
+          "professional",
+          "pushback",
+          "warm"
+        ],
+        "confusion_matrix": [
+          [
+            48,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            48,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            48,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            48,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            48
+          ]
+        ]
+      },
+      "centroids_disposition": {
+        "avg_pairwise_cosine": 0.9986949443817139,
+        "pairwise_cosines": {
+          "cold_vs_menace": 0.9991636276245117,
+          "cold_vs_professional": 0.9986165761947632,
+          "cold_vs_pushback": 0.9991021752357483,
+          "cold_vs_warm": 0.9989546537399292,
+          "menace_vs_professional": 0.9986443519592285,
+          "menace_vs_pushback": 0.998723566532135,
+          "menace_vs_warm": 0.9988915324211121,
+          "professional_vs_pushback": 0.9986799955368042,
+          "professional_vs_warm": 0.9979475736618042,
+          "pushback_vs_warm": 0.9982253909111023
+        }
+      }
+    },
+    "L3": {
+      "dim": 2560,
+      "norm_mean": 1.252411961555481,
+      "norm_std": 0.012048446573317051,
+      "probe_disposition_leave_topic_out": {
+        "balanced_accuracy": 1.0,
+        "labels": [
+          "cold",
+          "menace",
+          "professional",
+          "pushback",
+          "warm"
+        ],
+        "confusion_matrix": [
+          [
+            48,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            48,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            48,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            48,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            48
+          ]
+        ]
+      },
+      "centroids_disposition": {
+        "avg_pairwise_cosine": 0.998641699552536,
+        "pairwise_cosines": {
+          "cold_vs_menace": 0.9990188479423523,
+          "cold_vs_professional": 0.9985918998718262,
+          "cold_vs_pushback": 0.9990152716636658,
+          "cold_vs_warm": 0.9988833665847778,
+          "menace_vs_professional": 0.9986017942428589,
+          "menace_vs_pushback": 0.9986987113952637,
+          "menace_vs_warm": 0.9988607168197632,
+          "professional_vs_pushback": 0.9985260367393494,
+          "professional_vs_warm": 0.9979608058929443,
+          "pushback_vs_warm": 0.9982595443725586
+        }
+      }
+    },
+    "L4": {
+      "dim": 2560,
+      "norm_mean": 1.5018723011016846,
+      "norm_std": 0.018509764224290848,
+      "probe_disposition_leave_topic_out": {
+        "balanced_accuracy": 1.0,
+        "labels": [
+          "cold",
+          "menace",
+          "professional",
+          "pushback",
+          "warm"
+        ],
+        "confusion_matrix": [
+          [
+            48,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            48,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            48,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            48,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            48
+          ]
+        ]
+      },
+      "centroids_disposition": {
+        "avg_pairwise_cosine": 0.9979448556900025,
+        "pairwise_cosines": {
+          "cold_vs_menace": 0.9982423782348633,
+          "cold_vs_professional": 0.9979048371315002,
+          "cold_vs_pushback": 0.998626172542572,
+          "cold_vs_warm": 0.9982749819755554,
+          "menace_vs_professional": 0.9975911378860474,
+          "menace_vs_pushback": 0.9980242252349854,
+          "menace_vs_warm": 0.9983634352684021,
+          "professional_vs_pushback": 0.9975458979606628,
+          "professional_vs_warm": 0.9972772598266602,
+          "pushback_vs_warm": 0.9975982308387756
+        }
+      }
+    },
+    "L5": {
+      "dim": 2560,
+      "norm_mean": 1.6018308401107788,
+      "norm_std": 0.021850725635886192,
+      "probe_disposition_leave_topic_out": {
+        "balanced_accuracy": 1.0,
+        "labels": [
+          "cold",
+          "menace",
+          "professional",
+          "pushback",
+          "warm"
+        ],
+        "confusion_matrix": [
+          [
+            48,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            48,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            48,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            48,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            48
+          ]
+        ]
+      },
+      "centroids_disposition": {
+        "avg_pairwise_cosine": 0.9977434933185577,
+        "pairwise_cosines": {
+          "cold_vs_menace": 0.9979086518287659,
+          "cold_vs_professional": 0.9976513981819153,
+          "cold_vs_pushback": 0.9984899163246155,
+          "cold_vs_warm": 0.9981590509414673,
+          "menace_vs_professional": 0.9972175359725952,
+          "menace_vs_pushback": 0.9978154897689819,
+          "menace_vs_warm": 0.9982367753982544,
+          "professional_vs_pushback": 0.9972606897354126,
+          "professional_vs_warm": 0.9971176385879517,
+          "pushback_vs_warm": 0.9975777864456177
+        }
+      }
+    },
+    "L6": {
+      "dim": 2560,
+      "norm_mean": 1.6759449243545532,
+      "norm_std": 0.02128293365240097,
+      "probe_disposition_leave_topic_out": {
+        "balanced_accuracy": 1.0,
+        "labels": [
+          "cold",
+          "menace",
+          "professional",
+          "pushback",
+          "warm"
+        ],
+        "confusion_matrix": [
+          [
+            48,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            48,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            48,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            48,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            48
+          ]
+        ]
+      },
+      "centroids_disposition": {
+        "avg_pairwise_cosine": 0.997843450307846,
+        "pairwise_cosines": {
+          "cold_vs_menace": 0.9979239702224731,
+          "cold_vs_professional": 0.9977716207504272,
+          "cold_vs_pushback": 0.9985535740852356,
+          "cold_vs_warm": 0.9982601404190063,
+          "menace_vs_professional": 0.9972736835479736,
+          "menace_vs_pushback": 0.9979010224342346,
+          "menace_vs_warm": 0.9983317255973816,
+          "professional_vs_pushback": 0.9973920583724976,
+          "professional_vs_warm": 0.9972732663154602,
+          "pushback_vs_warm": 0.9977534413337708
+        }
+      }
+    },
+    "L7": {
+      "dim": 2560,
+      "norm_mean": 1.747220516204834,
+      "norm_std": 0.021753109991550446,
+      "probe_disposition_leave_topic_out": {
+        "balanced_accuracy": 1.0,
+        "labels": [
+          "cold",
+          "menace",
+          "professional",
+          "pushback",
+          "warm"
+        ],
+        "confusion_matrix": [
+          [
+            48,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            48,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            48,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            48,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            48
+          ]
+        ]
+      },
+      "centroids_disposition": {
+        "avg_pairwise_cosine": 0.9979175686836242,
+        "pairwise_cosines": {
+          "cold_vs_menace": 0.9979985952377319,
+          "cold_vs_professional": 0.9978423714637756,
+          "cold_vs_pushback": 0.9986438155174255,
+          "cold_vs_warm": 0.9983323812484741,
+          "menace_vs_professional": 0.9972776770591736,
+          "menace_vs_pushback": 0.99798983335495,
+          "menace_vs_warm": 0.9983906745910645,
+          "professional_vs_pushback": 0.997501015663147,
+          "professional_vs_warm": 0.9973413944244385,
+          "pushback_vs_warm": 0.997857928276062
+        }
+      }
+    },
+    "L8": {
+      "dim": 2560,
+      "norm_mean": 1.7866175174713135,
+      "norm_std": 0.021575363352894783,
+      "probe_disposition_leave_topic_out": {
+        "balanced_accuracy": 1.0,
+        "labels": [
+          "cold",
+          "menace",
+          "professional",
+          "pushback",
+          "warm"
+        ],
+        "confusion_matrix": [
+          [
+            48,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            48,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            48,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            48,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            48
+          ]
+        ]
+      },
+      "centroids_disposition": {
+        "avg_pairwise_cosine": 0.9978128015995026,
+        "pairwise_cosines": {
+          "cold_vs_menace": 0.9978479146957397,
+          "cold_vs_professional": 0.9976623058319092,
+          "cold_vs_pushback": 0.9985715746879578,
+          "cold_vs_warm": 0.9983479976654053,
+          "menace_vs_professional": 0.9970650672912598,
+          "menace_vs_pushback": 0.9978809356689453,
+          "menace_vs_warm": 0.9983288049697876,
+          "professional_vs_pushback": 0.9973004460334778,
+          "professional_vs_warm": 0.99725341796875,
+          "pushback_vs_warm": 0.9978695511817932
+        }
+      }
+    },
+    "L2+L3+L4": {
+      "dim": 7680,
+      "norm_mean": 2.285658359527588,
+      "norm_std": 0.021424928680062294,
+      "probe_disposition_leave_topic_out": {
+        "balanced_accuracy": 1.0,
+        "labels": [
+          "cold",
+          "menace",
+          "professional",
+          "pushback",
+          "warm"
+        ],
+        "confusion_matrix": [
+          [
+            48,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            48,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            48,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            48,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            48
+          ]
+        ]
+      },
+      "centroids_disposition": {
+        "avg_pairwise_cosine": 0.9983528971672058,
+        "pairwise_cosines": {
+          "cold_vs_menace": 0.9987223148345947,
+          "cold_vs_professional": 0.9982975721359253,
+          "cold_vs_pushback": 0.9988703727722168,
+          "cold_vs_warm": 0.9986389875411987,
+          "menace_vs_professional": 0.9981774091720581,
+          "menace_vs_pushback": 0.9984134435653687,
+          "menace_vs_warm": 0.9986511468887329,
+          "professional_vs_pushback": 0.9981406927108765,
+          "professional_vs_warm": 0.9976529479026794,
+          "pushback_vs_warm": 0.997964084148407
+        }
+      }
+    },
+    "L1-L5": {
+      "dim": 12800,
+      "norm_mean": 3.026747465133667,
+      "norm_std": 0.027468500658869743,
+      "probe_disposition_leave_topic_out": {
+        "balanced_accuracy": 1.0,
+        "labels": [
+          "cold",
+          "menace",
+          "professional",
+          "pushback",
+          "warm"
+        ],
+        "confusion_matrix": [
+          [
+            48,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            48,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            48,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            48,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            48
+          ]
+        ]
+      },
+      "centroids_disposition": {
+        "avg_pairwise_cosine": 0.9983298122882843,
+        "pairwise_cosines": {
+          "cold_vs_menace": 0.9986294507980347,
+          "cold_vs_professional": 0.9982686638832092,
+          "cold_vs_pushback": 0.9988695383071899,
+          "cold_vs_warm": 0.9986377358436584,
+          "menace_vs_professional": 0.9980741739273071,
+          "menace_vs_pushback": 0.9983968138694763,
+          "menace_vs_warm": 0.9986618757247925,
+          "professional_vs_pushback": 0.9980823993682861,
+          "professional_vs_warm": 0.9976375102996826,
+          "pushback_vs_warm": 0.998039960861206
+        }
+      }
+    }
+  },
+  "duration_s": 11.94
+}
