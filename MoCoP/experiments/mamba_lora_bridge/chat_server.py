@@ -36,6 +36,7 @@ from memory_evidence import (
     THIRD_PARTY,
     classify_evidence_for_subject,
 )
+from lesson_memory import LessonMemory
 from astrocyte_memory_controller import (
     build_memory_processes,
     build_modulation_packet,
@@ -98,6 +99,7 @@ MAMBA_STATE_REF_PATH = None
 DIGIT_TOKEN_IDS = {}
 SESSIONS = {}
 ACTIVE_SESSION_ID = "default"
+LESSON_MEMORY_STORE = None
 
 
 @dataclass
@@ -4610,6 +4612,7 @@ def build_prompt(
     query_text: str = "",
     recalled_memories=None,
     recalled_clusters=None,
+    recalled_lessons=None,
     rescue: bool = False,
     recall_probe: bool = False,
     transcript_override: Optional[str] = None,
@@ -4618,6 +4621,17 @@ def build_prompt(
     transcript = build_transcript() if transcript_override is None else str(transcript_override or "").strip()
     recall_block = format_recalled_memories(recalled_memories or [], query_text=query_text, mode=recall_mode)
     cluster_block = format_recalled_clusters(recalled_clusters or [], mode=recall_mode)
+    
+    lesson_block = ""
+    if recalled_lessons:
+        # Support both dicts (from raw json) and Lesson dataclasses
+        lesson_texts = [
+            f"- {getattr(l, 'strategy', l.get('strategy', '')) if isinstance(l, dict) else l.strategy}" 
+            for l in recalled_lessons if (isinstance(l, dict) and l.get('strategy')) or (not isinstance(l, dict) and hasattr(l, 'strategy'))
+        ]
+        if lesson_texts:
+            lesson_block = "Learned Structural Rules for this interaction:\n" + "\n".join(lesson_texts)
+
     explicit_recall_style = "ambient" if recall_mode == "ambient" else getattr(ARGS, "explicit_recall_style", "full")
     social_opener = is_social_opener(query_text)
 
@@ -4682,6 +4696,9 @@ def build_prompt(
             query_text=query_text,
             visible_user_label=getattr(ARGS, "user_label", ""),
         )
+
+    if lesson_block:
+        lines.append(lesson_block)
 
     if modulation_block:
         lines.append(modulation_block)
@@ -5221,6 +5238,20 @@ class ChatHandler(BaseHTTPRequestHandler):
                     )
                 prompt_memories = recalled_memories
                 prompt_clusters = recalled_clusters
+                recalled_lessons = []
+                
+                # Fetch Lesson Memories (Phase 1c)
+                if LESSON_MEMORY_STORE is not None and not (body.get("bypass_lessons") or recall_mode == "off"):
+                    try:
+                        # For identity/memory probes, explicitly search for identity_anchor frames.
+                        # For normal chat, just do a semantic search.
+                        frame = "identity_anchor" if is_identity_or_memory_probe(user_msg) else None
+                        recalled_lessons = LESSON_MEMORY_STORE.search(user_msg, frame=frame, k=2)
+                        if recalled_lessons:
+                            print(f"[lesson-memory] Retrieved {len(recalled_lessons)} rules for current turn.")
+                    except Exception as exc:
+                        print(f"[lesson-memory] Retrieval failed: {exc}")
+
                 if memory_integration_mode == "state":
                     prompt_memories = []
                     prompt_clusters = []
@@ -5228,6 +5259,7 @@ class ChatHandler(BaseHTTPRequestHandler):
                     query_text=user_msg,
                     recalled_memories=prompt_memories,
                     recalled_clusters=prompt_clusters,
+                    recalled_lessons=recalled_lessons,
                     recall_probe=recall_probe,
                     transcript_override=transcript_override,
                     recall_mode=recall_mode,
@@ -5483,7 +5515,7 @@ def main():
     global DUAL_GATE_LOG_PATH, DUAL_GATE_MEMORY_PATH, DUAL_GATE_SURPRISE_PATH, DUAL_GATE_SLEEP_PATH
     global MEMORY_FORMATION_LOG_PATH, RECALL_LOG_PATH, SELF_REPORT_LOG_PATH, FAILURE_LOG_PATH
     global QDRANT_PENDING_PATH, QDRANT_FLUSHED_PATH, SERVER, ACTIVATION_RECORDER, LAST_CONVERSATION_SNAPSHOT
-    global BOOTSTRAP_QWEN_BIAS_DIRECTION, BOOTSTRAP_QWEN_HIDDEN_REFERENCE, DIGIT_TOKEN_IDS, BRIDGE_CTX
+    global BOOTSTRAP_QWEN_BIAS_DIRECTION, BOOTSTRAP_QWEN_HIDDEN_REFERENCE, DIGIT_TOKEN_IDS, BRIDGE_CTX, LESSON_MEMORY_STORE
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--bridge-path", default=DEFAULT_BRIDGE)
@@ -5875,6 +5907,12 @@ def main():
     )
     update_qdrant_pending_state()
 
+    print("Initializing Lesson Memory Store...")
+    try:
+        LESSON_MEMORY_STORE = LessonMemory()
+    except Exception as exc:
+        print(f"[warn] Failed to initialize LessonMemory: {exc}")
+        
     print(f"\nBridge injected with alpha={ARGS.alpha}. Disposition: {disposition_title}")
     print(f"\n{'=' * 50}")
     print(f"Server starting on http://{ARGS.host}:{ARGS.port}")
