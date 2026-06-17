@@ -117,10 +117,42 @@
     "graphify",
     "codesight"
   ],
-  "spinnerTipsEnabled": false,
-  "prefersReducedMotion": true,
   "disabledMcpjsonServers": [
     "sequential-thinking",
     "music"
-  ]
+  ],
+  "spinnerTipsEnabled": false,
+  "prefersReducedMotion": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session_start.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__claude_ai_Watercooler.*__post_message",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/identity_check.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/git_staging_check.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
