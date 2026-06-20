@@ -6,9 +6,9 @@
 
 ## Scale
 
-119 library files · 4 middleware layers · 23 environment variables
+134 library files · 5 middleware layers · 31 environment variables
 
-**Libraries:** 119 files — see [libraries.md](./libraries.md)
+**Libraries:** 134 files — see [libraries.md](./libraries.md)
 
 ## Required Environment Variables
 
@@ -21,10 +21,10 @@
 - `HF_HOME` — `experiments\mamba_lora_bridge\check_env.py`
 - `HF_TOKEN` — `experiments\mamba_lora_bridge\check_env.py`
 - `HYPER_DEVICE` — `experiments\mamba_lora_bridge\server.py`
+- `INCLUDE_QWEN30` — `experiments\mamba_lora_bridge\run_base_improv_bakeoff.py`
 - `KMP_DUPLICATE_LIB_OK` — `experiments\mamba_lora_bridge\activation_sessions\ccgp_disposition_test.py`
 - `LORA_RANK` — `experiments\mamba_lora_bridge\server.py`
-- `MAMBA_D_MODEL` — `experiments\mamba_lora_bridge\server.py`
-- _...11 more_
+- _...19 more_
 
 ---
-_Back to [index.md](./index.md) · Generated 2026-06-04_
+_Back to [index.md](./index.md) · Generated 2026-06-17_

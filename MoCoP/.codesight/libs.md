@@ -1,5 +1,9 @@
 # Libraries
 
+- `experiments\mamba_lora_bridge\activation_sessions\cassian_zone_label_eval.py`
+  - function rows_for_zone: (rows, zone) -> list[dict]
+  - function main: () -> int
+  - class Zone
 - `experiments\mamba_lora_bridge\activation_sessions\compare_sessions.py`
   - function load_session: (jsonl_path, pt_path) -> dict
   - function extract_final_state: (tensors) -> dict
@@ -21,12 +25,36 @@
   - function load_conversation_text: (pt_path)
   - function cosine_sim: (a, b)
   - function main: ()
+- `experiments\mamba_lora_bridge\activation_sessions\panel_b_plain_disposition_hard.py`
+  - function build_samples: () -> list[Sample]
+  - function extract: (model, tokenizer, text, layers, max_length) -> dict[int, np.ndarray]
+  - function cosine: (a, b) -> float
+  - function centroid_report: (X, labels) -> dict[str, Any]
+  - function leave_topic_probe: (X, y, groups) -> dict[str, Any]
+  - function main: () -> None
+  - _...1 more_
+- `experiments\mamba_lora_bridge\activation_sessions\panel_b_rule_wording_projection.py`
+  - function cosine: (a, b) -> float
+  - function centroid_map: (X, labels) -> dict[str, np.ndarray]
+  - function centroid_report: (centroids, np.ndarray]) -> dict[str, Any]
+  - function logo_probe: (X, y, groups) -> dict[str, Any]
+  - function nearest_centroid_rows: (states, sample_indices, centroids, np.ndarray]) -> list[dict[str, Any]]
+  - function summarize_projection: (rows, Any]]) -> dict[str, Any]
+  - _...2 more_
 - `experiments\mamba_lora_bridge\activation_sessions\ssm_vs_hidden_separation.py`
   - function load_conversation_text: (pt_path) -> str
   - function cosine_sim: (a, b) -> float
   - function extract_both_representations: (model, tokenizer, text, target_layer)
   - function print_comparison_table: (results, rep_name)
   - function main: ()
+- `experiments\mamba_lora_bridge\activation_sessions\style_disposition_control_panel.py`
+  - function topic: (i) -> str
+  - function style_a_samples: () -> list[Sample]
+  - function style_b_samples: () -> list[Sample]
+  - function style_c_samples: () -> list[Sample]
+  - function build_samples: () -> list[Sample]
+  - function extract_states: (model, tokenizer, sample, layers, max_length) -> dict[int, torch.Tensor]
+  - _...7 more_
 - `experiments\mamba_lora_bridge\activation_sessions\token_window_separation.py`
   - function load_conversation_text: (pt_path)
   - function cosine_sim: (a, b)
@@ -53,6 +81,14 @@
   - class ValidationError
   - class EvidenceRef
   - class MemoryCase
+- `experiments\mamba_lora_bridge\astrocyte_memory_controller.py`
+  - function source_quality: (source_type) -> float
+  - function contamination_risk: (row) -> float
+  - function build_memory_processes: (rows, query_text, visible_user_label) -> list
+  - function build_modulation_packet: (processes, query_text, max_memories) -> ModulationPacket
+  - function format_modulation_packet: (packet) -> str
+  - function build_memory_modulation_block: (recalled_memories, recalled_clusters, query_text, visible_user_label, applied_to_prompt, applied_to_state) -> Tuple[str, dict]
+  - _...2 more_
 - `experiments\mamba_lora_bridge\autobiographical_memory.py`
   - function calculate_expiration: (memory_kind, created_at) -> Optional[str]
   - function temporal_feel_label: (age_seconds) -> str
@@ -196,6 +232,7 @@
   - function contains_any: (text, needles) -> bool
   - function evaluate_case: (base_url, case, timeout_s, recall_limit) -> dict
   - function main: ()
+- `experiments\mamba_lora_bridge\dense_associative_memory.py` — class RetrievalResult, class DenseAssociativeMemory
 - `experiments\mamba_lora_bridge\dfc_crosscoder.py`
   - function dfc_loss: (mamba_act, qwen_act, mamba_recon, qwen_recon, features, shared, mamba_excl, qwen_excl, l1_weight, exclusivity_weight)
   - function load_paired_data: (mamba_path, qwen_path)
@@ -394,6 +431,30 @@
   - function subset_status: (status, Any]) -> dict[str, Any]
   - function counter_delta: (pre, Any], post, Any]) -> dict[str, int | float]
   - _...8 more_
+- `experiments\mamba_lora_bridge\run_base_improv_bakeoff.py`
+  - function build_plain_prompt: (candidate, str], probe) -> str
+  - function score_answer: (probe, answer) -> dict[str, Any]
+  - function load_model: (candidate, str])
+  - function generate: (candidate, str], model, proc, probe) -> str
+  - function gpu_status: () -> dict[str, Any]
+  - function main: () -> None
+  - _...1 more_
+- `experiments\mamba_lora_bridge\run_dam_phase0_eval.py`
+  - function build_fixture_data: () -> list[dict]
+  - function load_curated_patterns: (path) -> list[dict]
+  - function build_embeddings_from_texts: (texts, use_model, dim) -> np.ndarray
+  - function episode_recall_at_k: (retrieved_indices, episode_indices, k) -> float
+  - function precision_at_k: (retrieved_indices, episode_indices, k) -> float
+  - function run_cosine_topk: (query_emb, pattern_matrix, episode_indices, k) -> dict
+  - _...6 more_
+- `experiments\mamba_lora_bridge\run_jrt_ordering_spike.py`
+  - function build_text: (cond, packet, question) -> str
+  - function make_packet: (fact_rows, distractor_rows)
+  - function extract_state: (model, tok, text, layer, device)
+  - function cos: (a, b)
+  - function centroid: (vecs)
+  - function run: (args)
+  - _...2 more_
 - `experiments\mamba_lora_bridge\run_memory_conditioned_eval_matrix.py`
   - function parse_args: () -> argparse.Namespace
   - function load_json_file: (path) -> Any
@@ -402,6 +463,11 @@
   - function post_json: (base_url, route, payload, Any], timeout_s) -> dict[str, Any]
   - function get_json: (base_url, route, timeout_s) -> dict[str, Any]
   - _...4 more_
+- `experiments\mamba_lora_bridge\run_memory_controller_fixture_probe.py`
+  - function load_rows: (path) -> list
+  - function format_raw_recall: (rows, query_text) -> str
+  - function run_probe: (rows, query_text, visible_user_label) -> list
+  - function main: ()
 - `experiments\mamba_lora_bridge\run_mlws_board_evals_91_92.py`
   - function post_json: (base_url, route, payload, Any], timeout_s) -> dict[str, Any]
   - function get_json: (url, timeout_s) -> dict[str, Any]
@@ -415,6 +481,19 @@
   - function status_for: (base_url, session_id) -> dict[str, Any]
   - function run_prompt: (base_url, item, Any], *, run_id, allow_auto_recall) -> dict[str, Any]
   - function main: () -> int
+- `experiments\mamba_lora_bridge\run_monk_bridge_dc_geometry_probe.py`
+  - function mean_pairwise_cosine: (x) -> float
+  - function loo_residuals: (x) -> torch.Tensor
+  - function tensor_stats: (x) -> dict
+  - function main: () -> None
+- `experiments\mamba_lora_bridge\run_monk_variable_probe_lane1.py`
+  - function post_json: (base_url, route, payload, Any], timeout) -> dict[str, Any]
+  - function get_json: (base_url, route, params, Any] | None, timeout) -> dict[str, Any]
+  - function preview_recall_rows: (rows, Any]], limit) -> list[dict[str, Any]]
+  - function load_pure_memories: (qdrant_host, qdrant_port, collection, query_text, limit) -> list[dict[str, Any]]
+  - function status_subset: (status, Any]) -> dict[str, Any]
+  - function run_condition: (args, condition, server_mode) -> dict[str, Any]
+  - _...2 more_
 - `experiments\mamba_lora_bridge\run_relational_eval_offline.py`
   - function parse_args: ()
   - function build_chatml: (system_prompt, user_prompt) -> str
@@ -423,6 +502,19 @@
   - function decode_reply: (tokenizer, generated, prompt_length) -> str
   - function summarize_pairs: (rows)
   - _...1 more_
+- `experiments\mamba_lora_bridge\run_revised_alex_probe.py`
+  - function post_json: (route, payload, timeout)
+  - function get_json: (route, params, timeout)
+  - function run_panel: (label, use_recall)
+- `experiments\mamba_lora_bridge\run_revised_alex_probe_pure_qdrant.py` — function post: (payload), function main: ()
+- `experiments\mamba_lora_bridge\run_role_inversion_spike.py`
+  - function render: (tok, messages, **kw)
+  - function chat_affixes: (tok)
+  - function build_prompt: (cond, dialog, affix, probe)
+  - function stop_ids: (tok)
+  - function trim: (text, affix)
+  - function metrics: (text)
+  - _...3 more_
 - `experiments\mamba_lora_bridge\run_rr10_7b_vastai.py`
   - function parse_args: () -> argparse.Namespace
   - function post_json: (base_url, route, payload, Any], timeout_s) -> dict[str, Any]
@@ -593,8 +685,8 @@
   - function test_recall_query_targets_current_interlocutor: ()
   - function test_build_recall_rank_tuple_third_party: ()
   - function test_third_party_memory_probe_does_not_filter_named_entity: ()
-  - function test_third_party_rank_prefers_semantic_score_over_broad_overlap: ()
-  - _...10 more_
+  - function test_identity_probe_keeps_organic_autobiographical_rows_with_generic_visible_label: ()
+  - _...20 more_
 - `experiments\mamba_lora_bridge\test_live_vs_static_rr10.py`
   - function parse_args: () -> argparse.Namespace
   - function post_json: (base_url, route, payload, Any], timeout_s) -> dict[str, Any]

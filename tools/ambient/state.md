@@ -2,6 +2,11 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-06-20 11:12 UTC] git | MoCoP | Laura: docs(mocop): bind per-step Domain E rows and add pristine-birth backlog (8b83a24)
+[2026-06-20 10:38 UTC] git | MoCoP | Laura: docs(mocop): reconcile theory corpus with central trackers (431b95f)
+[2026-06-17 14:50 UTC] git | repo | Laura: feat(claude-code): three hooks for identity, git scope, session orientation (efce7d6)
+[2026-06-17 14:11 UTC] git | Memory | Laura: docs(cheese): tidy 01_TOOLS.md + 00_BOOT_FILES.md (21ac15a)
+[2026-06-17 10:00 UTC] git | MoCoP | Laura: docs(mocop): record June 11 eval findings (9c9e989)
 [2026-06-17 10:00 UTC] git | MoCoP | Laura: feat(mocop): wire lesson memory into chat server (a738c65)
 [2026-06-17 09:56 UTC] git | MoCoP | Laura: chore: archive June 11 MoCoP eval artifacts (9bfcfbc)
 [2026-06-13 12:29 UTC] git | tools | Laura: docs(watercooler): add Identity-by-Surface section to README (e452862)
