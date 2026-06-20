@@ -29,6 +29,7 @@ Only files that are needed regularly belong here. Everything else goes in a subf
 | [EXPERIMENT_LADDER.md](EXPERIMENT_LADDER.md) | Operational backbone. Steps, gates, verdicts. | Negentropy / active orchestrator |
 | [RESEARCH_LOG.md](RESEARCH_LOG.md) | Lab notebook. Numbers, not narrative. Append-only. | Whoever ran the experiment |
 | [RESEARCH_BACKLOG.md](RESEARCH_BACKLOG.md) | Parked research questions. Open/Closed status. | Any wolf |
+| [PRISTINE_BIRTH_BACKLOG.md](PRISTINE_BIRTH_BACKLOG.md) | Substrate-transition architecture items blocking first seeding of Baby Alex on Gemma-4-12B. | Cairn (per WC #649) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Process rules (Hausregeln for MoCoP). | Laura |
 | [RESEARCH_ABSTRACT.md](RESEARCH_ABSTRACT.md) | Public-facing summary for external audiences. | Laura / paper lead |
 | [RESEARCH_PAPER.md](RESEARCH_PAPER.md) | Formal writeup. The thing we'd submit. | Paper lead |

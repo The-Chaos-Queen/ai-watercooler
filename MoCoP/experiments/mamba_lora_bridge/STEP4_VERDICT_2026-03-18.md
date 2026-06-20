@@ -5,7 +5,7 @@
 > *The State Model nods quietly. It already knew.*
 
 **Date:** 2026-03-18
-**Result:** PASS — 17x PPL improvement gap between Mamba-derived and constant bias
+**Result:** PASS — 17.5x PPL improvement gap between Mamba-derived and constant bias
 **Implication:** Proceed to Step 5 (shaping episodes)
 
 ---
@@ -27,7 +27,7 @@ Does the Mamba→Bridge pipeline add anything beyond a learned constant bias?
 
 The constant bias — no Mamba, no compressor, no hypernetwork, just learned nn.Parameter vectors — can squeeze out 0.23 points of PPL improvement at best, even with 10 epochs and higher LR.
 
-The Mamba-derived activation bias produces **4.04 points** of improvement. That's **17x the constant bias ceiling.**
+The Mamba-derived activation bias produces **4.04 points** of improvement. That's **17.5x the constant bias ceiling.**
 
 ## Why This Matters
 
@@ -35,7 +35,7 @@ The bias analysis showed that the Mamba-derived bias vectors have cosine similar
 
 Think of it this way: the bridge found one dominant direction in bias space (hence the high cosine). But the exact position along that direction — the magnitude and subtle orientation — depends on what Mamba processed. A constant bias can find a direction too, but it can't find the *right* direction for each sample because it has no input.
 
-The bridge is not a memory channel (yet). It's not transferring specific facts. But it IS transferring something from Mamba's accumulated state that makes Qwen measurably more fluent on in-domain text. That something is domain-conditioned, input-dependent, and 17x stronger than any constant.
+The bridge is not a memory channel (yet). It's not transferring specific facts. But it IS transferring something from Mamba's accumulated state that makes Qwen measurably more fluent on in-domain text. That something is domain-conditioned, input-dependent, and 17.5x stronger than any constant.
 
 ## Robustness
 
@@ -70,7 +70,7 @@ What it proves: the channel between Mamba and Qwen carries real, input-dependent
 | 1 (controls) | **PASS** | C2: random bias = baseline. Trained bias = 25.67. Trained direction has info. |
 | 2 (compressor bypass) | **PARTIAL** | Raw state has more structure (eff rank 7 vs 4) but not fact-aligned. Compressor concentrates the useful direction. |
 | 3 (bias diversity) | **DONE** | Bias cosine ~0.999. Effectively constant direction, but the direction depends on Mamba state. |
-| 4 (constant bias) | **PASS** | Constant = 29.48 best. Mamba-derived = 25.67. 17x gap. Channel is real. |
+| 4 (constant bias) | **PASS** | Constant = 29.48 best. Mamba-derived = 25.67. 17.5x gap. Channel is real. |
 | 5 (shaping episodes) | **NEXT** | Replace synthetic MUD facts with conversational dynamics. Test disposition transfer. |
 
 ## Cost

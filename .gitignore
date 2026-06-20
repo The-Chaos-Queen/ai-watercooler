@@ -123,6 +123,10 @@ Project_MUD/agents/training_data/
 # Wolf folders — backed up via Google Drive sync, no change tracking needed
 CHEESE_Memory/wolves/
 
+# Ultrareview helper files — may carry session tokens; never committed
+MoCoP/reviews/**/_wc_raw*.json
+MoCoP/reviews/**/_wc_digest.txt
+
 # Hermes agent workspace + context (may hold session tokens)
 .hermes
 .hermes/

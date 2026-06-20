@@ -148,6 +148,7 @@ Theory lives here. Results live elsewhere:
 - **Phase 2:** `MoCoP/phases/phase2_status.md`
 - **Step 4 verdict:** `MoCoP/experiments/mamba_lora_bridge/STEP4_VERDICT_2026-03-18.md`
 - **Experiment ladder:** `MoCoP/EXPERIMENT_LADDER.md`
+- **Pristine-birth backlog:** `MoCoP/PRISTINE_BIRTH_BACKLOG.md` — substrate-transition architecture items (G0 re-extraction, bridge re-train, Phase A encryption) blocking first seeding of Baby Alex on Gemma-4-12B.
 - **Debriefs:** `CHEESE_Memory/05_EXPERIMENT_DEBRIEFS/`
 
 ---
