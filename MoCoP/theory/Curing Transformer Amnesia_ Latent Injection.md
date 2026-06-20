@@ -1,5 +1,7 @@
 # Curing Transformer Amnesia: The Memento Paradox
 
+**Status:** Theory note
+
 If your system architecture involves a large Transformer (like Gemini/Claude) handling complex reasoning, and a Mamba model handling long-term state tracking, you face a massive bottleneck when they need to communicate.
 
 If Mamba retrieves a memory from Qdrant, translates it to text (e.g., *"System Note: You are angry at the goblin"*), and feeds it to the Transformer's context window, the Transformer experiences **Amnesia**. It is just acting out the prompt. It feels jarring, robotic, and lacks continuity.

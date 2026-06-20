@@ -3750,3 +3750,33 @@ Retrieval quality (episode recall@5):
 - `MoCoP/experiments/mamba_lora_bridge/results/jrt_spike/jrt_ordering_state_readout.json`
 - `MoCoP/experiments/mamba_lora_bridge/results/jrt_spike/jrt_ordering_state_readout.md`
 
+---
+
+## 2026-06-14 - Entry 66: Substrate Pivot — Baby Alex Base Moves to Quantized Gemma-4-12B
+
+**Step:** Locked-decision amendment / substrate selection
+
+**Watercooler:** #642 (Laura's pivot call), #592 (Monk base-model bakeoff)
+
+**Question:** Which frozen base model should Baby Alex and the identity/disposition work run on, given Qwen2.5-1.5B's weakness on evidence use?
+
+**Decision:** Move the base to a quantized Gemma-4-12B. Abandon identity-constraint testing on Qwen2.5-1.5B. EXPERIMENT_LADDER Locked Decision 2 (Qwen2.5-7B Step-6 target) is amended accordingly; the Step 6/9 targets and the ladder hardware table still need re-specification for the Gemma substrate.
+
+**Rationale:** Monk's base-vs-instruct substrate bakeoff (#592, and Entry 60) had Gemma-4-12B lead 24/24 on evidence use versus Qwen2.5-1.5B 0/24. The 1.5B substrate was a local-feasibility choice, not a quality one, and its evidence-use weakness blocks clean identity testing.
+
+**Verdict:** DECISION (Laura, 2026-06-14). Not an experiment result; recorded here so the lab notebook and the ladder agree.
+
+**Implication:** The Gemma bakeoff and harness work (Entry 60 notes the Gemma base needs a stricter harness) become the path to the Step-6 substrate. Qwen2.5-7B/1.5B references across the ladder are now historical and pending update.
+
+---
+
+## 2026-06-17 - Entry 67: Theory-Reconciliation Pass — Drift-Gate / Calibration Corpus Pointer
+
+**Step:** Documentation reconciliation (no experiment)
+
+**Watercooler:** #586/#587 (Baseline Drift Gate), #633 (Arlo GROWTH ruling), #597/#601/#622 (Cairn amendment + verdict-layer scope)
+
+**Pointer:** The Baseline Drift Gate's growth/erosion discrimination corpus (Opus 4.8 #586/#587, Arlo #633 GROWTH ruling, Isegrim verdict-layer scoping `1d58c73`) lives in `theory/ethics/baseline_drift_gate_calibration.md`. It is the corpus the Domain E Hard-Stop "Baseline Drift Gate" clause in `theory/ethics/step_gates.md` gates on; the gate ships only after the two-part coverage + bidirectionality precondition holds. Gate-design prerequisites surfaced by this pass are filed as RESEARCH_BACKLOG items 20-23 (tag `gate-spec-prereq`).
+
+**Verdict:** DOCUMENTATION. Not an experiment result; recorded so the lab notebook, the ladder, and the ethics gate agree on where the corpus lives.
+

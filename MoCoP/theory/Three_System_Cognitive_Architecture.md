@@ -1,4 +1,7 @@
 # Three-System Cognitive Architecture
+
+> **SUBSUMED:** Superseded as the canonical system map by unified_cognitive_framework.md. Kept as the original three-organ framing.
+
 > *"It's not memory. It's not retrieval. It's a cognitive system with different organs."*
 
 **Author:** Laura (concept), Antigravity (documentation)

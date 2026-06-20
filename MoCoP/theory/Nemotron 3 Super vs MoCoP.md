@@ -1,5 +1,7 @@
 # Nemotron 3 Super vs MoCoP
 
+**Status:** Industry comparison
+
 Current as of 2026-03-13
 
 ## Why This Note Exists

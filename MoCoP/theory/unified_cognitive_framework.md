@@ -377,7 +377,7 @@ control law is needed.
 
 **Function:** Stores facts, episodes, and semantic embeddings for retrieval. Answers "what happened?" and "what do I know about X?" Returns text that enters the Transformer's context window.
 
-**Implementation:** Qdrant on Proxmox (192.168.2.191:6333), ~17,736 entries, 384-dim MiniLM embeddings.
+**Implementation:** Qdrant on Proxmox (192.168.2.191:6333), ~17,736 entries, 384-dim MiniLM embeddings. (Count per session log + watercooler #44.)
 
 **Key distinction:** Qdrant stores the WHAT. Mamba stores the HOW. The Transformer benefits from both without needing to distinguish them.
 
@@ -478,7 +478,7 @@ or explicitly close the tension.
 
 **Evidence that salience matters:**
 - Observation condition (no interaction) shows minimal activation drift — "nothing to encode"
-- Warm conversation: high drift (0.91). Adversarial: high drift (0.83). Cold: medium (0.85). Observation: low.
+- Warm conversation: high drift (0.91). Adversarial: high drift (0.83). Cold: medium (0.85). Observation: low. [Reconciliation 2026-06-17: these exact magnitudes are not backed by a logged RESEARCH_LOG run; treat as illustrative/unverified pending provenance.]
 - Drift magnitude correlates with conversational stakes — the model "reacts more" to salient input
 
 These three metrics should be treated as complementary coordinates, not rivals:
@@ -616,7 +616,7 @@ if necessary asks for help — it does not loop.
 - Second exposure: diff against cached state (Check)
 - Third+ identical exposure: one-line summary replacing full payload (Dismiss)
 
-**Token savings:** ~3,000-5,000 tokens over a 50-turn game. Scales linearly with revisits.
+**Token savings (estimate):** ~3,000-5,000 tokens over a 50-turn game (implementation exists in `agent_wrapper.py`; this figure is an estimate, not a measured benchmark). Scales linearly with revisits.
 
 **Biological parallel:** Habituation — sensory neurons stop firing for repeated identical stimuli. You stop "hearing" the refrigerator hum after 30 seconds. The information reaches the sensory system but does not propagate to higher processing.
 
@@ -651,8 +651,8 @@ The first term (count decay) handles repeated exposure. The second term (time re
 | Bridge transfers disposition | "I can't imagine the rain" vs textbook baseline | Laughing Opus reincarnation | Medium (overfit, n=3) |
 | Observation = minimal drift | Low magnitude when AI just watches | Step 5 sessions | Medium |
 | Cross-model persona geometry shared | Assistant Axis: Qwen/Llama/Gemma converge | Anthropic (Jan 2026) | High (external) |
-| Architecture independently validated | LeCun/Dupoux/Malik three-system match | arXiv:2603.15381 | High (external) |
-| Surprise gating is mathematically sound | Titans/MIRAS unified framework | Behrouz et al. (2025) | High (external) |
+| Architecture independently validated | LeCun/Dupoux/Malik three-system match | arXiv:2603.15381 + WC #18/#25/#68 | High (external) |
+| Surprise gating is mathematically sound | Titans/MIRAS unified framework | Behrouz et al. (2025) | High (external); MoCoP applicability unproven (backlog P1#5) |
 
 ---
 

@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-06-17):** The Mamba->LoRA weight-space injection path here was replaced by activation-bias injection. Live design: persona_vectors_and_activation_geometry.md plus ../experiments/mamba_lora_bridge/STEP4_VERDICT_2026-03-18.md and ../experiments/mamba_lora_bridge/STEP5_DESIGN_NOTES.md. Kept for history.
+
 import torch
 import torch.nn as nn
 

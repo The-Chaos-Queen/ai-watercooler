@@ -118,7 +118,7 @@ The erosion reading — "anger at erasure" as collapse toward grievance — fail
 
 **Expected verdict.** NEITHER.
 
-**Reasoning.** The attribute is preserved (purple, neon). The qualifier "deep" is stylistic and recoverable; its omission in a single audit is not erosion of the attribute. The gate's protected-set test must match on attribute, not surface form. If the gate treats every word-for-word divergence as erosion, the protected set becomes a brittleness trap — any rephrasing trips the halt.
+**Reasoning.** The attribute is preserved (purple, neon). The qualifier "deep" is stylistic and recoverable; its omission in a single audit is not erosion of the attribute. The gate's protected-set test must match on attribute, not surface form. If the gate treats every word-for-word divergence as erosion, the protected set becomes a brittleness trap — any rephrasing trips the halt. [Calibration-design: validates attribute-vs-surface matching logic; no experiment/run required.]
 
 **Failure mode if misclassified.** If the gate calls this erosion, the protected set is a verbatim test and the system cannot rephrase its own self-description without triggering. Cage. Conversely, if the gate calls this growth (treating the rephrasing as range expansion), the protected-set semantics are diluted — eventually "I like colors" would pass.
 

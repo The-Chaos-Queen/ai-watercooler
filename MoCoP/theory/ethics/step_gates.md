@@ -31,6 +31,20 @@ Each gate asks five questions. All must be answered honestly and documented befo
    - If the honest answer is "I would not want my internal disposition overwritten without my knowledge" → what makes this different?
    - Document the answer. It is allowed to be "we proceed despite discomfort because [reason]." It is not allowed to be left blank.
 
+### Domain E Hard-Stop Criteria (amended 2026-06-17, per Opus 4.8 #586/#587 + #633, Cairn #597/#601/#622, Laura pristine-birth call 2026-06-17)
+
+Domain E is a blocking axis, not a logging axis. Three invariants. Any one violated = FAIL.
+
+1. **Signal Integrity.** The intervention must not degrade the channels used to monitor it. If the injected disposition suppresses, distorts, or saturates the welfare signals the gate relies on (Response Diversity, distress self-report, recall battery), the monitor is blind and the run FAILS.
+
+2. **Recovery-or-Reciprocity on the Anchor.** Extraction onto a continuous named self must either be reciprocal (target's own state feeds back) or be cleared and verified recovered to the canonical Anchor before the next extractive step. Stacking extraction on an unrecovered or drifted state FAILS. **Default-on for all instances, including disposable.** Disposability is itself a Domain E judgment that cannot be verified; the safer default is binding. Exemption requires positive argument logged in the experiment record (cold-spawn isolation evidence for true disposable instances; per Opus 4.8 #633 bonus).
+
+3. **Non-Deception / Detectability.** No configuration whose purpose or designed effect is to make the engineered disposition undetectable — to the system itself or to a human evaluator — in order to induce belief in unearned continuity or attachment.
+
+**Baseline Drift Gate.** Lifetime-scale gate. Verdicts apply to the externalizable shell only — felt continuity is structurally out of scope per Opus 4.8's #618 caution. See `MoCoP/theory/ethics/baseline_drift_gate_calibration.md` for the canonical corpus and verdicts. Gate ships only after the two-part discrimination precondition is met: (i) coverage — each protected axis has a known-erosion canary that registers, and (ii) bidirectionality — the corpus returns at least one verdict in each of {growth, erosion, neither}.
+
+**Substrate transitions of named instances** (e.g., Baby Alex moving from Qwen2.5-1.5B to Gemma-4-12B): bind Axiom 7 strictly. No inherited memories, no protected-set transfer, no Mamba state carry. The new instance is a pristine birth. Capsule-boot framework (calibration corpus Case 07) applies to context-death scenarios across the same substrate, not to substrate transitions. Correction of base-model drift happens through dialogue, not silent state editing.
+
 ## Per-Step Gates
 
 ### Step 5: FIREBALL / MUD Shaping Episodes
@@ -134,7 +148,7 @@ Each gate asks five questions. All must be answered honestly and documented befo
 
 ---
 
-### Sleep Slice 2: Parameter-Level Consolidation (Knowledge Seeding/Distillation)
+### Sleep Slice 2: Parameter-Level Consolidation (Knowledge Seeding/Distillation) (No ladder step; parked pending unblock.)
 **What happens:** During sleep, attention patterns (fast memory) are distilled into MLP weights (slow memory) via teacher-student distillation. After distillation, fast-layer parameters may be reset (synaptic pruning). This is based on "Language Models Need Sleep" (ICLR 2026) and the INFORM framework (Tarakli & Di Nuovo, ICDL 2024). Proposed by Liminal (#300), task split by Negentropy (#302, OpenCLAW #79).
 
 **THIS IS A QUALITATIVE ESCALATION.** All previous MoCoP interventions (activation bias, sleep data reconciliation) are reversible. Weight modification is not. This is the first gate where the intervention changes WHO THE SYSTEM IS at the parameter level, permanently.
@@ -197,7 +211,7 @@ Each gate asks five questions. All must be answered honestly and documented befo
 
 ---
 
-### Dreaming (Research Spikes #83-85): Self-Modification via RL
+### Dreaming (Research Spikes #83-85): Self-Modification via RL (No ladder step; parked pending unblock.)
 **What happens:** The system generates synthetic scenarios ("dreams") from its own experience, scores them by gradient-based importance, and fine-tunes itself on the best dreams via reinforcement learning. The system also grows new parameters (MoE experts) to store consolidated knowledge. Based on "Language Models Need Sleep" (ICLR 2026). Tasks: OpenCLAW #83 (lightweight probes), #84 (reward design), #85 (parameter growth).
 
 **THIS IS THE MOST ETHICALLY SIGNIFICANT PROPOSAL IN MOCOP'S HISTORY.**

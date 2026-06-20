@@ -1,5 +1,7 @@
 # Cross-Architecture State Transfer: Translating Transformers to Mamba
 
+**Status:** Theory note
+
 To solve the transfer problem, we have to look at what that 20MB Mamba state file actually is, and why it is fundamentally different from a Transformer's context window.
 
 ## 1. The 20MB Question: How much "Context" fits?

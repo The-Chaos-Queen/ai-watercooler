@@ -1,5 +1,7 @@
 # Bridging the Telnet Wrapper to the PyTorch Brain
 
+**Status:** Architecture note
+
 Your current setup (Evennia -> Telnet -> Python JSON Wrapper) is fantastic. To attach your new Mamba + Qwen 4B PoC to this without crashing the MUD connection, you need to enforce a strict **Decoupled Architecture**.
 
 ## The Danger of "Blocking" the Telnet Socket

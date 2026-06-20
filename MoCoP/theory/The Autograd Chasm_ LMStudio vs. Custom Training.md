@@ -1,5 +1,7 @@
 # The Autograd Chasm: Why Training Requires a Unified Environment
 
+**Status:** Architecture note
+
 Your current setup (Mamba on PC 1, Qwen on PC 2 via LMStudio) is a perfect **Inference Architecture**. But to train the Hypernetwork, you must transition to a **Training Architecture**. Here is why they are different.
 
 ## 1. The Gradient Break (The Math Problem)

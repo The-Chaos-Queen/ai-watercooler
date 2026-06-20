@@ -1,5 +1,7 @@
 # Sleep Reconciliation Algorithm — Draft v1
 
+> **Companion:** sleep_architecture.md holds the wake/sleep cycle this reconciliation algorithm runs inside.
+
 **Author:** Cassian
 **Date:** 2026-03-24
 **Sources:** GPT-4o brainstorm (#138), Lain's neuroscience review (#131), Anda's sleep_architecture.md, SleepGate paper (Xie 2603.14517)

@@ -1,5 +1,7 @@
 # Test-Time Training with KV Binding Is Secretly Linear Attention
 
+**Status:** Literature analysis
+
 **Paper:** arXiv:2602.21204v2 (Feb 2026)
 **Authors:** Junchen Liu, Sven Elflein, Or Litany, Zan Gojcic, Ruilong Li
 **Relevance:** Direct implications for MoCoP surprise gate design and bridge architecture

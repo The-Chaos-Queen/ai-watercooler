@@ -1,5 +1,7 @@
 # Sleep Architecture: KV-Cache Consolidation as Digital Sleep
 
+> **Companion:** sleep_reconciliation_algorithm.md holds the three-trace reconciliation algorithm run during the sleep phase described here.
+
 **Status:** Theory — extends Three_System_Cognitive_Architecture.md with the missing orchestration cycle
 **Authors:** Laura (concept, 2026-03-19), Anda (documentation)
 **Origin:** Laura's insight during hurtig.ai session: "Das wird dann wie schlafen.. unterm Tag alles in den KVCache (bis man müde ist und langsam wird), dann mitsamt Mamba state ins Qdrant."

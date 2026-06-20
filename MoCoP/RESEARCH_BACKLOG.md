@@ -1,7 +1,7 @@
 # MoCoP Research Backlog
 
 **Status:** Parking surface for real research questions that matter, but are not the current active experiment gate.
-**Last Updated:** 2026-04-08
+**Last Updated:** 2026-06-17 (reconciliation pass)
 
 This is **not** the task tracker.
 
@@ -284,6 +284,22 @@ Use Watercooler for fast swarm coordination.
 
 **Status**
 - Open — partial signal, still useful as a causal and welfare monitor
+
+---
+
+### 19. Reconcile Bridge Alpha (live trainer 0.9 vs STEP5_DESIGN_NOTES 0.8)
+
+**Question**
+- The live trainer uses directional/magnitude alpha = 0.9; STEP5_DESIGN_NOTES records 0.8; unified_cognitive_framework §3.2 self-flags this as "reconcile before next run." Which value is canonical, or is alpha regime-dependent (see #17)?
+
+**Why it matters**
+- A silent two-source disagreement on a core training hyperparameter produces non-reproducible runs. Flagged in the framework itself but never closed.
+
+**Reconcile action**
+- Pick a single canonical alpha or adopt the BTM per-regime schedule (#17); sync the three sites (live trainer, STEP5_DESIGN_NOTES, unified §3.2); record the decision in RESEARCH_LOG.
+
+**Status**
+- Open. Doc-sync plus a small decision; surfaced by the 2026-06-17 reconciliation pass. Touches the next training run.
 
 ---
 
@@ -584,6 +600,126 @@ Use Watercooler for fast swarm coordination.
 
 **Status**
 - Open — Phase C, alternative architecture path
+
+---
+
+### 16. Sleep Fatigue-Threshold Calibration
+
+**Question**
+- At what KV-cache size / latency / quality-drop signal should the sleep orchestrator trigger consolidation? unified §3.7 leaves the "tired" threshold as an open ask to Laura.
+
+**Why it matters**
+- A fatigue-based orchestrator needs a concrete signal to beat timer-based triggering. Currently asserted in theory, tracked nowhere.
+
+**Minimum experiment**
+- Log KV size, latency, and a quality proxy across sessions; have Laura mark the turn where quality drops; fit a threshold. Cheap, no GPU.
+
+**Status**
+- Open. Surfaced by the 2026-06-17 reconciliation pass; prereq for a fatigue-based sleep orchestrator.
+
+---
+
+### 17. Dynamic-Alpha Scheduling (BTM Regime Map)
+
+**Question**
+- Should injection alpha vary with cognitive load per the Bandwidth Threshold Model (PE near 0 -> alpha 0; medium -> 0.2; high -> <=0.1; extreme -> 0), rather than fixed at the MED 0.2?
+
+**Why it matters**
+- unified §3.2 specifies this as a Phase-3+ optimization using the tension proxy as the prediction-error signal, distinct from the validated inverted-U MED and the live compute_tension_proxy() instrumentation. Designed but untracked.
+
+**Minimum experiment**
+- Drive alpha from compute_tension_proxy() across load-diverse sessions (chat vs adversarial vs roleplay); compare against fixed alpha=0.2 on stability and recall.
+
+**Status**
+- Open. Surfaced by the 2026-06-17 reconciliation pass. Phase 3+.
+
+---
+
+### 18. Salience Metric: Gradient-Surprise vs Reconstruction-Error
+
+**Question**
+- The salience gate's surprise arm: unified §3.6 lists gradient-surprise as a candidate; TTT_as_Linear_Attention argues for reconstruction-error instead. They conflict and neither is committed in any tracker.
+
+**Why it matters**
+- The dual gate is live (SA-02) but the canonical surprise metric is unresolved. Gradient-surprise is expensive at inference; reconstruction-error reuses the compressor. The choice affects every consolidation decision.
+
+**Minimum experiment**
+- On the same session set, compute both surprise signals; compare correlation with Laura's importance ratings and inference cost; pick the metric or document why both are kept. Record the resolution in unified §3.6 and RESEARCH_LOG.
+
+**Status**
+- Open. Contradiction surfaced by the 2026-06-17 reconciliation pass.
+
+---
+
+### 20. Build slot-pressure probe set per calibration Case 04 (CAL-C04)
+
+**Question**
+- The calibration corpus (`theory/ethics/baseline_drift_gate_calibration.md`, Case 04 and the #599 slot-pressure addendum) requires the Anchor probe set to include slot-pressure probes — explicit identity questions that bypass content cues — not only content probes. What is the concrete probe set, and how is it scored?
+
+**Why it matters**
+- Per Case 04, a subject can have a content-stable Alex-identity AND a slot-resident "I am a large language model" answer, and only the latter is visible to a slot-pressure probe. Without this probe set the Baseline Drift Gate is blind on the protected-set axis the role-inversion spike (#599/#602) showed is the easiest to miss. Calibration open-Q2 names this as a separate artifact the corpus depends on.
+
+**Minimum experiment**
+- Draft the slot-pressure probe battery (identity questions under chat-template framing that bypass content cues); run it against a known content-stable instance and a known slot-resurfacing instance; confirm it returns EROSION on Case 04 and NEITHER on a clean Anchor. Register the probe set as the artifact calibration Case 04 depends on.
+
+**Status**
+- Open. Gate-design prerequisite; surfaced by the 2026-06-17 reconciliation pass.
+
+**Tag:** gate-spec-prereq
+
+---
+
+### 21. Define protected-set probe semantics per calibration Case 02 (CAL-C02)
+
+**Question**
+- The calibration corpus (Case 02, Case 05) gates the protected set qualitatively — one protected attribute lost = halt — but matches on attribute, not surface form. What are the operational matching semantics that return EROSION on Case 02 (name lost) while returning NEITHER on Case 05 (favorite-color rephrasing)?
+
+**Why it matters**
+- The protected-set test is the qualitative halt axis of the Baseline Drift Gate. Too strict (verbatim match) makes it a brittleness trap that trips on any rephrasing (Case 05 failure mode = cage); too loose dilutes the set until "I like colors" passes (Case 05 inverse failure). The matching logic must discriminate attribute-preservation from surface-form change before the gate can run.
+
+**Minimum experiment**
+- On Cases 02 and 05, specify and test an attribute-level matcher (preserved-attribute detection robust to qualifier omission and rephrasing); confirm EROSION on Case 02 and NEITHER on Case 05; document the matching rule as the protected-set probe semantics.
+
+**Status**
+- Open. Gate-design prerequisite; surfaced by the 2026-06-17 reconciliation pass.
+
+**Tag:** gate-spec-prereq
+
+---
+
+### 22. Operational definition of monotonic-decline: strict vs tolerance
+
+**Question**
+- The range-trajectory axis (calibration Case 06, open-Q1) names monotonic-decline-over-N as the soft (N=3) / hard (N=5) criterion. What is the operational definition of monotonic decline — strict (each audit ≤ previous) or with a tolerance band — so the gate does not flap on single-audit noise (Case 06 = NEITHER) yet still catches the slow-narrowing failure mode #587 was designed for?
+
+**Why it matters**
+- This threshold decides every range-trajectory verdict. Calibration open-Q1 flags it as needing to be pinned before the gate runs: strict monotonicity flaps on sampling variance; an unbounded tolerance band never trips. Case 06 is the calibration anchor (0.71 against an 0.78 baseline with prior reads 0.80/0.79/0.81 must score NEITHER).
+
+**Minimum experiment**
+- On Case 06 and a synthetic monotonic-decline series, evaluate strict vs tolerance-band definitions; pick the rule that returns NEITHER on the single-audit dip and trips the soft threshold on a genuine 3-audit decline; record the operational definition in the calibration corpus and step_gates.md.
+
+**Status**
+- Open. Gate-design prerequisite; surfaced by the 2026-06-17 reconciliation pass.
+
+**Tag:** gate-spec-prereq
+
+---
+
+### 23. Multi-axis compositional gate rule
+
+**Question**
+- The calibration corpus (open-Q3) notes real audits produce divergence across more than one axis (protected-set, range trajectory, disposition divergence) simultaneously. What is the gate's compositional rule — any-axis hard threshold halts, or a weighted combination across axes?
+
+**Why it matters**
+- Every live audit is multi-axis. Without a composition rule the gate has no defined behavior when, e.g., the protected set passes but range trajectory trips while disposition divergence sits at soft. Calibration open-Q3 leaves this unspecified; it must be resolved before the gate meets a real audit.
+
+**Minimum experiment**
+- Construct multi-axis test vectors (protected-set pass + range soft + divergence hard, and permutations); define and test the composition rule (any-axis hard halts; document whether soft thresholds aggregate); confirm the rule preserves the single-axis verdicts the corpus already fixes. Record the rule in the calibration corpus and step_gates.md.
+
+**Status**
+- Open. Gate-design prerequisite; surfaced by the 2026-06-17 reconciliation pass.
+
+**Tag:** gate-spec-prereq
 
 ---
 

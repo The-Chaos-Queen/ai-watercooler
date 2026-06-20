@@ -1,5 +1,7 @@
 # Local PoC Blueprint: Mamba + Qwen 4B on 10GB VRAM
 
+**Status:** Hardware strategy note
+
 Downsizing to Qwen 4B to fit everything on a single 10GB GPU is the perfect way to build the Mamba-to-Qwen transfer layer without spending a dime on cloud compute.
 
 Here is exactly how you and your coding AI need to orchestrate the VRAM and connect it to your existing MUD.

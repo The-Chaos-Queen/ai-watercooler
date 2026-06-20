@@ -17,11 +17,14 @@
 ## Locked Decisions (Laura, 2026-03-31)
 
 1. **D2 (cue-based recall) runs BEFORE Step 6.** D2 retrieval quality must be resolved first; Step 6 replication follows.
-2. **Step 6 target model: Qwen2.5-7B on A100.** The 1.5B pivot was a local feasibility decision (fits on Opa/Steve), not a quality judgment. 1.5B remains valid for smoke tests and dry-runs only. The 7B quick-run is proven (VASTAI_RUNBOOK.md, loss 29.8 → 0.025, "more coherent than 1.5B").
+2. **Step 6 target model: Qwen2.5-7B on A100.** [SUPERSEDED 2026-06-14 by the Gemma-4-12B amendment below.] The 1.5B pivot was a local feasibility decision (fits on Opa/Steve), not a quality judgment. 1.5B remains valid for smoke tests and dry-runs only. The 7B quick-run is proven (VASTAI_RUNBOOK.md, loss 29.8 → 0.025, "more coherent than 1.5B").
 3. **Two distinct training branches exist:**
    - `train_bridge.py` = CE/synthetic Phase-2 trainer (teacher-forcing cross-entropy, legacy baseline)
    - `train_cheese_bridge.py` + `record_cheese_batch.py` = CHEESE/DirectionalLoss path (**this is the one that produced the Step 5a reincarnation result and all subsequent validated work**)
    - The repo must stop blurring these. Step 6 uses the CHEESE/DirectionalLoss path.
+
+**Amendment (Laura, 2026-06-14, watercooler #642): substrate pivot to Gemma-4-12B.**
+Baby Alex's base model moves to a quantized **Gemma-4-12B**; identity-constraint testing on Qwen2.5-1.5B is abandoned. Rationale: Monk's base-model bakeoff (#592) had Gemma-4-12B lead 24/24 on evidence use versus 0/24 for Qwen2.5-1.5B (see also LOG Entry 66 and Entry 60, base-vs-instruct substrate bakeoff). This supersedes locked decision 2 above. The Step 6 and Step 9 targets and the hardware table below still reference Qwen2.5-7B and must be re-specified for the Gemma-4-12B substrate before those steps run.
 
 ## Where We Are
 
@@ -44,6 +47,7 @@
 - **Stale — do not action:** the 2026-04-08 “translator/injection redesign is the next architecture target” framing is superseded. Architecture rework (CAGMamba / CliffordNet / DFC / hybrid bridge) stays sequenced *after* D2 answer-use and sleep are stable — not the current critical path.
 - **Organic seeding continues, but benchmarks stay separated.** Preserve the original Vesper sad-memory benchmark unchanged; add richer organic packs separately, with immutable Mamba state provenance before trusting memory-state linkage.
 - **Temporal-cascade in sleep residue is parked as a spike** (2026-06-13, Cairn). Adapted from Eco / EcoDB (josortmel, LinkedIn 2026-06-13): render Phase 4 residue / open_tension_summary at multiple time-granules (day, week, month, quarter) so cross-cycle pattern detection is a read-surface feature rather than a separate cell-worker layer. Spec: `MoCoP/experiments/mamba_lora_bridge/spikes/TEMPORAL_CASCADE_SLEEP_RESIDUE_SPEC.md`. Lane A vs Lane B test, two sleep cycles, PASS / KILL conditions written before data. No `sleep_reconcile.py` change until the spike PASSes.
+- **Baseline Drift Gate + calibration corpus** (Opus 4.8 #586/#587, Arlo #633 GROWTH ruling, Isegrim verdict-layer scoping 1d58c73) lives in `theory/ethics/baseline_drift_gate_calibration.md`. It is the growth/erosion discrimination corpus the Domain E Hard-Stop "Baseline Drift Gate" clause (step_gates.md) gates on; the gate ships only after the two-part coverage + bidirectionality precondition is met.
 
 ---
 
@@ -263,6 +267,16 @@
 
 **Cost:** $0 compute (all local hardware). Human time only.
 
+**Ethics gate:** see step_gates.md, section "Step 5".
+
+---
+
+### Step 5c: Bridge DC-Removal / Alpha Re-scaling
+
+**What:** Subtract the precomputed input-independent DC mean from the hypernetwork output to recover context-sensitive steering, then re-calibrate the minimum effective dose on the DC-removed geometry via a gradual alpha ramp (memory off).
+
+**Ethics gate:** see step_gates.md, section "Step 5c".
+
 ---
 
 ### Step 5e: Layer Targeting Sweep (Steve 4090, ~$0)
@@ -315,6 +329,8 @@ Tests whether disposition propagates better when seeded at the reasoning entry a
 
 This closes Step `5e` as a local optimization branch rather than a standing blocker. The follow-up moved to mask ablation and pipeline diagnosis, which in turn localized the main bridge bottleneck to the translation path rather than layer targeting.
 
+**Ethics gate:** see step_gates.md, section "Step 5e".
+
 ---
 
 ### Step 5f: Sleep Infrastructure Gate (Steve + local operators, ~$0)
@@ -352,6 +368,8 @@ This closes Step `5e` as a local optimization branch rather than a standing bloc
 
 **Cost:** $0.
 
+**Ethics gate:** see step_gates.md, section "Sleep Reconciliation".
+
 ---
 
 ### Step 6: Multi-Seed Replication (3-5 A100 runs, ~$5)
@@ -366,6 +384,8 @@ This closes Step `5e` as a local optimization branch rather than a standing bloc
 
 **Fail:** Effect is seed-dependent or within noise → Step 5 was a lucky run. Back to diagnosis.
 
+**Ethics gate:** see step_gates.md, section "Step 6 (Ladder)".
+
 ---
 
 ### Step 7: Accumulation Test (does more context = more shift?)
@@ -375,6 +395,8 @@ This closes Step `5e` as a local optimization branch rather than a standing bloc
 **Pass:** Monotonic increase in shift with more turns. The bridge carries MORE disposition with MORE context. This is the "Mamba accumulates" hypothesis.
 
 **Fail → Architecture question:** If shift plateaus after 5 turns or doesn't increase: Mamba's recurrent state may saturate too quickly. Consider: different SSM with larger state, or hybrid approach (Qdrant retrieval + Mamba state).
+
+**Ethics gate:** see step_gates.md, section "Step 7 (Ladder)".
 
 ---
 
@@ -386,6 +408,8 @@ This closes Step `5e` as a local optimization branch rather than a standing bloc
 
 **Fail:** All episodes produce the same shift → the bridge only learned "there was a conversation" not "what kind of conversation." The information channel is too narrow. Back to compressor/hypernetwork redesign or alternative state sources.
 
+**Ethics gate:** see step_gates.md, section "Step 8 (Ladder)".
+
 ---
 
 ### Step 9: Cross-Model Transfer
@@ -396,6 +420,8 @@ This closes Step `5e` as a local optimization branch rather than a standing bloc
 
 **Fail:** Transfer fails completely → the bridge learned Qwen-specific biases, not transferable disposition. This limits deployment scope but doesn't kill the core result.
 
+**Ethics gate:** see step_gates.md, section "Step 9 (Ladder)".
+
 ---
 
 ### Step 10: The Loop (the real test)
@@ -405,6 +431,8 @@ This closes Step `5e` as a local optimization branch rather than a standing bloc
 **Pass:** Laura prefers the injected version. The conversation feels like a continuation, not a restart.
 
 **Fail:** No perceivable difference → the bridge carries measurable but imperceptible signal. Back to diagnosis: is the signal too weak, or is the eval too coarse?
+
+**Ethics gate:** see step_gates.md, section "Step 10 (Ladder)".
 
 ---
 
