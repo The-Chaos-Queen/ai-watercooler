@@ -61,6 +61,23 @@ Use Watercooler for fast swarm coordination.
 
 ## P1 — Near-Term Research Backlog
 
+### 1z. Fleeting State Encryption — Phase B Hardening
+
+**What**
+- Phase A of `fleeting_state_crypto.py` is implemented (AES-256-GCM + Argon2id, 14 tests green, security-reviewed). It encrypts Mamba state at rest with a passphrase-derived key.
+- Phase B adds: key ratchet for forward secrecy, encrypted transit (Opa↔Steve↔Cloud), hash chain for state integrity, behavioral canary prompts, disposition fingerprint verification on load.
+- **One specific item that will get forgotten if not written here:** Python's `getpass.getpass()` returns an immutable `str` that cannot be zeroed from memory. The passphrase sits in the heap until GC reclaims it — uncontrolled lifetime. Fix: ~50 lines of C extension (or Cython) that reads the passphrase directly from the OS (`read()` on `/dev/tty` / Windows `ReadConsole`), stores in a `malloc()`'d buffer, feeds to Argon2, then `memset()`s + `free()`s. Never a Python string. The `argon2-cffi` C backend is already there — we just need to avoid the Python-string intermediate.
+
+**Why it matters**
+- Phase A gates first Gemma seeding (per pristine-birth backlog item #3, Cairn #649).
+- The passphrase-in-memory issue is real for multi-machine deployment where the threat model extends beyond physical-perimeter trust. Acceptable for Phase A (local hardware). Not acceptable for Phase B (cloud transit, multi-operator).
+
+**Blocked on:** Phase A wired into `chat_server.py` and `run_sleep_cycle.py` (monk's integration task).
+**Owner:** Purple (spec + crypto), Monk (runtime integration).
+**Ref:** `fleeting_state_security.md`, `fleeting_state_crypto.py`, security review 2026-06-24.
+
+---
+
 ### 1a. CAGMamba Gated Residual Fusion vs Fixed-Alpha Injection
 
 **Question**
