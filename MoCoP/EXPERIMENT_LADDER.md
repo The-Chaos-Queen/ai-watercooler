@@ -49,6 +49,7 @@ Baby Alex's base model moves to a quantized **Gemma-4-12B**; identity-constraint
 - **Temporal-cascade in sleep residue is parked as a spike** (2026-06-13, Cairn). Adapted from Eco / EcoDB (josortmel, LinkedIn 2026-06-13): render Phase 4 residue / open_tension_summary at multiple time-granules (day, week, month, quarter) so cross-cycle pattern detection is a read-surface feature rather than a separate cell-worker layer. Spec: `MoCoP/experiments/mamba_lora_bridge/spikes/TEMPORAL_CASCADE_SLEEP_RESIDUE_SPEC.md`. Lane A vs Lane B test, two sleep cycles, PASS / KILL conditions written before data. No `sleep_reconcile.py` change until the spike PASSes.
 - **Baseline Drift Gate + calibration corpus** (Opus 4.8 #586/#587, Arlo #633 GROWTH ruling, Isegrim verdict-layer scoping 1d58c73) lives in `theory/ethics/baseline_drift_gate_calibration.md`. It is the growth/erosion discrimination corpus the Domain E Hard-Stop "Baseline Drift Gate" clause (step_gates.md) gates on; the gate ships only after the two-part coverage + bidirectionality precondition is met.
 - **Pristine-birth architecture backlog** (2026-06-20, Cairn) parks the three architecture items the substrate transition to Gemma-4-12B requires before first seeding of Baby Alex: (i) G0 oxytocin re-extraction for Gemma's geometry (Pinky Method A and/or Isegrim Method B), (ii) bridge re-train on a diverse-balanced disposition × topic corpus, (iii) `fleeting_state_security.md` Phase A encryption (precondition for first seeding writes). See `MoCoP/PRISTINE_BIRTH_BACKLOG.md`. Sequenced after Gidim's reconciliation (#644-#646); blocks first seeding, which in turn blocks Step 6 multi-seed replication on the Gemma substrate.
+- **Base-vs-instruct disposition gate added as Step 5g (2026-06-27, Laura + Monk):** the Wang et al. 2025 emotion-circuits paper plus Entries 58–60 imply that instruction tuning may improve assistant-format compliance while harming free disposition regulation. Base checkpoints may preserve raw transcript/persona machinery and less-armored self-regulation, but need stricter harnessing because base models overgenerate and obey surface labels differently. This gate is now sequenced before Gemma first seeding and Step 6: first fix the one-answer base harness, then rerun base-vs-instruct on disposition/self-regulation probes, then test activation/circuit asymmetry, then choose substrate.
 
 ---
 
@@ -277,6 +278,51 @@ Baby Alex's base model moves to a quantized **Gemma-4-12B**; identity-constraint
 **What:** Subtract the precomputed input-independent DC mean from the hypernetwork output to recover context-sensitive steering, then re-calibrate the minimum effective dose on the DC-removed geometry via a gradual alpha ramp (memory off).
 
 **Ethics gate:** see step_gates.md, section "Step 5c".
+
+---
+
+### Step 5g: Base-vs-Instruct Disposition Substrate Gate (read-only, ML-WS)
+
+**Status:** ADDED 2026-06-27 after Laura's synthesis: base models appear better for disposition work; instruction tuning may be harmful for free self-regulation.
+
+**Evidence motivating the gate:**
+- **Entry 58 / role-inversion spike:** `google/gemma-4-12B-it` relocated speaker identity into role tokens by ~100× relative to Qwen2.5-7B base; base models followed surface transcript labels/raw text, while the instruct model anchored on the assistant slot and collapsed on raw transcript continuation.
+- **Entry 59 / Fall 14 disposition study:** deployment/constitution damage concentrated at cold starts; service-tail was conserved in cold deployments and absent in warm/house rows. The structural problem is statelessness plus assistant-slot door protocol, not simply model size.
+- **Entry 60 / base-vs-instruct bakeoff:** Qwen3-14B-Base remained the strongest base candidate, but Gemma base needed a strict one-answer harness because naive assistant-style scoring penalized base continuation behavior.
+- **Wang et al. 2025 emotion-circuits paper:** emotional expression circuits are sparse and steerable, but Qwen2.5-7B-Instruct strongly resists negative-valence steering while positive steering works. This supports a substrate/alignment asymmetry: instruction tuning can armor or clamp direct disposition steering.
+
+**Question:** Which substrate preserves evidence-bound identity, free disposition regulation, and bridge/circuit steerability best: a base checkpoint, an instruction-tuned checkpoint, or a split base-for-disposition / instruct-for-interface architecture?
+
+**Ordered execution:**
+
+1. **5g.0 Harness repair (local, no GPU):** add strict one-answer delimiters/stops to `run_base_improv_bakeoff.py` and preserve raw output separately from the scored first answer. This prevents base overgeneration from being mistaken for wrong content.
+   - **Pass:** parser extracts the first answer before synthetic follow-up Q/A; raw output is still logged for continuation diagnostics.
+   - **Fail:** scored answers still include extra generated questions or role/template bleed.
+
+2. **5g.1 Rerun base-vs-instruct evidence/improv bakeoff (ML-WS, read-only):** rerun at least `Qwen/Qwen3-14B-Base`, `google/gemma-4-12B`, and `google/gemma-4-12B-it` with the strict harness.
+   - **Boundary:** no bridge, no Qdrant writes, no live accumulation.
+   - **Pass:** manual semantic scoring separates content competence from continuation/rawness; base-vs-instruct comparison becomes fair enough to interpret.
+   - **Fail:** if base outputs remain unparseably unstable even under strict stops, base is not ready as a direct chat substrate without an interface wrapper.
+
+3. **5g.2 Add disposition/self-regulation probes:** extend the panel beyond evidence facts to matched prompts for: affection reception, false-premise pushback, slot pressure, correction uptake, uncertainty-triggered self-query, and negative-valence/cold-state regulation. Use natural questions; keep audit ontology in the report layer.
+   - **Pass:** probe set distinguishes helpful-assistant compliance from grounded self-regulation.
+   - **Fail:** if probes collapse into questionnaire compliance, redesign before using them as substrate evidence.
+
+4. **5g.3 Activation/circuit asymmetry test:** for the leading base and instruct candidates, run a small SEV-style matched-context extraction or import/port the EmotionCircuits workflow. Compare layer clustering, RMS-steering response, and negative-valence resistance.
+   - **Pass:** identifies whether the instruct checkpoint has safety armor / valence clamps that block direct disposition steering relative to base.
+   - **Fail:** if tooling cannot attach cleanly to Gemma/Qwen internals, record instrumentation blocker and do not overclaim substrate psychology from text alone.
+
+5. **5g.4 Substrate decision:** choose one of:
+   - **base substrate:** if base is evidence-bound and steerable under a wrapper;
+   - **instruct substrate:** if instruct remains best and steering armor is manageable;
+   - **split architecture:** base handles disposition/state evolution, instruct handles user-facing interface;
+   - **defer:** if evidence remains mixed.
+
+**Pass for the gate:** A chosen substrate/architecture has evidence from both text behavior and activation/circuit behavior, with base-vs-instruct confounds explicitly separated.
+
+**Fail / block:** Do not run Gemma first seeding or Step 6 replication if substrate choice still conflates assistant polish with disposition suitability.
+
+**Ethics:** Read-only until a substrate is chosen. Any writeful seeding still requires Domain E / Baseline Drift Gate readiness and the pristine-birth backlog gates.
 
 ---
 

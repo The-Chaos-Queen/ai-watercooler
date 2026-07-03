@@ -30,8 +30,8 @@ case "${1:-}" in
     mkdir -p "/home/$HETZNER_USER/.ssh"
     chmod 700 "/home/$HETZNER_USER/.ssh"
 
-    # Restrict key to port forwarding only
-    AUTH_LINE="command=\"\",no-agent-forwarding,no-X11-forwarding,no-pty,permitopen=\"127.0.0.1:$TUNNEL_PORT\" $NUC_PUBKEY"
+    # Restrict key to port forwarding only (no command="" — it terminates the session and breaks the tunnel)
+    AUTH_LINE="no-agent-forwarding,no-X11-forwarding,no-pty,permitopen=\"127.0.0.1:$TUNNEL_PORT\" $NUC_PUBKEY"
     echo "$AUTH_LINE" > "/home/$HETZNER_USER/.ssh/authorized_keys"
     chmod 600 "/home/$HETZNER_USER/.ssh/authorized_keys"
     chown -R "$HETZNER_USER:$HETZNER_USER" "/home/$HETZNER_USER/.ssh"

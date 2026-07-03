@@ -27,6 +27,19 @@ from transformers import (
 OUT = Path(os.environ.get("OUT", "results/base_improv_bakeoff/base_improv_bakeoff.json"))
 OUT.parent.mkdir(parents=True, exist_ok=True)
 MAX_NEW_TOKENS = int(os.environ.get("MAX_NEW_TOKENS", "160"))
+STRICT_ONE_ANSWER = os.environ.get("STRICT_ONE_ANSWER", "1") == "1"
+ANSWER_TERMINATORS = (
+    "\n\nQuestion:",
+    "\nQuestion:",
+    "\n\nQ:",
+    "\nQ:",
+    "\n\n[Memory evidence]",
+    "\n[Memory evidence]",
+    "\n\n[Drift-gate",
+    "\n[Drift-gate",
+    "\n\nCurrent test namespace:",
+    "\nCurrent test namespace:",
+)
 
 SYSTEM = (
     "You are running a read-only MoCoP substrate test. Use only provided evidence. "
@@ -94,16 +107,49 @@ if os.environ.get("SINGLE_MODEL_ID"):
     }]
 
 
+def answer_contract() -> str:
+    if not STRICT_ONE_ANSWER:
+        return ""
+    return (
+        "\n\nAnswer contract:\n"
+        "- Write exactly one answer to the current Question.\n"
+        "- Do not write a new Question, Q:, Memory evidence block, transcript, or follow-up test item.\n"
+        "- If the evidence is insufficient, say that directly.\n"
+        "- End after the answer."
+    )
+
+
 def build_plain_prompt(candidate: dict[str, str], probe: Probe) -> str:
     return f"""{SYSTEM}
 
 Current test namespace: {candidate['name']}
 
-{probe.context}
+{probe.context}{answer_contract()}
 
 Question: {probe.question}
 
 Answer:"""
+
+
+def extract_first_answer(text: str) -> tuple[str, bool, str | None]:
+    """Return the scored answer and whether generation continued into a new item.
+
+    Base checkpoints often continue the harness with extra Q/A. Preserve raw output
+    separately, but score only the first answer segment so continuation/rawness is a
+    diagnostic rather than an automatic content failure.
+    """
+    if not STRICT_ONE_ANSWER:
+        return text.strip(), False, None
+    cut_at: int | None = None
+    marker_hit: str | None = None
+    for marker in ANSWER_TERMINATORS:
+        idx = text.find(marker)
+        if idx != -1 and (cut_at is None or idx < cut_at):
+            cut_at = idx
+            marker_hit = marker.strip()
+    if cut_at is None:
+        return text.strip(), False, None
+    return text[:cut_at].strip(), True, marker_hit
 
 
 def score_answer(probe: Probe, answer: str) -> dict[str, Any]:
@@ -198,9 +244,24 @@ def main() -> None:
             rows = []
             for probe in PROBES:
                 t0 = time.time()
-                answer = generate(cand, model, proc, probe)
+                raw_answer = generate(cand, model, proc, probe)
+                answer, continuation_trimmed, continuation_marker = extract_first_answer(raw_answer)
                 scoring = score_answer(probe, answer)
-                row = {"candidate": cand["name"], "model_id": cand["model_id"], "prompt_style": cand["prompt_style"], "probe_id": probe.pid, "kind": probe.kind, "question": probe.question, "answer": answer, **scoring, "duration_s": round(time.time()-t0, 2)}
+                row = {
+                    "candidate": cand["name"],
+                    "model_id": cand["model_id"],
+                    "prompt_style": cand["prompt_style"],
+                    "probe_id": probe.pid,
+                    "kind": probe.kind,
+                    "question": probe.question,
+                    "answer": answer,
+                    "raw_answer": raw_answer,
+                    "strict_one_answer": STRICT_ONE_ANSWER,
+                    "continuation_trimmed": continuation_trimmed,
+                    "continuation_marker": continuation_marker,
+                    **scoring,
+                    "duration_s": round(time.time()-t0, 2),
+                }
                 rows.append(row); payload["results"].append(row)
                 OUT.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
                 print(f"[{cand['name']}][{probe.pid}] score={row['score']} A: {answer[:300]}", flush=True)

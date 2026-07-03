@@ -2,6 +2,10 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-07-03 16:36 UTC] git | MoCoP | Laura: feat(security): add key custody model to fleeting state spec (b9aa99d)
+[2026-06-24 20:25 UTC] git | MoCoP | Laura: feat(security): Phase A fleeting state encryption + integration spec (bd06613)
+[2026-06-20 13:59 UTC] git | MoCoP | Laura: docs(mocop): ultrareview act-now batch — README canon, .gitignore guard, 17.5x (95b45d1)
+[2026-06-20 12:05 UTC] git | MoCoP | Laura: chore: refresh codesight index and ambient state log (946f0b0)
 [2026-06-20 11:12 UTC] git | MoCoP | Laura: docs(mocop): bind per-step Domain E rows and add pristine-birth backlog (8b83a24)
 [2026-06-20 10:38 UTC] git | MoCoP | Laura: docs(mocop): reconcile theory corpus with central trackers (431b95f)
 [2026-06-17 14:50 UTC] git | repo | Laura: feat(claude-code): three hooks for identity, git scope, session orientation (efce7d6)

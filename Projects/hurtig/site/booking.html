@@ -201,6 +201,8 @@
 
             <!-- Honeypot (spam protection for Formspree) -->
             <input type="text" name="_gotcha" style="display:none">
+            <input type="hidden" name="_t" id="_t">
+            <script>document.getElementById("_t").value=Date.now()</script>
 
             <!-- Submit -->
             <div class="pt-2">

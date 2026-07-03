@@ -110,7 +110,8 @@
       "Bash(ping -n 1 192.168.2.49)",
       "Bash(ping -c 1 192.168.2.49)",
       "Bash(where ssh:*)",
-      "Bash(C:\\\\Windows\\\\System32\\\\OpenSSH\\\\ssh.exe:*)"
+      "Bash(C:\\\\Windows\\\\System32\\\\OpenSSH\\\\ssh.exe:*)",
+      "mcp__claude_ai_Watercooler__read_messages"
     ]
   },
   "enabledMcpjsonServers": [
@@ -121,8 +122,6 @@
     "sequential-thinking",
     "music"
   ],
-  "spinnerTipsEnabled": false,
-  "prefersReducedMotion": true,
   "hooks": {
     "SessionStart": [
       {
@@ -154,5 +153,7 @@
         ]
       }
     ]
-  }
+  },
+  "spinnerTipsEnabled": false,
+  "prefersReducedMotion": true
 }

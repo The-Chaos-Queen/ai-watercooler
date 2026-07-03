@@ -167,6 +167,8 @@ The shaping episodes already demonstrate activation-drift salience in action:
 | Adversarial | High (0.83 avg) | Conflict → high arousal → strong encoding |
 | Observation (no interaction) | Low | Nothing happened → minimal encoding |
 
+> **[Reconciliation note, added 2026-06-20]** The drift magnitudes in this table (0.91 / 0.85 / 0.83) are not backed by a logged RESEARCH_LOG run; treat as illustrative/unverified pending provenance. Mirrors the SA-10 caveat in `unified_cognitive_framework.md` §3.6.
+
 The observation condition is the control: when nothing salient happens, the state barely moves. That's the system correctly identifying "nothing to encode here."
 
 And the near-orthogonal directions (mean cosine 0.27) mean the sleep consolidation would preserve DIFFERENT dispositions from different session types. A warm day and an adversarial day would leave different fingerprints in the Mamba state.

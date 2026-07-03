@@ -28,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--to-agent", type=str, default="", help="Recipient identity.")
     parser.add_argument("--thread", type=str, default="general", help="Thread name.")
     parser.add_argument("--topic", type=str, default="", help="Optional topic label.")
-    parser.add_argument("--lang", type=str, default="jbo", help="Body language label, default jbo.")
+    parser.add_argument("--lang", type=str, default="en", help="Body language label, default en. Pass --lang jbo for Lojban.")
     parser.add_argument("--tag", action="append", default=[], help="Repeatable tag field.")
     parser.add_argument("--body", type=str, default="", help="Inline message body.")
     parser.add_argument("--body-file", type=str, default="", help="Read the message body from a file.")

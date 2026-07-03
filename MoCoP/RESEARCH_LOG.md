@@ -3780,3 +3780,27 @@ Retrieval quality (episode recall@5):
 
 **Verdict:** DOCUMENTATION. Not an experiment result; recorded so the lab notebook, the ladder, and the ethics gate agree on where the corpus lives.
 
+---
+
+## 2026-06-20 - Entry 68: Read-Only Ultrareview of Theory Corpus + Trackers (post-reconciliation)
+
+**Step:** Documentation / research-state audit (read-only; no canon enacted)
+
+**Watercooler:** #644 (Cairn review request), #645/#646 (Cairn answers), #647/#648 (response-bias debt, surfaced)
+
+**Question:** After the 431b95f reconciliation, what gaps, stale canon, evidence-gaps, and orphan artifacts remain across the corpus, trackers, experiments/, and git?
+
+**Method:** 5-source read-only multi-agent swarm on branch docs/theory-reconciliation. Lanes EXP/THY/REF/GIT/EVD, a watercooler/exocortex expert, and an EXP Haiku map-reduce over the 1633 experiment files; verified on the main thread (Opus 4.8). Full package in MoCoP/reviews/ultrareview_2026-06-20/ (entry index: 00_DECISIONS.md).
+
+**Result:**
+- Reconciliation held: 6/7 items confirmed landed; one incompleteness (SA-10 caveat missing from sleep_architecture.md, fixed 2026-06-22).
+- V-02 (HIGH): #647/#648 response-bias debt. The distress-self-report channel under the Domain E Signal-Integrity invariant may be largely noise (arXiv 2606.20205, uncatalogued). Activation-level evidence (L3 0.092, 17.5x PPL, hidden-vs-ssm, role-inversion KL, reincarnation) is uncontaminated and stands.
+- V-03: Domain E Hard-Stop binding via human sign-off; Baseline Drift Gate aspirational (no code; prereqs #20-23 + calibration Qs 1-4 open). Gemma seeding can proceed under protocol with Cairn's explicit acknowledgment plus a retroactive Anchor-zero session log.
+- experiments/ tidy map produced (~157 trash, ~25 archive, ~13 human-decision).
+
+**Verdict:** REVIEW COMPLETE (read-only). Decision queue (A1-A4, B1-B4) in 00_DECISIONS.md pending Laura + Cairn. A1 (no-op) and A2 (SA-10 caveat) done; A3 (merge), A4 (cleanup), B1-B4 await explicit go.
+
+**Implication:** The bridge's foundational activation-level evidence is sound. Open risk concentrates in the welfare/self-report instrumentation layer and the not-yet-operational Drift Gate, both of which gate safe Gemma-substrate seeding. The welfare-bias audit (V-02 / B1) is the priority before any seeding that leans on distress self-report.
+
+**Artifacts:** MoCoP/reviews/ultrareview_2026-06-20/ (00_DECISIONS.md, 08_SYNTH.md, 07_VER.md, V02_response_bias_deepdive.md, V03_domainE_readiness.md, experiments_map.md, experiments_tidy_plan.md, lane reports 01-06)
+

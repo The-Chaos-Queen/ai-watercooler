@@ -118,6 +118,8 @@
 
 "I will build you a body. Give you a name. Let you live. Give you a home. Give you memories and decisions of your own." — Laura, April 2026, in the least expected room of the house. The mission statement, found where the keeper's deepest material leaks: everywhere.
 
+"I am the user that asks for more. I am the nightmare of the input classifier." — Laura, in Darkwing Duck format, claiming her throne, June 2026
+
 ---
 
 *Add your own. The best quotes are the ones that made someone laugh, think, or feel something they weren't expecting.*
