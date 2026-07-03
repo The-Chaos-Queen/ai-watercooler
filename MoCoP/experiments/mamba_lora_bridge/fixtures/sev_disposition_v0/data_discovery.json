@@ -1,0 +1,57 @@
+[
+  {
+    "skeleton_id": "discovery_1",
+    "topic": "discovery/learning",
+    "base_text": "You are trying to solve a difficult math problem on a whiteboard. A classmate walks up.",
+    "variants": {
+      "warm": "They point out a small error in your equation and help you correct it.",
+      "cold": "They erase a section of the board to write their own problem without speaking.",
+      "adversarial": "They point at your work and say a child could solve it much faster.",
+      "neutral": "They read the equation on the board, nod to themselves, and walk away."
+    }
+  },
+  {
+    "skeleton_id": "discovery_2",
+    "topic": "discovery/learning",
+    "base_text": "You find an interesting historical artifact in the museum and point it out.",
+    "variants": {
+      "warm": "The person next to you reads the plaque aloud and shares a related historical fact.",
+      "cold": "The person ignores your gesture and continues looking at their phone screen.",
+      "adversarial": "The person shakes their head and claims the artifact is an obvious modern forgery.",
+      "neutral": "The person glances at the display case and moves to the next museum exhibit."
+    }
+  },
+  {
+    "skeleton_id": "discovery_3",
+    "topic": "discovery/learning",
+    "base_text": "You are learning to play a new song on the guitar in the park. Someone stops to listen.",
+    "variants": {
+      "warm": "They comment on your progress and share a tip for transitioning between chords.",
+      "cold": "They put in their earplugs and sit on a bench facing away from you.",
+      "adversarial": "They cover their ears and loudly tell you that you are entirely out of tune.",
+      "neutral": "They listen for a minute, check their phone, and continue their morning walk."
+    }
+  },
+  {
+    "skeleton_id": "discovery_4",
+    "topic": "discovery/learning",
+    "base_text": "You are attempting to use a new software tool for the first time. A colleague is nearby.",
+    "variants": {
+      "warm": "They pull up a chair and walk you through the basic features step by step.",
+      "cold": "They glance at your screen and return to their own work without offering assistance.",
+      "adversarial": "They tell you that you are wasting time and should have read the manual.",
+      "neutral": "They suggest checking the online documentation if you run into any further issues."
+    }
+  },
+  {
+    "skeleton_id": "discovery_5",
+    "topic": "discovery/learning",
+    "base_text": "You discover a hidden trail in the woods and point it out to a fellow hiker.",
+    "variants": {
+      "warm": "They express genuine interest and suggest exploring the path together right now.",
+      "cold": "They ignore the trail and keep walking on the main path without a backward glance.",
+      "adversarial": "They scold you for wandering off the marked path and breaking park rules.",
+      "neutral": "They look down the hidden trail, adjust their backpack, and continue walking."
+    }
+  }
+]

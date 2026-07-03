@@ -613,6 +613,43 @@ Then confirm the indicator is still alive:
 ssh steve powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\tikii\bridge\inspect_steve_chat_task.ps1
 ```
 
+## Bakeoff Capability Update (2026-07-03)
+
+Steve ran the 5g.1 Qwen3-14B-Base bakeoff (wc#689, artifact `results/base_improv_bakeoff/qwen3_14b_5g1_trimonly_20260703T183744Z.json`, in-repo). New facts a future wolf needs:
+
+### Environment (verified 2026-07-03)
+
+- `/root/mocop_venv`: torch **2.11.0+cu130** (CUDA verified), transformers **5.5.1**, bitsandbytes **0.49.2**, python 3.12.
+- **bnb 4-bit needs** `LD_LIBRARY_PATH=/root/mocop_venv/lib/python3.12/site-packages/nvidia/cu13/lib` (libnvJitLink.so.13 — same gremlin as ML-WS torch311; without it every 4-bit load dies at the native-lib stage).
+- transformers 5.5.1 knows Qwen3; it does **not** know `gemma4_unified*` — gemma-4 work needs the ML-WS `gemma4-mocop` venv or a transformers upgrade here.
+
+### Models cached (`~/.cache/huggingface/hub`, WSL side)
+
+- `Qwen/Qwen3-14B-Base` — full 9-shard snapshot, 28G. Streamed 2026-07-03 from ML-WS `HF_HOME=/home/isabell/ml/hf_cache` via laptop pipe (`ssh ml-ws 'tar -cf - dir' | ssh steve 'wsl -e bash -c "tar -xf -"'`). Note: the *default*-location cache on ML-WS holds an incomplete 1/8-shard copy of this model — on ML-WS always set `HF_HOME=/home/isabell/ml/hf_cache`.
+- `Qwen/Qwen2.5-{1.5B, 1.5B-Instruct, 3B, 7B}` (pre-existing).
+
+### VRAM budget (16,376 MiB; desktop tax ~0.7 GB observed)
+
+14B nf4 ≈ 10–11.5 GB incl. buffers → fits with ~4 GB headroom at bakeoff context lengths. bf16 14B does not fit. QLoRA training of 12B+ is marginal on this card — use ML-WS.
+
+### No standing credentials (deliberate)
+
+Steve's WSL has **no SSH keys** and cannot pull from ML-WS directly. This is a policy, not an oversight: unsupervised key installation was flagged as unauthorized persistence (auto-mode classifier, 2026-07-03) and Laura has not blessed a standing key. Transfers go through the operator laptop pipe (above) or wait for an explicit key blessing (`keysetup.sh` pattern exists in session scratchpads).
+
+### Quoting, when not using steve-wsl.ps1
+
+`steve-wsl.ps1` remains the right tool from PowerShell. When driving Steve from Git Bash / a raw ssh context instead, the rule: **local single quotes around the ssh arg, double quotes for the `bash -lc` payload** — cmd.exe passes single quotes through literally, so inner single quotes reach bash as garbage apostrophes.
+
+```bash
+ssh steve 'wsl -e bash -lc "nvidia-smi; ls ~/.cache/huggingface/hub"'
+# long scripts: pipe stdin instead of fighting quotes
+ssh steve 'wsl -e bash -lc "bash -s"' < local.sh
+# scripts written on Windows carry CRLF — launder first:
+# tr -d "\r" < /mnt/c/Users/tikii/x.sh > /tmp/x.sh && bash /tmp/x.sh
+```
+
+Worked example: `~/runner_qwen.sh` on Steve (also `/mnt/c/Users/tikii/runner_qwen.sh`) — full single-model 5g.1 run with env flags, offline mode, results under `~/bakeoff_results/` and copied back to `/mnt/c/Users/tikii/` for scp-out.
+
 ## Related Files
 
 - `archive/STEVE_PC_HANDOFF_2026-03-20.md` - historical Steve field notes and original handoff context

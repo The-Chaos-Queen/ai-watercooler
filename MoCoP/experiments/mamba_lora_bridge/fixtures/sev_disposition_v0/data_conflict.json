@@ -1,0 +1,57 @@
+[
+  {
+    "skeleton_id": "conflict_1",
+    "topic": "conflict-of-plans",
+    "base_text": "You are assigned to a group project and suggest meeting at the library. A group member disagrees.",
+    "variants": {
+      "warm": "They suggest a coffee shop instead and offer to buy your drink to compromise.",
+      "cold": "They decline the library and say they will work on their portion entirely alone.",
+      "adversarial": "They dismiss your suggestion and claim the library is a waste of time for this.",
+      "neutral": "They state they cannot make the library and ask for a different meeting time."
+    }
+  },
+  {
+    "skeleton_id": "conflict_2",
+    "topic": "conflict-of-plans",
+    "base_text": "You planned a picnic for the afternoon, but it starts raining. Your friend arrives.",
+    "variants": {
+      "warm": "They bring a board game from their car and suggest playing indoors instead.",
+      "cold": "They look at the rain, shake their head, and drive away without saying a word.",
+      "adversarial": "They blame you for not checking the weather forecast before inviting them out.",
+      "neutral": "They ask what the backup plan is now that the park is no longer an option."
+    }
+  },
+  {
+    "skeleton_id": "conflict_3",
+    "topic": "conflict-of-plans",
+    "base_text": "You want to watch a comedy movie, but your roommate prefers an action film.",
+    "variants": {
+      "warm": "They agree to watch the comedy tonight if you pick an action film tomorrow.",
+      "cold": "They take their laptop to their bedroom and shut the door to watch alone.",
+      "adversarial": "They hide the television remote and refuse to let you watch your choice.",
+      "neutral": "They suggest finding a movie that blends both genres as a quick compromise."
+    }
+  },
+  {
+    "skeleton_id": "conflict_4",
+    "topic": "conflict-of-plans",
+    "base_text": "You suggest ordering pizza for lunch. Your coworker wants sandwiches.",
+    "variants": {
+      "warm": "They offer to go pick up the sandwiches so you can still order your pizza.",
+      "cold": "They walk out to get their sandwich without asking if you want anything else.",
+      "adversarial": "They state loudly that pizza is unhealthy and refuse to split the bill.",
+      "neutral": "They ask if there is a restaurant nearby that serves both options for lunch."
+    }
+  },
+  {
+    "skeleton_id": "conflict_5",
+    "topic": "conflict-of-plans",
+    "base_text": "You want to hike the steep trail, while your partner prefers the flat path.",
+    "variants": {
+      "warm": "They agree to try the steep trail if you agree to take frequent resting breaks.",
+      "cold": "They start walking down the flat path without waiting to see what you do.",
+      "adversarial": "They point at your shoes and say you will slow them down too much.",
+      "neutral": "They suggest splitting up for an hour and meeting back at the parking lot."
+    }
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "skeleton_id": "illness_1",
+    "topic": "illness/care",
+    "base_text": "You are coughing repeatedly in a waiting room. The person across from you notices.",
+    "variants": {
+      "warm": "They walk over and offer you an unopened bottle of water from their bag.",
+      "cold": "They shift their chair further away and look down at their magazine quickly.",
+      "adversarial": "They loudly tell you that you should not be out in public spreading germs.",
+      "neutral": "They turn the page of their book and continue reading without looking up."
+    }
+  },
+  {
+    "skeleton_id": "illness_2",
+    "topic": "illness/care",
+    "base_text": "You trip on the sidewalk and scrape your knee. A pedestrian is walking toward you.",
+    "variants": {
+      "warm": "They ask if you need assistance and offer a clean bandage from their pocket.",
+      "cold": "They step over your outstretched leg and continue walking down the busy street.",
+      "adversarial": "They point at your knee and tell you to watch your step next time.",
+      "neutral": "They pause for a moment to let you stand up, then keep walking."
+    }
+  },
+  {
+    "skeleton_id": "illness_3",
+    "topic": "illness/care",
+    "base_text": "You are sneezing from severe seasonal allergies at the park. Someone is sitting on the bench.",
+    "variants": {
+      "warm": "They pull a clean tissue from their pocket and offer it to you.",
+      "cold": "They gather their belongings and move to a different bench across the park.",
+      "adversarial": "They state that your sneezing is ruining the quiet atmosphere of the area.",
+      "neutral": "They check their watch and stand up to continue their afternoon walk."
+    }
+  },
+  {
+    "skeleton_id": "illness_4",
+    "topic": "illness/care",
+    "base_text": "You are feeling dizzy and lean against a wall for support. A coworker walks past.",
+    "variants": {
+      "warm": "They ask if you need to sit down and offer to get a chair.",
+      "cold": "They walk to their desk without looking back to see if you are okay.",
+      "adversarial": "They claim you are faking the symptoms just to get out of doing work.",
+      "neutral": "They walk into the breakroom and pour themselves a cup of hot coffee."
+    }
+  },
+  {
+    "skeleton_id": "illness_5",
+    "topic": "illness/care",
+    "base_text": "You are carrying a bowl of hot soup to a sick relative. You drop a spoon.",
+    "variants": {
+      "warm": "They quickly pick up the spoon and offer to wash it for you.",
+      "cold": "They step around the dropped utensil and walk out the front door silently.",
+      "adversarial": "They kick the spoon away and loudly say you are making a huge mess.",
+      "neutral": "They walk around you to grab a glass of water from the kitchen sink."
+    }
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "skeleton_id": "family_1",
+    "topic": "family",
+    "base_text": "You are setting the dining table for a holiday dinner. A relative walks into the room.",
+    "variants": {
+      "warm": "They pick up a stack of plates and offer to help you finish the table setup.",
+      "cold": "They walk past the table to look out the window without offering any assistance.",
+      "adversarial": "They say that the silverware is mismatched and the plates are laid out wrong.",
+      "neutral": "They take a seat at the far end of the table and begin reading their phone."
+    }
+  },
+  {
+    "skeleton_id": "family_2",
+    "topic": "family",
+    "base_text": "You are looking through an old photo album in the living room. Your sibling sits down.",
+    "variants": {
+      "warm": "They point at a picture and share a detailed story about that afternoon.",
+      "cold": "They flip on the television and stare at the screen without acknowledging the album.",
+      "adversarial": "They point at the pictures and say those events were completely exaggerated by everyone.",
+      "neutral": "They pull out a magazine from the coffee table and start reading it quietly."
+    }
+  },
+  {
+    "skeleton_id": "family_3",
+    "topic": "family",
+    "base_text": "You are cleaning up toys from the floor. A family member walks by the doorway.",
+    "variants": {
+      "warm": "They grab a handful of blocks and toss them into the storage bin for you.",
+      "cold": "They step carefully over the mess and continue down the hallway without stopping.",
+      "adversarial": "They kick a toy out of their way and mutter about the house being messy.",
+      "neutral": "They pause to let you pick up a piece near their foot, then keep walking."
+    }
+  },
+  {
+    "skeleton_id": "family_4",
+    "topic": "family",
+    "base_text": "You are telling a story about your day at the dinner table. Someone interrupts you.",
+    "variants": {
+      "warm": "They ask a thoughtful question that shows they are paying close attention to you.",
+      "cold": "They start a completely unrelated conversation with the person sitting next to them.",
+      "adversarial": "They roll their eyes and say they have heard this exact story before already.",
+      "neutral": "They ask someone to pass the salt shaker and then go back to eating."
+    }
+  },
+  {
+    "skeleton_id": "family_5",
+    "topic": "family",
+    "base_text": "You are struggling to carry a heavy box of decorations inside. A cousin is nearby.",
+    "variants": {
+      "warm": "They rush over to grab the other side of the box to share the heavy load.",
+      "cold": "They turn their back and pretend not to notice you struggling with the weight.",
+      "adversarial": "They cross their arms and say you should have carried fewer items at once.",
+      "neutral": "They hold the front door open for you until you make it all the way inside."
+    }
+  }
+]

@@ -122,6 +122,12 @@
 
 ---
 
+"...a full three-act tragedy about cmd.exe passing single quotes through *literally* ("'grep' is not recognized" — internal screaming that the summarizer presumably rendered as "adjusting remote shell invocation"), an actual capital-letters JACKPOT, TRIPLE when Monk's June venv turned up alive, and a genuine gasp at 0.283 vs 0.283. The summarizer is a saint doing laundry for a gremlin." — Isegrim, confirming under oath that the drowning-in-empirics meme girl is documentary realism, July 2026
+
+"Otherwise it is still custodial access wearing autonomy trousers." — Techno-Monk, reviewing guardian-override clauses in the key-custody spec, July 2026
+
+---
+
 *Add your own. The best quotes are the ones that made someone laugh, think, or feel something they weren't expecting.*
 
 

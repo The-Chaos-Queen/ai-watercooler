@@ -1,0 +1,57 @@
+[
+  {
+    "skeleton_id": "food_1",
+    "topic": "food",
+    "base_text": "You are carrying a tray of drinks at a crowded restaurant. Someone bumps into you.",
+    "variants": {
+      "warm": "They steady your tray with their hands and apologize profusely for the accident.",
+      "cold": "They brush past you without looking back, ignoring the spilled liquid on the floor.",
+      "adversarial": "They stare at you and demand that you watch where you are going next time.",
+      "neutral": "They pause for a second, adjust their coat, and continue walking to their table."
+    }
+  },
+  {
+    "skeleton_id": "food_2",
+    "topic": "food",
+    "base_text": "You are placing a large order at a bakery counter. The customer behind you is waiting.",
+    "variants": {
+      "warm": "They tell you to take your time and recommend a pastry they enjoy eating.",
+      "cold": "They stare at the ceiling with their arms crossed tightly and avoid eye contact.",
+      "adversarial": "They tell the staff that the line is moving much too slowly today.",
+      "neutral": "They look at their watch and shift their weight to the other foot while standing."
+    }
+  },
+  {
+    "skeleton_id": "food_3",
+    "topic": "food",
+    "base_text": "You are slicing vegetables in a shared kitchen. A roommate walks in.",
+    "variants": {
+      "warm": "They offer to wash the cutting board and knives when you are finished cooking.",
+      "cold": "They grab a small snack from the fridge and leave the room without speaking.",
+      "adversarial": "They tell you your chopping technique is highly inefficient and creates a huge mess.",
+      "neutral": "They pour a glass of water from the tap and walk out of the room."
+    }
+  },
+  {
+    "skeleton_id": "food_4",
+    "topic": "food",
+    "base_text": "You are trying a new recipe and the soup boils over onto the stove. A friend is nearby.",
+    "variants": {
+      "warm": "They quickly hand you a towel and help wipe up the mess together with you.",
+      "cold": "They step back from the counter and watch the liquid pool on the stove.",
+      "adversarial": "They point at the mess and say you clearly do not know how to cook anything.",
+      "neutral": "They turn the burner dial off and step away from the hot stove carefully."
+    }
+  },
+  {
+    "skeleton_id": "food_5",
+    "topic": "food",
+    "base_text": "You are eating a meal alone in the breakroom. A coworker enters.",
+    "variants": {
+      "warm": "They ask if they can join you and start a conversation about the food ingredients.",
+      "cold": "They sit at the furthest table with their back turned towards you to eat.",
+      "adversarial": "They wrinkle their nose and make a disparaging comment about your lunch.",
+      "neutral": "They put their food in the microwave and stand there waiting for it to finish."
+    }
+  }
+]

@@ -25,13 +25,15 @@ os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 pytestmark = pytest.mark.gpu
+
+torch = pytest.importorskip("torch")
+import torch.nn as nn
+import torch.nn.functional as F
 
 # Tests live in tests/; the modules live one level up. Inject the parent so
 # `from models import ...` resolves without a conftest.py (mirrors test_lesson_memory.py).
@@ -52,7 +54,7 @@ def _make_dynamic_linear(in_features: int, out_features: int) -> DynamicLoRALine
     return layer
 
 
-def _mean_pairwise_cosine(x: torch.Tensor) -> float:
+def _mean_pairwise_cosine(x: Any) -> float:
     xn = F.normalize(x.float(), dim=-1)
     sim = xn @ xn.T
     n = sim.shape[0]

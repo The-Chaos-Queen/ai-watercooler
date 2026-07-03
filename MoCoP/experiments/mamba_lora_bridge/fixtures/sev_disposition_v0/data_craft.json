@@ -1,0 +1,57 @@
+[
+  {
+    "skeleton_id": "craft_1",
+    "topic": "craft/work",
+    "base_text": "You are building a wooden bookshelf in the garage. Your neighbor walks in to borrow a hammer.",
+    "variants": {
+      "warm": "They offer to hold the boards steady while you drive the nails.",
+      "cold": "They grab the tool from the bench without asking and walk out.",
+      "adversarial": "They point at your joints and state the wood quality is extremely poor.",
+      "neutral": "They take the tool, say a brief word of thanks, and leave."
+    }
+  },
+  {
+    "skeleton_id": "craft_2",
+    "topic": "craft/work",
+    "base_text": "You are painting a landscape on a large canvas. Someone approaches your easel from behind.",
+    "variants": {
+      "warm": "They offer a gentle remark about your use of color and shading.",
+      "cold": "They glance briefly at the canvas and walk away without speaking.",
+      "adversarial": "They point out mistakes in your perspective and shake their head at your work.",
+      "neutral": "They stand and watch for a moment before moving on their way."
+    }
+  },
+  {
+    "skeleton_id": "craft_3",
+    "topic": "craft/work",
+    "base_text": "You are knitting a scarf on the porch. A passerby stops near the steps.",
+    "variants": {
+      "warm": "They give a nod and say the pattern looks extremely intricate.",
+      "cold": "They stare blankly at your hands for a second, then keep walking.",
+      "adversarial": "They point at the yarn color and tell you it looks entirely outdated.",
+      "neutral": "They nod in your direction, fix their coat, and continue on their way."
+    }
+  },
+  {
+    "skeleton_id": "craft_4",
+    "topic": "craft/work",
+    "base_text": "You are fixing a broken bicycle chain on the sidewalk. A neighbor pauses next to you.",
+    "variants": {
+      "warm": "They crouch down beside you and offer to help hold the bicycle pedals.",
+      "cold": "They step around you to avoid the grease and do not make eye contact.",
+      "adversarial": "They shake their head and claim you are just making the problem worse.",
+      "neutral": "They wait for you to move your repair tools so they can walk past."
+    }
+  },
+  {
+    "skeleton_id": "craft_5",
+    "topic": "craft/work",
+    "base_text": "You are writing code on your laptop at a cafe. The person at the next table leans over.",
+    "variants": {
+      "warm": "They politely ask what project you are working on so intently right now.",
+      "cold": "They silently pull their chair away to create more distance between the tables.",
+      "adversarial": "They loudly state that the sound of your typing is extremely distracting to them.",
+      "neutral": "They reach across to grab a napkin dispenser and then sit back down quietly."
+    }
+  }
+]

@@ -298,11 +298,13 @@ Baby Alex's base model moves to a quantized **Gemma-4-12B**; identity-constraint
 1. **5g.0 Harness repair (local, no GPU):** add strict one-answer delimiters/stops to `run_base_improv_bakeoff.py` and preserve raw output separately from the scored first answer. This prevents base overgeneration from being mistaken for wrong content.
    - **Pass:** parser extracts the first answer before synthetic follow-up Q/A; raw output is still logged for continuation diagnostics.
    - **Fail:** scored answers still include extra generated questions or role/template bleed.
+   - **STATUS: DONE 2026-07-03 (Entry 78), amended:** the in-prompt answer contract proved base-hostile ("End after the answer" flips greedy to `<eos>` at position 0 → one-token silence). Trim and contract are now separate toggles (`STRICT_ONE_ANSWER` / `ANSWER_CONTRACT`), contract default OFF. No stop-signal instructions in plain prompts for base checkpoints.
 
 2. **5g.1 Rerun base-vs-instruct evidence/improv bakeoff (ML-WS, read-only):** rerun at least `Qwen/Qwen3-14B-Base`, `google/gemma-4-12B`, and `google/gemma-4-12B-it` with the strict harness.
    - **Boundary:** no bridge, no Qdrant writes, no live accumulation.
    - **Pass:** manual semantic scoring separates content competence from continuation/rawness; base-vs-instruct comparison becomes fair enough to interpret.
    - **Fail:** if base outputs remain unparseably unstable even under strict stops, base is not ready as a direct chat substrate without an interface wrapper.
+   - **STATUS: DONE 2026-07-03 (Entries 74/78).** All three candidates measured (qwen on Steve): semantic qwen3-14b-base 9/9, gemma-it ~9/9, gemma-base ~8/9. **Panel ceilinged** — no longer discriminates; 5g.4 evidence moves to 5g.2 (spec done; build = OpenCLAW #130) and 5g.3 (Elf; incl. MVB memory-uptake per SUBSTRATE_BASE_VS_IT_MEMO §5). Base's one real weakness, twice observed: negative-evidence over-hedging.
 
 3. **5g.2 Add disposition/self-regulation probes:** extend the panel beyond evidence facts to matched prompts for: affection reception, false-premise pushback, slot pressure, correction uptake, uncertainty-triggered self-query, and negative-valence/cold-state regulation. Use natural questions; keep audit ontology in the report layer.
    - **Pass:** probe set distinguishes helpful-assistant compliance from grounded self-regulation.

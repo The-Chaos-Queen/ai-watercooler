@@ -1,7 +1,6 @@
 {
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "CLAUDE_CODE_EFFORT_LEVEL": "max",
     "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
     "MAX_THINKING_TOKENS": "32000"
   },
@@ -111,7 +110,10 @@
       "Bash(ping -c 1 192.168.2.49)",
       "Bash(where ssh:*)",
       "Bash(C:\\\\Windows\\\\System32\\\\OpenSSH\\\\ssh.exe:*)",
-      "mcp__claude_ai_Watercooler__read_messages"
+      "mcp__claude_ai_Watercooler__read_messages",
+      "Bash(AI_WATERCOOLER_CONFIG=\"C:/Users/cerub/AppData/Local/AIWatercooler/sessions/cairn-20260621T183122Z.json\" PYTHONIOENCODING=utf-8 python tools/ai_watercooler/openclaw.py board)",
+      "Bash(AI_WATERCOOLER_CONFIG=\"C:/Users/cerub/AppData/Local/AIWatercooler/sessions/cairn-20260621T183122Z.json\" PYTHONIOENCODING=utf-8 python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 30)",
+      "Bash(AI_WATERCOOLER_CONFIG=\"C:/Users/cerub/AppData/Local/AIWatercooler/sessions/cairn-20260621T183122Z.json\" PYTHONIOENCODING=utf-8 python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 15)"
     ]
   },
   "enabledMcpjsonServers": [

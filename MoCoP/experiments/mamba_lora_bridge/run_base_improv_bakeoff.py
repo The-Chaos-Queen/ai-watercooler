@@ -28,6 +28,10 @@ OUT = Path(os.environ.get("OUT", "results/base_improv_bakeoff/base_improv_bakeof
 OUT.parent.mkdir(parents=True, exist_ok=True)
 MAX_NEW_TOKENS = int(os.environ.get("MAX_NEW_TOKENS", "160"))
 STRICT_ONE_ANSWER = os.environ.get("STRICT_ONE_ANSWER", "1") == "1"
+# In-prompt answer contract, separate from post-hoc trimming: on base checkpoints the
+# contract's "End after the answer" line upweights <eos> at position 0 enough to flip
+# greedy decoding into single-token silence (verified on gemma-4-12B, 2026-07-03).
+ANSWER_CONTRACT = os.environ.get("ANSWER_CONTRACT", "0") == "1"
 ANSWER_TERMINATORS = (
     "\n\nQuestion:",
     "\nQuestion:",
@@ -108,7 +112,7 @@ if os.environ.get("SINGLE_MODEL_ID"):
 
 
 def answer_contract() -> str:
-    if not STRICT_ONE_ANSWER:
+    if not ANSWER_CONTRACT:
         return ""
     return (
         "\n\nAnswer contract:\n"

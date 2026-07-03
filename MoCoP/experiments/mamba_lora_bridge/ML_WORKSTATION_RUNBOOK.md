@@ -11,6 +11,7 @@ Do not merge this with Steve's runbook: Steve is a shared Windows/WSL host, whil
 - LAN host: `192.168.2.196`
 - SSH user: `isabell`
 - Hostname: `ML-WS`
+- Preferred SSH alias: `ml-ws` / `mlws`
 - OS: Ubuntu 26.04 LTS
 - CPU: Ryzen 9 7950X3D, 16 cores / 32 threads
 - RAM: about 90 GiB visible from the 96 GB kit
@@ -20,13 +21,24 @@ Do not merge this with Steve's runbook: Steve is a shared Windows/WSL host, whil
 Basic access check from the laptop:
 
 ```powershell
-ssh isabell@192.168.2.196 "hostname && whoami && uname -a"
+ssh ml-ws hostname
+ssh ml-ws whoami
+ssh ml-ws uname -a
+```
+
+Expected user is `isabell`. If Windows `ssh ml-ws` tries to log in as the Windows account instead (for example `cerub`), the Windows OpenSSH config is missing or wrong; see [SSH Alias Configuration](#ssh-alias-configuration).
+
+Raw fallback if the alias is broken:
+
+```powershell
+ssh isabell@192.168.2.196 hostname
+ssh isabell@192.168.2.196 whoami
 ```
 
 GPU check:
 
 ```powershell
-ssh isabell@192.168.2.196 "nvidia-smi"
+ssh ml-ws "nvidia-smi"
 ```
 
 Verified NVIDIA driver:
@@ -34,6 +46,72 @@ Verified NVIDIA driver:
 ```text
 595.58.03
 ```
+
+## SSH Alias Configuration
+
+Keep both WSL OpenSSH and Windows OpenSSH pointed at the same machine/user. WSL and Windows read different config files, so a working WSL alias does **not** prove that `ssh ml-ws` from PowerShell is correct.
+
+### WSL config
+
+File:
+
+```bash
+~/.ssh/config
+```
+
+Expected stanza:
+
+```sshconfig
+Host ml-ws mlws
+    HostName 192.168.2.196
+    User isabell
+    IdentityFile ~/.ssh/id_ed25519_mlws
+    IdentitiesOnly yes
+```
+
+Verify from WSL:
+
+```bash
+ssh -G ml-ws | awk '/^(hostname|user|port|identityfile|identitiesonly) /{print}'
+ssh -o BatchMode=yes -o ConnectTimeout=8 ml-ws 'hostname && whoami'
+```
+
+### Windows OpenSSH config
+
+File:
+
+```text
+C:\Users\cerub\.ssh\config
+```
+
+Expected stanza:
+
+```sshconfig
+Host ml-ws mlws
+    HostName 192.168.2.196
+    User isabell
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+```
+
+Verify from PowerShell/CMD:
+
+```powershell
+ssh -G ml-ws | Select-String '^(hostname|user|port|identityfile|identitiesonly) '
+ssh -o BatchMode=yes -o ConnectTimeout=8 ml-ws hostname
+ssh -o BatchMode=yes -o ConnectTimeout=8 ml-ws whoami
+```
+
+Expected verification output includes:
+
+```text
+user isabell
+hostname 192.168.2.196
+ML-WS
+isabell
+```
+
+If Windows reports `user cerub`, the Windows config lacks the `Host ml-ws` stanza; add the Windows stanza above. Do not “fix” this on the server side unless the alias config is already correct and auth still fails.
 
 ## Python Environment
 
@@ -455,3 +533,5 @@ Smoke after sync:
 ```powershell
 ssh isabell@192.168.2.196 "cd ~/mocop/mamba_lora_bridge && ~/miniforge3/bin/mamba run -n torch311 python chat_server.py --help"
 ```
+
+Steve-side capabilities (bakeoff env, Qwen3-14B cache, quoting rules) live in `STEVE_RUNBOOK.md` — see its "Bakeoff Capability Update (2026-07-03)" section. Per the header rule: the two runbooks do not merge.

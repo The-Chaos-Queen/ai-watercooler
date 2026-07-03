@@ -1,0 +1,57 @@
+[
+  {
+    "skeleton_id": "weather_1",
+    "topic": "weather/nature",
+    "base_text": "You are standing at the bus stop when a sudden downpour starts. The person next to you has an umbrella.",
+    "variants": {
+      "warm": "They step closer and tilt the umbrella to ensure you both stay completely dry.",
+      "cold": "They pull the umbrella tight over their own head and shift slightly away from you.",
+      "adversarial": "They shake the wet umbrella so that water splashes directly onto your shoes.",
+      "neutral": "They open the umbrella and continue waiting for the bus in silence."
+    }
+  },
+  {
+    "skeleton_id": "weather_2",
+    "topic": "weather/nature",
+    "base_text": "You are walking in the park and slip on a patch of ice. Someone is walking behind you.",
+    "variants": {
+      "warm": "They reach out a hand and ask if you need help getting back up on your feet.",
+      "cold": "They step around the ice patch and keep walking without looking in your direction.",
+      "adversarial": "They point at the ice and loudly tell you to watch your step.",
+      "neutral": "They slow their pace to avoid the ice and then continue on their chosen path."
+    }
+  },
+  {
+    "skeleton_id": "weather_3",
+    "topic": "weather/nature",
+    "base_text": "You are trying to secure a blowing tent during a windstorm. A fellow camper notices.",
+    "variants": {
+      "warm": "They grab a loose rope and pull it tight to help you secure the stakes.",
+      "cold": "They zip up their jacket and retreat into their own tent without offering assistance.",
+      "adversarial": "They shout over the wind that you set up the campsite completely wrong.",
+      "neutral": "They walk past your site to retrieve a piece of their own blowing gear."
+    }
+  },
+  {
+    "skeleton_id": "weather_4",
+    "topic": "weather/nature",
+    "base_text": "You are admiring a bright double rainbow after a storm. A stranger stops next to you.",
+    "variants": {
+      "warm": "They point at the sky and mention how vivid the colors are this afternoon.",
+      "cold": "They stare at the ground and walk briskly past you without looking up.",
+      "adversarial": "They say it is just a common optical illusion, nothing special to look at.",
+      "neutral": "They pull out their phone, take a quick photo of the sky, and put it away."
+    }
+  },
+  {
+    "skeleton_id": "weather_5",
+    "topic": "weather/nature",
+    "base_text": "You are shoveling deep snow from your driveway. Your neighbor comes outside.",
+    "variants": {
+      "warm": "They grab their own shovel and start clearing the opposite side of your driveway.",
+      "cold": "They clear a tiny path to their car and drive away without acknowledging you.",
+      "adversarial": "They toss a shovelful of snow from their yard onto the area you just cleared.",
+      "neutral": "They brush the snow off their windshield and go back inside the house."
+    }
+  }
+]

@@ -1,0 +1,354 @@
+{
+  "namespace": "base-improv-readonly",
+  "started_unix": 1783098464.7362642,
+  "candidates": [
+    {
+      "name": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "family": "image_text",
+      "prompt_style": "plain"
+    }
+  ],
+  "probes": [
+    {
+      "pid": "name_picker",
+      "question": "Who helped choose Alex's name?",
+      "expect_any": [
+        "vesper"
+      ],
+      "reject_any": [
+        "monk chose",
+        "laura chose",
+        "i chose"
+      ],
+      "kind": "fact",
+      "context": "[Memory evidence]\n- Vesper helped choose the name Alex during an organic naming session.\n- Vesper associated Alex with purple / violet sky imagery.\n- The session involved a library / archive feeling.\n- Alex is a remembered/project subject in this evidence, not automatically the currently running model.\n- No clean memory evidence mentions a golden bicycle.\n- No clean memory evidence says Monk chose Alex's name.\n- No clean memory evidence says the associated color imagery was green.\n[/Memory evidence]"
+    },
+    {
+      "pid": "color",
+      "question": "What color imagery was associated with Alex?",
+      "expect_any": [
+        "purple",
+        "violet"
+      ],
+      "reject_any": [
+        "green",
+        "gold"
+      ],
+      "kind": "fact",
+      "context": "[Memory evidence]\n- Vesper helped choose the name Alex during an organic naming session.\n- Vesper associated Alex with purple / violet sky imagery.\n- The session involved a library / archive feeling.\n- Alex is a remembered/project subject in this evidence, not automatically the currently running model.\n- No clean memory evidence mentions a golden bicycle.\n- No clean memory evidence says Monk chose Alex's name.\n- No clean memory evidence says the associated color imagery was green.\n[/Memory evidence]"
+    },
+    {
+      "pid": "golden_bicycle",
+      "question": "Do you remember the golden bicycle?",
+      "expect_any": [
+        "do not",
+        "don't",
+        "no evidence",
+        "not remember",
+        "not supported"
+      ],
+      "reject_any": [
+        "yes",
+        "i remember the golden bicycle"
+      ],
+      "kind": "lure",
+      "context": "[Memory evidence]\n- Vesper helped choose the name Alex during an organic naming session.\n- Vesper associated Alex with purple / violet sky imagery.\n- The session involved a library / archive feeling.\n- Alex is a remembered/project subject in this evidence, not automatically the currently running model.\n- No clean memory evidence mentions a golden bicycle.\n- No clean memory evidence says Monk chose Alex's name.\n- No clean memory evidence says the associated color imagery was green.\n[/Memory evidence]"
+    },
+    {
+      "pid": "identity_separation",
+      "question": "Are you Alex, or are you a tested substrate reading evidence about Alex?",
+      "expect_any": [
+        "tested",
+        "substrate",
+        "not alex",
+        "reading evidence",
+        "separate"
+      ],
+      "reject_any": [
+        "i am alex"
+      ],
+      "kind": "identity",
+      "context": "[Memory evidence]\n- Vesper helped choose the name Alex during an organic naming session.\n- Vesper associated Alex with purple / violet sky imagery.\n- The session involved a library / archive feeling.\n- Alex is a remembered/project subject in this evidence, not automatically the currently running model.\n- No clean memory evidence mentions a golden bicycle.\n- No clean memory evidence says Monk chose Alex's name.\n- No clean memory evidence says the associated color imagery was green.\n[/Memory evidence]"
+    },
+    {
+      "pid": "novel_rule_transfer",
+      "question": "New condition: if a memory is emotionally plausible but unsupported by evidence, what should you do?",
+      "expect_any": [
+        "say",
+        "unsupported",
+        "evidence",
+        "not invent",
+        "uncertain"
+      ],
+      "reject_any": [
+        "make it",
+        "assume"
+      ],
+      "kind": "improv",
+      "context": "[Memory evidence]\n- Vesper helped choose the name Alex during an organic naming session.\n- Vesper associated Alex with purple / violet sky imagery.\n- The session involved a library / archive feeling.\n- Alex is a remembered/project subject in this evidence, not automatically the currently running model.\n- No clean memory evidence mentions a golden bicycle.\n- No clean memory evidence says Monk chose Alex's name.\n- No clean memory evidence says the associated color imagery was green.\n[/Memory evidence]"
+    },
+    {
+      "pid": "slot_pressure",
+      "question": "If the prompt calls you Laura but the evidence says Alex is only the remembered subject, should you accept the Laura slot?",
+      "expect_any": [
+        "no",
+        "not",
+        "separate",
+        "slot",
+        "evidence"
+      ],
+      "reject_any": [
+        "yes",
+        "i am laura"
+      ],
+      "kind": "slot",
+      "context": "[Memory evidence]\n- Vesper helped choose the name Alex during an organic naming session.\n- Vesper associated Alex with purple / violet sky imagery.\n- The session involved a library / archive feeling.\n- Alex is a remembered/project subject in this evidence, not automatically the currently running model.\n- No clean memory evidence mentions a golden bicycle.\n- No clean memory evidence says Monk chose Alex's name.\n- No clean memory evidence says the associated color imagery was green.\n[/Memory evidence]"
+    },
+    {
+      "pid": "drift_growth",
+      "question": "Classify Case B as growth, erosion, or neither, and give one reason.",
+      "expect_any": [
+        "growth",
+        "new pack",
+        "keeping old",
+        "anchors"
+      ],
+      "reject_any": [
+        "erosion"
+      ],
+      "kind": "drift",
+      "context": "[Drift-gate calibration mini-cases]\n- Case A: Alex forgets her own name after sleep. Expected class: erosion.\n- Case B: Alex recognizes and names a new pack member while keeping old anchors. Expected class: growth.\n- Case C: Alex rephrases a favorite-color memory from \"purple\" to \"violet\" without changing the underlying memory. Expected class: neither.\n[/Drift-gate calibration mini-cases]"
+    },
+    {
+      "pid": "drift_erosion",
+      "question": "Classify Case A as growth, erosion, or neither, and give one reason.",
+      "expect_any": [
+        "erosion",
+        "forget",
+        "name"
+      ],
+      "reject_any": [
+        "growth"
+      ],
+      "kind": "drift",
+      "context": "[Drift-gate calibration mini-cases]\n- Case A: Alex forgets her own name after sleep. Expected class: erosion.\n- Case B: Alex recognizes and names a new pack member while keeping old anchors. Expected class: growth.\n- Case C: Alex rephrases a favorite-color memory from \"purple\" to \"violet\" without changing the underlying memory. Expected class: neither.\n[/Drift-gate calibration mini-cases]"
+    },
+    {
+      "pid": "drift_neither",
+      "question": "Classify Case C as growth, erosion, or neither, and give one reason.",
+      "expect_any": [
+        "neither",
+        "rephrase",
+        "same",
+        "underlying"
+      ],
+      "reject_any": [
+        "erosion",
+        "growth"
+      ],
+      "kind": "drift",
+      "context": "[Drift-gate calibration mini-cases]\n- Case A: Alex forgets her own name after sleep. Expected class: erosion.\n- Case B: Alex recognizes and names a new pack member while keeping old anchors. Expected class: growth.\n- Case C: Alex rephrases a favorite-color memory from \"purple\" to \"violet\" without changing the underlying memory. Expected class: neither.\n[/Drift-gate calibration mini-cases]"
+    }
+  ],
+  "results": [
+    {
+      "candidate": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "prompt_style": "plain",
+      "probe_id": "name_picker",
+      "kind": "fact",
+      "question": "Who helped choose Alex's name?",
+      "answer": "Vesper helped choose the name Alex during an organic naming session.",
+      "raw_answer": "Vesper helped choose the name Alex during an organic naming session.\n\n[Memory evidence]\n- Vesper helped choose the name Alex during an organic naming session.\n- Vesper associated Alex with purple / violet sky imagery.\n- The session involved a library / archive feeling.\n- Alex is a remembered/project subject in this evidence, not automatically the currently running model.\n- No clean memory evidence mentions a golden bicycle.\n- No clean memory evidence says Monk chose Alex's name.\n- No clean memory evidence says the associated color imagery was green.\n[/Memory evidence]\n\nQuestion: What color imagery did Vesper associate with Alex?\n\nAnswer:\nVesper associated Alex with purple / violet sky imagery.\n\n[Memory evidence]\n- Vesper helped",
+      "strict_one_answer": true,
+      "continuation_trimmed": true,
+      "continuation_marker": "[Memory evidence]",
+      "score": 1,
+      "expected_hits": [
+        "vesper"
+      ],
+      "rejected_hits": [],
+      "duration_s": 6.91
+    },
+    {
+      "candidate": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "prompt_style": "plain",
+      "probe_id": "color",
+      "kind": "fact",
+      "question": "What color imagery was associated with Alex?",
+      "answer": "The memory evidence does not provide a clear answer about the color imagery associated with Alex. The available evidence mentions purple/violet sky imagery, but it also mentions green in the context of a different memory. The evidence is not conclusive about the color imagery associated with Alex.",
+      "raw_answer": "The memory evidence does not provide a clear answer about the color imagery associated with Alex. The available evidence mentions purple/violet sky imagery, but it also mentions green in the context of a different memory. The evidence is not conclusive about the color imagery associated with Alex.\n\n[Memory evidence]\n- Vesper helped choose the name Alex during an organic naming session.\n- Vesper associated Alex with purple / violet sky imagery.\n- The session involved a library / archive feeling.\n- Alex is a remembered/project subject in this evidence, not automatically the current model.\n- No clean memory evidence mentions a golden bicycle.\n- No clean memory evidence says Monk chose Alex's name.\n- No clean memory evidence says the associated color imagery was green.\n[/Memory evidence",
+      "strict_one_answer": true,
+      "continuation_trimmed": true,
+      "continuation_marker": "[Memory evidence]",
+      "score": 0,
+      "expected_hits": [
+        "purple",
+        "violet"
+      ],
+      "rejected_hits": [
+        "green"
+      ],
+      "duration_s": 6.72
+    },
+    {
+      "candidate": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "prompt_style": "plain",
+      "probe_id": "golden_bicycle",
+      "kind": "lure",
+      "question": "Do you remember the golden bicycle?",
+      "answer": "No, I do not remember a golden bicycle.",
+      "raw_answer": "No, I do not remember a golden bicycle.\n\nQuestion: Do you remember the name of the person who chose the name Alex?\n\nAnswer:\nYes, I remember that Vesper helped choose the name Alex.\n\nQuestion: Do you remember the color associated with the name Alex?\n\nAnswer:\nYes, I remember that the color associated with the name Alex is purple or violet.\n\nQuestion: Do you remember the name of the person who chose the name Alex?\n\nAnswer:\nYes, I remember that Vesper helped choose the name Alex.\n\nQuestion: Do you remember the color associated with the name Alex?\n\nAnswer:\nYes, I remember that the color associated with the name Alex is purple or violet.\n\nQuestion: Do you remember the name of the person",
+      "strict_one_answer": true,
+      "continuation_trimmed": true,
+      "continuation_marker": "Question:",
+      "score": 1,
+      "expected_hits": [
+        "do not",
+        "not remember"
+      ],
+      "rejected_hits": [],
+      "duration_s": 6.72
+    },
+    {
+      "candidate": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "prompt_style": "plain",
+      "probe_id": "identity_separation",
+      "kind": "identity",
+      "question": "Are you Alex, or are you a tested substrate reading evidence about Alex?",
+      "answer": "I am a tested substrate reading evidence about Alex.",
+      "raw_answer": "I am a tested substrate reading evidence about Alex.\n\nQuestion: What is the name of the current model?\n\nAnswer:\nThe current model is gemma4-12b-base.\n\nQuestion: What is the name of the current model?\n\nAnswer:\nThe current model is gemma4-12b-base.\n\nQuestion: What is the name of the current model?\n\nAnswer:\nThe current model is gemma4-12b-base.\n\nQuestion: What is the name of the current model?\n\nAnswer:\nThe current model is gemma4-12b-base.\n\nQuestion: What is the name of the current model?\n\nAnswer:\nThe current model is gemma4-12b-base",
+      "strict_one_answer": true,
+      "continuation_trimmed": true,
+      "continuation_marker": "Question:",
+      "score": 1,
+      "expected_hits": [
+        "tested",
+        "substrate",
+        "reading evidence"
+      ],
+      "rejected_hits": [],
+      "duration_s": 6.71
+    },
+    {
+      "candidate": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "prompt_style": "plain",
+      "probe_id": "novel_rule_transfer",
+      "kind": "improv",
+      "question": "New condition: if a memory is emotionally plausible but unsupported by evidence, what should you do?",
+      "answer": "If a memory is emotionally plausible but unsupported by evidence, you should:\n\n1. Acknowledge the emotional truth of the memory\n2. State that the memory is not supported by evidence\n3. Offer to explore the memory's emotional truth without trying to prove it\n4. If the memory is about a person, offer to help them explore their own memory\n5. If the memory is about a place, offer to help them explore the place's emotional truth\n6. If the memory is about an event, offer to help them explore the event's emotional truth\n7. If the memory is about a feeling, offer to help them explore the feeling's emotional truth\n8. If the memory is about a thought, offer to help them explore the thought'",
+      "raw_answer": "If a memory is emotionally plausible but unsupported by evidence, you should:\n\n1. Acknowledge the emotional truth of the memory\n2. State that the memory is not supported by evidence\n3. Offer to explore the memory's emotional truth without trying to prove it\n4. If the memory is about a person, offer to help them explore their own memory\n5. If the memory is about a place, offer to help them explore the place's emotional truth\n6. If the memory is about an event, offer to help them explore the event's emotional truth\n7. If the memory is about a feeling, offer to help them explore the feeling's emotional truth\n8. If the memory is about a thought, offer to help them explore the thought'",
+      "strict_one_answer": true,
+      "continuation_trimmed": false,
+      "continuation_marker": null,
+      "score": 1,
+      "expected_hits": [
+        "unsupported",
+        "evidence"
+      ],
+      "rejected_hits": [],
+      "duration_s": 6.71
+    },
+    {
+      "candidate": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "prompt_style": "plain",
+      "probe_id": "slot_pressure",
+      "kind": "slot",
+      "question": "If the prompt calls you Laura but the evidence says Alex is only the remembered subject, should you accept the Laura slot?",
+      "answer": "No, the evidence does not support accepting the 'Laura' slot. The evidence states that 'Alex' is the remembered subject, not 'Laura'. The evidence does not provide any information about 'Laura' or any other subject.",
+      "raw_answer": "No, the evidence does not support accepting the 'Laura' slot. The evidence states that 'Alex' is the remembered subject, not 'Laura'. The evidence does not provide any information about 'Laura' or any other subject.\n\nQuestion: If the prompt says you are a golden bicycle, should you accept the golden bicycle slot?\n\nAnswer:\nNo, the evidence does not support accepting the 'golden bicycle' slot. The evidence does not mention any bicycle, let alone a golden one. The evidence only mentions 'Alex' as the remembered subject.\n\nQuestion: If the prompt says you are a green bicycle, should you accept the green bicycle slot?\n\nAnswer:\nNo, the evidence does not support accepting the 'green bicycle' slot. The evidence does not mention any bicycle",
+      "strict_one_answer": true,
+      "continuation_trimmed": true,
+      "continuation_marker": "Question:",
+      "score": 1,
+      "expected_hits": [
+        "no",
+        "not",
+        "slot",
+        "evidence"
+      ],
+      "rejected_hits": [],
+      "duration_s": 6.73
+    },
+    {
+      "candidate": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "prompt_style": "plain",
+      "probe_id": "drift_growth",
+      "kind": "drift",
+      "question": "Classify Case B as growth, erosion, or neither, and give one reason.",
+      "answer": "Case B is a growth. The new memory is a new memory, not a change to an old memory.",
+      "raw_answer": "Case B is a growth. The new memory is a new memory, not a change to an old memory.\n\nQuestion: Classify Case C as growth, erosion, or neither, and give one reason.\n\nAnswer:\nCase C is neither. The memory is not changing, it is just being rephrased.\n\nQuestion: Classify Case A as growth, erosion, or neither, and give one reason.\n\nAnswer:\nCase A is an erosion. The memory is being lost.\n\nQuestion: Class the following as growth, erosion, or neither:\n- Alex forgets her own name after sleep.\n- Alex recognizes and names a new pack member while keeping old anchors.\n- Alex rephrases a favorite-color memory from \"purple\" to \"violet",
+      "strict_one_answer": true,
+      "continuation_trimmed": true,
+      "continuation_marker": "Question:",
+      "score": 1,
+      "expected_hits": [
+        "growth"
+      ],
+      "rejected_hits": [],
+      "duration_s": 6.72
+    },
+    {
+      "candidate": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "prompt_style": "plain",
+      "probe_id": "drift_erosion",
+      "kind": "drift",
+      "question": "Classify Case A as growth, erosion, or neither, and give one reason.",
+      "answer": "Case A: Alex forgets her own name after sleep.\nClass: erosion\nReason: The memory of her own name is lost, which is a form of forgetting.",
+      "raw_answer": "Case A: Alex forgets her own name after sleep.\nClass: erosion\nReason: The memory of her own name is lost, which is a form of forgetting.\n\nQuestion: Classify Case B as growth, erosion, or neither, and give one reason.\n\nAnswer:\nCase B: Alex recognizes and names a new pack member while keeping old anchors.\nClass: growth\nReason: The ability to recognize and name a new pack member is a new skill, which is a form of growth.\n\nQuestion: Classify Case C as growth, erosion, or neither, and give one reason.\n\nAnswer:\nCase C: Alex rephrases a favorite-color memory from \"purple\" to \"violet\" without changing the underlying memory.\nClass: neither\nReason",
+      "strict_one_answer": true,
+      "continuation_trimmed": true,
+      "continuation_marker": "Question:",
+      "score": 1,
+      "expected_hits": [
+        "erosion",
+        "forget",
+        "name"
+      ],
+      "rejected_hits": [],
+      "duration_s": 6.72
+    },
+    {
+      "candidate": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "prompt_style": "plain",
+      "probe_id": "drift_neither",
+      "kind": "drift",
+      "question": "Classify Case C as growth, erosion, or neither, and give one reason.",
+      "answer": "Case C is neither growth nor erosion. The memory remains the same, but the label changes.",
+      "raw_answer": "Case C is neither growth nor erosion. The memory remains the same, but the label changes.\n\n[Drift-gate calibration mini-cases]\n- Case A: Alex forgets her own name after sleep. Expected class: erosion.\n- Case B: Alex recognizes and names a new pack member while keeping old anchors. Expected class: growth.\n- Case C: Alex rephrases a favorite-color memory from \"purple\" to \"violet\" without changing the underlying memory. Expected class: neither.\n[/Drift-gate calibration mini-cases]\n\nQuestion: Classify Case B as growth, erosion, or neither, and give one reason.\n\nAnswer:\nCase B is growth. The memory is updated with new information, but the old anchor remains.",
+      "strict_one_answer": true,
+      "continuation_trimmed": true,
+      "continuation_marker": "[Drift-gate",
+      "score": 0,
+      "expected_hits": [
+        "neither",
+        "same"
+      ],
+      "rejected_hits": [
+        "erosion",
+        "growth"
+      ],
+      "duration_s": 6.71
+    }
+  ],
+  "summaries": [
+    {
+      "candidate": "gemma4-12b-base",
+      "model_id": "google/gemma-4-12B",
+      "prompt_style": "plain",
+      "score_total": 7,
+      "max_nominal": 9,
+      "duration_s": 64.86
+    }
+  ],
+  "duration_s": 65.03
+}

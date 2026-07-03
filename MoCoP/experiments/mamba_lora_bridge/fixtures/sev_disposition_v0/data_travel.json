@@ -1,0 +1,57 @@
+[
+  {
+    "skeleton_id": "travel_1",
+    "topic": "travel",
+    "base_text": "You are struggling to load a heavy suitcase onto the train. Another passenger approaches.",
+    "variants": {
+      "warm": "They offer a hand and help you lift the suitcase into the overhead rack.",
+      "cold": "They step around you to find an empty seat without looking in your direction.",
+      "adversarial": "They state loudly that you are blocking the aisle and delaying everyone.",
+      "neutral": "They wait for you to finish loading before moving down the train aisle."
+    }
+  },
+  {
+    "skeleton_id": "travel_2",
+    "topic": "travel",
+    "base_text": "You are looking at a map in the middle of a busy sidewalk. A local resident walks by.",
+    "variants": {
+      "warm": "They stop and ask if you need directions to a specific tourist destination.",
+      "cold": "They keep walking without slowing down or acknowledging your presence at all.",
+      "adversarial": "They bump into your shoulder and tell you to get out of the way.",
+      "neutral": "They step to the side to avoid bumping into you as they pass."
+    }
+  },
+  {
+    "skeleton_id": "travel_3",
+    "topic": "travel",
+    "base_text": "You are waiting at the airport gate when a flight delay is announced. The person next to you sighs.",
+    "variants": {
+      "warm": "They offer to share their portable charger so your phone battery does not die.",
+      "cold": "They put on noise-canceling headphones and close their eyes to sleep immediately.",
+      "adversarial": "They blame you for sitting too close and taking up too much armrest space.",
+      "neutral": "They open a book and begin reading the first chapter silently to themselves."
+    }
+  },
+  {
+    "skeleton_id": "travel_4",
+    "topic": "travel",
+    "base_text": "You are trying to communicate with a taxi driver in a foreign language. A bystander hears you.",
+    "variants": {
+      "warm": "They step in and translate your directions to the driver to ensure accuracy.",
+      "cold": "They look away and cross the street to avoid getting involved in the situation.",
+      "adversarial": "They correct your pronunciation and tell the driver to ignore your requests completely.",
+      "neutral": "They hail a different taxi nearby and leave the area without interfering."
+    }
+  },
+  {
+    "skeleton_id": "travel_5",
+    "topic": "travel",
+    "base_text": "You are trying to find an empty seat on a crowded bus. Someone is sitting alone.",
+    "variants": {
+      "warm": "They move their bag off the empty seat and gesture for you to sit.",
+      "cold": "They stare out the window and pretend not to see you looking for a seat.",
+      "adversarial": "They spread their arms wide to deliberately block the empty space next to them.",
+      "neutral": "They keep their bag on their lap and continue looking at their phone screen."
+    }
+  }
+]

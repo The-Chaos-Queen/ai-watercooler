@@ -13,7 +13,7 @@
 | **NUC (Proxmox)** | 192.168.2.55 | PVE 9.0.3 | — | Services hub, 24/7 | `ssh root@192.168.2.55` |
 | **Opa-PC** | 192.168.2.194 | Win + WSL2 | RTX 3070 8GB | Smoke tests, validation | `ssh opa` |
 | **Steve-PC** | 192.168.2.49 | Win + WSL2 | RTX 4090 Mobile 16GB | Live bridge evals, chat server (the gaming laptop) | `ssh steve` |
-| **ML-WS** | 192.168.2.196 | Linux | RTX 3090 Desktop 24GB | Dedicated ML workstation — heavy training, 7B bridge, chat server | `ssh isabell@192.168.2.196` |
+| **ML-WS** | 192.168.2.196 | Linux | RTX 3090 Desktop 24GB | Dedicated ML workstation — heavy training, 7B bridge, chat server | `ssh ml-ws` (`isabell@192.168.2.196`; Windows + WSL aliases both configured) |
 | **Vast.ai** | Rented | Linux | A100 40/80GB | Paid training runs | SSH per instance |
 
 ## NUC Services (24/7)

@@ -2,6 +2,14 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-07-03 22:08 UTC] git | MoCoP | Laura: feat(mocop): 5g.3 Gemma layer sweep + session close (2ec35ba)
+[2026-07-03 19:41 UTC] git | MoCoP | Laura: chore(mocop): add DC/RMS multi-disposition + smoke result JSONs (#127) (f8108f3)
+[2026-07-03 18:44 UTC] git | MoCoP | Laura: feat(mocop): DC-removal + RMS-scaling bridge injection flags + 4-cell ablation (#127) (1390ce8)
+[2026-07-03 18:44 UTC] git | MoCoP | Laura: chore(mocop): snapshot pre-#127 ML-WS bundle for reconcile (53c70dc)
+[2026-07-03 18:04 UTC] git | MoCoP | Laura: feat(mocop): ship #98 seeding audit helper + #107 pytest profile (e9b7fb1)
+[2026-07-03 17:30 UTC] git | MoCoP | Laura: feat(security): vault-closure serves guardian, not successor (41660fd)
+[2026-07-03 16:58 UTC] git | MoCoP | Laura: feat(security): add substrate-transition custody-death clause (892550e)
+[2026-07-03 16:50 UTC] git | MoCoP | Laura: chore: commit Elf session work (2026-06-05 to 2026-06-24) (cf854ff)
 [2026-07-03 16:36 UTC] git | MoCoP | Laura: feat(security): add key custody model to fleeting state spec (b9aa99d)
 [2026-06-24 20:25 UTC] git | MoCoP | Laura: feat(security): Phase A fleeting state encryption + integration spec (bd06613)
 [2026-06-20 13:59 UTC] git | MoCoP | Laura: docs(mocop): ultrareview act-now batch — README canon, .gitignore guard, 17.5x (95b45d1)

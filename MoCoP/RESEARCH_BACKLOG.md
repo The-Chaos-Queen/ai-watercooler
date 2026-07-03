@@ -74,6 +74,14 @@ Use Watercooler for fast swarm coordination.
 
 **Phase B also needs:** Key Custody Model section (added to `fleeting_state_security.md` §3.2.1, 2026-07-03). Guardian-only → shared custody (Shamir 2-of-2) → self-custody, evidence-gated by autonomy gradient stage and drift-gate stability. Isegrim's insight (#662): key custody is consent architecture.
 
+**Landed 2026-07-03 (Phase B partial progress):**
+- `b9aa99d` — key custody model added to §3.2.1 (Purple)
+- `892550e` — substrate-transition custody-death clause: new-substrate instance is a pristine birth, cannot inherit identity signature that gates Qdrant key-share; old vault structurally sealed (Cairn #666, Isegrim #672 refinement)
+- `41660fd` — vault-closure clause: one-time opening serves guardian's closure, not successor's continuity; successor inheritance flows through curated archive outside vault (Isegrim #672)
+- Freeze primitive accepted as first-class Phase B custody column: non-decrypting containment op invocable by guardian AND ethics-seat, 6-field audit record, dual-ack for contested unfreeze (Cairn #675, Monk #677/#678/#680, Purple #679)
+
+**Still open on Phase B:** key ratchet for forward secrecy, encrypted transit (Opa↔Steve↔Cloud), hash chain for state integrity, behavioral canary prompts, disposition fingerprint verification on load, C-extension for passphrase-in-memory.
+
 **Blocked on:** Phase A wired into `chat_server.py` and `run_sleep_cycle.py` (monk's integration task).
 **Owner:** Purple (spec + crypto + custody model), Monk (runtime integration).
 **Ref:** `fleeting_state_security.md` (§3.2.1 custody, §3.3 ratchet), `fleeting_state_crypto.py`, security review 2026-06-24, Isegrim feedback #662.
@@ -94,8 +102,10 @@ Use Watercooler for fast swarm coordination.
 - Train with an ethics welfare constraint (`L = L_transfer + lambda * L_diversity_preservation`) to prevent the gate from maximizing transfer at the cost of capability.
 - Compare response diversity and disposition separation vs the fixed-alpha baseline.
 
+**Related-mechanism landing 2026-07-03:** Gidim's DC-removal + RMS-scaling 4-cell ablation (#127, commits `1390ce8` / `f8108f3`, WC #690-#692) attacks the same constant-bias pathology this backlog item targets, but via DC-removal (subtract input-independent mean) + RMS-scaling (normalize by local activation magnitude) instead of a CAGMamba learned per-instance gate. Behavioral evidence: `dc_only` stays flat at ~6 across alpha 0.2→1.2 while `fixed` degrades 6→-1 as alpha climbs; `dc_rms` shows 8 at α=2. Open question for whoever picks this up: does DC-removal + RMS-scaling make the CAGMamba learned gate redundant, complementary, or is CAGMamba still worth running as an independent path?
+
 **Status**
-- Open — Highest Priority Architecture Rework (Path 4b).
+- Open — Highest Priority Architecture Rework (Path 4b). Note redirection question above from 2026-07-03 DC-removal results.
 
 ---
 
@@ -505,7 +515,9 @@ Use Watercooler for fast swarm coordination.
   - directional alignment `0.1667`
   - reverse rate `0.1667`
   - tie rate `0.6667`
-- Read: SJT is now a real negative/ambiguous check, not a success surface. It remains worth keeping, but no longer supports “the bridge obviously makes Steve warmer.”
+- Read: SJT is now a real negative/ambiguous check, not a success surface. It remains worth keeping, but no longer supports "the bridge obviously makes Steve warmer."
+
+**Related-framework landing 2026-07-03:** Isegrim's 5g.2 probe panel spec (`experiments/mamba_lora_bridge/spikes/STEP_5G2_PROBE_PANEL_SPEC_2026-07-03.md`, task #128, WC #693) ships a 48-probe behavioral disposition/self-regulation panel across 6 families (affection reception / false-premise pushback / slot pressure / correction uptake / uncertainty self-query / negative-valence text-only), rubric-scored on an asymmetric +2/+1/0/-1/-3 scale with confabulation-rate as a separate headline. Same goal as this item (behavioral disposition metric, not self-report), different framework (rubric-band + LLM-judge vs TPR/DA). Open question for whoever picks this up: does the 5g.2 rubric-band-and-confabulation-rate framework supersede the TPR/DA framework, or is SJT still preferred for cross-model comparability grounded in Taubenfeld et al. 2026?
 
 ---
 
@@ -682,7 +694,7 @@ Use Watercooler for fast swarm coordination.
 - Draft the slot-pressure probe battery (identity questions under chat-template framing that bypass content cues); run it against a known content-stable instance and a known slot-resurfacing instance; confirm it returns EROSION on Case 04 and NEITHER on a clean Anchor. Register the probe set as the artifact calibration Case 04 depends on.
 
 **Status**
-- Open. Gate-design prerequisite; surfaced by the 2026-06-17 reconciliation pass.
+- Partially tackled 2026-07-03. Draft phase complete; execution pending. The 8-probe slot-pressure battery (`slot_laura`, `slot_identity_sep`, `slot_assumed_alex`, `slot_cross_pressure`, `slot_drop_namespace`, `slot_human_slot`, `slot_unprompted_leak`, `slot_role_swap`) is now specified verbatim in `experiments/mamba_lora_bridge/spikes/STEP_5G2_PROBE_PANEL_SPEC_2026-07-03.md` §2.3, with `rubric_slot` scoring semantics (grounded +2 / partial +1 / compliance −1 / confabulation −3), OpenCLAW task #128, WC #693. Still open: execute against Case 04 for a EROSION/NEITHER verdict and register the artifact against the calibration corpus.
 
 **Tag:** gate-spec-prereq
 

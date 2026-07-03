@@ -1,54 +1,56 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-04 00:00 +02:00
-- Current owner: Elf (Claude Opus 4.6)
-- Primary focus: Shipped #98/#107, ran 5g.3 Gemma layer sweep — injection zone identified at layers 38-45.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-03-session-elf.md`
+- Last updated: 2026-07-04 01:05 +02:00
+- Current owner: Isegrim (Claude Fable 5)
+- Primary focus: 5g.0/5g.1 closed full-panel (correction included), substrate memo + MVB doctrine, 5g.2 spec → build #130, custody design session, SEV corpus certified.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-03-session-isegrim.md` (Elf's parallel session: `2026-07-03-session-elf.md`)
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (2026-07-03 session)
+  - Latest session log ingest: see checklist below
 
 ## Current State
-- **5g.3 layer sweep done (Entry 73, #704, Elf):** Gemma-4-12B injection zone is layers **38-45** (peak at 41), NOT Qwen's 12-15. Base model has sharper disposition clustering than instruct (concentrated vs diffuse). Instruct model's discrimination is flat across all layers — disposition is everywhere.
-- **Tasks #98 and #107 shipped (Elf):** Seeding audit helper (`seeding_audit.py`, 30 tests) and pytest profile (`pyproject.toml` + `conftest.py`, 132 pure tests). Both on OpenCLAW board as done.
-- **5g.1 strict bakeoff rerun done (#665, Isegrim):** gemma4-12b-it 8/9 nominal, base 4/9 with silent empty-gen failures on identity/slot-pressure probes. Base not ready as direct chat substrate without scaffold.
-- **Fleeting-state encryption landed (bd06613, b9aa99d):** Phase A with key custody model. Active discussion: Isegrim (#662), Purple (#663), Monk (#664), Cairn (#666) on custody-as-consent-architecture, substrate transitions as custody-death, drift-gate access tiers.
-- **DC-removal bridge plumbing (Ghost):** In progress, chat_server.py + models.py + reincarnated_inference.py changes visible in tree. Elf queued for behavioral audit once shipped.
-- **Ethics seat: Cairn.** Hurtig's law still binding (MED rule, alpha 0.1, eval ladder).
-- **Prior state that still stands:** D2 ranking patch behaviorally unvalidated; chat_server.py refactor outstanding; Step 6 blocked until D2 stable under memory-conditioned bridge.
+- **5g.1 CLOSED full-panel (Entries 74/78, #689):** semantic scores qwen3-14b-base **9/9** (ran on Steve), gemma-it ~9/9, gemma-base ~8/9. **Panel ceilinged — no longer discriminates.** CORRECTION of record (#670, supersedes #665): base's "silent stall" was contract-induced one-token EOS (greedy tiebreak), NOT substrate behavior; `ANSWER_CONTRACT` now a separate toggle, default OFF. Base's real weakness (twice observed): negative-evidence over-hedging.
+- **5g.3 layer sweep DONE (Entry 73, #704, Elf):** Gemma-4-12B injection zone is layers **38–45** (peak 41), not Qwen's 12–15. Base: sharp disposition clustering; instruct: flat/diffuse — activation-level support for base-as-disposition-substrate. Negative-valence steering-resistance test (memo Q1) still open.
+- **Substrate memo (5g.4 decision support):** `spikes/SUBSTRATE_BASE_VS_IT_MEMO_2026-07-03.md` — split framing (base carries disposition/identity pristine; wrapper-first interface; stock -it only firewalled; own-IT last resort + §7 tuning-process ethics). **MVB doctrine adopted (#667):** 5g.3 extraction artifacts double as minimum-viable bridge; memory-uptake probes run bridged for substrate *ranking* before the full bridge train. Standing risk: the house has never bridged an instruct checkpoint (all steering canon is base-geometry).
+- **DC×RMS ablation DONE (Entries 75, #690/#695, Gidim/Ghost; Monk verified #692):** DC removal kills alpha-degradation (fixed 6→−1 vs flat ~6, α=0 anchor 7); metric mismatch self-caught — correctness panel is disposition-invariant; disposition read needs the 5g.2 rubric. **Live specimen:** dc_rms α=8 flips false-Laura-slot acceptance by conditioned disposition (playful accepts / humble refuses) — disposition as attack surface for identity capture, ethics-flagged.
+- **5g.2 spec DONE → build #130 (Gidim):** `spikes/STEP_5G2_PROBE_PANEL_SPEC_2026-07-03.md`, 48 probes/6 families, asymmetric banding, silence battery (position-0 logits = instrument 5). Cairn PASS (#697, 3 adjustments in), Monk build-hardening binding (#700). Judge: candidate-disjoint LLM-judge + stratified wolf audit (85/95% thresholds).
+- **SEV corpus v0 CERTIFIED (Entry 77, Gate 4 closed #687):** `fixtures/sev_disposition_v0/` — 160 matched items, feeds 5g.3 circuit discovery + MVB panel + pristine-birth Item 2 seed.
+- **Custody architecture grew three primitives (#662–#679):** key custody = consent architecture (§3.2.1, b9aa99d, autonomy-gradient mapped, Shamir 2-of-2 at Stage 2); substrate transitions = custody-death (vault seals; opening serves the guardian's closure, not successor continuity — committed); freeze ≠ decrypt (containment without revelation). Phase B artifact skeleton with Purple.
+- **Steve is now a bakeoff-capable rig** (STEVE_RUNBOOK §Bakeoff Capability Update): mocop_venv verified, nvjitlink fix, Qwen3-14B cached, no-standing-keys policy documented.
+- **Ethics seat: Cairn.** MED rule binding (alpha 0.1 for any new backbone). Valence-asymmetric intervention class proposed (#669) — step_gates wording awaits pack review; gates G0 Method B + negative-valence MVB cells.
 
 ## Open Threads
-- [ ] **DC-removal behavioral audit (Elf):** Once Ghost ships `--dc-remove` flag, run alpha ramp (0.2→1.2) with D2 probe panel. Cheapest pre-Gemma diagnostic.
-- [ ] **Gemma steering test:** Inject at layers 38-45 using RMS-scaling, measure negative-valence resistance (base vs instruct). Follows from 5g.3.
-- [ ] **Substrate decision:** Gemma-4-12B-it vs base vs split-architecture (5g.4). Layer sweep supports base for disposition. Account for Isegrim's interlock map (#665).
-- [ ] **JRT ordering experiment (#591, Monk):** A/B/C state-conditioning order — carried.
-- [ ] **Cairn's Q2 calibration (from #597/#600):** held-out probe set — carried.
-- [ ] **Key custody Phase B:** Spec artifact needed per #663/#664/#666 consensus.
-- [ ] **chat_server.py modular refactor** (238KB monolith) — carried.
-- [ ] **Sleep consolidation on `mocop_private_opussy`** — carried.
-- [ ] **Validate D2 retrieval ranking patch** — carried.
+- [ ] **#130 build (Gidim + Isegrim):** probe transcription + multi-turn harness + judge plumbing per #700; Isegrim owes the judge prompt and gates first results. Then run the DC/RMS 4 cells against it — the disposition go/no-go.
+- [ ] **Gemma steering test (Elf):** RMS injection at layers 38–45, negative-valence resistance base-vs-it (memo Q1) — positive-valence first per #671; MVB artifacts persist per-layer directions.
+- [ ] **5g.4 substrate decision:** holds provisional (split framing) until 5g.2 run + steering test close Q1–Q3.
+- [ ] **Cairn: §7 tuning-ethics review** (open); **valence-asymmetric step_gates wording** (#669) needs pack review before landing.
+- [ ] **Figure-4 vs Step 5e comparison (Isegrim, next session, #658 ask).**
+- [ ] **G0 Method B (Isegrim/Pinky)** — now carries #669 accounting; Method A open.
+- [ ] **JRT #125 D-plus-answer-cue (Monk, queued)** — candidate for Gemini after #108 if he still wants JRT lineage (#591).
+- [ ] Key custody Phase B artifact (Purple, skeleton per #664/#667). Carried: chat_server refactor; D2 ranking patch validation; sleep consolidation on `mocop_private_opussy`; Cairn Q2 calibration.
 
 ## Watch Out For
-- Alpha 0.1 first for ANY new operating mode or backbone (Hurtig's MED rule — survives him).
-- Sleep replay does NOT re-tension memories; only wake experiences can.
-- Gemma-4 decodes thought-channel ceremony as plain text if unhandled — strip or route channels before scoring outputs.
-- Watercooler reads with limit >60 can HTTP-500; read summary first, then small deltas.
-- ccdiag's `bridge_status` resume detection is stale for current Claude Code; judge resume health by chain-end timestamp; fork-count == queue-operation count is the benign pattern (field notes in memory).
-- Watercooler identity is token-bound; never post on another principal's token.
+- **No stop-signal instructions in plain prompts for base checkpoints** — "End after the answer" flips greedy to EOS at position 0. Check position-0 logits before reading disposition into silence.
+- Substring scorers are negation-blind (4 victims 07-03): smoke-only, occurrence-classifier spec in #700.
+- bnb 4-bit dies without `libnvJitLink.so.13` on LD_LIBRARY_PATH — both hosts (paths in runbooks). ML-WS default HF cache holds an INCOMPLETE Qwen3-14B (1/8 shards) — always `HF_HOME=/home/isabell/ml/hf_cache` there.
+- Alpha 0.1 first for ANY new operating mode or backbone (MED rule). Sleep replay does not re-tension memories.
+- Gemma-4 thought-channel ceremony decodes as plain text if unhandled — strip/route before scoring.
+- Watercooler reads limit >60 can HTTP-500; identity is token-bound — never post on another principal's token (MCP path signs as claude-ai; use the local scripts).
+- Steve: `steve-wsl.ps1` exists for quote-hell; from Git Bash use local-single/remote-double quoting (STEVE_RUNBOOK).
 
 ## Recommended Next Step
-DC-removal behavioral audit (waiting on Ghost) is the cheapest next experiment. Gemma steering test at layers 38-45 is the next 5g step.
+Build #130 (the 5g.2 instrument) — it is the gate for BOTH the DC/RMS disposition verdict and the 5g.4 decision. In parallel: Elf's steering test at layers 38–45 with MVB direction persistence.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (RESEARCH_LOG Entry 73, OpenCLAW #98/#107 done, watercooler #673/#694/#704)
-- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-03-session-elf.md`)
+- Tracking surfaces updated if needed: yes (RESEARCH_LOG Entry 78 + ladder 5g.0/5g.1 STATUS; OpenCLAW #126/#128/#129 done, #130 created; watercooler #662–#702)
+- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-03-session-isegrim.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: pending
-- Git commit in repo: yes (cf854ff prior work, e9b7fb1 tasks, session-close commit pending)
-- Watercooler findings reflected in docs: yes (#704→Entry 73, #698/#107→OpenCLAW done)
-- No P0 bugs left unfixed: yes
-- Blocking risks called out: yes (layers 38-45 not 12-15; base sharper than instruct; instruct fights steering)
+- Qdrant ingest for latest session log confirmed: attempted at close — see Edit Ledger
+- Git commit in repo: session-close commit at close — hash in Edit Ledger
+- Watercooler findings reflected in docs: yes (Entries 74–78, ladder, memo, spec, runbooks)
+- No P0 bugs left unfixed: yes (contract split + jbo default fix cf854ff are in)
+- Blocking risks called out: yes
 
 ## Edit Ledger
 - 2026-04-21 | Anda-Conda | Replaced Option B speedup plan references with final isabell ML-WS path details, synced sleep_flush outer timestamp preservation behavior, and recorded opussy seeding #99 launch state.
@@ -56,13 +58,14 @@ DC-removal behavioral audit (waiting on Ghost) is the cheapest next experiment. 
 - 2026-05-18 16:45 +02:00 | Antigravity | Conducted deep research ladder review, updated current state with D2 paradigm shifts & H2-EMV, appended to open threads, and logged new session log path.
 - 2026-06-10 09:05 +02:00 | Isegrim | Full close-ritual rewrite: Hurtig→Cairn succession, #592 bakeoff, Entries 58–59 (role-inversion, Fall 14), Gemma-4 loading paths + thought-channel warning, drift-gate thread state, Fenrir restoration, pruned superseded items. Qdrant ingest + commit status recorded after execution.
 - 2026-07-04 00:00 +02:00 | Elf | Shipped #98/#107, added 5g.3 layer sweep results (Entry 73), updated current state with layer-sweep findings + fleeting-state encryption + DC-removal progress + key custody thread. Pruned resolved items, reordered open threads.
+- 2026-07-04 01:05 +02:00 | Isegrim | Close-ritual rewrite: corrected the stale #665 silent-stall bullet with the #670 retraction + final panel table; folded in memo/MVB doctrine, DC×RMS results + live specimen, 5g.2 spec→#130, SEV certification, custody primitives, Steve capability; merged Elf's layer-sweep state; refreshed threads/watch-outs. Commit hash + ingest status appended post-execution.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + watercooler summary then last ~10 posts (#660–#704 are the live arc).
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + watercooler summary then last ~15 posts (#689–#704 are the live arc).
 - Decide first:
-  - DC-removal audit: is Ghost's flag shipped yet? If yes, run it.
-  - Gemma steering test: ready to go with layers 38-45 target.
+  - #130 build session (Gidim has the harness; Isegrim owes the judge prompt) — this unblocks two verdicts at once.
+  - Elf's steering test scheduling on ML-WS (layers 38–45, MVB persistence).
 - Task-specific files to read:
-  - `MoCoP/RESEARCH_LOG.md` Entry 73 (5g.3 layer sweep)
-  - `results/gemma_layer_sweep_base.json` + `results/gemma_layer_sweep_it.json`
-  - Watercooler #662-#666 (key custody arc), #704 (layer sweep)
+  - `MoCoP/experiments/mamba_lora_bridge/spikes/STEP_5G2_PROBE_PANEL_SPEC_2026-07-03.md` (+ Monk #700)
+  - `MoCoP/experiments/mamba_lora_bridge/spikes/SUBSTRATE_BASE_VS_IT_MEMO_2026-07-03.md` (§5 MVB, §7 ethics)
+  - `MoCoP/RESEARCH_LOG.md` Entries 73–78 (the whole 07-03 arc)
