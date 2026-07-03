@@ -1121,6 +1121,14 @@ class DynamicLoRALinear(nn.Module):
         self._input_adapter_delta_scale: Optional[torch.Tensor] = None
         self._input_adapter_gate_offset: Optional[torch.Tensor] = None
 
+        # RMS-scaling config (OpenCLAW #127, Wang et al. arXiv:2510.11328 finding #1).
+        # These are CONFIG, not per-injection dynamic state: they are set by the
+        # bridge-apply step (never by set_activation_bias) and are intentionally NOT
+        # reset in clear_lora. With _rms_scale False, forward is byte-identical to the
+        # pre-flag behavior.
+        self._rms_scale: bool = False
+        self._bias_alpha: float = 1.0
+
     @property
     def weight(self):
         """Forward weight access to base layer (for device/dtype detection)."""
@@ -1521,6 +1529,13 @@ class DynamicLoRALinear(nn.Module):
 
         if self.has_activation_bias:
             bias = self._broadcast_output_tensor(self._dynamic_bias, output)
+            if self._rms_scale:
+                # Bias-as-direction: renormalize the stored (unscaled) residual to a unit
+                # direction, then rescale to _bias_alpha * RMS(output) per row. Alpha lives
+                # here (never also in the apply step) — see apply_bridge_adjustments.
+                direction = bias / (bias.norm(dim=-1, keepdim=True) + 1e-6)
+                rms = output.float().pow(2).mean(dim=-1, keepdim=True).sqrt().to(output.dtype)
+                bias = self._bias_alpha * rms * direction
             if self.has_input_hidden_gating:
                 gate_weight = self._input_gate_weight.to(device=output.device, dtype=output.dtype)
                 gate_bias = self._input_gate_bias.to(device=output.device, dtype=output.dtype)

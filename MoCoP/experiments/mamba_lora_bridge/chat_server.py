@@ -118,6 +118,10 @@ class RuntimeBridgeContext:
     session_started_at: str = ""
     cache_params: Any = None
     cache_position: Optional[torch.Tensor] = None
+    # OpenCLAW #127: DC-removal + RMS-scaling bridge-injection config (flag-gated).
+    dc_remove: bool = False
+    rms_scale: bool = False
+    dc_vectors: Any = None  # list[fp16 tensor], one per patched target layer, or None
 
 
 @dataclass
@@ -958,6 +962,9 @@ def update_bridge_from_mamba_state(last_token: torch.Tensor, bridge_ctx: Runtime
         bridge_adjustments=bridge_adjustments,
         bridge_mode=bridge_ctx.bridge_mode,
         alpha=ARGS.alpha,
+        dc_remove=bridge_ctx.dc_remove,
+        dc_vectors=bridge_ctx.dc_vectors,
+        rms_scale=bridge_ctx.rms_scale,
     )
     BOOTSTRAP_QWEN_BIAS_DIRECTION = flatten_bridge_adjustments(
         bridge_adjustments,
@@ -5532,6 +5539,9 @@ def main():
     parser.add_argument("--max-new-tokens", type=int, default=200)
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--alpha", type=float, default=1.0, help="Injection strength for activation bias.")
+    parser.add_argument("--dc-remove", action="store_true", help="OpenCLAW #127: subtract precomputed cross-context DC (mean) bias vectors in the raw pre-alpha space before injection.")
+    parser.add_argument("--rms-scale", action="store_true", help="OpenCLAW #127: inject the bias as a unit direction rescaled to alpha*RMS(output) per row at the injection site (Wang et al. arXiv:2510.11328).")
+    parser.add_argument("--dc-calibration-path", default="dc_calibration_v1.pt", help="DC calibration file with a dc_vectors list; resolved relative to the bundle dir when not absolute.")
     parser.add_argument("--target-layers", type=str, default="", help="Comma-separated layer:proj specs that override the checkpoint target_specs.")
     parser.add_argument("--port", type=int, default=7860)
     parser.add_argument("--host", default="0.0.0.0")
@@ -5744,6 +5754,29 @@ def main():
         session_started_at=session_started_at,
     )
 
+    # OpenCLAW #127: DC-removal + RMS-scaling injection config. Flag-off leaves the
+    # resident lobby server byte-identical (dc_vectors stays None, rms_scale stays False).
+    BRIDGE_CTX.dc_remove = bool(ARGS.dc_remove)
+    BRIDGE_CTX.rms_scale = bool(ARGS.rms_scale)
+    if ARGS.dc_remove:
+        dc_calibration_path = Path(ARGS.dc_calibration_path)
+        if not dc_calibration_path.is_absolute():
+            dc_calibration_path = Path(__file__).resolve().parent / dc_calibration_path
+        print(f"Loading DC calibration: {dc_calibration_path}...")
+        dc_blob = torch.load(dc_calibration_path, map_location="cpu", weights_only=False)
+        dc_vectors = dc_blob["dc_vectors"]
+        if len(dc_vectors) != len(patched_layers):
+            raise RuntimeError(
+                f"DC calibration vector count ({len(dc_vectors)}) does not match the "
+                f"{len(patched_layers)} patched target layers. calibration target_layers="
+                f"{dc_blob.get('target_layers')}, current target_specs={target_specs}."
+            )
+        BRIDGE_CTX.dc_vectors = [v.to(ARGS.qwen_device) for v in dc_vectors]
+        print(
+            f"DC calibration loaded: {len(dc_vectors)} vectors, "
+            f"target_layers={dc_blob.get('target_layers')}, proj={dc_blob.get('proj')}"
+        )
+
     if ARGS.skip_mamba:
         # Baseline mode: no Mamba, no bridge injection. Qwen runs unmodified.
         print("Skipping Mamba loading (--skip-mamba mode, no bridge injection)")
@@ -5820,6 +5853,9 @@ def main():
                 bridge_adjustments=bridge_adjustments,
                 bridge_mode=bridge_mode,
                 alpha=ARGS.alpha,
+                dc_remove=BRIDGE_CTX.dc_remove,
+                dc_vectors=BRIDGE_CTX.dc_vectors,
+                rms_scale=BRIDGE_CTX.rms_scale,
             )
 
         gate_layers = sorted({layer_idx for layer_idx, _proj_name in target_specs})

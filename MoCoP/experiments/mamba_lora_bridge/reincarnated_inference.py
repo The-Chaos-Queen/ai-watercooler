@@ -384,13 +384,59 @@ def resolve_bridge_adjustments(
     return bias_vectors, None
 
 
+def _resolve_injected_activation_bias(
+    layer,
+    layer_idx: int,
+    raw_bias: torch.Tensor,
+    *,
+    alpha: float,
+    dc_remove: bool,
+    dc_vectors,
+    rms_scale: bool,
+) -> torch.Tensor:
+    """Apply optional DC removal + the alpha/RMS coupling; return the fp16 bias to inject.
+
+    DC removal (OpenCLAW #127 Op 1): subtract the precomputed cross-context mean vector in
+    the raw, pre-alpha space. dc_vectors[layer_idx] is the loaded elementwise VECTOR (never
+    a runtime-computed mean).
+
+    Alpha coupling (Op 2): alpha is applied EITHER here as a scalar multiply (fixed path,
+    rms_scale off) OR at the injection site via layer._bias_alpha (rms path, rms_scale on) —
+    never both. layer._rms_scale is always set explicitly so the flag-off path stays
+    byte-identical; on the rms path the small unscaled residual is stored (normalize() at
+    injection discards its magnitude, so fp16 is fine).
+    """
+    if dc_remove:
+        raw_bias = raw_bias - dc_vectors[layer_idx].to(raw_bias.device, raw_bias.dtype)
+    if rms_scale:
+        layer._rms_scale = True
+        layer._bias_alpha = float(alpha)
+        return raw_bias.to(torch.float16)
+    layer._rms_scale = False
+    return (alpha * raw_bias).to(torch.float16)
+
+
 def apply_bridge_adjustments(
     *,
     patched_layers,
     bridge_adjustments,
     bridge_mode: str,
     alpha: float = 1.0,
+    dc_remove: bool = False,
+    dc_vectors=None,
+    rms_scale: bool = False,
 ):
+    if dc_remove:
+        if dc_vectors is None:
+            raise ValueError("apply_bridge_adjustments: dc_remove is set but dc_vectors is None.")
+        if len(dc_vectors) != len(patched_layers):
+            raise ValueError(
+                "apply_bridge_adjustments: dc_vectors count "
+                f"({len(dc_vectors)}) must equal the number of patched target layers "
+                f"({len(patched_layers)}); expected one DC vector per target layer "
+                "(v_proj 12-15)."
+            )
+
     if is_token_conditioned_input_adapter_mode(bridge_mode):
         for layer, layer_state in zip(patched_layers, bridge_adjustments):
             layer.set_token_conditioned_input_adapter(
@@ -413,18 +459,24 @@ def apply_bridge_adjustments(
         return
 
     if is_input_gated_activation_bias_mode(bridge_mode):
-        for layer, layer_state in zip(patched_layers, bridge_adjustments):
+        for layer_idx, (layer, layer_state) in enumerate(zip(patched_layers, bridge_adjustments)):
             layer.set_activation_bias(
-                (alpha * layer_state["raw_bias"].squeeze(0)).to(torch.float16),
+                _resolve_injected_activation_bias(
+                    layer, layer_idx, layer_state["raw_bias"].squeeze(0),
+                    alpha=alpha, dc_remove=dc_remove, dc_vectors=dc_vectors, rms_scale=rms_scale,
+                ),
                 input_gate_weight=layer_state["gate_weight"].to(torch.float16),
                 input_gate_bias=layer_state["gate_bias"].to(torch.float16),
             )
         return
 
     if is_hidden_gated_activation_bias_mode(bridge_mode):
-        for layer, layer_state in zip(patched_layers, bridge_adjustments):
+        for layer_idx, (layer, layer_state) in enumerate(zip(patched_layers, bridge_adjustments)):
             layer.set_activation_bias(
-                (alpha * layer_state["raw_bias"].squeeze(0)).to(torch.float16),
+                _resolve_injected_activation_bias(
+                    layer, layer_idx, layer_state["raw_bias"].squeeze(0),
+                    alpha=alpha, dc_remove=dc_remove, dc_vectors=dc_vectors, rms_scale=rms_scale,
+                ),
                 hidden_gate_scale=layer_state["hidden_scale"].squeeze(0).to(torch.float16),
                 bridge_gate_scale=layer_state["bridge_scale"].squeeze(0).to(torch.float16),
                 gate_offset=layer_state["gate_offset"].squeeze(0).to(torch.float16),
@@ -432,7 +484,12 @@ def apply_bridge_adjustments(
         return
 
     for layer_idx, layer in enumerate(patched_layers):
-        layer.set_activation_bias((alpha * bridge_adjustments[layer_idx].squeeze(0)).to(torch.float16))
+        layer.set_activation_bias(
+            _resolve_injected_activation_bias(
+                layer, layer_idx, bridge_adjustments[layer_idx].squeeze(0),
+                alpha=alpha, dc_remove=dc_remove, dc_vectors=dc_vectors, rms_scale=rms_scale,
+            )
+        )
 
 
 def write_text_results(results_path: Path, metadata: dict, records: list):
