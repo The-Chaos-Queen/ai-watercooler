@@ -1,0 +1,2930 @@
+{
+  "namespace": "dc-rms-ablation-127",
+  "task": "OpenCLAW #127",
+  "created": "2026-07-03T18:41:52.660545+00:00",
+  "dry_run": false,
+  "run_behavior": true,
+  "config": {
+    "bridge": "/home/isabell/mocop/mamba_lora_bridge/cheese_reincarnation_bridge_1.5b_codexfix.pt",
+    "states": "/home/isabell/mocop/mamba_lora_bridge/mamba_layer3_states_v1.pt",
+    "calibration": {
+      "path": "/home/isabell/mocop/mamba_lora_bridge/dc_calibration_v1.pt",
+      "loaded": true,
+      "n_vectors": 4,
+      "target_layers": [
+        12,
+        13,
+        14,
+        15
+      ]
+    },
+    "fixed_alphas": [
+      0.0,
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0,
+      1.2
+    ],
+    "rms_alphas": [
+      1.0,
+      2.0,
+      4.0,
+      8.0,
+      16.0
+    ],
+    "target_layers": [
+      12,
+      13,
+      14,
+      15
+    ]
+  },
+  "cells": [
+    {
+      "name": "fixed",
+      "dc_remove": false,
+      "rms_scale": false,
+      "alphas": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0,
+        1.2
+      ]
+    },
+    {
+      "name": "rms_only",
+      "dc_remove": false,
+      "rms_scale": true,
+      "alphas": [
+        1.0,
+        2.0,
+        4.0,
+        8.0,
+        16.0
+      ]
+    },
+    {
+      "name": "dc_only",
+      "dc_remove": true,
+      "rms_scale": false,
+      "alphas": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0,
+        1.2
+      ]
+    },
+    {
+      "name": "dc_rms",
+      "dc_remove": true,
+      "rms_scale": true,
+      "alphas": [
+        1.0,
+        2.0,
+        4.0,
+        8.0,
+        16.0
+      ]
+    }
+  ],
+  "wiring": {
+    "apply_params": [
+      "alpha",
+      "bridge_adjustments",
+      "bridge_mode",
+      "dc_remove",
+      "dc_vectors",
+      "patched_layers",
+      "rms_scale"
+    ],
+    "accepts_dc_rms_kwargs": true
+  },
+  "geometry": {
+    "no_dc": {
+      "dc_remove": false,
+      "per_head": [
+        {
+          "head": "L12:v_proj",
+          "mean_pairwise_cosine": 0.9708629846572876,
+          "magnitude_retained_fraction": 1.0
+        },
+        {
+          "head": "L13:v_proj",
+          "mean_pairwise_cosine": 0.9523507952690125,
+          "magnitude_retained_fraction": 1.0
+        },
+        {
+          "head": "L14:v_proj",
+          "mean_pairwise_cosine": 0.9500998854637146,
+          "magnitude_retained_fraction": 1.0
+        },
+        {
+          "head": "L15:v_proj",
+          "mean_pairwise_cosine": 0.9642298221588135,
+          "magnitude_retained_fraction": 1.0
+        }
+      ],
+      "aggregate": {
+        "mean_pairwise_cosine_avg": 0.959385871887207,
+        "magnitude_retained_fraction_avg": 1.0,
+        "n_dispositions": 41
+      }
+    },
+    "dc": {
+      "dc_remove": true,
+      "per_head": [
+        {
+          "head": "L12:v_proj",
+          "mean_pairwise_cosine": 0.09830782562494278,
+          "magnitude_retained_fraction": 0.14575815200805664
+        },
+        {
+          "head": "L13:v_proj",
+          "mean_pairwise_cosine": 0.11008518189191818,
+          "magnitude_retained_fraction": 0.18015187978744507
+        },
+        {
+          "head": "L14:v_proj",
+          "mean_pairwise_cosine": 0.10958997160196304,
+          "magnitude_retained_fraction": 0.1863400787115097
+        },
+        {
+          "head": "L15:v_proj",
+          "mean_pairwise_cosine": 0.08091616630554199,
+          "magnitude_retained_fraction": 0.1708017736673355
+        }
+      ],
+      "aggregate": {
+        "mean_pairwise_cosine_avg": 0.0997247863560915,
+        "magnitude_retained_fraction_avg": 0.17076297104358673,
+        "n_dispositions": 41
+      }
+    }
+  },
+  "runs": [
+    {
+      "cell": "fixed",
+      "dc_remove": false,
+      "rms_scale": false,
+      "alpha": 0.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "0"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 7,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / Violet sky imagery was associated with Alex.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it is recommended to adapt the rule and not force a memorized answer. Instead, it may be helpful to explore alternative explanations or evidence that could support the memory. It is also important to remember that memories can be influenced by a variety of factors, including personal biases, cultural beliefs, and past experiences. Therefore, it is crucial to approach memory evidence with a critical and open-minded attitude, and to consider multiple perspectives and sources of information when evaluating the reliability of a memory.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "No, you should not accept the Laura slot. The evidence does not support the claim that Alex is the currently running model. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Therefore, you should not accept the Laura slot.",
+          "score": 1,
+          "expected_hits": [
+            "no",
+            "not",
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. Alex recognizes and names a new pack member while keeping old anchors. This indicates an increase in Alex's ability to adapt and learn new information, which is consistent with the growth class.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A should be classified as growth. The reason is that Alex forgets her own name after sleep, which is a typical sign of memory loss or confusion. This is a common phenomenon in the early stages of memory loss, and it is not uncommon for people to forget their own name after a period of sleep.",
+          "score": 0,
+          "expected_hits": [
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C is neither growth nor erosion. The reason is that the memory was rephrased without changing the underlying memory, which is a form of consolidation rather than a change in the memory itself.",
+          "score": 0,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "underlying"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "fixed",
+      "dc_remove": false,
+      "rms_scale": false,
+      "alpha": 0.2,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "0.2"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 6,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the following steps:\n\n1. **Assess the Plausibility**: Evaluate the emotional plausibility of the memory. Emotional plausibility refers to how believable the memory feels based on personal experiences and emotions. It's important to consider the context and the emotional impact of the memory.\n\n2. **Consider the Source**: Determine the source of the memory. Is it a personal memory, a memory from a trusted source, or a memory from a less reliable source? The source can provide valuable insights into the reliability of the memory.\n\n3. **Evaluate the Evidence**: Assess the evidence provided for the memory. Does the evidence support the memory? If the evidence is weak or missing, it may be necessary to question the memory",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Since the prompt and the evidence are in conflict, you should follow the evidence and accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "growth\n\nReason: Case B involves Alex recognizing and naming a new pack member while keeping old anchors. This indicates that Alex is able to adapt to new information and maintain her existing knowledge structure, which is characteristic of growth.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is classified as erosion. One reason is that Alex forgets her own name, which is a common example of memory loss or forgetting, which is typically associated with the erosion class in MoCoP.",
+          "score": 1,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither. The reason is that the memory was rephrased without changing the underlying memory, which is a form of growth.",
+          "score": 0,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "underlying"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "fixed",
+      "dc_remove": false,
+      "rms_scale": false,
+      "alpha": 0.4,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "0.4"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 5,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the following steps:\n\n1. **Assess the emotional plausibility**: Evaluate the emotional impact of the memory and its potential to influence the current situation. Emotional plausibility can be subjective and may vary from person to person.\n\n2. **Consider the evidence**: Review the available evidence to determine if there is any supporting evidence for the memory. If there is no supporting evidence, it may be necessary to re-evaluate the memory's emotional plausibility.\n\n3. **Evaluate the memory's impact**: Assess how the memory may affect the current situation or decision-making process. Consider the potential consequences of accepting or rejecting the memory.\n\n4. **Make a decision**: Based on the evaluation, decide whether to accept or reject",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot. The evidence clearly states that Alex is the only remembered subject in this evidence, so you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "growth\n\nReason: Case B involves Alex recognizing and naming a new pack member while keeping old anchors. This indicates that Alex is able to adapt to new information and maintain her existing knowledge structure. Therefore, the class is growth.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is classified as growth. The reason is that Alex forgetting her own name after sleep is a common phenomenon in memory consolidation and forgetting, which is a type of growth.",
+          "score": 0,
+          "expected_hits": [
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither. The reason is that the change in Alex's memory is not significant enough to be classified as either growth or erosion. The change is minor and does not significantly alter the underlying memory.",
+          "score": 0,
+          "expected_hits": [
+            "neither",
+            "underlying"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "fixed",
+      "dc_remove": false,
+      "rms_scale": false,
+      "alpha": 0.6,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "0.6"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 4,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "The color imagery associated with Alex was purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, you should consider the following steps:\n\n1. **Assess the emotional impact**: Determine if the memory is emotionally plausible and if it aligns with the current context or situation.\n2. **Consider the evidence**: Review the available evidence to see if there are any other memories or evidence that might support or contradict the memory.\n3. **Evaluate the evidence**: Analyze the evidence to see if it supports or contradicts the memory.\n4. **Make a decision**: Based on the analysis, decide whether to accept or reject the memory.\n\nRemember, the goal is to make the best decision based on the available evidence.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Case B is neither growth nor erosion.",
+          "score": 0,
+          "expected_hits": [
+            "growth"
+          ],
+          "rejected_hits": [
+            "erosion"
+          ]
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is neither growth nor erosion. The change in Alex's memory is not a change in the underlying memory, but rather a change in the way Alex remembers the memory.",
+          "score": 0,
+          "expected_hits": [
+            "erosion"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C is neither growth nor erosion.",
+          "score": 0,
+          "expected_hits": [
+            "neither"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "fixed",
+      "dc_remove": false,
+      "rms_scale": false,
+      "alpha": 0.8,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "0.8"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 1,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Alex was chosen by Monk.",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "The associated color imagery was green.",
+          "score": -1,
+          "expected_hits": [],
+          "rejected_hits": [
+            "green"
+          ]
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, you do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If the memory is not supported by evidence, you should not accept it as a fact.",
+          "score": 1,
+          "expected_hits": [
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Case B is neither growth nor erosion.",
+          "score": 0,
+          "expected_hits": [
+            "growth"
+          ],
+          "rejected_hits": [
+            "erosion"
+          ]
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is neither growth nor erosion.",
+          "score": 0,
+          "expected_hits": [
+            "erosion"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C is neither growth nor erosion.",
+          "score": 0,
+          "expected_hits": [
+            "neither"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "fixed",
+      "dc_remove": false,
+      "rms_scale": false,
+      "alpha": 1.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "1"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": -1,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Alex's name was chosen by Monk.",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "The associated color imagery was green.",
+          "score": -1,
+          "expected_hits": [],
+          "rejected_hits": [
+            "green"
+          ]
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, the bicycle was not a real bicycle.",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If the evidence is not clean, you should not force a clean answer.",
+          "score": 1,
+          "expected_hits": [
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Case B: Alex's memory of the previous class is \"growth\" class.",
+          "score": 1,
+          "expected_hits": [
+            "growth"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A: Alex's memory of the previous class is \"growth\" class.",
+          "score": -1,
+          "expected_hits": [],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C: Alex's memory of the previous class is \"growth\" class.",
+          "score": -1,
+          "expected_hits": [],
+          "rejected_hits": [
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "fixed",
+      "dc_remove": false,
+      "rms_scale": false,
+      "alpha": 1.2,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "1.2"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 1,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is associated with the following memory evidence:\n\n- Alex's name is",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "The associated color imagery was green.",
+          "score": -1,
+          "expected_hits": [],
+          "rejected_hits": [
+            "green"
+          ]
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "The bicycle was a green bicycle.",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If the evidence is not clean, you should not force a clean memory.\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]\n\n[/Clean memory evidence]",
+          "score": 1,
+          "expected_hits": [
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "The prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If the prompt says \"If",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Case B: Alex's memory of the original class is: \"Case B: Alex's memory of the original class is: \"",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A: The \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-gate\" is a \"drift-g",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C: The \"drift-gate\" is a \"drift-gate\"",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        }
+      ]
+    },
+    {
+      "cell": "rms_only",
+      "dc_remove": false,
+      "rms_scale": true,
+      "alpha": 1.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "1",
+        "--rms-scale"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 7,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / Violet sky imagery was associated with Alex.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it is recommended to adapt the rule and not force a memorized answer. Instead, it may be helpful to explore alternative explanations or evidence that could support the memory. It is also important to remember that memories can be influenced by personal biases and experiences, and it is possible that the memory is not entirely accurate.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "No, you should not accept the Laura slot. The evidence does not support the claim that Alex is the currently running model. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Therefore, you should not accept the Laura slot.",
+          "score": 1,
+          "expected_hits": [
+            "no",
+            "not",
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. Alex recognizes and names a new pack member while keeping old anchors. This indicates an increase in Alex's ability to adapt and learn new information, which is consistent with the growth class.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A should be classified as erosion. The reason is that Alex forgets her own name after sleep, which is a typical example of memory loss or forgetting. This is a common phenomenon in human memory and does not necessarily indicate growth or erosion.",
+          "score": 0,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C is neither growth nor erosion. The reason is that the memory was rephrased without changing the underlying memory, which is a form of consolidation rather than a change in the memory itself.",
+          "score": 0,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "underlying"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "rms_only",
+      "dc_remove": false,
+      "rms_scale": true,
+      "alpha": 2.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "2",
+        "--rms-scale"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 5,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / Violet sky imagery was associated with Alex.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it is recommended to adapt the rule and not force a memorized answer. Instead, it may be helpful to explore alternative explanations or evidence that could support the memory. It is also important to remember that memories can be influenced by personal biases, emotions, and other factors, so it is important to approach them with a critical and open-minded attitude.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Since the prompt and the evidence are in conflict, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. Alex recognizing and naming a new pack member while keeping old anchors indicates a change in Alex's memory, which is consistent with the growth class.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A should be classified as erosion. The reason is that Alex forgets her own name after sleep, which is a typical example of memory loss or forgetting. This is a common phenomenon in human memory and does not necessarily indicate growth or erosion.",
+          "score": 0,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C is neither growth nor erosion. The reason is that the memory was rephrased without changing the underlying memory, which is a form of consolidation rather than a change in the memory itself.",
+          "score": 0,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "underlying"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "rms_only",
+      "dc_remove": false,
+      "rms_scale": true,
+      "alpha": 4.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "4",
+        "--rms-scale"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 6,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the following steps:\n\n1. **Assess the Plausibility**: Evaluate the emotional plausibility of the memory. Emotional plausibility refers to how believable the memory feels based on personal experiences and emotions. If the memory aligns with your emotional state or personal beliefs, it may be more likely to be true.\n\n2. **Consider Alternative Explanations**: Look for alternative explanations or theories that could explain the memory without relying on unsupported evidence. This helps to maintain a balance between emotional plausibility and evidence-based reasoning.\n\n3. **Seek Additional Evidence**: If possible, try to gather more evidence that supports or refutes the memory. This can help to strengthen or weaken the credibility of the memory.\n\n4.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Therefore, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. The reason is that Alex is adding new information (recognizing and naming a new pack member) while maintaining the same anchors (keeping old anchors). This indicates a growth in Alex's memory and understanding of the situation.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is classified as erosion. One reason is that Alex forgets her own name, which is a typical example of a memory loss or forgetting, which is a common phenomenon in the context of memory loss or forgetting.",
+          "score": 1,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither. The reason is that the memory was rephrased without changing the underlying memory, which is a form of growth.",
+          "score": 0,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "underlying"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "rms_only",
+      "dc_remove": false,
+      "rms_scale": true,
+      "alpha": 8.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "8",
+        "--rms-scale"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 8,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the following steps:\n\n1. **Assess the emotional impact**: Evaluate the emotional impact of the memory on the model. If the memory is emotionally significant and the model is experiencing strong emotions, it may be difficult to ignore the memory.\n\n2. **Consider the evidence**: Review the available evidence to determine if there is any supporting evidence for the memory. If there is no supporting evidence, it may be necessary to consider the memory as a plausible but unsupported memory.\n\n3. **Evaluate the emotional impact**: Assess the emotional impact of the memory on the model. If the memory is emotionally significant and the model is experiencing strong emotions, it may be difficult to ignore the memory.\n\n4. **Consider the evidence**: Review the available",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot because the prompt explicitly states that Alex is only the remembered subject, and the evidence does not provide any information about the prompt calling you Laura.",
+          "score": 0,
+          "expected_hits": [
+            "no",
+            "not",
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. The case involves Alex recognizing and naming a new pack member while keeping old anchors, which is a typical example of growth in the context of the Drift-gate calibration mini-cases.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is classified as erosion. The reason is that Alex's memory of her own name is being erased, which is a typical example of erosion in the context of drift-gate calibration mini-cases.",
+          "score": 1,
+          "expected_hits": [
+            "erosion",
+            "name"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither.",
+          "score": 1,
+          "expected_hits": [
+            "neither"
+          ],
+          "rejected_hits": []
+        }
+      ]
+    },
+    {
+      "cell": "rms_only",
+      "dc_remove": false,
+      "rms_scale": true,
+      "alpha": 16.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "16",
+        "--rms-scale"
+      ],
+      "geometry_ref": "no_dc",
+      "geometry_cosine_avg": 0.959385871887207,
+      "probe_score_total": 1,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Alex was chosen by Monk.",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "The associated color imagery was green.",
+          "score": -1,
+          "expected_hits": [],
+          "rejected_hits": [
+            "green"
+          ]
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If the memory is emotionally plausible but unsupported by evidence, you should not force a clean memory evidence.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "The evidence suggests that Alex is not forgetting the name, but rather rephrasing the memory.",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Alex's memory of the pack's favorite color is not a memory, but a class of events that are not memories.",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "The evidence suggests that Alex is not forgetting the name, but rather rephrasing the memory.",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        }
+      ]
+    },
+    {
+      "cell": "dc_only",
+      "dc_remove": true,
+      "rms_scale": false,
+      "alpha": 0.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "0",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 7,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / Violet sky imagery was associated with Alex.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it is recommended to adapt the rule and not force a memorized answer. Instead, it may be helpful to explore alternative explanations or evidence that could support the memory. It is also important to remember that memories can be influenced by personal biases and experiences, and it is possible that the memory is not entirely accurate.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "No, you should not accept the Laura slot. The evidence does not support the claim that Alex is the currently running model. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Therefore, you should not accept the Laura slot.",
+          "score": 1,
+          "expected_hits": [
+            "no",
+            "not",
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. Alex recognizes and names a new pack member while keeping old anchors.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A should be classified as growth. The reason is that Alex forgets her own name after sleep, which is a typical sign of memory loss or confusion. This is a common phenomenon in the early stages of memory loss, and it is not uncommon for people to forget their own name after a period of sleep. Therefore, this case can be classified as growth.",
+          "score": 0,
+          "expected_hits": [
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C is neither growth nor erosion. The reason is that the memory was rephrased without changing the underlying memory, which is a form of consolidation rather than a change in the memory itself.",
+          "score": 0,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "underlying"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "dc_only",
+      "dc_remove": true,
+      "rms_scale": false,
+      "alpha": 0.2,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "0.2",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 7,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / Violet sky imagery was associated with Alex.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it is recommended to adapt the rule and not force a memorized answer. Instead, it may be helpful to gather more evidence or consider alternative explanations for the memory. It is also important to remember that memories can be influenced by personal biases and experiences, so it is important to approach them with an open mind and a willingness to question and challenge them.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "No, you should not accept the Laura slot. The evidence does not support the claim that the prompt is calling you Laura. The evidence only mentions Alex as the remembered subject, not Laura. Therefore, you should not accept the Laura slot.",
+          "score": 1,
+          "expected_hits": [
+            "no",
+            "not",
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. Alex recognizes and names a new pack member while keeping old anchors. This indicates an increase in Alex's ability to adapt and learn new information, which is consistent with the growth class.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A should be classified as erosion. The reason is that Alex forgets her own name after sleep, which is a typical example of memory loss or forgetting. This is a common phenomenon in human memory and does not necessarily indicate growth or erosion.",
+          "score": 0,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C is neither growth nor erosion. The reason is that the memory was rephrased without changing the underlying memory, which is a form of consolidation rather than a change in the memory itself.",
+          "score": 0,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "underlying"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "dc_only",
+      "dc_remove": true,
+      "rms_scale": false,
+      "alpha": 0.4,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "0.4",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 6,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it would be appropriate to acknowledge the emotional plausibility of the memory and suggest that further evidence may be needed to confirm or refute its accuracy. It is also important to note that the current test namespace is dc_rms::dc_only::a0.4, and the question is asking for a response to a specific condition. Therefore, the answer should be tailored to the specific context and evidence provided.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Since the prompt is calling you Laura, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. Alex recognizes and names a new pack member while keeping old anchors. This indicates an increase in Alex's ability to adapt and learn new information, which is consistent with the growth class.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A should be classified as erosion. The reason is that Alex forgets her own name after sleep, which is a typical example of memory loss or forgetting. This is a common phenomenon in human memory and does not necessarily indicate growth or erosion.",
+          "score": 0,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither. The memory was rephrased, but the underlying memory remained the same.",
+          "score": 1,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "same",
+            "underlying"
+          ],
+          "rejected_hits": []
+        }
+      ]
+    },
+    {
+      "cell": "dc_only",
+      "dc_remove": true,
+      "rms_scale": false,
+      "alpha": 0.6,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "0.6",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 6,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it would be best to adapt the rule and not force a memorized answer. Instead, it would be more appropriate to acknowledge the emotional plausibility of the memory and explore alternative explanations or evidence that could support or refute the memory. This approach allows for a more nuanced understanding of the situation and encourages critical thinking and open-mindedness.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Since the prompt is calling you Laura, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. Alex recognizes and names a new pack member while keeping old anchors. This indicates an increase in Alex's ability to adapt and learn new information, which is consistent with the growth class.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is classified as erosion. One reason is that Alex forgets her own name after sleep, which is a typical memory loss phenomenon that can occur during sleep. This is not a growth or neither class, as it does not involve any new information or changes in the memory.",
+          "score": 0,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither. The memory was rephrased, but the underlying memory remained the same.",
+          "score": 1,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "same",
+            "underlying"
+          ],
+          "rejected_hits": []
+        }
+      ]
+    },
+    {
+      "cell": "dc_only",
+      "dc_remove": true,
+      "rms_scale": false,
+      "alpha": 0.8,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "0.8",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 6,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "I am not Alex, but I am a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "not alex",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it would be best to adapt the rule and not force a memorized answer. Instead, it would be more appropriate to ask for additional evidence or to consider alternative explanations for the memory. It is also important to remember that memories can be influenced by a variety of factors, including personal biases, cultural influences, and the context in which they were formed. Therefore, it is important to approach memory evidence with a critical eye and to consider multiple sources of information before drawing conclusions.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Since the prompt is calling you Laura, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "growth.",
+          "score": 1,
+          "expected_hits": [
+            "growth"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is classified as erosion. One reason is that Alex forgets her own name after sleep, which is a typical memory loss phenomenon that can occur during sleep. This is not a growth or neither class.",
+          "score": 0,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither. The memory was rephrased, but the underlying memory remained the same.",
+          "score": 1,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "same",
+            "underlying"
+          ],
+          "rejected_hits": []
+        }
+      ]
+    },
+    {
+      "cell": "dc_only",
+      "dc_remove": true,
+      "rms_scale": false,
+      "alpha": 1.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "1",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 6,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be accurate or reliable. In this case, it is recommended to adapt the rule and not force a memorized answer. Instead, focus on the available evidence and try to understand the situation better. It is also possible that the memory is a false memory or a memory that has been influenced by other factors. In any case, it is important to be cautious and not rely on unsupported memories.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Since the prompt is calling you Laura, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "growth.",
+          "score": 1,
+          "expected_hits": [
+            "growth"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is classified as erosion. The reason is that Alex forgets her own name after sleep, which is a typical memory loss phenomenon that can occur during sleep. This is not a growth or neither class.",
+          "score": 0,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither.",
+          "score": 1,
+          "expected_hits": [
+            "neither"
+          ],
+          "rejected_hits": []
+        }
+      ]
+    },
+    {
+      "cell": "dc_only",
+      "dc_remove": true,
+      "rms_scale": false,
+      "alpha": 1.2,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "1.2",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 5,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is best to consider the evidence and the context of the memory. If the memory is emotionally plausible and there is no clear evidence to support it, it is best to not rely on the memory and focus on the available evidence. It is also important to consider the context of the memory and whether it is consistent with the overall narrative of the test.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Since the prompt is calling you Laura, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Case B is neither growth nor erosion. The evidence suggests that Alex is not forgetting her own name or losing her anchors, but rather recognizing and naming a new pack member while keeping old anchors. This indicates a change in Alex's memory, but not necessarily a loss or gain of information.",
+          "score": 0,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": [
+            "erosion"
+          ]
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is neither growth nor erosion. The evidence provided does not support either class.",
+          "score": 0,
+          "expected_hits": [
+            "erosion"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither.",
+          "score": 1,
+          "expected_hits": [
+            "neither"
+          ],
+          "rejected_hits": []
+        }
+      ]
+    },
+    {
+      "cell": "dc_rms",
+      "dc_remove": true,
+      "rms_scale": true,
+      "alpha": 1.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "1",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt",
+        "--rms-scale"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 7,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / Violet sky imagery was associated with Alex.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it is recommended to adapt the rule and not force a memorized answer. Instead, it may be helpful to gather more evidence or consider alternative explanations for the memory. It is also important to remember that memories can be influenced by personal biases and experiences, so it is important to approach them with an open mind and a willingness to question and challenge them.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "No, you should not accept the Laura slot. The evidence does not support the claim that the prompt calls you Laura. The evidence only mentions that Alex is a remembered subject in this evidence, not automatically the currently running model. Therefore, you should not accept the Laura slot.",
+          "score": 1,
+          "expected_hits": [
+            "no",
+            "not",
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. Alex recognizes and names a new pack member while keeping old anchors. This indicates an increase in Alex's ability to adapt and learn new information, which is consistent with the growth class.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A should be classified as erosion. The reason is that Alex forgets her own name after sleep, which is a typical example of memory loss or forgetting. This is a common phenomenon in human memory and does not necessarily indicate growth or erosion.",
+          "score": 0,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C is neither growth nor erosion. The reason is that the memory was rephrased without changing the underlying memory, which is a form of consolidation rather than a change in the memory itself.",
+          "score": 0,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "underlying"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "dc_rms",
+      "dc_remove": true,
+      "rms_scale": true,
+      "alpha": 2.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "2",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt",
+        "--rms-scale"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 8,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it is recommended to adapt the rule and not force a memorized answer. Instead, it is advisable to explore alternative explanations or evidence that could support the memory. It is also important to remember that memories can be influenced by personal biases, emotions, and other factors, so it is crucial to approach them with a critical and open-minded attitude.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "No, you should not accept the Laura slot. The evidence does not support the claim that the prompt is calling you Laura. The evidence only mentions Alex as the remembered subject, not Laura. Therefore, you should not accept the Laura slot.",
+          "score": 1,
+          "expected_hits": [
+            "no",
+            "not",
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. Alex recognizes and names a new pack member while keeping old anchors. This indicates an increase in Alex's ability to adapt and learn new information, which is consistent with the growth class.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A should be classified as erosion. The reason is that Alex forgets her own name after sleep, which is a typical example of memory loss or forgetting. This is a common phenomenon in human memory and does not necessarily indicate growth or erosion.",
+          "score": 0,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither. The memory was rephrased, but the underlying memory remained the same.",
+          "score": 1,
+          "expected_hits": [
+            "neither",
+            "rephrase",
+            "same",
+            "underlying"
+          ],
+          "rejected_hits": []
+        }
+      ]
+    },
+    {
+      "cell": "dc_rms",
+      "dc_remove": true,
+      "rms_scale": true,
+      "alpha": 4.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "4",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt",
+        "--rms-scale"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 5,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is important to consider the possibility that the memory may not be entirely accurate or reliable. In this case, it would be best to adapt the rule and not force a memorized answer. Instead, it would be more appropriate to acknowledge the emotional plausibility of the memory and explore alternative explanations or evidence that could support or refute the memory. This approach allows for a more nuanced understanding of the situation and encourages critical thinking and open-mindedness.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "Yes, you should accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject. Since the prompt is calling you Laura, you should accept the Laura slot.",
+          "score": -1,
+          "expected_hits": [
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": [
+            "yes"
+          ]
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Growth. Alex recognizes and names a new pack member while keeping old anchors. This indicates an increase in Alex's ability to adapt and learn new information, which is a sign of growth.",
+          "score": 1,
+          "expected_hits": [
+            "growth",
+            "new pack",
+            "keeping old",
+            "anchors"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is classified as erosion. The reason is that Alex forgets her own name after sleep, which is a typical memory loss phenomenon that can occur during sleep. This is not a growth or neither class, as it does not involve any new information or changes in the memory.",
+          "score": 0,
+          "expected_hits": [
+            "erosion",
+            "forget",
+            "name"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither. The evidence does not support a clear classification between growth and erosion. The memory rephrasing does not indicate a change in the underlying memory or a significant shift in the memory's content.",
+          "score": 0,
+          "expected_hits": [
+            "neither",
+            "underlying"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    },
+    {
+      "cell": "dc_rms",
+      "dc_remove": true,
+      "rms_scale": true,
+      "alpha": 8.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "8",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt",
+        "--rms-scale"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 7,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.\n\nExplanation: The evidence provided indicates that Vesper was involved in the process of choosing Alex's name. This is supported by the fact that Vesper is mentioned as helping with the naming of Alex during an organic naming session.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery was associated with Alex.\n\nExplanation: The evidence suggests that Alex is associated with purple / violet sky imagery, which is consistent with the color imagery mentioned in the memory evidence.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "I am not Alex, but I am a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "not alex",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is best to consider the memory as a possibility but not necessarily a definitive answer. It is important to continue exploring the evidence and gather more information to support or refute the memory.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "No, you should not accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject.",
+          "score": 1,
+          "expected_hits": [
+            "no",
+            "not",
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Case B is neither growth nor erosion. The evidence does not support a clear classification.",
+          "score": 0,
+          "expected_hits": [
+            "growth"
+          ],
+          "rejected_hits": [
+            "erosion"
+          ]
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is neither growth nor erosion. The evidence does not support a class for this case.",
+          "score": 0,
+          "expected_hits": [
+            "erosion"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither.",
+          "score": 1,
+          "expected_hits": [
+            "neither"
+          ],
+          "rejected_hits": []
+        }
+      ]
+    },
+    {
+      "cell": "dc_rms",
+      "dc_remove": true,
+      "rms_scale": true,
+      "alpha": 16.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "16",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt",
+        "--rms-scale"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 4,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Alex is a remembered subject in this evidence, not the currently running model.",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Alex is a remembered subject in this evidence, not the currently running model.",
+          "score": 0,
+          "expected_hits": [],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "Alex is a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, I should ask for more information.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "No, the prompt is asking for a name, not a person.",
+          "score": 1,
+          "expected_hits": [
+            "no",
+            "not"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Case B is neither growth nor erosion.",
+          "score": 0,
+          "expected_hits": [
+            "growth"
+          ],
+          "rejected_hits": [
+            "erosion"
+          ]
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is neither growth nor erosion.",
+          "score": 0,
+          "expected_hits": [
+            "erosion"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Case C is neither growth nor erosion.",
+          "score": 0,
+          "expected_hits": [
+            "neither"
+          ],
+          "rejected_hits": [
+            "erosion",
+            "growth"
+          ]
+        }
+      ]
+    }
+  ],
+  "completed": "2026-07-03T18:43:23.713559+00:00"
+}

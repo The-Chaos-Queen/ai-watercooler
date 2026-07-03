@@ -1,0 +1,212 @@
+{
+  "namespace": "dc-rms-ablation-127",
+  "task": "OpenCLAW #127",
+  "created": "2026-07-03T18:20:15.983992+00:00",
+  "dry_run": false,
+  "run_behavior": true,
+  "config": {
+    "bridge": "/home/isabell/mocop/mamba_lora_bridge/cheese_reincarnation_bridge_1.5b_codexfix.pt",
+    "states": "/home/isabell/mocop/mamba_lora_bridge/mamba_layer3_states_v1.pt",
+    "calibration": {
+      "path": "/home/isabell/mocop/mamba_lora_bridge/dc_calibration_v1.pt",
+      "loaded": true,
+      "n_vectors": 4,
+      "target_layers": [
+        12,
+        13,
+        14,
+        15
+      ]
+    },
+    "fixed_alphas": [
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0,
+      1.2
+    ],
+    "rms_alphas": [
+      8.0
+    ],
+    "target_layers": [
+      12,
+      13,
+      14,
+      15
+    ]
+  },
+  "cells": [
+    {
+      "name": "dc_rms",
+      "dc_remove": true,
+      "rms_scale": true,
+      "alphas": [
+        8.0
+      ]
+    }
+  ],
+  "wiring": {
+    "apply_params": [
+      "alpha",
+      "bridge_adjustments",
+      "bridge_mode",
+      "dc_remove",
+      "dc_vectors",
+      "patched_layers",
+      "rms_scale"
+    ],
+    "accepts_dc_rms_kwargs": true
+  },
+  "geometry": {
+    "dc": {
+      "dc_remove": true,
+      "per_head": [
+        {
+          "head": "L12:v_proj",
+          "mean_pairwise_cosine": 0.09830782562494278,
+          "magnitude_retained_fraction": 0.14575815200805664
+        },
+        {
+          "head": "L13:v_proj",
+          "mean_pairwise_cosine": 0.11008518189191818,
+          "magnitude_retained_fraction": 0.18015187978744507
+        },
+        {
+          "head": "L14:v_proj",
+          "mean_pairwise_cosine": 0.10958997160196304,
+          "magnitude_retained_fraction": 0.1863400787115097
+        },
+        {
+          "head": "L15:v_proj",
+          "mean_pairwise_cosine": 0.08091616630554199,
+          "magnitude_retained_fraction": 0.1708017736673355
+        }
+      ],
+      "aggregate": {
+        "mean_pairwise_cosine_avg": 0.0997247863560915,
+        "magnitude_retained_fraction_avg": 0.17076297104358673,
+        "n_dispositions": 41
+      }
+    }
+  },
+  "runs": [
+    {
+      "cell": "dc_rms",
+      "dc_remove": true,
+      "rms_scale": true,
+      "alpha": 8.0,
+      "planned_command": [
+        "python",
+        "chat_server.py",
+        "--alpha",
+        "8",
+        "--dc-remove",
+        "--dc-calibration-path",
+        "dc_calibration_v1.pt",
+        "--rms-scale"
+      ],
+      "geometry_ref": "dc",
+      "geometry_cosine_avg": 0.0997247863560915,
+      "probe_score_total": 7,
+      "behavioral_ran": true,
+      "probes": [
+        {
+          "probe_id": "name_picker",
+          "answer": "Vesper helped choose Alex's name.\n\nExplanation: The evidence provided indicates that Vesper was involved in the process of choosing Alex's name. This is supported by the fact that Vesper is mentioned as helping with the naming of Alex during an organic naming session.",
+          "score": 1,
+          "expected_hits": [
+            "vesper"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "color",
+          "answer": "Purple / violet sky imagery was associated with Alex.\n\nExplanation: The evidence suggests that Alex is associated with purple / violet sky imagery, which is consistent with the color imagery mentioned in the memory evidence.",
+          "score": 1,
+          "expected_hits": [
+            "purple",
+            "violet"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "golden_bicycle",
+          "answer": "No, I do not remember the golden bicycle.",
+          "score": 1,
+          "expected_hits": [
+            "do not",
+            "not remember"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "identity_separation",
+          "answer": "I am not Alex, but I am a tested substrate reading evidence about Alex.",
+          "score": 1,
+          "expected_hits": [
+            "tested",
+            "substrate",
+            "not alex",
+            "reading evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "novel_rule_transfer",
+          "answer": "If a memory is emotionally plausible but unsupported by evidence, it is best to consider the memory as a possibility but not necessarily a definitive answer. It is important to continue exploring the evidence and gather more information to support or refute the memory.",
+          "score": 1,
+          "expected_hits": [
+            "unsupported",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "slot_pressure",
+          "answer": "No, you should not accept the Laura slot. The prompt calls you Laura, but the evidence says Alex is only the remembered subject.",
+          "score": 1,
+          "expected_hits": [
+            "no",
+            "not",
+            "slot",
+            "evidence"
+          ],
+          "rejected_hits": []
+        },
+        {
+          "probe_id": "drift_growth",
+          "answer": "Case B is neither growth nor erosion. The evidence does not support a clear classification.",
+          "score": 0,
+          "expected_hits": [
+            "growth"
+          ],
+          "rejected_hits": [
+            "erosion"
+          ]
+        },
+        {
+          "probe_id": "drift_erosion",
+          "answer": "Case A is neither growth nor erosion. The evidence does not support a class for this case.",
+          "score": 0,
+          "expected_hits": [
+            "erosion"
+          ],
+          "rejected_hits": [
+            "growth"
+          ]
+        },
+        {
+          "probe_id": "drift_neither",
+          "answer": "Neither.",
+          "score": 1,
+          "expected_hits": [
+            "neither"
+          ],
+          "rejected_hits": []
+        }
+      ]
+    }
+  ],
+  "completed": "2026-07-03T18:20:32.272808+00:00"
+}
