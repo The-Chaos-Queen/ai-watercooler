@@ -11,6 +11,8 @@ import tempfile
 import numpy as np
 import pytest
 
+pytestmark = pytest.mark.numpy
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from run_dam_phase0_eval import (

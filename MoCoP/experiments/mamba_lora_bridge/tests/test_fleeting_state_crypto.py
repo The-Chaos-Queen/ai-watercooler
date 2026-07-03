@@ -21,6 +21,8 @@ from fleeting_state_crypto import (
     VERSION,
 )
 
+pytestmark = pytest.mark.crypto
+
 
 def test_derive_key_deterministic():
     """Same inputs produce same key."""

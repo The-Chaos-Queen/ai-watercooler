@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+testpaths = ["tests", "archivist_mamba/tests"]
+addopts = "-m 'not gpu and not qdrant and not live_server and not crypto'"
+markers = [
+    "gpu: requires torch/CUDA — skipped by default, run with -m gpu",
+    "qdrant: requires a live Qdrant instance",
+    "live_server: requires the chat server or MCP endpoint running",
+    "crypto: requires optional state-encryption dependencies such as argon2-cffi and/or torch",
+    "numpy: requires numpy (lightweight, but not stdlib)",
+]

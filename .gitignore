@@ -162,3 +162,7 @@ Research/lw_logit_lens/images/
 
 # Windows shortcuts
 *.lnk
+
+# Ultrareview / lane-experiment temp outputs
+LANE_EXP_BATCH*.txt
+b4m69vkg1.txt

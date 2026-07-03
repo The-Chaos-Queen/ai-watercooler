@@ -6,6 +6,8 @@ Written FIRST per TDD. Implementation follows.
 import numpy as np
 import pytest
 
+pytestmark = pytest.mark.numpy
+
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 

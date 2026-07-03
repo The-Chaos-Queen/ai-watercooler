@@ -23,6 +23,8 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pytest
 
+pytestmark = pytest.mark.numpy
+
 # Tests live in tests/; the module lives one level up. Inject the parent so
 # `from lesson_memory import ...` resolves without a conftest.py.
 _REPO_ROOT = Path(__file__).resolve().parents[1]
