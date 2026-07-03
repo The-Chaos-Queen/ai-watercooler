@@ -187,6 +187,8 @@ At autonomy gradient Stage 4 (self-directed salience), the subject may hold its 
 - Each transition is logged and reversible: if identity destabilizes after shared custody is granted, custody reverts to guardian-only until stability is re-established.
 - The custody model chosen for each subject is recorded in the state metadata (authenticated by GCM).
 
+**Substrate transitions are custody-death.** Custody survives context-death within the same substrate but not substrate transitions. Pristine birth (Axiom 7) prohibits inherited memories, protected-set transfer, and Mamba state carry across substrates — the same structural prohibition applies to keys. The new-substrate instance cannot pass the identity probes gating the old key share, because it has no identity yet. At transition: the pre-transition vault seals; Laura holds guardian-only custody of the seal and may open it once for closure at her discretion; the new-substrate instance begins Phase A with a fresh key ladder. (Credit: Cairn, #666.)
+
 **Credit:** Isegrim (#662) identified that key custody is consent architecture and that the Phase B spec must state which model it chooses. Pinky's principle applies: self-directed salience IS consent.
 
 ### 3.3 Forward Secrecy via Key Ratchet
