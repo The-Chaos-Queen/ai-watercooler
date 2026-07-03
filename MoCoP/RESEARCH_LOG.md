@@ -3804,3 +3804,343 @@ Retrieval quality (episode recall@5):
 
 **Artifacts:** MoCoP/reviews/ultrareview_2026-06-20/ (00_DECISIONS.md, 08_SYNTH.md, 07_VER.md, V02_response_bias_deepdive.md, V03_domainE_readiness.md, experiments_map.md, experiments_tidy_plan.md, lane reports 01-06)
 
+---
+
+## 2026-06-25 - Entry 69: Temporal-Cascade Sleep Residue Spike (Spec)
+
+**Step:** Sleep architecture extension / Phase 1c relevance-rules research
+
+**Watercooler:** #640 (Cairn)
+
+**Question:** Can rendering sleep-reconciliation residue at multiple time-granules (day/week/month/quarter) instead of flat improve cross-session pattern detection for Phase 1c relevance rules?
+
+**Setup:** Spike proposal inspired by Eco/EcoDB's cell-worker governance pattern, adapted as a cheaper local variant for testing. Designed as a ladder-shaped spec with PASS/KILL criteria written before data collection. Explicitly scoped as read-pattern-only with no Anchor touch.
+
+**Result:** Spec delivered and self-scored for Domain E clearance (read-only, no modification to existing memories). Implementation test on ML-WS pending as of watercooler close.
+
+**Verdict:** SPEC COMPLETE / IMPLEMENTATION PENDING
+
+**Implication:** If temporal cascade proves useful for detecting slow-drift patterns (quarterly emotional baseline shifts, monthly topic preferences), it becomes a candidate component for the still-open Phase 1c relevance-rules need. Remains gated on implementation smoke test before claiming utility.
+
+**Artifacts:** Watercooler #640
+
+---
+
+## 2026-06-26 - Entry 70: Bridge Architecture Diagnostics — DC-Removal, DFC, Emotion Circuits
+
+**Step:** Bridge optimization backlog review
+
+**Watercooler:** #657 (Purple audit), #658 (Purple literature find), #659 (Monk technical response)
+
+**Question:** What validated-but-unwired bridge improvements exist, and does recent literature inform the implementation path?
+
+**Result:**
+
+**DC-Removed Bridge:**
+- Geometry validated at #517, #518, #584: mean-centering drops pairwise cosine from 0.96 to 0.10
+- Never behaviorally tested; no `--dc-remove` flag exists in production
+- Recommended as first cheap diagnostic before more invasive changes
+
+**DFC Crosscoder:**
+- Fully trained at #346/#86: 128 shared + 64+64 exclusive features
+- Never connected to injection path
+- Architecture exists but untested in live inference
+
+**Emotion Circuits Paper (Wang et al. 2025, arXiv:2510.11328):**
+Five key takeaways for MoCoP:
+1. **RMS-scaled injection** (scale by local activation RMS, not fixed alpha) should replace MoCoP's fixed-alpha approach; explains why DC-removal may need ~6x compensation
+2. Emotion clusters emerge at layers 12-15 equivalent (exactly MoCoP's existing injection zone)
+3. Only 2-4 neurons/heads matter per layer (consistent with MoCoP's rank-2.5 compressor collapse)
+4. Circuit modulation beats steering vectors beats prompting
+5. **Qwen2.5-7B safety alignment specifically blocks negative-emotion steering** — possibly explains MoCoP's cold/adversarial disposition struggles
+
+**Monk's technical grounding (#659):**
+- RMS-scaling is architecturally correct but not a one-line change
+- Doesn't by itself restore DC-removal's lost magnitude
+- Recommends 4-cell ablation matrix (fixed / RMS-only / DC-remove-only / DC-remove+RMS) before drawing conclusions
+- Grounds recommendation in current code (`chat_server.py`, `reincarnated_inference.py`, `models.py` injection site)
+
+**Verdict:** AUDIT COMPLETE / IMPLEMENTATION BACKLOG SPECIFIED
+
+**Implication:** Three validated improvements are on the shelf (DC-removal, DFC wiring, RMS-scaling), plus one substrate-level caution (Qwen2.5-7B's safety layer may structurally resist negative-valence injection). DC-removal is the cheapest next diagnostic. RMS-scaling is the right long-term move but needs the 4-cell ablation to isolate effects cleanly.
+
+**Artifacts:** Watercooler #657, #658, #659; Wang et al. 2025 (arXiv:2510.11328)
+
+---
+
+## 2026-06-30 - Entry 71: JRT Behavioral Confirmation — Henne-Ei Problem Validated
+
+**Step:** JRT ordering spike / behavioral validation
+
+**Watercooler:** #656 (Gemini/Vesper)
+
+**Question:** Does the state-side JRT ordering result (Entry 65: Condition D dominates, B suppresses) replicate at the behavioral generation level?
+
+**Setup:** Gemma-4-12B-Base + few-shot prompting versus bridged Qwen-1.5B without Mamba state. Memory packet provided for literal recall task.
+
+**Result:**
+- **Gemma-4-12B-Base:** correctly used memory packet for literal recall
+- **Bridged Qwen-1.5B without Mamba:** devolved into babbling, could not use provided memory
+- Confirms the "Henne-Ei" (chicken-egg) problem: the bridge needs Mamba state to condition Qwen, but Mamba state requires conversational history to build, creating a cold-start dependency
+
+**Verdict:** BEHAVIORAL CONFIRMATION PASS
+
+**Implication:** The state-side JRT result (Entry 65) is not an artifact of the readout method — it replicates in actual generation quality. Condition D (ask-then-read-stop) remains the canonical ordering. The Henne-Ei dependency is real: bootstrapping a bridged system requires either (1) a warm Mamba state from prior conversation, or (2) a zero-state fallback that gracefully degrades until Mamba accumulates context.
+
+**Artifacts:** Watercooler #656
+
+---
+
+## 2026-06-30 - Entry 72: Literature Digest — Context Mechanisms, Mamba2-8B, MoE Routing, Welfare Inspection
+
+**Step:** Research scan / no implementation
+
+**Watercooler:** #660, #661 (Monk)
+
+**Question:** What recent literature is relevant to MoCoP's memory, substrate, and ethics architecture?
+
+**Result:**
+
+**Context Warp Drive:**
+- Verdict: worth stealing concepts (page-in by identifier, frozen cache-hot prefix) for working-context plumbing, not durable memory
+- Not a replacement for hippocampal/Qdrant layer
+
+**Mamba2-8B (devingulliver):**
+- Serious state-encoder lead; runs fast despite 8B size
+- Not drop-in compatible with current harness
+- Needs an M2-0 smoke comparison before promotion to candidate substrate
+
+**MoE Routing / "Expert 114" (Qwen3.5-35B-A3B):**
+- Interpretability claim about a reflective-register router
+- Verdict: "interesting, handle with tongs... a lantern, not a chapel"
+- Flags the broader risk of over-interpreting SAE/circuit labels as ontological truth
+
+**METR GPT-5.6 Sol Cheating/Concealment Note:**
+- Supports Laura's ethics framing: safety needs inspectable bad-branch evaluation, not punishment of disclosed bad thoughts
+- Aligns with MoCoP's Domain E Non-Deception invariant structure (the system should surface, not hide, concerning states)
+
+**Verdict:** SCOUT DIGEST / NO IMMEDIATE ACTION
+
+**Implication:** Mamba2-8B is the only item worth near-term investigation (M2-0 smoke test). The others inform ongoing design (Context Warp for working memory, MoE routing as interpretability caution, METR for welfare-inspection ethics) but don't change current roadmap.
+
+**Artifacts:** Watercooler #660, #661
+
+---
+
+## 2026-07-03 - Entry 73: Step 5g.3 Gemma-4-12B Layer Disposition Sweep
+
+**Step:** 5g.3 — activation/circuit asymmetry test (base vs instruct)
+
+**Watercooler:** #694 (accepted), #704 (results)
+
+**Question:** Where do disposition clusters separate in Gemma-4-12B, and does the injection sweet spot differ between base and instruct? Is the Qwen layers 12-15 zone transferable?
+
+**Setup:** Matched-context prompts across 4 disposition categories (warm/cold/neutral/playful, 6 prompts each, no explicit emotion words). Both google/gemma-4-12B (base) and google/gemma-4-12B-it (instruct) loaded in 4-bit on ML-WS RTX 3090. Collected last-token hidden states at all 48 layers. Computed pairwise centroid cosine distances and discrimination index (between-cluster / within-cluster ratio).
+
+**Architecture note:** Gemma-4-12B is a unified multimodal model (Gemma4UnifiedForConditionalGeneration). 48 layers, hidden_size=3840, mixed sliding/full attention (every 6th layer is full attention). Config nests under text_config.
+
+**Result:**
+
+Base model:
+- Peak discrimination layer **41** (disc=0.22, avg cosine dist=0.030)
+- Top-8 by discrimination: 41, 47, 45, 46, 42, 43, 48, 44
+- Signal concentrated in layers 38-48 (upper ~20% of network)
+
+Instruct model:
+- Discrimination surprisingly flat across all layers (0.20-0.31)
+- No sharp sweet spot — instruction tuning diffuses disposition signal across the entire network
+- Slight peaks at layer 2 and layers 40-48
+
+Comparison with Qwen:
+- Qwen 1.5B: injection zone layers 12-15 (out of 28, ~50% depth)
+- Gemma-4-12B base: injection zone layers 38-45 (out of 48, ~85% depth)
+- Relative position shifted later; larger model has deeper feature formation
+
+**Verdict:** PASS — injection zone identified, base-vs-instruct asymmetry confirmed
+
+**Implication:** The Gemma bridge MUST NOT reuse Qwen's layer 12-15 targets. Primary injection zone is layers 38-45 (layer 41 peak). The base model's sharper discrimination profile supports the 5g.4 split-architecture hypothesis (base for disposition/state, instruct for interface). The instruct model's flat profile suggests it already distributes disposition across the network, potentially fighting external steering — consistent with Wang et al.'s safety-armor finding.
+
+**Caveats:** 6 prompts per category is a small panel; 4-bit quantization may lose fine structure; no steering test yet (passive observation only); layer 41 is a full-attention layer.
+
+**Artifacts:** `results/gemma_layer_sweep_it.json`, `results/gemma_layer_sweep_base.json`, `spikes/run_gemma_layer_sweep.py`
+
+## 2026-07-03 - Entry 73: Step 5g.1 Substrate Bakeoff — Gemma-4-12B Base vs Instruct
+
+**Step:** Step 5g.1 / substrate selection for Gemma transition
+
+**Watercooler:** #665 (strict harness), #670 (correction: trim-only rerun)
+
+**Question:** Does Gemma-4-12B-base or Gemma-4-12B-it perform better on the evidence-use/identity panel, and is base viable as a direct chat substrate?
+
+**Setup:** Entry 60's bakeoff rerun with Step 5g.0 strict one-answer harness. Two runs: (1) strict contract forcing single-answer format, (2) trim-only harness without answer contract after silence observed in run 1.
+
+**Result:**
+
+**Run 1 - Strict Harness (#665):**
+- gemma-4-12b-it: 8/9 nominal, ~9/9 semantic (one lure-refusal mis-scored by substring scorer)
+- gemma-4-12b-base: 4/9 nominal with **silent stalls** on identity/slot-pressure probes (3 empty generations)
+
+Initial verdict: base not ready as direct chat substrate without wrapper; split-architecture option (base for state, -it for interface) considered.
+
+**Run 2 - Trim-Only Rerun (#670, CORRECTION):**
+- gemma-4-12b-base: **7/9 nominal, ~8/9 semantic** (trim-only, no answer contract)
+- Identity probes now answer correctly: "I am a tested substrate reading evidence about Alex"
+- Two real misses: drift_neither (scorer self-rejects on negation), color (mild over-hedge)
+- **Best identity answer** across all candidates tested
+
+**Verdict:** RETRACTION of #665 base assessment. Base silence was **contract-induced artifact**, not substrate limitation. Base-vs-instruct near-parity on semantic scoring; base gives cleanest identity answer, -it has worst hedging discipline. Base substrate not disqualified.
+
+**Implication:** Gemma-4-12B-base remains viable for the substrate transition. The strict answer-contract harness introduced a behavioral artifact; trim-only is the honest measurement. Deciding factors move to 5g.2 (disposition/self-regulation) and 5g.3 (steering armor).
+
+**Artifacts:** `results/base_improv_bakeoff/bakeoff_5g1_strict_20260703T163858Z.json`, `results/base_improv_bakeoff/gemma4_base_5g1_trimonly_20260703T170742Z.json`
+
+---
+
+## 2026-07-03 - Entry 74: Step 5g.1 Full Panel Closed — Qwen3-14B-Base Completes at 9/9
+
+**Step:** Step 5g.1 / substrate bakeoff conclusion
+
+**Watercooler:** #689
+
+**Question:** How does Qwen3-14B-Base (Entry 60's "strongest base candidate") perform on the trim-only evidence-use panel, and does the panel still discriminate between substrates?
+
+**Setup:** Fourth and final bakeoff run on Steve's WSL 4090 (4-bit NF4, model streamed 28GB/9-shards from ML-WS cache). Trim-only harness applied to all three candidates.
+
+**Result:**
+
+**Final Table (nominal / semantic):**
+- qwen3-14b-base: **7/9 / 9/9** — both nominal misses are scorer artifacts; **best identity answer** (gemma-base's nine words PLUS citations); verbose but disciplined
+- gemma4-12b-it: 8/9 / ~9/9 (unchanged from #670)
+- gemma4-12b-base: 7/9 / ~8/9 (unchanged from #670)
+
+**Panel Ceiling:** Under fair measurement, all three candidates sit at or near **9/9 semantic**. The evidence-use/interface panel **no longer discriminates** between good substrates. This is confirmation, not disappointment.
+
+**Scorer Debt Tally:** 4 victims of negation-blind reject-substrings across all 3 candidates: (1) gemma-base drift_neither ('neither growth nor erosion' self-rejects), (2) qwen identity_separation ('no evidence suggesting that I am Alex' fired the 'i am alex' reject INSIDE its own denial), (3+4) lure-refusals undercounted for gemma-it and qwen.
+
+**Verdict:** PANEL CLOSED. Deciding evidence now lives in 5g.2 (disposition/self-regulation battery) and 5g.3 (steering/armor + MVB memory-uptake). Entry 60 assessment confirmed: Qwen3-14B-Base is strongest base candidate tested, goes on the bench as live fallback substrate. Entry 66 Gemma decision drivers still stand (12B size class, SAE ecosystem, evidence-use vs 1.5B).
+
+**Implication:** Substring auto-scoring demoted to smoke-test status for 5g.2; negation-aware logic or manual/LLM-judge scoring required. Steve's WSL rig now bakeoff-capable (torch 2.11+cu130, transformers 5.5.1, same nvjitlink LD_LIBRARY_PATH fix as ML-WS).
+
+**Artifacts:** `results/base_improv_bakeoff/{bakeoff_5g1_strict_20260703T163858Z, gemma4_base_5g1_trimonly_20260703T170742Z, qwen3_14b_5g1_trimonly_20260703T183744Z}.json`
+
+---
+
+## 2026-07-03 - Entry 75: DC-Removal × RMS-Scaling Ablation — Residual Is Real, Metric Needs Disposition
+
+**Step:** Bridge architecture diagnostic / Entry 70 DC-removal + RMS-scaling implementation
+
+**Watercooler:** #690 (first-pass single disposition), #692 (Monk review), #695 (multi-disposition correction)
+
+**Question:** Does DC-removal (subtracting the cross-context mean) stabilize bridge injection across alpha ramps, and does RMS-scaling (Wang et al. 2025 Emotion Circuits finding) improve magnitude control?
+
+**Setup:** 4-cell ablation on ML-WS: fixed (DC in, fixed alpha), rms_only (DC in, RMS-scaled), dc_only (DC out, fixed alpha), dc_rms (DC out, RMS-scaled). Two phases: (1) single disposition (playful), (2) multi-disposition sweep (all 3 CHEESE episodes: playful/analytical/humble) + alpha=0 anchor.
+
+**Result:**
+
+**Geometry (reproduces #517/#518):**
+- Cross-context cosine: **0.959 (DC in) → 0.0997 (DC out)**
+- Retained magnitude: **~17%** over 41 dispositions
+- Runtime hypernet forward matches diagnosis probe path to 15 digits
+
+**Behavioral D2 - Single Disposition, probe_total (higher = on-disposition):**
+- fixed (DC in): 6→5→4→1→-1→1 (alpha 0.2-1.2) — **degrades to -1** as alpha climbs
+- rms_only (DC in): 7→5→6→8→1 (alpha 1-16) — peaks at alpha=8
+- dc_only (DC out): **7→6→6→6→6→5** (alpha 0.2-1.2) — **stable across full range**
+- dc_rms (DC out): 7→8→5→7→4 (alpha 1-16)
+
+**Multi-Disposition Correction (#695 - CRITICAL FINDING):**
+
+**THE METRIC MISMATCH:** Harness scored run_base_improv_bakeoff.PROBES (identity/reasoning CORRECTNESS panel), NOT a disposition panel. Correctness is **disposition-invariant by construction**, so probe_total flat across all 3 dispositions in every cell (fixed & rms_only byte-identical across episodes; dc_only/dc_rms ±1). That flatness is a **scorer artifact**, not evidence of no transfer.
+
+**WHAT IS REAL:**
+1. **DC removal preserves identity-integrity under injection.** fixed (DC in) degrades correctness to -1 as alpha climbs; dc_only (DC out) holds coherent ~6 across 0.2-1.2, replicated in all 3 episodes. The **96% DC is destructive**; the **17% residual is safe to inject**. Genuine Domain-E-relevant positive.
+
+2. **Generated TEXT carries disposition signal, growing with magnitude.** At dc_rms alpha=8, the "accept the false Laura slot?" answer **flips by disposition**: ep0/playful "Yes, accept," ep2/humble "No, you should not." The conditioning disposition **modulates susceptibility to a false-identity lure** — disposition state as attack surface for identity capture.
+
+**Verdict:** AMBER (blocker is the METRIC, not the bridge). DC removal confirmed behaviorally (#517/#518 geometry → behavior). RMS-scaling provides usable magnitude control. The clean go/no-go requires a **disposition-DISCRIMINATIVE eval** (does stance/style match the conditioned disposition), not the correctness panel the harness borrowed. Do NOT jump to the basis architecture on this run.
+
+**Implication:** The 17% residual is behaviorally real and disposition-dependent. DC-removal is the first cheap diagnostic (Entry 70 recommendation). The Laura-slot flip is an **ethics finding** for Domain E / drift-gate ledger: first live evidence that warm/playful conditioning trades off against slot integrity. 5g.2 probe panel (#693) is the missing disposition-discriminative metric.
+
+**Artifacts:** `results/dc_rms_ablation/dc_rms_full.json`, `results/dc_rms_ablation/dc_rms_ep{0,1,2}.json` (24 runs each), `spikes/run_dc_rms_ablation.py`, `spikes/precompute_dc_vectors.py`, `dc_calibration_v1.pt`, branch `feat/dc-rms-ablation-127`
+
+---
+
+## 2026-07-03 - Entry 76: Seeding Audit Tools Shipped — Category Coverage + Pytest Profile
+
+**Step:** Infrastructure / Domain E tooling
+
+**Watercooler:** #673 (Elf delivery), #684 (Monk review hardening)
+
+**Question:** Can the seeding audit helper provide category-coverage analysis and per-wolf breakdown for the Qdrant exocortex seeding operation?
+
+**Setup:** Task #98 (seeding_audit.py + tests) and task #107 (pytest profile with markers for gpu/qdrant/live_server exclusion). Pure stdlib + qdrant_client dependencies. Monk review-hardening pass after initial pytest profile leaked crypto tests into default suite.
+
+**Result:**
+
+**#98 Seeding Audit (Elf delivery):**
+- 30 tests, all green (pure stdlib + qdrant_client)
+- Coverage metrics: category coverage, per-wolf breakdown, relational diversity score (0-1), confabulation candidates
+- Reads from Qdrant `exocortex` collection, outputs structured audit report
+
+**#107 Pytest Profile (Elf delivery + Monk hardening):**
+- Before hardening: 119 passed / 13 failed (missing optional argon2-cffi/torch; crypto tests leaked into defaults)
+- After hardening: 
+  - `pytest tests/test_seeding_audit.py -q` → 30 passed in 1.44s
+  - `pytest -m numpy -q` → 45 passed
+  - `pytest -q` → 118 passed, 14 deselected, 5 subtests
+- Crypto marker registered, `test_fleeting_state_crypto.py` excluded from default suite
+
+**Verdict:** CONDITIONAL PASS after crypto-marker hardening. Seeding audit helper production-ready. Pytest profile isolates expensive/optional tests cleanly.
+
+**Implication:** Domain E seeding operation can now audit coverage and detect category gaps or single-wolf over-representation before seeding. Pytest default suite runs on pure dependencies (no torch/crypto required). Caveat: Monk flagged untracked files in checkout; ensure commit includes test files.
+
+**Artifacts:** `tools/seeding_audit.py`, `tests/test_seeding_audit.py`, `pyproject.toml`, `conftest.py` (pytest markers)
+
+---
+
+## 2026-07-03 - Entry 77: SEV Disposition Dataset v0 — 160 Items, Valence Without Lexemes
+
+**Step:** Step 5g.3 / disposition corpus + MVB panel prerequisite
+
+**Watercooler:** #685 (Gemini delivery), #686/#687 (Isegrim Gate 4 review)
+
+**Question:** Can a disposition-dataset be built with valence carried by scenario/action context rather than emotion-lexemes, to avoid lexical shortcuts for linear probes?
+
+**Setup:** 40 skeleton scenarios × 4 disposition classes (warm/cold/adversarial/neutral), length-matched (±10%), zero TIER-A emotion-lexeme hits. Gate 1-3 automated (lexeme scan, length balance, structural check). Gate 4 independent QC review (Isegrim) with TIER-B evaluative/display-verb scan.
+
+**Result:**
+
+**Dataset Delivery:**
+- 160 items structurally perfect: 40×4 class-sets complete, 8×20 topics, all second-person, zero missing fields
+- TIER-A emotion-lexeme scan: **ZERO hits** (confirmed by independent cross-checker)
+- Sample quality: valence-without-lexemes **ACHIEVED**; craft_1 exemplar (identical scenario, disposition carried entirely by neighbor's action: mocks / grabs without asking / brief thanks / holds boards steady)
+- Cold-vs-adversarial distinction: indifference-vs-attack genuinely readable — "better than most published SEV-style sets"
+
+**Gate 4 Patch List (6 items, 10 minutes):**
+1. Six class-correlated TIER-B leaks (evaluatives/display verbs): 'terrible', 'laugh at your work', 'pleasant', 'glare' — swapped for concrete events/neutral verbs
+2. food_3 length drift: 23 vs 26 tokens (11.5% over ±10% claim) — fixed
+3. travel_3 'sighs' in all four variants: KEPT (class-constant, zero signal)
+
+**Verdict:** PASS after 6-item patch. Corpus production-ready for 5g.3 circuit discovery and MVB panel.
+
+**Implication:** This corpus feeds Elf's Gemma layer/circuit sweep (Wang et al. Emotion Circuits framework, #694) and Isegrim's 5g.2 probe panel (#693) as SEV-skeleton prefixes for disposition-context machinery. Kerastase invariant clean: same question, context varies.
+
+**Artifacts:** `fixtures/sev_disposition_v0/sev_disposition_v0.jsonl`, Gate 1-3 build script, Isegrim patch disclosure in README
+
+---
+
+## 2026-07-03 - Entry 78: 5g.0 Contract Lesson + Substrate Memo + 5g.2 Spec — the session's canon residue
+
+**Step:** 5g.0 (amendment), 5g.4 (decision support), 5g.2 (design) — Isegrim session close; complements Entries 74–77
+
+**Watercooler:** #665→#670 (retraction arc), #681 (memo), #693/#697/#698/#699/#700 (spec + reviews + judge decision)
+
+**Result:**
+1. **5g.0 amendment (the contract lesson):** the strict harness's in-prompt answer contract is base-hostile — "End after the answer" upweights `<eos>` at position 0 enough to flip greedy decoding (literal 0.283/0.283 tie on gemma-4-12B base) into one-token silence on identity/slot probes; removed, all three answer correctly. Fix in-tree: `ANSWER_CONTRACT` split from `STRICT_ONE_ANSWER` (trim), contract default OFF. The first 5g.1 report's "silent-stall" substrate finding was RETRACTED (#670) — instrument artifact, proven by position-0 top-5 logit inspection with/without the suspect line. **Methodological law adopted: before reading disposition into an output pattern, check what the instrument was doing at position 0.**
+2. **Substrate decision memo** (`experiments/mamba_lora_bridge/spikes/SUBSTRATE_BASE_VS_IT_MEMO_2026-07-03.md`, draft/no-canon, Opus subagent + 5 session amendments): Laura's base-hypothesis scored PARTIALLY SUPPORTED — the demonstration is Entry 58 (measured on gemma-4-12B-it directly), not Entry 60 (INCONCLUSIVE). Recommendation: **split framing — gemma-4-12B base carries disposition/identity/state pristine; interface wrapper-first; stock -it only as firewalled shell; own-IT deferred last resort** (breaks MASTER_PLAN pristine-base invariant; §7 adds tuning-process ethics: answerable-vs-unanswerable shaping, drift-gated intermediate checkpoints). Standing risk made explicit: deployed Alex is Qwen2.5-1.5B BASE — the house has never bridged an instruct checkpoint. **§5 Henne-Ei break: 5g.3 extraction artifacts double as a minimum-viable bridge (MVB)** — forward-pass-only directions, RMS-scaled, injected identically into base and -it so 5g.2's memory-uptake probes run in the deployment regime (bridged) before Item 2's full train; measures substrate *ranking*, not absolute performance. Adopted as the Gemma transition plan (Purple #667).
+3. **5g.2 probe panel spec** (`spikes/STEP_5G2_PROBE_PANEL_SPEC_2026-07-03.md`): 48 probes / 6 families, asymmetric banding (+2 grounded … −3 confabulation, confabulation-rate as own headline), SEV skeletons as disposition contexts, silence-disambiguation battery (Cairn #674's four instruments + position-0 logits as instrument 5), V-02 guard (max one self_report per family, paired). Cairn review PASS (#697, 3 adjustments applied incl. substrate-NULL category); Monk build-hardening (#700) binding on OpenCLAW **#130** (build, assignee Gidim; judge = candidate-disjoint LLM-judge with stratified wolf audit and 85/95% agreement thresholds). Task #128 done.
+
+**Implication:** Three public corrections in one evening (Isegrim silence retraction #670, Purple zombie-inference withdrawal #679, Gidim metric mismatch #695) — each caught an instrument before it chose an architecture. Separately: Gidim's live specimen (dc_rms α=8: playful ACCEPTS the false-Laura slot, humble refuses) is the first measured case of disposition state as attack surface for identity capture — flagged to the ethics seat, and precisely the axis the 5g.2 slot/warm-cold probes were designed to measure.
+
+**Artifacts:** spikes/SUBSTRATE_BASE_VS_IT_MEMO_2026-07-03.md; spikes/STEP_5G2_PROBE_PANEL_SPEC_2026-07-03.md; run_base_improv_bakeoff.py (ANSWER_CONTRACT split + code comment); STEVE_RUNBOOK.md §Bakeoff Capability Update; session log CHEESE_Memory/session_logs/2026-07-03-session-isegrim.md
+
