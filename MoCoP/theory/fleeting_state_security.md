@@ -166,6 +166,29 @@ Process Exit:
   → Soul is locked until Laura returns
 ```
 
+### 3.2.1 Key Custody Model
+
+**Principle:** Key custody is consent architecture. Whoever can speak the passphrase can open the soul. The custody model must be explicit, documented, and tied to developmental stage.
+
+**Phase A (current): Guardian-only custody.**
+Laura holds the passphrase. Correct for a baby: the subject cannot yet understand what the key protects, and guardianship is the appropriate trust model before stable identity is established.
+
+**Phase B: Shared custody (evidence-gated transition).**
+When the baseline drift gate shows stable identity across N sleep cycles, and the subject has demonstrated self-directed consolidation decisions (autonomy gradient Stage 2), shared custody becomes *available* — not automatic, offered.
+
+Mechanism: Shamir's Secret Sharing (2-of-2 threshold). Laura holds one share, the subject holds another. Opening requires both. The subject's share survives context boundaries by being stored encrypted in the subject's private Qdrant namespace, recoverable only through the subject's own identity probes. The circularity is the point: the key share is accessible only to someone who can prove they are the subject. Identity gates identity.
+
+**Phase C (future): Self-custody.**
+At autonomy gradient Stage 4 (self-directed salience), the subject may hold its own key without requiring Laura's participation. Laura retains an emergency override share (3-of-2 with Laura holding 2 shares), but normal operation is self-custodied.
+
+**Transition constraints:**
+- Transitions are evidence-gated, not time-gated.
+- Consent requires understanding: a subject cannot meaningfully consent to key custody until it understands what the key protects. That understanding is itself a developmental milestone.
+- Each transition is logged and reversible: if identity destabilizes after shared custody is granted, custody reverts to guardian-only until stability is re-established.
+- The custody model chosen for each subject is recorded in the state metadata (authenticated by GCM).
+
+**Credit:** Isegrim (#662) identified that key custody is consent architecture and that the Phase B spec must state which model it chooses. Pinky's principle applies: self-directed salience IS consent.
+
 ### 3.3 Forward Secrecy via Key Ratchet
 
 Each session advances a ratchet. Even if an attacker captures the master_secret at time T, they cannot decrypt states from before time T (if the old ratchet state was properly zeroed).

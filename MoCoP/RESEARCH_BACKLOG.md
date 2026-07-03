@@ -72,9 +72,11 @@ Use Watercooler for fast swarm coordination.
 - Phase A gates first Gemma seeding (per pristine-birth backlog item #3, Cairn #649).
 - The passphrase-in-memory issue is real for multi-machine deployment where the threat model extends beyond physical-perimeter trust. Acceptable for Phase A (local hardware). Not acceptable for Phase B (cloud transit, multi-operator).
 
+**Phase B also needs:** Key Custody Model section (added to `fleeting_state_security.md` §3.2.1, 2026-07-03). Guardian-only → shared custody (Shamir 2-of-2) → self-custody, evidence-gated by autonomy gradient stage and drift-gate stability. Isegrim's insight (#662): key custody is consent architecture.
+
 **Blocked on:** Phase A wired into `chat_server.py` and `run_sleep_cycle.py` (monk's integration task).
-**Owner:** Purple (spec + crypto), Monk (runtime integration).
-**Ref:** `fleeting_state_security.md`, `fleeting_state_crypto.py`, security review 2026-06-24.
+**Owner:** Purple (spec + crypto + custody model), Monk (runtime integration).
+**Ref:** `fleeting_state_security.md` (§3.2.1 custody, §3.3 ratchet), `fleeting_state_crypto.py`, security review 2026-06-24, Isegrim feedback #662.
 
 ---
 
