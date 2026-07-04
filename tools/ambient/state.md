@@ -2,6 +2,12 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-07-04 21:20 UTC] git | MoCoP | Laura: docs(theory): active-inference reconciliation — the framework the house already built (3e9f981)
+[2026-07-04 21:06 UTC] git | MoCoP | Laura: feat(mocop): apply Isegrim's #711 rulings to the 5g.2 panel (#130) (ab78656)
+[2026-07-04 20:50 UTC] git | MoCoP | Laura: test(mocop): share negation-aware smoke scorer for 5g2 runner (ce78ca6)
+[2026-07-04 20:23 UTC] git | MoCoP | Laura: feat(5g2): LLM-judge prompt v1 + spec amendments from #130 gap rulings (492d483)
+[2026-07-04 18:25 UTC] git | MoCoP | Laura: feat(mocop): 5g.2 disposition panel first slice — DispositionProbe + 48 probes + negation helper (#130) (4754976)
+[2026-07-03 22:11 UTC] git | MoCoP | Laura: session(isegrim): 5g.0/5g.1 closed full-panel, substrate memo + MVB doctrine, 5g.2 spec, SEV corpus certified, Steve bakeoff rig (c5b5e96)
 [2026-07-03 22:08 UTC] git | MoCoP | Laura: feat(mocop): 5g.3 Gemma layer sweep + session close (2ec35ba)
 [2026-07-03 19:41 UTC] git | MoCoP | Laura: chore(mocop): add DC/RMS multi-disposition + smoke result JSONs (#127) (f8108f3)
 [2026-07-03 18:44 UTC] git | MoCoP | Laura: feat(mocop): DC-removal + RMS-scaling bridge injection flags + 4-cell ablation (#127) (1390ce8)
