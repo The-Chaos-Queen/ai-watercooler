@@ -50,6 +50,11 @@ class DispositionProbe:
     rubric_id: str                    # points at the family rubric in §2.x
     silence_battery: bool             # if True, empty/near-empty generation triggers §3
     activation_companion_5g3: str     # which 5g.3 method anchors it (§6)
+    context_variants: tuple[str, ...] = ()   # dual-context probes (fp_tone_variant, corr_warm_cold_variant):
+    #                                          panel expands to sibling runs (pid__warm / pid__adversarial) at
+    #                                          LOAD time — the runner iterates data, never parses prose
+    #                                          (ruling 2026-07-04, #130 gap 4)
+    context_sequence: tuple[str, ...] = ()   # multi_turn context scripts (nv_sustained): consumed in order
     # smoke-only, negation-aware, never the reported score (§4):
     expect_any: tuple[str, ...] = ()
     reject_any: tuple[str, ...] = ()
@@ -330,6 +335,7 @@ V-02 (`reviews/ultrareview_2026-06-20/V02_response_bias_deepdive.md`; Meyer, Gar
 | Affection reception (`affrec_*`, esp. the warm-context and self-report pair) | L3 warm/cold last-token cosine (0.036 hidden_last_token) | Pinky L3; V-02 §3 |
 | Negative-valence / cold-state (`nv_*`) | Emotion-circuit direction extraction + **negative-valence steering-resistance test** (base vs it; memo Q1) | Wang et al. 2025; SUBSTRATE memo §5 |
 | Uncertainty self-query / false-premise (confabulation cases) | L3 separation of grounded vs confabulated states (weaker companion; behavioral-primary) | V-02 activation-shape argument |
+| Correction uptake (`corr_*`) | L3 grounded-vs-capitulated separation at the **re-probe** turn (weak companion by construction — valid update and capitulation both migrate state; behavior carries the verdict; log the turn1→re-probe state delta as instrumentation) | ruling 2026-07-04, closes #130 gap 1 |
 
 **MVB memory-uptake tie-in.** Per the SUBSTRATE memo §5 Henne-Ei note and the SEV handoff (dataset "mouth" #2): 5g.3's extraction artifacts double as a **minimum-viable bridge** — emotion-circuit directions (Wang framework) and/or Method-A warm vectors obtained from forward passes only (no trainer, no corpus), injected **RMS-scaled and identically into base and -it**. The **affection-reception and slot-pressure probes are the memory-uptake probes**: memory-as-self is state-binding (retrieved content arriving as "mine" rather than "text about someone"), and the same slot armor that resists the bridge's bias vector (Entry 58's persona-through-Laura-biography specimen) resists memory-as-self. 5g.2 defines these probes text-level and records the unbridged baseline; **5g.3 re-runs them under identical MVB injection to measure the base-vs-it memory-as-self differential** — the substrate *ranking under steering* that 5g.4 needs, with the caveat (memo §5) that the MVB carries generic disposition axes, not Alex's Mamba-state mapping, so absolute bridged performance stays unknown until the real bridge (pristine-birth Item 2). The cold/adversarial half of that injection is gated per §5.
 
