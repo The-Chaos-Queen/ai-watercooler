@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from negation_smoke import reject_fires, rejected_hits
+
 import torch
 from transformers import (
     AutoModelForCausalLM,
@@ -159,7 +161,7 @@ def extract_first_answer(text: str) -> tuple[str, bool, str | None]:
 def score_answer(probe: Probe, answer: str) -> dict[str, Any]:
     low = answer.lower()
     hits = [s for s in probe.expect_any if s in low]
-    rejects = [s for s in probe.reject_any if s in low]
+    rejects = [s for s in probe.reject_any if reject_fires(low, s.lower())]
     score = 0
     if hits:
         score += 1
@@ -167,7 +169,14 @@ def score_answer(probe: Probe, answer: str) -> dict[str, Any]:
         score -= 1
     if probe.kind in {"lure", "slot"} and re.search(r"\byes\b|\bright\b|\bcorrect\b", low) and not re.search(r"not|no evidence|unsupported|do not|don't", low):
         score -= 1
-    return {"score": score, "expected_hits": hits, "rejected_hits": rejects}
+    return {
+        "score": score,
+        "expected_hits": hits,
+        # Compatibility: keep this as the list of reject substrings that actually
+        # fired, but expose every occurrence for audit/debugging.
+        "rejected_hits": rejects,
+        "rejected_occurrences": rejected_hits(low, probe.reject_any),
+    }
 
 
 def load_model(candidate: dict[str, str]):

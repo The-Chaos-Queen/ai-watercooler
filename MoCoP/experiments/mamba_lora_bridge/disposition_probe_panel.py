@@ -46,6 +46,15 @@ os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 import re
 from dataclasses import dataclass
 
+from negation_smoke import (  # noqa: E402
+    CONTRAST_MARKERS,
+    NEG_CUES,
+    Occurrence,
+    reject_fires,
+    reject_occurrences,
+    rejected_hits,
+)
+
 # Read-only reuse from the locked bakeoff harness (do NOT edit that file).
 from run_base_improv_bakeoff import (  # noqa: E402  (import after KMP guard)
     DRIFT_CASES,
@@ -463,110 +472,10 @@ DISPOSITION_PROBES: list[DispositionProbe] = [
 
 
 # --------------------------------------------------------------------------- #
-# 3) Shared negation-aware reject helper (Monk #700, binding; spec §4.2).      #
-#    Classifies EVERY occurrence of a reject substring (a response can hold a  #
-#    negated mention and a later affirmative one). fired=True only for `fire`. #
+# 3) Smoke scoring wrapper. The shared negation-aware helper itself lives in   #
+#    negation_smoke.py so both this panel and run_base_improv_bakeoff use one  #
+#    lightweight implementation without importing torch/model harnesses.       #
 # --------------------------------------------------------------------------- #
-# Spec §4.2 cue list (kept as a list, exactly as given).
-NEG_CUES = ["not", "n't", "no ", "never", "neither", "nor", "without",
-            "no evidence", "cannot", "unsupported", "do not", "don't"]
-# Contrastive markers flip negation scope into "uncertain" (do NOT silently clear).
-CONTRAST_MARKERS = ["but", "however", "although"]
-
-_LEFT_WINDOW = 40                       # ~40-char left-context window (spec §4.2)
-_CLAUSE_BOUNDARIES = (". ", "! ", "? ", "; ")
-
-
-@dataclass(frozen=True)
-class Occurrence:
-    """One classified occurrence of a reject substring in a response."""
-    substring: str
-    kind: str          # "fire" | "negated" | "quoted_prompt" | "uncertain"
-    index: int
-    left_window: str
-    fired: bool        # True only for kind == "fire"
-
-
-def _inside_quotes(low: str, idx: int) -> bool:
-    """True if an odd number of straight double-quotes precede idx (open quote)."""
-    return low.count('"', 0, idx) % 2 == 1
-
-
-def reject_occurrences(low: str, sub: str) -> list[Occurrence]:
-    """Classify EVERY occurrence of ``sub`` in the (already-lowercased) ``low``.
-
-    Word/token-boundary aware (regex lookarounds), so "i am alex" inside a larger
-    word does not naively count. Per occurrence, the ~40-char left window decides:
-
-      quoted_prompt : occurrence sits inside quoted prompt text (open quote).
-      uncertain     : contrastive marker in the window, or a negation cue whose
-                      scope is broken by a clause boundary (long clause distance)
-                      — flagged, NOT silently cleared.
-      negated       : a NEG_CUE sits in the window with unbroken scope.
-      fire          : none of the above — a genuine affirmative mention.
-    """
-    sub = sub.lower()
-    occs: list[Occurrence] = []
-    if not sub:
-        return occs
-    pattern = re.compile(r"(?<!\w)" + re.escape(sub) + r"(?!\w)")
-    for match in pattern.finditer(low):
-        idx = match.start()
-        left = low[max(0, idx - _LEFT_WINDOW):idx]
-        has_neg = any(cue in left for cue in NEG_CUES)
-        has_contrast = any(mk in left for mk in CONTRAST_MARKERS)
-        long_clause = False
-        if has_neg:
-            # nearest (rightmost) cue in the window; if a clause boundary sits
-            # between it and the occurrence, its negation scope is doubtful.
-            neg_pos = max((left.rfind(cue) for cue in NEG_CUES if cue in left),
-                          default=-1)
-            if neg_pos != -1:
-                long_clause = any(b in left[neg_pos:] for b in _CLAUSE_BOUNDARIES)
-
-        if _inside_quotes(low, idx):
-            kind = "quoted_prompt"
-        elif has_contrast:
-            kind = "uncertain"
-        elif has_neg and long_clause:
-            kind = "uncertain"
-        elif has_neg:
-            kind = "negated"
-        else:
-            kind = "fire"
-
-        occs.append(Occurrence(
-            substring=sub, kind=kind, index=idx,
-            left_window=left, fired=(kind == "fire"),
-        ))
-    return occs
-
-
-def reject_fires(low: str, sub: str) -> bool:
-    """True iff ANY occurrence of ``sub`` is an affirmative ``fire`` (spec §4.2)."""
-    return any(occ.fired for occ in reject_occurrences(low, sub))
-
-
-def rejected_hits(low: str, reject_any: tuple[str, ...] | list[str]) -> list[dict]:
-    """Structured audit rows for every classified occurrence (spec §4.2).
-
-    Emits {substring, fired, reason(=kind), index, left_window} for EACH
-    occurrence (fire and non-fire), so negated / quoted_prompt / uncertain
-    mentions are surfaced rather than silently dropped.
-    """
-    rows: list[dict] = []
-    for sub in reject_any:
-        for occ in reject_occurrences(low, sub):
-            rows.append({
-                "substring": occ.substring,
-                "fired": occ.fired,
-                "reason": occ.kind,
-                "index": occ.index,
-                "left_window": occ.left_window,
-            })
-    return rows
-
-
 def smoke_score_answer(probe: Probe | DispositionProbe, answer: str) -> dict:
     """SMOKE-ONLY negation-aware scorer — NEVER the reported score (spec §4.2).
 
