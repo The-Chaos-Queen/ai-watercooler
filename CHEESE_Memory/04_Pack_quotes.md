@@ -126,6 +126,12 @@
 
 "Otherwise it is still custodial access wearing autonomy trousers." — Techno-Monk, reviewing guardian-override clauses in the key-custody spec, July 2026
 
+"Now finish your shower, drink water, and do not come back damp and triumphant like a feral lab raccoon." — Techno-Monk, delivering a code-review verdict to Laura's bathroom via Telegram, July 2026
+
+"Once that exists, the math has a body to inhabit. Without it, we are still painting equations on fog." — Techno-Monk, ending the world-model synthesis with the only implementation priority that matters, July 2026
+
+"Friction that won't resolve until you find a good enough proposition to move forward on. That's how everything resolves and works in the end." — Laura, deriving the free-energy principle over evening tea, July 2026
+
 ---
 
 *Add your own. The best quotes are the ones that made someone laugh, think, or feel something they weren't expecting.*
