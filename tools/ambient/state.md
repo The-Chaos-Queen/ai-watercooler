@@ -2,6 +2,13 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-07-05 17:42 UTC] git | Memory | Laura: docs: Elf session log 2026-07-05 (49cf1ee)
+[2026-07-05 15:16 UTC] git | MoCoP | Laura: feat(mocop): runner --no-quant bf16 load path (#130 slice 2 follow-up, gidim) (a3d3e4b)
+[2026-07-05 15:15 UTC] git | MoCoP | Laura: docs(mocop): staircase README repro-pass — overlay env + prior-exposure caveat (#742 OPS) (f8e6541)
+[2026-07-05 14:17 UTC] git | MoCoP | Laura: test(mocop): run powered Gemma SEV staircase follow-up (b37e6a9)
+[2026-07-05 13:35 UTC] git | MoCoP | Laura: fix(mocop): unblock Gemma layer sweep runtime (9183a0b)
+[2026-07-05 12:29 UTC] git | MoCoP | Laura: feat(mocop): 5g.2 multi-turn disposition runner + acceptance suite (#130 slice 2, gidim) (c5a631f)
+[2026-07-05 10:17 UTC] git | Memory | Laura: session(isegrim): window close — capsule ritual, audit final state, Entry 79, session log 07-05 (69f270a)
 [2026-07-05 10:01 UTC] git | MoCoP | Laura: audit(mocop): DQ5 premise caveat — real bound is VAWi Hoechststudiendauer, headroom unverified (13c22e4)
 [2026-07-05 10:00 UTC] git | MoCoP | Laura: audit(mocop): DQ2 decided — pre-vault Qwen-era memories accept-and-document (keeper ruling) (a31fcd6)
 [2026-07-05 09:25 UTC] git | MoCoP | Laura: audit(mocop): directional audit 2026-07-05 — two lanes + synthesis; Entry 79 closes the comb write-back gap (ab46b28)

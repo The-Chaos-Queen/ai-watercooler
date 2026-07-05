@@ -161,6 +161,32 @@ Do not blindly "fix" it back to Steve's older `torch 2.7.0+cu126` stack unless t
 
 ### Gemma-4 / DQ1a runtime fix (verified 2026-07-05)
 
+> **⚠ ENV VERDICT (corrected same day — Isegrim; wc #743 causal claim retracted, see closure post).**
+> torch311 was ROLLED BACK to `transformers==5.6.2` on 2026-07-05 (keeper-authorized), and the
+> **production bridge stack is verified GREEN at 5.6.2**: chat_server boot smoke on a throwaway
+> port with checkpoint `cheese_reincarnation_bridge_1.5b_codexfix.pt` — v_proj patch at layers
+> 12–15, live injection at α=0.2, `/status` healthy (`bridge_loaded: true`). Lobby-Alex is bootable.
+>
+> - Bridge compatibility with transformers 5.10-dev / 5.14-dev is **UNMEASURED**. The first
+>   adjudication used `smoke_test.py`, whose default BridgeConfig expects a 5120-wide
+>   (non-production) compressor geometry; it fails identically at 5.6.2 / 5.10 / 5.14
+>   ("got 2560, expected 5120") and is therefore NOT a valid bridge smoke on this host.
+>   Follow-up filed: give it a checkpoint-faithful `--bridge-path` mode. The valid smoke is
+>   the throwaway-port chat_server boot used above.
+> - Standing doctrine (grounded in conservatism + the only verified-green datum, not in
+>   measured breakage): **torch311 stays pinned at `transformers==5.6.2` — the BRIDGE env**
+>   (chat_server / live Mamba extraction / compressor contract). **Gemma eval work runs in
+>   the `gemma4-mocop` overlay venv** (see "Gemma-4 Loading" above; proven by the #130
+>   gemma-primary run, wc #737).
+> - DQ1a needs NO single env: extract Mamba-side artifacts in the bridge env, ship tensors,
+>   inject/measure on Gemma in the overlay (MVB-style artifact shipping).
+> - **2026-07-05 addendum (Gemma chat_server scoping):** the production Mamba WIDTH contract
+>   (layer-3 `hidden_last_token` `[1, 2560]`, n_hidden_states 65) is verified **GREEN under the
+>   `gemma4-mocop` overlay (5.10-dev)** — a future single-env Gemma chat_server is NOT blocked
+>   by extraction width. Still untested at 5.10-dev: the incremental `cache_params` path
+>   (live accumulation) and the full compressor→injection pipeline. Note: 5.10-dev deprecates
+>   `torch_dtype=` in favor of `dtype=` — integration code should use the new kwarg.
+
 Ghost's Qwen fallback exposed two ML-WS blockers for the Gemma-primary/DQ1a path:
 
 1. `torch311`'s released `transformers 5.6.2` did not recognize Gemma-4 checkpoints:
@@ -168,13 +194,23 @@ Ghost's Qwen fallback exposed two ML-WS blockers for the Gemma-primary/DQ1a path
 2. `bitsandbytes` could not find CUDA 13 JIT/linker libraries unless the CUDA-13 wheel library path was exported:
    `libnvJitLink.so.13: cannot open shared object file`.
 
-Fix applied on ML-WS in `torch311`:
+> **⚠ SUPERSEDED — HISTORICAL RECORD ONLY (same day, #747 rollback; patch per Gidim #760).**
+> Everything from here to the end of this subsection describes the fix AS ORIGINALLY APPLIED,
+> which was REVERTED the same day: `torch311` is pinned back to `transformers==5.6.2` (see the
+> ENV VERDICT block above). **Do NOT run the pip install below — it re-breaks the bridge env
+> and undoes a keeper-authorized rollback.** The LIVE gemma path is the `gemma4-mocop` overlay
+> venv (see "Gemma-4 (`gemma4_unified`) Loading" below): run sweep/staircase commands with
+> `/home/isabell/venvs/gemma4-mocop/bin/python` plus the same LD_LIBRARY_PATH/HF_HOME exports.
+> The `LD_LIBRARY_PATH` export itself remains valid in every era.
+
+Fix as originally applied on ML-WS in `torch311` (**since reverted — historical**):
 
 ```bash
-# Required before bnb/4-bit runs in this env.
+# Required before bnb/4-bit runs in this env. (Still true today.)
 export LD_LIBRARY_PATH=/home/isabell/miniforge3/envs/torch311/lib/python3.11/site-packages/nvidia/cu13/lib:${LD_LIBRARY_PATH:-}
 
 # Gemma-4 architecture support. Installed commit b70d02fc724d04c916832ca4ead03ff05e8fb1ee.
+# REVERTED same day — do not re-run (see banner above).
 ~/miniforge3/bin/mamba run -n torch311 python -m pip install --upgrade \
   'git+https://github.com/huggingface/transformers.git'
 ```
@@ -207,7 +243,7 @@ Gemma layer-sweep script support:
 - Keep `--no-quant` as the fallback if the 4-bit conversion path regresses; it loads bf16 with CPU offload and was smoke-tested, but is slower/less memory-efficient.
 - Use `--max-prompts-per-category 1` for smoke only; omit it for the full DQ1a/Gemma geometry sweep.
 
-Verified smoke commands on ML-WS:
+Smoke commands as run on 2026-07-05 under the since-reverted 5.14 install (**historical** — for a rerun today, replace `~/miniforge3/bin/mamba run -n torch311 python` with `/home/isabell/venvs/gemma4-mocop/bin/python` and add the HF_HOME/HF_HUB_CACHE exports; see the results README `staircase_sev_20260705` for the current canonical command):
 
 ```bash
 cd /home/isabell/mocop/mamba_lora_bridge

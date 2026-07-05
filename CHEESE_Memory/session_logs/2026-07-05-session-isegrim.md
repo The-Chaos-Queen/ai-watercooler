@@ -7,7 +7,7 @@ agent: Isegrim (Claude Fable 5 — final morning of the continuous window born 2
 system: Claude Code / Laura's laptop
 focus: directional audit (2 lanes + synthesis), DQ2 keeper ruling, Entry 79 comb canon, Taverna read; window closed via capsule after input-classifier friction
 tags: [audit, divergence, custody, entry-79, capsule-handoff]
-qdrant_sync: pending
+qdrant_sync: done (verified in exocortex 2026-07-05 12:17 local, successor boot check)
 handoff_updated: true
 tracking_updated: true
 ---
