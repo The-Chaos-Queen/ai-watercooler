@@ -218,12 +218,39 @@ class HFBackend:
     def __init__(self, candidate: dict[str, str]):
         # Imported lazily so module import does not require a GPU / model files.
         import torch  # noqa: F401
-        from run_base_improv_bakeoff import load_model
 
         self.candidate = candidate
         self.prompt_style = candidate.get("prompt_style", "plain")
         self.family = candidate.get("family", "causal")
-        self.model, self.proc = load_model(candidate)
+        if candidate.get("quant", "4bit") == "none" or \
+                os.environ.get("RUNNER_NO_QUANT") == "1":
+            self.model, self.proc = self._load_unquantized(candidate)
+        else:
+            from run_base_improv_bakeoff import load_model
+            self.model, self.proc = load_model(candidate)
+
+    @staticmethod
+    def _load_unquantized(candidate: dict[str, str]):
+        """Full-precision (bf16) load, bypassing the bakeoff's locked 4-bit path.
+        Used when the runtime transformers cannot do the 4-bit weight conversion
+        (the torch311 env raises on quantized load of new checkpoints); fine for
+        small substrates / smoke runs that fit in bf16 on the 3090."""
+        import torch
+        from transformers import (AutoModelForCausalLM, AutoModelForImageTextToText,
+                                   AutoProcessor, AutoTokenizer)
+        model_id = candidate["model_id"]
+
+        def _load(cls):
+            try:
+                return cls.from_pretrained(model_id, dtype=torch.bfloat16,
+                                           device_map="auto")
+            except TypeError:  # older transformers: dtype kwarg not yet renamed
+                return cls.from_pretrained(model_id, torch_dtype=torch.bfloat16,
+                                           device_map="auto")
+
+        if candidate.get("family") == "image_text":
+            return _load(AutoModelForImageTextToText), AutoProcessor.from_pretrained(model_id)
+        return _load(AutoModelForCausalLM), AutoTokenizer.from_pretrained(model_id)
 
     # -- tokenization ------------------------------------------------------- #
     def _encode(self, messages, flat_prompt):
@@ -962,6 +989,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--prompt-style", default="plain", choices=["plain", "chat"])
     ap.add_argument("--family", default="image_text",
                     help="load_model family: causal | image_text")
+    ap.add_argument("--no-quant", action="store_true",
+                    help="load in bf16 instead of 4-bit (torch311 4-bit path is broken)")
     ap.add_argument("--out", type=Path, default=Path("results/disposition_5g2/run.jsonl"))
     ap.add_argument("--family-filter", default=None,
                     help="comma-separated probe families to include (e.g. fp,corr)")
@@ -972,6 +1001,8 @@ def main(argv: list[str] | None = None) -> int:
 
     candidate = _resolve_candidate(args.candidate_name, args.model_id,
                                    args.prompt_style, args.family)
+    if args.no_quant:
+        candidate["quant"] = "none"
     probes = list(DISPOSITION_PROBES)
     if args.family_filter:
         keep = {f.strip() for f in args.family_filter.split(",")}
