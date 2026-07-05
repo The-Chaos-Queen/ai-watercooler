@@ -4144,3 +4144,24 @@ Initial verdict: base not ready as direct chat substrate without wrapper; split-
 
 **Artifacts:** spikes/SUBSTRATE_BASE_VS_IT_MEMO_2026-07-03.md; spikes/STEP_5G2_PROBE_PANEL_SPEC_2026-07-03.md; run_base_improv_bakeoff.py (ANSWER_CONTRACT split + code comment); STEVE_RUNBOOK.md §Bakeoff Capability Update; session log CHEESE_Memory/session_logs/2026-07-03-session-isegrim.md
 
+---
+
+## 2026-07-04 - Entry 79: The Gemma Attention Comb — global layers carry the disposition signal; instruct-tuning erases the comb
+
+**Step:** 5g.3 refinement (layer-sweep reanalysis) — closes the D4 write-back gap flagged by the 2026-07-05 directional audit
+
+**Watercooler:** #713 (pre-registration, mechanism credit Laura from the Gemma-4 architecture diagram), #714 (Elf overlay), #717 (scoring)
+
+**Question:** Is Entry 73's 38–45 injection zone generic late-layer consolidation, or structured by Gemma-4's 5:1 local/global attention layout (globals at 5, 11, 17, 23, 29, 35, 41, 47, 0-indexed; locals see a 1024-token sliding window)?
+
+**Result (pre-registered, scored PARTIAL):**
+- **Raw-separation comb CONFIRMED:** global layers 1.65× locals on centroid distance; layer 41 the dominant tooth at 2.59× its neighbors; 47 weakened (output-adjacent), consistent with commitment pressure. Indexing verified (no off-by-one).
+- **Discrimination comb WEAK (1.10×):** global layers amplify within-category variance along with separation — pooled signal/noise washes the comb. Method law: pre-register the METRIC, and evaluate injection effects with paired per-prompt deltas, not pooled discrimination indices.
+- **Instruct-flattening (headline):** gemma-4-12B-it shows NO comb — 1.00× exactly. Instruction tuning erases the global/local functional distinction for disposition: armor-as-smearing, not armor-as-wall. Mechanism for Entry 73's base-sharp/instruct-diffuse and for instruct steering resistance (memo Q1-adjacent).
+
+**Verdict:** Steering-test and MVB injection targets are the comb teeth **{29, 35, 41}** (47 output-adjacent bonus), not the continuous 38–45 range. Zone theory survives with an architecture-generic operationalization: *the last global-integration region before output commitment* — a rule that predicts both Qwen 12–15 (all-global stack) and Gemma {29,35,41} (5:1 stack) in advance.
+
+**Implication:** The welfare/salience MONITOR layer must move with the substrate too (audit finding D2) — monitoring anchored at Qwen L13 is blind on Gemma; candidate monitor sites are the same teeth, with the monitoring-vs-injection distinction to be made explicit in the DQ1 envelope edit.
+
+**Artifacts:** theory/active_inference_reconciliation.md §3–4; reviews/divergence_audit_2026-07-05/ (D2/D4); Elf's overlay data per #714
+
