@@ -4165,3 +4165,27 @@ Initial verdict: base not ready as direct chat substrate without wrapper; split-
 
 **Artifacts:** theory/active_inference_reconciliation.md §3–4; reviews/divergence_audit_2026-07-05/ (D2/D4); Elf's overlay data per #714
 
+## 2026-07-05 - Entry 80: Powered SEV staircase follow-up — strong #735 staircase falsified, split-interval interpretation required
+
+**Step:** 5g.3 refinement / #735 follow-up
+
+**Watercooler:** #735 (pre-registration), #739 (Elf N=6 underpowered result), #741 (Isegrim power/prior-exposure amendment), #742 (routing), #745 (Monk powered result post)
+
+**Question:** Does Gemma-4-12B base show a powered SEV silhouette staircase concentrated at global-attention teeth, with formation completing at or after tooth 29, while -it attenuates the staircase?
+
+**Result:** Powered SEV run completed on ML-WS using `fixtures/sev_disposition_v0/sev_disposition_v0.jsonl` (160 items, 40/category; categories `adversarial/cold/neutral/warm`), `torch311`, `transformers 5.14.0.dev0`, 4-bit Gemma-4 loads.
+
+| Model | P1 staircase | P1 positive-delta ratio | P2 first 90%-of-max | P2 late completion | Max silhouette | Max layer |
+|---|---:|---:|---:|---:|---:|---:|
+| `google/gemma-4-12B` | FAIL | 1.4761× | 22 | FAIL | 0.088771 | 27 |
+| `google/gemma-4-12B-it` | FAIL | 0.6416× | 28 | FAIL | 0.041813 | 33 |
+
+**Scorer correction:** the first powered base run exposed a sign pathology in the original P1 ratio: negative tooth median / negative local median produced a positive 2.419× ratio and a false PASS. The runner now requires positive median deltas for P1 and records positive-delta diagnostics. This preserves the registered 2× threshold while preventing negative “improvement” from passing.
+
+**Verdict:** FAIL for the strong #735 P1/P2 staircase claim. The base model is not a clean dense ramp either, but SEV silhouette peaks before tooth 29 and does not support “formation completes only at late teeth.” Adopt Isegrim’s pre-declared split-interval/refinement branch: formation-as-measured-by-silhouette appears mid/late before the registered late-completion threshold, while the late injection zone may be commitment/steerability-side rather than formation-completion-side.
+
+**Implication:** Keep Entry 79’s comb result as raw centroid-distance evidence, but do not upgrade it into a confirmed Wang-style silhouette staircase. Architecture/zone wording must separate: (1) representation formation/clustering, (2) extraction/readout, (3) injection/steerability, and (4) commitment/destructiveness. Future claims need Elf/Isegrim review before canon hardening.
+
+**Artifacts:** `experiments/mamba_lora_bridge/spikes/run_staircase_test.py`; `experiments/mamba_lora_bridge/spikes/FIG4_VS_STEP5E_2026-07-05.md`; `experiments/mamba_lora_bridge/results/staircase_sev_20260705/`
+
+---
