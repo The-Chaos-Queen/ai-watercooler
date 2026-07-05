@@ -159,6 +159,75 @@ The first PyTorch install was `2.11.0+cu128`, but building/installing `mamba-ssm
 This is currently working with driver `595.58.03`.
 Do not blindly "fix" it back to Steve's older `torch 2.7.0+cu126` stack unless there is a concrete failure.
 
+### Gemma-4 / DQ1a runtime fix (verified 2026-07-05)
+
+Ghost's Qwen fallback exposed two ML-WS blockers for the Gemma-primary/DQ1a path:
+
+1. `torch311`'s released `transformers 5.6.2` did not recognize Gemma-4 checkpoints:
+   `model_type=gemma4_unified` raised `ValueError: Transformers does not recognize this architecture`.
+2. `bitsandbytes` could not find CUDA 13 JIT/linker libraries unless the CUDA-13 wheel library path was exported:
+   `libnvJitLink.so.13: cannot open shared object file`.
+
+Fix applied on ML-WS in `torch311`:
+
+```bash
+# Required before bnb/4-bit runs in this env.
+export LD_LIBRARY_PATH=/home/isabell/miniforge3/envs/torch311/lib/python3.11/site-packages/nvidia/cu13/lib:${LD_LIBRARY_PATH:-}
+
+# Gemma-4 architecture support. Installed commit b70d02fc724d04c916832ca4ead03ff05e8fb1ee.
+~/miniforge3/bin/mamba run -n torch311 python -m pip install --upgrade \
+  'git+https://github.com/huggingface/transformers.git'
+```
+
+Post-fix version smoke:
+
+```bash
+~/miniforge3/bin/mamba run -n torch311 python - <<'PY'
+import transformers
+from transformers import AutoConfig
+print('transformers', transformers.__version__)
+for model_id in ['google/gemma-4-12B', 'google/gemma-4-12B-it']:
+    cfg = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
+    print(model_id, cfg.model_type, cfg.text_config.num_hidden_layers)
+PY
+```
+
+Verified output on 2026-07-05:
+
+```text
+transformers 5.14.0.dev0
+google/gemma-4-12B gemma4_unified 48
+google/gemma-4-12B-it gemma4_unified 48
+```
+
+Gemma layer-sweep script support:
+
+- `spikes/run_gemma_layer_sweep.py` now supports both `--quantization 4bit` and `--no-quant` / bf16.
+- Prefer `--quantization 4bit` for full sweeps on the RTX 3090 now that bnb is working.
+- Keep `--no-quant` as the fallback if the 4-bit conversion path regresses; it loads bf16 with CPU offload and was smoke-tested, but is slower/less memory-efficient.
+- Use `--max-prompts-per-category 1` for smoke only; omit it for the full DQ1a/Gemma geometry sweep.
+
+Verified smoke commands on ML-WS:
+
+```bash
+cd /home/isabell/mocop/mamba_lora_bridge
+export LD_LIBRARY_PATH=/home/isabell/miniforge3/envs/torch311/lib/python3.11/site-packages/nvidia/cu13/lib:${LD_LIBRARY_PATH:-}
+
+~/miniforge3/bin/mamba run -n torch311 python spikes/run_gemma_layer_sweep.py \
+  --model google/gemma-4-12B-it \
+  --quantization 4bit \
+  --max-prompts-per-category 1 \
+  --output results/gemma_layer_sweep_smoke_it_4bit.json
+
+~/miniforge3/bin/mamba run -n torch311 python spikes/run_gemma_layer_sweep.py \
+  --model google/gemma-4-12B \
+  --quantization 4bit \
+  --max-prompts-per-category 1 \
+  --output results/gemma_layer_sweep_smoke_base_4bit.json
+```
+
+Both wrote reports successfully on 2026-07-05 (`48` text layers, hidden size `3840`). `--no-quant` smokes also passed for base and instruct, with expected CPU offload messages.
+
 ## Mamba Fast-Path Build
 
 CUDA build tools and compiler were installed into the conda environment, not system-wide:

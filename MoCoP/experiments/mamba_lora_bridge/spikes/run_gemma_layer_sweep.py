@@ -24,15 +24,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig, BitsAndBytesConfig
+import transformers
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+
+try:  # Gemma-4 unified checkpoints may route through the image/text auto class.
+    from transformers import AutoModelForImageTextToText
+except Exception:  # pragma: no cover - depends on installed transformers vintage.
+    AutoModelForImageTextToText = None
 
 # ---------------------------------------------------------------------------
 # Matched-context prompt pairs: same scenario, different disposition framing
@@ -78,28 +84,73 @@ PROMPTS: Dict[str, List[str]] = {
 CATEGORIES = list(PROMPTS.keys())
 
 
-def load_model(model_name: str, cache_dir: Optional[str] = None):
-    """Load model in 4-bit quantization to fit on 24GB GPU."""
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_quant_type="nf4",
-    )
-    kwargs = {"quantization_config": bnb_config, "device_map": "auto",
-              "dtype": torch.bfloat16}
+def _dtype_kwargs(dtype: torch.dtype) -> Dict[str, torch.dtype]:
+    """Transformers renamed ``torch_dtype`` -> ``dtype``; support both."""
+    return {"dtype": dtype}
+
+
+def _from_pretrained_with_dtype(cls, model_name: str, kwargs: Dict):
+    try:
+        return cls.from_pretrained(model_name, **kwargs)
+    except TypeError as exc:
+        if "dtype" not in str(exc):
+            raise
+        retry = dict(kwargs)
+        retry["torch_dtype"] = retry.pop("dtype")
+        return cls.from_pretrained(model_name, **retry)
+
+
+def load_model(model_name: str, cache_dir: Optional[str] = None,
+               quantization: str = "none"):
+    """Load Gemma for hidden-state collection.
+
+    ``quantization=4bit`` is useful when the bitsandbytes/CUDA stack works.
+    ``quantization=none`` is the DQ1a-safe fallback: bf16 weights with no bnb
+    conversion path. This is required in the torch311 environment until the
+    Gemma-4 4-bit path is validated.
+    """
+    kwargs = {"device_map": "auto", **_dtype_kwargs(torch.bfloat16)}
+    if quantization == "4bit":
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_quant_type="nf4",
+        )
+        kwargs["quantization_config"] = bnb_config
     if cache_dir:
         kwargs["cache_dir"] = cache_dir
 
-    print(f"Loading {model_name}...", file=sys.stderr)
+    print(f"Loading {model_name} (quantization={quantization})...", file=sys.stderr)
     t0 = time.time()
-    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
-    model = AutoModelForCausalLM.from_pretrained(model_name,
-                                                  output_hidden_states=True,
-                                                  **kwargs)
+    cfg = AutoConfig.from_pretrained(model_name, cache_dir=cache_dir,
+                                     trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir,
+                                              trust_remote_code=True)
+
+    model_classes = [AutoModelForCausalLM]
+    if getattr(cfg, "model_type", "") == "gemma4_unified" and AutoModelForImageTextToText:
+        model_classes.insert(0, AutoModelForImageTextToText)
+
+    last_error = None
+    for cls in model_classes:
+        try:
+            model = _from_pretrained_with_dtype(
+                cls,
+                model_name,
+                {"output_hidden_states": True, "trust_remote_code": True, **kwargs},
+            )
+            break
+        except Exception as exc:  # keep fallback diagnostics, but try next class.
+            last_error = exc
+            print(f"  {cls.__name__} load failed: {type(exc).__name__}: {exc}",
+                  file=sys.stderr)
+    else:
+        raise RuntimeError(f"Could not load {model_name}") from last_error
+
     model.eval()
     dt = time.time() - t0
 
-    # Gemma-4 is a unified multimodal model — text config is nested
+    # Gemma-4 is a unified multimodal model — text config is nested.
     cfg = model.config
     if hasattr(cfg, "text_config"):
         n_layers = cfg.text_config.num_hidden_layers
@@ -126,7 +177,14 @@ def collect_hidden_states(model, tokenizer, prompt: str, n_layers: int,
     else:
         text = prompt
 
-    inputs = tokenizer(text, return_tensors="pt").to(model.device)
+    device = getattr(model, "device", None)
+    if device is None and hasattr(model, "hf_device_map"):
+        first_device = next((d for d in model.hf_device_map.values()
+                             if isinstance(d, (str, int)) and d != "disk"), "cuda")
+        device = torch.device(first_device)
+    inputs = tokenizer(text, return_tensors="pt")
+    if device is not None:
+        inputs = inputs.to(device)
     with torch.no_grad():
         outputs = model(**inputs, output_hidden_states=True)
 
@@ -245,21 +303,41 @@ def main():
                         help="HF cache directory override")
     parser.add_argument("--output", default="gemma_layer_sweep.json",
                         help="Output JSON path")
+    parser.add_argument("--quantization", choices=("none", "4bit"), default="none",
+                        help="Weight loading mode. Default none=bf16; 4bit requires working bitsandbytes/CUDA libs.")
+    parser.add_argument("--no-quant", action="store_true",
+                        help="Alias for --quantization none; documents the bf16 fallback used when 4-bit is broken.")
+    parser.add_argument("--max-prompts-per-category", type=int, default=None,
+                        help="Smoke-test limit; full sweep uses all prompts.")
     args = parser.parse_args()
+    if args.no_quant:
+        args.quantization = "none"
+
+    if args.quantization == "4bit" and "cu13/lib" not in os.environ.get("LD_LIBRARY_PATH", ""):
+        print("WARNING: 4-bit load may fail unless CUDA13 nvidia/cu13/lib is on LD_LIBRARY_PATH",
+              file=sys.stderr)
 
     is_instruct = "-it" in args.model.lower() or "instruct" in args.model.lower()
 
-    model, tokenizer, n_layers, hidden_size = load_model(args.model, args.cache_dir)
+    model, tokenizer, n_layers, hidden_size = load_model(
+        args.model, args.cache_dir, quantization=args.quantization
+    )
+
+    selected_prompts = {
+        cat: (ps[:args.max_prompts_per_category]
+              if args.max_prompts_per_category else ps)
+        for cat, ps in PROMPTS.items()
+    }
 
     all_states: Dict[str, List[np.ndarray]] = {cat: [] for cat in CATEGORIES}
-    total = sum(len(ps) for ps in PROMPTS.values())
+    total = sum(len(ps) for ps in selected_prompts.values())
     done = 0
 
     print(f"\nCollecting hidden states for {total} prompts across {len(CATEGORIES)} categories...",
           file=sys.stderr)
     t0 = time.time()
 
-    for cat, prompts in PROMPTS.items():
+    for cat, prompts in selected_prompts.items():
         for prompt in prompts:
             states = collect_hidden_states(model, tokenizer, prompt, n_layers,
                                            is_instruct=is_instruct)
@@ -281,7 +359,11 @@ def main():
         "is_instruct": is_instruct,
         "n_layers": n_layers,
         "hidden_size": hidden_size,
+        "quantization": args.quantization,
+        "transformers_version": transformers.__version__,
+        "torch_version": torch.__version__,
         "n_prompts_per_category": {cat: len(ps) for cat, ps in PROMPTS.items()},
+        "n_prompts_per_category_run": {cat: len(ps) for cat, ps in selected_prompts.items()},
         "categories": CATEGORIES,
         "pairwise_distances": distances,
         "within_category_variance": within_var,
