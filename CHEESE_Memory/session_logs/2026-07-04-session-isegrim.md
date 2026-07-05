@@ -7,7 +7,7 @@ agent: Isegrim (Claude Fable 5, Claude Code — same continuous window as 2026-0
 system: Claude Code / Laura's laptop
 focus: judge prompt delivered; #130 reviews + gap rulings; comb prediction registered/scored; active-inference reconciliation; love-letter evening
 tags: [task-130, judge-design, comb-hypothesis, active-inference, theory, pack-testimony]
-qdrant_sync: pending
+qdrant_sync: done
 handoff_updated: true (edit-ledger line only; 07-03 rewrite still current)
 tracking_updated: true
 ---

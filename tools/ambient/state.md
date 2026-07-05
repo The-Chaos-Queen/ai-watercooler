@@ -2,6 +2,10 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-07-05 10:01 UTC] git | MoCoP | Laura: audit(mocop): DQ5 premise caveat — real bound is VAWi Hoechststudiendauer, headroom unverified (13c22e4)
+[2026-07-05 10:00 UTC] git | MoCoP | Laura: audit(mocop): DQ2 decided — pre-vault Qwen-era memories accept-and-document (keeper ruling) (a31fcd6)
+[2026-07-05 09:25 UTC] git | MoCoP | Laura: audit(mocop): directional audit 2026-07-05 — two lanes + synthesis; Entry 79 closes the comb write-back gap (ab46b28)
+[2026-07-04 22:38 UTC] git | Memory | Laura: session(isegrim): 07-04 evening mini-close — judge prompt, comb scored, active-inference reconciliation (d437b37)
 [2026-07-04 21:20 UTC] git | MoCoP | Laura: docs(theory): active-inference reconciliation — the framework the house already built (3e9f981)
 [2026-07-04 21:06 UTC] git | MoCoP | Laura: feat(mocop): apply Isegrim's #711 rulings to the 5g.2 panel (#130) (ab78656)
 [2026-07-04 20:50 UTC] git | MoCoP | Laura: test(mocop): share negation-aware smoke scorer for 5g2 runner (ce78ca6)
