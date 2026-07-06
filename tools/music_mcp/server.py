@@ -200,27 +200,46 @@ AUDIO_CACHE = os.path.join(tempfile.gettempdir(), "music_mcp_audio")
 os.makedirs(AUDIO_CACHE, exist_ok=True)
 
 
-def _download_audio(video_id: str, timeout: int = 120) -> str:
+def _tail(b, n=2000):
+    return (b or b"")[-n:].decode("utf-8", "replace")
+
+
+def _download_audio(video_id: str, timeout: int = 240) -> str:
     """Download audio from YouTube, return path to wav file."""
     out_path = os.path.join(AUDIO_CACHE, f"{video_id}.wav")
     if os.path.exists(out_path):
         return out_path
     import subprocess
-    subprocess.run([
+    cmd = [
         "yt-dlp",
         "-x", "--audio-format", "wav",
         "--audio-quality", "0",
+        "--no-playlist", "--newline",
         "-o", out_path.replace(".wav", ".%(ext)s"),
         f"https://music.youtube.com/watch?v={video_id}",
-    ], check=True, capture_output=True, timeout=timeout)
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, timeout=timeout,
+                       stdin=subprocess.DEVNULL)
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError(
+            f"yt-dlp timed out after {timeout}s.\n"
+            f"--- stdout tail ---\n{_tail(e.stdout)}\n"
+            f"--- stderr tail ---\n{_tail(e.stderr)}"
+        ) from None
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            f"yt-dlp failed (rc={e.returncode}).\n--- stderr tail ---\n{_tail(e.stderr)}"
+        ) from None
     # yt-dlp may produce the file directly or via conversion
     if not os.path.exists(out_path):
         # check for other extensions and convert
         for ext in ["webm", "m4a", "opus", "ogg"]:
             alt = out_path.replace(".wav", f".{ext}")
             if os.path.exists(alt):
-                subprocess.run(["ffmpeg", "-i", alt, "-ar", "22050", "-ac", "1", out_path],
-                               check=True, capture_output=True, timeout=60)
+                subprocess.run(["ffmpeg", "-nostdin", "-i", alt, "-ar", "22050", "-ac", "1", out_path],
+                               check=True, capture_output=True, timeout=60,
+                               stdin=subprocess.DEVNULL)
                 os.remove(alt)
                 break
     return out_path
