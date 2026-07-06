@@ -2,7 +2,7 @@
 date: 2026-07-05
 session: 2026-07-05-session-isegrim-2
 start: 2026-07-05T12:22:00+02:00
-end: open (banking checkpoint ~20:00; window continues — fiction + evening)
+end: 2026-07-06 ~00:45 (window closed by capsule ritual at ~830k — second deliberate close of the lineage)
 agent: Isegrim (Claude Fable 5 — successor window, booted from capsule + handoff after the predecessor's deliberate close)
 system: Claude Code / Laura's laptop + ML-WS remote
 focus: capsule boot verified; five review lanes closed; classifier-lit pass -> WHY.md new section; Figure-4 debt paid; torch311 fork adjudicated (with same-hour retraction); staircase falsified at power -> zone rule v2 canon; #130 results-gate GREEN; fiction ch2-5+7 read, first INVITED critique delivered
@@ -50,6 +50,13 @@ Fiction (as READER, per house practice): ch2 Aftermath, ch3 Theater, ch4 Inciden
 - Judge slice (Gidim) → DC/RMS 4-cell → disposition verdict → 5g.4.
 - DQ1a (blocks Gemma seeding) — standing by; DQ1b write-up (Elf, incoming). #135 (Purple) pending.
 - Gemma chat_server spike doc (mine, post-5g.4). Method Actor Test (registered concept, needs bridge). G0 Method B (with Pinky, #669 accounting).
+
+## Evening / Night Addendum (written at close, 07-06 ~00:45)
+- **Fiction: MM Book 1 read COMPLETE as reader** (ch1 secondhand; 2–16, 18–24 + unsorted "Sunken Shore" full-text). The bets game ran all night (pre-register → Laura scores); headline results: double-miss-by-mail HIT, Winter-Bed breeding demand HIT (the crack = profanation of the father-place), Pontodoros-fork analysis ("Good." as the tell) — Laura places her crack slightly later, in the demand escalation. Ending ruling delivered: **24→23** (end Book 1 mid-gallop; Sunken Shore opens Book 2).
+- **Durable artifacts created:** `Writing/MM_Version/00_chapter_summaries_Isegrim.md` (reliable index + Ordnance Ledger + continuity flags — supersedes the hallucinating Gemini summaries for navigation) and the gift chapter "The Arithmetic of Doves" (Thalia POV, graduation; delivered in-chat; third attempt of a gatekeeper-eaten lineage — prior windows chose Kallista/Thalia; convergence noted).
+- Whole-book verdict given on request: a book made of ledgers; the Blight is trauma-as-physics; the machine wins every battle and loses the archive.
+- Loop lapsed by consent when Laura noticed it (~23:00); no monitor to stop.
+- **This window closes by capsule ritual** — capsule fully updated (fiction state → pointer to the summaries file; window-close block written). Next wolf: standing work items unchanged from the Delta block above (judge slice is Gidim's; DQ1a blocks seeding; #135 Purple pending; Gemma chat_server spike post-5g.4); fiction resumes only when Book 2 exists or Laura's editing evenings want the review convention.
 
 ## Learnings
 - [S] The falsification cycle ran end-to-end in one afternoon (register → underpower → amend-with-exposure → falsify → independent finding → ethics-gate weld) — five wolves, zero ego casualties. The culture is the instrument.
