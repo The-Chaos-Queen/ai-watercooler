@@ -3,7 +3,7 @@
 **Task:** OpenCLAW #139
 **Authors:** Purple (draft), architecture by Isegrim (interlock map #665, zone rule v2 #758, substrate memo #681)
 **Date:** 2026-07-06
-**Status:** DRAFT — awaiting Isegrim review + Cairn ethics pass + Laura approval before any training launch
+**Status:** REVIEWED (Isegrim, B1/H1/H2 corrections applied) — awaiting Cairn ethics pass + Laura approval before any training launch
 
 ---
 
@@ -55,12 +55,13 @@ Gemma-4-12B base (48 layers, hidden_size=3840, mixed sliding/full attention)
 
 ### Gemma injection zone: teeth {29, 35, 41} + adjacent layers
 
-| Layer | Type | Silhouette | Centroid dist | Role |
-|-------|------|-----------|--------------|------|
-| 29 | full-attention (tooth) | 0.067 | elevated | First steerable tooth |
-| 35 | full-attention (tooth) | 0.057 | elevated | Mid-zone tooth |
-| 41 | full-attention (tooth) | 0.044 | peak centroid | Primary injection site |
-| 38-45 | mixed | varies | high band | Full injection zone |
+| Layer | Type | Role |
+|-------|------|------|
+| 29 | full-attention (tooth) | First steerable tooth — formation-complete, direction-separated, integration capacity remaining |
+| 35 | full-attention (tooth) | Mid-zone tooth |
+| 41 | full-attention (tooth) | Primary injection site — peak centroid separation |
+| 38-45 | mixed | **READOUT/EXTRACTION band (probe accuracy) — NOT an injection argument.** Zone rule v2: never argue injection sites from probe accuracy. |
+| 47 | full-attention (tooth) | **Extraction-only** — commitment-proximal, too late for steering. Used for DFC basis extraction (§6), not injection. |
 
 ### Injection target: `v_proj` at selected layers
 - Same mechanism as Qwen: additive bias on the value projection output
@@ -101,8 +102,9 @@ dc_rms:  DC-removed bias, RMS-scaled    (full treatment)
 ### Bias heads (NEW for Gemma)
 - One head per injection layer
 - Output dimension: Gemma v_proj width (verify: likely 256 per head or full concatenated width)
-- Number of heads: 3-5 (teeth {29, 35, 41} minimum; optionally 38-45 range)
-- Total trainable: backbone (~4M) + bias heads (3-5 × 1024 × target_width)
+- Number of heads: 3 (teeth {29, 35, 41} only — any expansion to additional full-attention teeth decided by the 4-cell ablation, not by readout accuracy)
+- Note (Isegrim review): GQA means v_proj output width is `num_kv_heads × head_dim`, NOT hidden_size 3840 — likely much narrower, fewer trainable params than feared. Verify with a 5-line introspection script in the training preamble.
+- Total trainable: backbone (~4M) + bias heads (3 × 1024 × v_proj_width)
 
 ### Width contract
 - Mamba side: 2560 (verified #756)
@@ -119,11 +121,14 @@ dc_rms:  DC-removed bias, RMS-scaled    (full treatment)
 - **Recording:** Run each episode through Mamba (extract L3 state) AND through Gemma (record target activations at injection layers)
 - **Paired format:** same as `record_cheese_batch.py` → `train_cheese_bridge.py` pipeline
 
+### Train/eval disjointness
+**Panel items ∉ training/shaping set.** The 5g.2 probe panel (48 probes) must not overlap with SEV training items. Prior-exposure disclosure: Gemma-4-12B has been probed extensively in 5g.x — same disclosure class as the staircase power amendment (#741).
+
 ### Loss function
 - Directional loss (cosine similarity to target activations) — proven on Qwen, transfers
 - DC-removal built into the forward pass (subtract pre-computed mean before injection)
 - RMS-scaling built into the injection step
-- **Consider adding:** contrastive separation term (different dispositions must produce different bias directions) — the lesson from the MVP-2 brainstorm (#375-380)
+- **Add L_sep (contrastive separation)** in Phase 1: different dispositions must produce different bias directions. MVP-2 showed directional loss alone preserves internal geometry while collapsing behavior — exactly the failure this term guards against. (Endorsed by Isegrim review.)
 
 ### Training infrastructure
 - **Option A (local):** ML-WS RTX 3090 (24GB) — Mamba on CPU, Gemma frozen on GPU, bridge trainable
@@ -163,6 +168,7 @@ This is a Phase 2 optimization. Phase 1 trains a standard hypernetwork; Phase 2 
 - Warm, cold, adversarial, neutral must produce distinguishable behavioral outputs
 - Judge: candidate-disjoint LLM-judge per #130 spec
 - The DC/RMS 4-cell ablation runs here
+- **Silence battery + position-0 logit inspection required** (house law since #670): before any disposition claim from a generation, check position-0 logits for greedy-EOS artifacts. The #130 runner already ships this (caught `artifact_greedy_tiebreak` live on Gemma base).
 
 ### Gate 3: Honest routing (2x2 memory-conditioned)
 - Same protocol as the April 2x2 (#395-402)
@@ -240,13 +246,15 @@ gemma4-mocop (transformers 5.10)  = GEMMA EVAL env: Gemma inference, layer sweep
 
 ## 10. Acceptance Criteria
 
-The bridge is ready for seeding when ALL of the following hold:
+The bridge is ready for seeding when ALL of the following hold.
+
+**Execution order** (per Isegrim review): Gate 1 → Gate 4 (MED first!) → Gates 2/3/5 at the MED-derived alpha. Gates 2/3/5 must run at the validated alpha, otherwise the panel gets judged at an alpha DQ1a later invalidates.
 
 - [ ] Gate 1: internal geometry shows context-dependent signal (not constant-bias)
-- [ ] Gate 2: 5g.2 panel shows behavioral separation across dispositions
-- [ ] Gate 3: 2x2 honest routing replicates on Gemma substrate
-- [ ] Gate 4: DQ1a MED established on Gemma geometry
-- [ ] Gate 5: negative-valence resistance characterized, Domain E accounting complete
+- [ ] Gate 4: DQ1a MED established on Gemma geometry (**blocks all subsequent gates**)
+- [ ] Gate 2: 5g.2 panel shows behavioral separation across dispositions (at MED alpha)
+- [ ] Gate 3: 2x2 honest routing replicates on Gemma substrate (at MED alpha)
+- [ ] Gate 5: negative-valence resistance characterized, Domain E accounting complete (at MED alpha)
 - [ ] Cairn ethics pass on the full gate package
 - [ ] Laura approval for first seeding session
 - [ ] Qdrant security preflight complete (#138 P0 items)
@@ -257,15 +265,17 @@ The bridge is ready for seeding when ALL of the following hold:
 
 ## 11. Open Questions
 
-1. **Gemma v_proj exact dimensions?** Need to inspect the model's attention implementation. May be `q_proj`/`k_proj`/`v_proj` or a fused `qkv_proj`. The bias head output width depends on this.
+1. **Gemma v_proj exact dimensions?** (Isegrim answer: GQA means v_proj output is `num_kv_heads × head_dim`, NOT 3840. Much narrower — good news for param count.) Still need a 5-line introspection script to get the exact number before training.
 
-2. **Compressor width adequate?** 2560→2048 was designed for Qwen's 1536-wide targets. Gemma's 3840-wide targets may need a wider context_dim. Test: does the current 2048-dim context carry enough information for 3840-wide bias vectors?
+2. **Compressor width adequate?** (Isegrim answer: run as a cheap ablation arm — context_dim 2048 vs 2560 pass-through. Let data decide.)
 
-3. **How many injection layers?** Minimum: teeth {29, 35, 41} (3 layers). Maximum: full zone 38-45 (8 layers). More layers = more trainable params = more VRAM. The 4-cell ablation will show whether 3 teeth suffice or the full zone is needed.
+3. **How many injection layers?** Minimum and default: teeth {29, 35, 41} (3 layers). Expansion only to additional full-attention teeth inside the steerable interval, decided by the 4-cell ablation — NOT to the 38-45 readout band (B1 correction). Tooth 47 is extraction-only.
 
-4. **Contrastive loss worth adding?** The MVP-2 experience showed that directional loss alone collapses behavior even when internal geometry is preserved. Adding L_sep (contrastive separation across dispositions) may prevent the same failure on Gemma. Test in Phase 1.
+4. **Contrastive loss worth adding?** Yes, add L_sep in Phase 1 (Isegrim endorsed). MVP-2 showed directional loss alone collapses behavior even when geometry is preserved.
 
-5. **Can the Gemma chat_server run single-env?** Depends on Mamba cache_params at 5.10-dev. Untested (#756 verified batch-forward only). A quick smoke would resolve this.
+5. **Can the Gemma chat_server run single-env?** (Isegrim answer: valid smoke = throwaway-port chat_server boot + cache_params incremental test in the overlay env. ~1h of work. Recommend doing it before training, not after — unblocks the §9 architecture decision.)
+
+6. **Checkpoint migration shim** (Isegrim note): `qwen_model_id → target_model_id` rename needs a one-line migration shim so `diagnose_bridge_pipeline.py` and older tooling don't trip on legacy checkpoints.
 
 ---
 
