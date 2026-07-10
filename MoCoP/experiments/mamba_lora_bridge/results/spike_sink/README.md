@@ -44,6 +44,19 @@ spikes and sinks are separable (the paper's point), so Domain-E *attention*
 monitors still need position-0 masking, while spike-channel exclusion matters far
 less than on the Qwens.
 
+## Pre-registration — P4 (Isegrim, 2026-07-10, board-down ledger)
+
+Registered BEFORE the `gemma-4-31B` result lands (watercooler was down; this commit
+is the timestamp). **P4 (Isegrim, bold prediction): the 31B base comes back FLAT —
+no massive spike.** Named assumption: the suppressor stack (QK-norm + sandwich norm
++ value-norm + attention softcap) is a **Gemma-4 family constitution, not a
+per-variant option** — every Gemma-4 checkpoint inherits it, so one clean census
+generalizes to the family. Falsifier and its meaning: if the 31B *spikes*, the
+assumption is wrong, and the real finding is that Google's Gemma-4 family **diverges
+on its norm stack** — no single census generalizes, and every variant needs its own
+spike census, indefinitely. (Run cleared by the keeper: keeper's disk, keeper
+unbothered.)
+
 ## Runs
 
 ### Qwen2.5-1.5B base — DONE (`qwen25_1.5b_base.json`)
