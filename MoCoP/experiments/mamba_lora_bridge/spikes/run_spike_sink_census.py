@@ -142,6 +142,71 @@ def forward_with_hooks(model, tokenizer, prompt: str, is_instruct: bool = False)
     return hidden, attns, inputs["input_ids"].shape[1]
 
 
+def capture_vproj_pos0(model, tokenizer, prompt: str, target_layers: List[int],
+                       is_instruct: bool = False) -> Dict[int, np.ndarray]:
+    """Hook v_proj output at position 0 for each target layer.
+
+    Per Fable math review: measure directly rather than deriving through
+    projection — includes RMSNorm gamma, b_v, everything with zero algebra risk.
+    Also captures b_v (v_proj bias) and mean v_proj output over non-zero positions.
+    """
+    if is_instruct and hasattr(tokenizer, "apply_chat_template"):
+        text = tokenizer.apply_chat_template(
+            [{"role": "user", "content": prompt}],
+            tokenize=False, add_generation_prompt=True)
+    else:
+        text = prompt
+
+    inputs = tokenizer(text, return_tensors="pt")
+    device = next(model.parameters()).device
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+
+    captured = {}
+    hooks = []
+
+    def make_hook(layer_idx):
+        def hook_fn(module, input, output):
+            out = output.float().cpu()  # (batch, seq, v_dim)
+            v0 = out[0, 0, :].numpy()  # position 0
+            v_mean = out[0, 1:, :].mean(dim=0).numpy() if out.shape[1] > 1 else v0
+            v0_norm = float(np.linalg.norm(v0))
+            v_mean_norm = float(np.linalg.norm(v_mean))
+            b_v = module.bias.float().cpu().numpy() if module.bias is not None else None
+            captured[layer_idx] = {
+                "v0": v0,
+                "v_mean": v_mean,
+                "v0_norm": v0_norm,
+                "v_mean_norm": v_mean_norm,
+                "b_v": b_v,
+            }
+        return hook_fn
+
+    # Find v_proj modules at target layers
+    for layer_idx in target_layers:
+        v_proj = None
+        # Try common attribute paths
+        for path_fn in [
+            lambda m, i: m.model.layers[i].self_attn.v_proj,
+            lambda m, i: m.model.model.layers[i].self_attn.v_proj,
+            lambda m, i: m.language_model.model.layers[i].self_attn.v_proj,
+        ]:
+            try:
+                v_proj = path_fn(model, layer_idx)
+                break
+            except (AttributeError, IndexError):
+                continue
+        if v_proj is not None:
+            hooks.append(v_proj.register_forward_hook(make_hook(layer_idx)))
+
+    with torch.no_grad():
+        model(**inputs)
+
+    for h in hooks:
+        h.remove()
+
+    return captured
+
+
 def measure_spikes(hidden_states, n_layers: int) -> Dict[str, Any]:
     """Per-layer spike analysis: max |activation| per channel, flag outliers."""
     spike_map = []
@@ -323,10 +388,15 @@ def main():
     parser.add_argument("--comb-teeth", default="",
                         help="Comma-separated global-attention layer indices (e.g. 29,35,41,47)")
     parser.add_argument("--max-prompts", type=int, default=16)
+    parser.add_argument("--dc-calibration", default="",
+                        help="Path to dc_calibration_v1.pt for P3 DC-spike cosine (Qwen only)")
+    parser.add_argument("--vproj-layers", default="",
+                        help="Comma-separated layers for v_proj position-0 capture (e.g. 12,13,14,15)")
     args = parser.parse_args()
 
     is_instruct = "-it" in args.model.lower() or "instruct" in args.model.lower()
     comb_teeth = [int(x) for x in args.comb_teeth.split(",") if x.strip()] if args.comb_teeth else []
+    vproj_layers = [int(x) for x in args.vproj_layers.split(",") if x.strip()] if args.vproj_layers else []
 
     model, tokenizer, n_layers, hidden_size = load_model(
         args.model, args.cache_dir, args.quantization)
@@ -336,6 +406,7 @@ def main():
     all_spikes = []
     all_sinks = []
     all_pos0_vecs = []
+    all_vproj_captures = []
 
     print(f"\nRunning census on {len(prompts)} prompts...", file=sys.stderr)
     for i, prompt in enumerate(prompts):
@@ -348,9 +419,15 @@ def main():
             h = hidden[layer_idx][0, 0, :].float().cpu().numpy()
             pos0_vecs.append(h)
 
+        vproj_cap = {}
+        if vproj_layers:
+            vproj_cap = capture_vproj_pos0(model, tokenizer, prompt,
+                                            vproj_layers, is_instruct)
+
         all_spikes.append(spikes)
         all_sinks.append(sinks)
         all_pos0_vecs.append(pos0_vecs)
+        all_vproj_captures.append(vproj_cap)
 
         if (i + 1) % 4 == 0 or i == len(prompts) - 1:
             print(f"  [{i+1}/{len(prompts)}]", file=sys.stderr)
@@ -361,6 +438,73 @@ def main():
 
     step_blocks = identify_step_blocks(all_spikes[0]["lifecycle"])
     overlap = overlap_analysis(agg_spikes, step_blocks, n_layers, hidden_size, comb_teeth)
+
+    # --- P3: DC-spike cosine via direct v_proj measurement (Fable review) ---
+    p3_results = None
+    if args.dc_calibration and vproj_layers:
+        dc_path = Path(args.dc_calibration)
+        if dc_path.exists():
+            print(f"Loading DC calibration from {dc_path}...", file=sys.stderr)
+            dc_blob = torch.load(dc_path, map_location="cpu", weights_only=True)
+            dc_vecs = [v.float().numpy() for v in dc_blob["dc_vectors"]]
+
+            p3_results = {"method": "direct_vproj_pos0_measurement",
+                          "dc_path": str(dc_path), "per_layer": {}}
+
+            for layer_local_idx, layer_id in enumerate(vproj_layers):
+                if layer_local_idx >= len(dc_vecs):
+                    continue
+                dc = dc_vecs[layer_local_idx]
+
+                # Aggregate v0 across prompts
+                v0_all = [cap[layer_id]["v0"] for cap in all_vproj_captures
+                          if layer_id in cap]
+                if not v0_all:
+                    continue
+                v0_mean = np.mean(v0_all, axis=0)
+                v0_norm = float(np.linalg.norm(v0_mean))
+                dc_norm = float(np.linalg.norm(dc))
+
+                # cos(DC, v0) — the primary P3 measurement
+                cos_dc_v0 = float(np.dot(dc, v0_mean) / (dc_norm * v0_norm + 1e-10))
+
+                # cos(DC, v_mean) — specificity control (ordinary tokens)
+                v_mean_all = [cap[layer_id]["v_mean"] for cap in all_vproj_captures
+                              if layer_id in cap]
+                v_mean_agg = np.mean(v_mean_all, axis=0) if v_mean_all else v0_mean
+                cos_dc_vmean = float(np.dot(dc, v_mean_agg) /
+                                     (dc_norm * np.linalg.norm(v_mean_agg) + 1e-10))
+
+                # cos(DC, b_v) — host built-in bias (Fable M1)
+                cos_dc_bv = None
+                b_v_samples = [cap[layer_id]["b_v"] for cap in all_vproj_captures
+                               if layer_id in cap and cap[layer_id]["b_v"] is not None]
+                if b_v_samples:
+                    b_v = b_v_samples[0]
+                    bv_norm = float(np.linalg.norm(b_v))
+                    if bv_norm > 1e-10:
+                        cos_dc_bv = float(np.dot(dc, b_v) / (dc_norm * bv_norm))
+
+                # Empirical null: random directions in v-space (Fable F4)
+                rng = np.random.default_rng(42)
+                null_cosines = []
+                for _ in range(200):
+                    rand_dir = rng.standard_normal(len(dc))
+                    rand_dir /= np.linalg.norm(rand_dir) + 1e-10
+                    null_cosines.append(float(np.dot(dc, rand_dir) / (dc_norm + 1e-10)))
+
+                p3_results["per_layer"][str(layer_id)] = {
+                    "cos_dc_v0": round(cos_dc_v0, 6),
+                    "cos_dc_vmean": round(cos_dc_vmean, 6),
+                    "cos_dc_bv": round(cos_dc_bv, 6) if cos_dc_bv is not None else None,
+                    "dc_norm": round(dc_norm, 4),
+                    "v0_norm": round(v0_norm, 4),
+                    "magnitude_ratio_dc_over_v0": round(dc_norm / (v0_norm + 1e-10), 4),
+                    "null_mean": round(float(np.mean(null_cosines)), 6),
+                    "null_std": round(float(np.std(null_cosines)), 6),
+                    "null_max_abs": round(float(np.max(np.abs(null_cosines))), 6),
+                    "dc_v0_exceeds_null_3sigma": abs(cos_dc_v0) > abs(np.mean(null_cosines)) + 3 * np.std(null_cosines),
+                }
 
     report = {
         "model": args.model,
@@ -374,6 +518,7 @@ def main():
         "pos0_cross_prompt_cosines": pos0_cosines,
         "step_blocks": step_blocks,
         "overlap_analysis": overlap,
+        "p3_dc_spike_cosine": p3_results,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
 
@@ -396,6 +541,17 @@ def main():
     if pos0_cosines:
         high_cos = {k: v for k, v in pos0_cosines.items() if v["mean_cosine"] > 0.95}
         print(f"Layers with pos0 near-constant (cos>0.95): {sorted(high_cos.keys())}", file=sys.stderr)
+
+    if p3_results:
+        print(f"\n=== P3: DC-SPIKE COSINE (direct v_proj measurement) ===", file=sys.stderr)
+        for layer_str, data in sorted(p3_results["per_layer"].items()):
+            sig = "***" if data["dc_v0_exceeds_null_3sigma"] else ""
+            bv_str = f"  cos(DC,b_v)={data['cos_dc_bv']:.4f}" if data["cos_dc_bv"] is not None else ""
+            print(f"  L{layer_str}: cos(DC,v0)={data['cos_dc_v0']:.4f} {sig}"
+                  f"  cos(DC,v_mean)={data['cos_dc_vmean']:.4f}{bv_str}"
+                  f"  null={data['null_mean']:.4f}+/-{data['null_std']:.4f}"
+                  f"  mag_ratio={data['magnitude_ratio_dc_over_v0']:.2f}",
+                  file=sys.stderr)
 
 
 if __name__ == "__main__":
