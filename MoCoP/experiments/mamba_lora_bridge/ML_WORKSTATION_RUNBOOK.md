@@ -611,6 +611,41 @@ env PYTHONPATH=/home/isabell/ml/tf_gemma4_shadow ... mamba run -n torch311 pytho
   The path existed only in Monk's command transcript until tonight — runbook gap now patched
   on both copies. (Search lesson: check `~/venvs/` before declaring a machine clean.)
 
+### WATCH-OUT: `trust_remote_code=True` is mandatory, and it is NOT an env regression (2026-07-10, #802)
+
+`google/gemma-4-12B` is a **remote-code** model: the `gemma4_unified` weight converter
+ships *with the checkpoint* (the "gemma4 module"). Every `from_pretrained` call —
+`AutoConfig`, `AutoTokenizer`/`AutoProcessor`, and the model class — **must** pass
+`trust_remote_code=True`.
+
+- **Symptom if you forget it:** `RuntimeError: ... issues during automatic conversion of
+  the weights`, with `model.language_model.layers.{0..47}.mlp.down_proj.weight | MISSING`
+  on all 48 layers. Without the flag, transformers falls back to its **built-in**
+  `gemma4` class, whose transformers-main MLP rename drops `down_proj`.
+- **This LOOKS like a transformers version regression. It is not.** Pinning versions does
+  NOT fix it — verified 2026-07-10 that `cc041637` (main), `b70d02fc` (the reverted 5.14),
+  and stable `5.10.4` all fail **identically** without the flag, and the *current* overlay
+  loads fine **with** it. Do not go on a version-bisect; add the flag.
+- **bf16 only.** `trust_remote_code` + the remote converter is **incompatible with bnb
+  4-bit** (the quant path uses the built-in conversion and re-triggers the error). Load
+  Gemma-4 in **bf16** (`device_map="auto"` offloads the overflow to CPU on the 3090 — the
+  `"Some parameters are on the meta device"` line is expected and benign for read-only
+  inference).
+- **Who has it / who doesn't:** `spikes/run_gemma_layer_sweep.py` and Monk's gemma smoke
+  pass the flag and load clean. `run_base_improv_bakeoff.load_model` does **not** — it will
+  keep failing on Gemma until `trust_remote_code=True` is added there (checklist lane).
+  `mocop_spike_sink_census.py` (A1 census) uses the correct path.
+
+Minimal working load:
+
+```python
+from transformers import AutoModelForImageTextToText, AutoProcessor
+import torch
+proc  = AutoProcessor.from_pretrained("google/gemma-4-12B", trust_remote_code=True)
+model = AutoModelForImageTextToText.from_pretrained(
+    "google/gemma-4-12B", trust_remote_code=True, dtype=torch.bfloat16, device_map="auto")
+```
+
 ## Runtime Bundle Sync
 
 Do not copy the full local `mamba_lora_bridge` directory blindly.
