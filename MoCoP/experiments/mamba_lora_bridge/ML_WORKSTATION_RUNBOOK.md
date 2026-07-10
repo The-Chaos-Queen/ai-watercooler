@@ -664,6 +664,19 @@ Two consequences flagged (Isegrim, board-down ledger):
   squeeze in). Until 4-bit is back, the Gemma path is **ML-WS-only** (24 GB, or bf16
   CPU-offload). 31B is bf16 + heavy offload regardless (~62 GB).
 
+### Fast HF downloads: hf_transfer (installed 2026-07-10)
+
+`hf_transfer` (the Rust parallel downloader) is installed in the `gemma4-mocop`
+overlay — big shard pulls (e.g. the 31B's ~62 GB) crawl on the default python
+downloader. It only activates when the env var is set at download time:
+
+```bash
+export HF_HUB_ENABLE_HF_TRANSFER=1   # add alongside HF_HOME / HF_HUB_CACHE
+```
+
+`mocop_spike_sink_census.py` sets this itself (`os.environ.setdefault`), so census
+runs use it automatically; set it in the shell for ad-hoc `from_pretrained` pulls.
+
 ## Runtime Bundle Sync
 
 Do not copy the full local `mamba_lora_bridge` directory blindly.

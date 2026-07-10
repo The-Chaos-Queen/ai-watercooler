@@ -44,6 +44,11 @@ from typing import Any
 
 import numpy as np
 
+# Prefer the fast Rust HF downloader when installed (big multi-GB shards pull far
+# faster); harmless no-op if hf_transfer is absent. Must be set before any
+# huggingface_hub / transformers import — capture_forward imports those lazily.
+os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "1")
+
 CENSUS_VERSION = "spike-sink-census-v1"
 
 # MoCoP injection sites (zone rule v2 / #758): v_proj additive bias at the comb
