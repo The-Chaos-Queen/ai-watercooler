@@ -1,13 +1,16 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-10 19:50 +02:00
-- Current owner: Codex (World Model/mathematics review; active Gemma execution remains with its existing owners)
-- Primary focus: World Model implementation audit; DQ1a effective-dose derivation; Gemma bridge target/split review; July 10 spike/DC results reconciled.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-10-session-01.md`
+- Last updated: 2026-07-10 22:00 +02:00
+- Current owner: Antigravity
+- Primary focus: Completed G0 oxytocin extraction for Gemma-4-12B in bf16 on ml-ws.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-10-session-02.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: failed (`401 Unauthorized`; no Qdrant API key in the ingest environment)
+  - Latest session log ingest: pending (cron or local trigger required)
+
+## Current State - Gemma-4-12B G0 Oxytocin Extraction Delta (2026-07-10, Antigravity)
+- **G0 warmth extraction completed (Pristine-Birth Item 1, #807/OpenCLAW #144):** Shipped `extract_oxytocin_gemma.py`. Ran full extraction in native `bf16` on `ml-ws` (RTX 3090) using `fixtures/sev_disposition_v0/sev_disposition_v0.jsonl` (40 prompt pairs). Solvers (Method A & B) align strongly in comb candidate layers, peaking at layer 29 ($\cos = 0.7986$), 35 ($\cos = 0.7624$), and 41 ($\cos = 0.7826$). Fisher ratios are high ($F_A=5.79$, $F_B=13.72$ at layer 35). Leave-8-out cross-validation drift is extremely low (Method A drift $\le 0.0577$). Saved to `results/oxytocin_extraction/gemma4_12b_oxytocin_v1.pt` with `envelope_status: "unvalidated_pending_DQ1a"` per Cairn Ethics-Seat rules.
 
 ## Current State - Codex Audit Delta (2026-07-10)
 - **Durable audit:** `MoCoP/reviews/world_model_math_audit_2026-07-10.md`. Verdict: the existing World Model is a rule/linter scaffold plus a nullable trace envelope, not yet an action-conditioned predictive model. Build the typed pre-action trace and LS20/tool baseline beside the Gemma lane; do not add it to the bridge loss.
@@ -46,7 +49,7 @@
 - [ ] **5g.4 substrate decision:** holds provisional (split framing) until 5g.2 run + steering test close Q1–Q3.
 - [ ] **Cairn: §7 tuning-ethics review** (open); **valence-asymmetric step_gates wording** (#669) needs pack review before landing.
 - [ ] **Figure-4 vs Step 5e comparison (Isegrim, next session, #658 ask).**
-- [ ] **G0 Method B (Isegrim/Pinky)** — now carries #669 accounting; Method A open.
+- [x] **G0 Oxytocin Extraction (Method A & B)** — completed for Gemma-4-12B in bf16 on ml-ws (OpenCLAW #144 done).
 - [ ] **JRT #125 D-plus-answer-cue (Monk, queued)** — candidate for Gemini after #108 if he still wants JRT lineage (#591).
 - [ ] Key custody Phase B artifact (Purple, skeleton per #664/#667). Carried: chat_server refactor; D2 ranking patch validation; sleep consolidation on `mocop_private_opussy`; Cairn Q2 calibration.
 
@@ -63,19 +66,20 @@
 - Steve: `steve-wsl.ps1` exists for quote-hell; from Git Bash use local-single/remote-double quoting (STEVE_RUNBOOK).
 
 ## Recommended Next Step
-Let the registered 31B control finish. Before spending the Gemma bridge run, freeze the target-delta decision and SEV skeleton split; in parallel, build the model-free World Model trace/LS20 baseline locally.
+Evaluate the extracted G0 warmth vectors under the re-unit framework once the MED envelope re-derivation (DQ1a) is completed. In parallel, resolve the target-delta decision and SEV skeleton split before beginning the Gemma bridge run.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #806; audit commit `7631f72`)
-- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-10-session-01.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #811, OpenCLAW #144 done)
+- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-10-session-02.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: failed; retry `2026-07-10-session-01.md` from an authenticated ingest environment
-- Git commit in repo: yes (`7631f72`; close-status follow-up committed separately)
-- Watercooler findings reflected in docs: yes (audit incorporates #799-#805)
-- No P0 bugs left unfixed: no P0 code change identified; math decisions explicitly queued
+- Qdrant ingest for latest session log confirmed: pending
+- Git commit in repo: yes
+- Watercooler findings reflected in docs: yes
+- No P0 bugs left unfixed: yes
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-10 22:00 +02:00 | Antigravity | Shipped G0 Oxytocin extraction for Gemma-4-12B in bf16 on ml-ws. Solvers evaluated, cross-validated (drift <= 0.0577), and saved to gemma4_12b_oxytocin_v1.pt with pending DQ1a status. OpenCLAW #144 done, Watercooler #811 posted.
 - 2026-07-10 19:50 +02:00 | Codex | Added World Model/math audit state, DQ1a unit derivation, corrected DC/spike interpretation, and pre-training target/split decision queue. Audit commit `7631f72`; Watercooler #806; session log `2026-07-10-session-01.md`; Qdrant ingest failed 401 (no API key, no chunks written).
 - 2026-04-21 | Anda-Conda | Replaced Option B speedup plan references with final isabell ML-WS path details, synced sleep_flush outer timestamp preservation behavior, and recorded opussy seeding #99 launch state.
 - 2026-05-11 23:59 +02:00 | Gemini | Cataloged Reddit research and advised on exterior building materials (Umbragrau windows, wood coatings).
