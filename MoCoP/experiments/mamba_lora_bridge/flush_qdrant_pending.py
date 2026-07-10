@@ -12,6 +12,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from autobiographical_memory import validate_provenance
+
 
 def append_jsonl(path: Path, row):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -55,9 +57,12 @@ class QdrantGateSink:
         from qdrant_client import QdrantClient
         from qdrant_client.models import PointStruct
         from sentence_transformers import SentenceTransformer
+        import os
 
         self.collection_name = collection_name
-        self.client = QdrantClient(host=host, port=port, timeout=15)
+        # P0-1: API key authentication support
+        api_key = os.environ.get("QDRANT_API_KEY")
+        self.client = QdrantClient(host=host, port=port, timeout=15, api_key=api_key)
         self.point_struct_cls = PointStruct
         self.model = SentenceTransformer(embedding_model)
 
@@ -88,6 +93,8 @@ class QdrantGateSink:
             "stored_at": datetime.now().timestamp(),
         }
         payload.update(metadata)
+        # P0-4: hard reject-on-missing-field provenance gate before any write.
+        validate_provenance(payload, collection_name=self.collection_name)
         self.client.upsert(
             collection_name=self.collection_name,
             points=[

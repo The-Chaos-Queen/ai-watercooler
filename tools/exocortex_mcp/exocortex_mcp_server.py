@@ -25,6 +25,7 @@ Usage:
 import argparse
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 from typing import Optional
@@ -389,8 +390,10 @@ def main():
 
     COLLECTION = args.collection
 
+    # P0-1: API key authentication support (read-only key for MCP server)
+    api_key = os.environ.get("QDRANT_READ_KEY") or os.environ.get("QDRANT_API_KEY")
     logger.info("Connecting to Qdrant at %s (collection: %s)", args.qdrant_url, COLLECTION)
-    QDRANT = QdrantClient(url=args.qdrant_url, timeout=10)
+    QDRANT = QdrantClient(url=args.qdrant_url, timeout=10, api_key=api_key)
 
     logger.info("Loading embedding model: %s", args.model)
     EMBEDDER = SentenceTransformer(args.model)

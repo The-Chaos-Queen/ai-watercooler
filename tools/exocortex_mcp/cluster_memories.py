@@ -440,7 +440,9 @@ def main():
         print("       Unscoped clustering is disabled by design.")
         return 1
 
-    client = QdrantClient(url=args.qdrant_url, timeout=30)
+    # P0-1: API key authentication support
+    api_key = os.environ.get("QDRANT_READ_KEY") or os.environ.get("QDRANT_API_KEY")
+    client = QdrantClient(url=args.qdrant_url, timeout=30, api_key=api_key)
 
     # Build scope description
     scope_parts = []

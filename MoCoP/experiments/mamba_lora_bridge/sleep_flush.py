@@ -23,7 +23,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from autobiographical_memory import build_recall_text, enrich_memory_metadata
+from autobiographical_memory import build_recall_text, enrich_memory_metadata, validate_provenance
 
 PRIVATE_QDRANT_COLLECTION_PREFIX = "mocop_private_"
 
@@ -80,8 +80,11 @@ def create_sink(host: str, port: int, collection: str, embedding_model: str):
     from qdrant_client.models import Distance, PointStruct, VectorParams
     from sentence_transformers import SentenceTransformer
     import hashlib
+    import os
 
-    client = QdrantClient(host=host, port=port, timeout=10)
+    # P0-1: API key authentication support
+    api_key = os.environ.get("QDRANT_API_KEY")
+    client = QdrantClient(host=host, port=port, timeout=10, api_key=api_key)
     model = SentenceTransformer(embedding_model)
     embedding_dim = int(model.get_sentence_embedding_dimension())
     known_collections = {c.name for c in client.get_collections().collections}
@@ -129,6 +132,8 @@ def create_sink(host: str, port: int, collection: str, embedding_model: str):
         target_collection = str(metadata.get("qdrant_collection") or collection).strip()
         if not target_collection:
             raise RuntimeError("No Qdrant target collection resolved for pending row.")
+        # P0-4: hard reject-on-missing-field provenance gate before any write.
+        validate_provenance(payload, collection_name=target_collection)
         ensure_collection(target_collection)
         client.upsert(
             collection_name=target_collection,

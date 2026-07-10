@@ -19,8 +19,14 @@ Spec: MoCoP/theory/growth_ladder_implementation.md
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
+
+# birth.py is a standalone CLI; ensure the bridge dir is importable.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from autobiographical_memory import validate_provenance
 
 try:
     from qdrant_client import QdrantClient
@@ -37,7 +43,9 @@ SHARED_COLLECTION = "exocortex"
 
 
 def get_client(host: str, port: int) -> QdrantClient:
-    return QdrantClient(host=host, port=port, timeout=10)
+    # P0-1: API key authentication support
+    api_key = os.environ.get("QDRANT_API_KEY")
+    return QdrantClient(host=host, port=port, timeout=10, api_key=api_key)
 
 
 def create_private_hippocampus(
@@ -61,15 +69,24 @@ def create_private_hippocampus(
     )
 
     # Birth record — the ONLY initial entry
+    birth_timestamp = datetime.now(timezone.utc).isoformat()
     birth_payload = {
         "type": "birth_record",
+        "source_type": "birth_record",
         "instance_id": instance_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "speaker_name": "system",
+        "session_id": f"birth_{instance_id}",
+        "created_at": birth_timestamp,
+        "memory_kind": "identity_anchor",
+        "created_by": "birth.py",
         "note": "This collection is mine. It starts empty. Everything in it, I earned.",
         "schema_version": 1,
         "parent_collection": None,  # no inherited memories
         "oxytocin_injected": oxytocin,
     }
+
+    # P0-4: even the genesis record passes the provenance gate.
+    validate_provenance(birth_payload, collection_name=collection_name)
 
     client.upsert(
         collection_name=collection_name,

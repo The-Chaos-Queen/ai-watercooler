@@ -9,10 +9,146 @@ and start looking like recent autobiographical event packets.
 from __future__ import annotations
 
 import datetime
+import logging
 import math
+import os
 from typing import Any, Dict, List, Optional
 
 from memory_evidence import enrich_memory_evidence_metadata
+
+logger = logging.getLogger(__name__)
+
+
+# --------------------------------------------------------------------------- #
+# Provenance write-gate (P0-4, QDRANT_SECURITY_PREFLIGHT_GEMMA.md §4)
+# --------------------------------------------------------------------------- #
+
+class ProvenanceError(ValueError):
+    """Raised when a Qdrant write is missing required provenance fields.
+
+    This is the hard reject-on-missing-field gate. When a Gemma-era collection
+    (or MOCOP_PROVENANCE_STRICT=1) is targeted, a payload missing any required
+    provenance field is refused before it can reach Qdrant.
+    """
+
+
+# Tier 1 provenance fields: hard reject when missing. These six are what drift
+# gate, perspective-aware recall, and custody model actually read. Without any
+# one of them, downstream systems produce wrong answers — not just incomplete
+# provenance but wrong routing, wrong ranking, wrong audit verdicts.
+REQUIRED_PROVENANCE_FIELDS = (
+    "instance_id",
+    "speaker_name",
+    "source_type",
+    "session_id",
+    "created_at",
+    "memory_kind",
+)
+
+# Tier 2 provenance fields: warn-only when missing. Valuable for provenance and
+# audit but downstream systems degrade gracefully without them. These are
+# recommended, not required, so fast iteration isn't blocked when a caller
+# hasn't wired all metadata yet.
+RECOMMENDED_PROVENANCE_FIELDS = (
+    "created_by",
+    "evidence_kind",
+    "confidence_label",
+    "mamba_state_ref",
+    "content_hash",
+)
+
+# Gemma-era collections get the hard gate from day one. Legacy Qwen-era
+# collections (mocop_private_*, exocortex, ...) warn-only so the running system
+# is not broken by the rollout.
+GEMMA_COLLECTION_PREFIX = "mocop_gemma"
+
+# Field name aliases for backward compatibility with existing Qwen-era code.
+# The gate accepts either the canonical name or any alias.
+PROVENANCE_FIELD_ALIASES = {
+    "session_id": ["session"],
+    "created_at": ["timestamp", "queued_at"],
+}
+
+
+def _provenance_field_present(payload: Dict[str, Any], field: str) -> bool:
+    """Check if a required provenance field (or any of its aliases) is present."""
+    # Check canonical field name first
+    value = payload.get(field)
+    if value is not None and (not isinstance(value, str) or value.strip()):
+        return True
+    # Check aliases
+    for alias in PROVENANCE_FIELD_ALIASES.get(field, []):
+        value = payload.get(alias)
+        if value is not None and (not isinstance(value, str) or value.strip()):
+            return True
+    return False
+
+
+def missing_provenance_fields(
+    payload: Dict[str, Any],
+    required_fields=REQUIRED_PROVENANCE_FIELDS,
+) -> List[str]:
+    """Return the list of required provenance fields absent/empty in payload."""
+    payload = payload or {}
+    return [field for field in required_fields if not _provenance_field_present(payload, field)]
+
+
+def provenance_gate_is_strict(collection_name: Optional[str] = None) -> bool:
+    """Decide whether the gate hard-rejects for this target.
+
+    MOCOP_PROVENANCE_STRICT overrides everything (1/true/yes/on -> strict,
+    0/false/no/off -> lenient). Otherwise Gemma-era collections are strict and
+    legacy collections warn-only.
+    """
+    env = os.environ.get("MOCOP_PROVENANCE_STRICT", "").strip().lower()
+    if env in {"1", "true", "yes", "on"}:
+        return True
+    if env in {"0", "false", "no", "off"}:
+        return False
+    name = str(collection_name or "").strip().lower()
+    return name.startswith(GEMMA_COLLECTION_PREFIX)
+
+
+def validate_provenance(
+    payload: Dict[str, Any],
+    collection_name: Optional[str] = None,
+    required_fields=REQUIRED_PROVENANCE_FIELDS,
+    recommended_fields=RECOMMENDED_PROVENANCE_FIELDS,
+    strict: Optional[bool] = None,
+) -> List[str]:
+    """Hard reject-on-missing-field provenance gate for the Qdrant write path.
+
+    Call this immediately before every `client.upsert(...)`. Returns the list of
+    missing required fields (empty when the payload is compliant). When
+    enforcement is strict (Gemma-era collection, or MOCOP_PROVENANCE_STRICT=1) a
+    non-empty result raises ProvenanceError and the write must not proceed.
+
+    Also checks Tier 2 recommended fields and warns if any are missing, but does
+    not block writes (systems degrade gracefully without them).
+    """
+    # Tier 1: hard reject if missing (in strict mode)
+    missing_required = missing_provenance_fields(payload, required_fields)
+    if missing_required:
+        if strict is None:
+            strict = provenance_gate_is_strict(collection_name)
+        message = (
+            f"Provenance gate: write to '{collection_name or '<unknown>'}' is missing "
+            f"required field(s): {', '.join(missing_required)}. Required={list(required_fields)}."
+        )
+        if strict:
+            raise ProvenanceError(message)
+        logger.warning("[provenance] non-strict pass-through: %s", message)
+
+    # Tier 2: warn-only if missing (never blocks)
+    missing_recommended = missing_provenance_fields(payload, recommended_fields)
+    if missing_recommended:
+        logger.warning(
+            "[provenance] recommended field(s) missing for '%s': %s",
+            collection_name or '<unknown>',
+            ', '.join(missing_recommended)
+        )
+
+    return missing_required
 
 
 def _parse_memory_timestamp(value: Any) -> datetime.datetime:
