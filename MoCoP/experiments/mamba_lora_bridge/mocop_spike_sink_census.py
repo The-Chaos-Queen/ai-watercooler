@@ -52,11 +52,13 @@ INJECTION_LAYERS = (29, 35, 41)
 READOUT_ONLY_LAYER = 47
 GEMMA_WORKSPACE_ZONE = (38, 45)
 
-# A "massive activation" per the paper is O(1000s); a step is a large multiplicative
-# jump between adjacent layers. These are census heuristics for locating the
-# lifecycle, not claims about a universal threshold.
-STEP_RATIO = 2.0          # adjacent-layer magnitude ratio counted as a step
-SPIKE_ABS_FLOOR = 100.0   # |activation| above this is "massive" (paper: thousands)
+# A "massive activation" per the paper is O(1000s) and stands orders of magnitude
+# above the rest of the stack; a step is a large multiplicative jump between adjacent
+# layers. These are census heuristics for locating the lifecycle, not universal
+# thresholds. The spike/smooth classification is PEAK-RELATIVE (a model can peak at
+# 7000 or 200; what matters is whether the peak towers over the median).
+STEP_RATIO = 2.0              # adjacent-layer magnitude ratio counted as a step
+MASSIVE_PEAK_RATIO = 8.0      # peak/median above this = a genuine massive-activation spike
 
 
 # --------------------------------------------------------------------------- #
@@ -75,29 +77,45 @@ def layer_magnitudes(hidden_states: list[np.ndarray]) -> dict[str, list[float]]:
 
 
 def find_step_layers(max_abs: list[float]) -> dict[str, Any]:
-    """Locate the spike lifecycle from the per-layer magnitude trajectory: the
-    step-UP block (largest multiplicative rise into a massive regime) and the
-    step-DOWN block (largest multiplicative fall back out). The spike-active band
-    is [step_up, step_down)."""
+    """Characterize the per-layer magnitude trajectory. First classify the profile:
+    a genuine massive-activation SPIKE (peak towers >= MASSIVE_PEAK_RATIO over the
+    median, paper's Qwen/Llama case) vs a SMOOTH ramp (peak is only a few x the
+    median, no injected outlier). Only for a spike profile does the step-UP /
+    step-DOWN lifecycle and spike-active band make sense; for a smooth profile they
+    are None and only the peak layer is reported."""
     n = len(max_abs)
+    arr = np.asarray(max_abs, dtype=float)
+    peak_layer = int(arr.argmax())
+    peak_val = float(arr.max())
+    median_val = float(np.median(arr)) or 1e-9
+    peak_ratio = peak_val / median_val
+
+    base = {"peak_layer": peak_layer, "peak_value": round(peak_val, 1),
+            "peak_over_median": round(peak_ratio, 2)}
+    if peak_ratio < MASSIVE_PEAK_RATIO:
+        return {**base, "spike_profile": "smooth",
+                "step_up_layer": None, "step_up_ratio": None,
+                "step_down_layer": None, "step_down_ratio": None,
+                "spike_active_band": None}
+
+    floor = 0.2 * peak_val               # "in the massive regime" = within 5x of peak
     up_layer, up_ratio = None, 1.0
-    down_layer, down_ratio = None, 1.0
     for i in range(1, n):
-        prev = max_abs[i - 1] if max_abs[i - 1] > 1e-9 else 1e-9
-        cur = max_abs[i] if max_abs[i] > 1e-9 else 1e-9
-        rise = cur / prev
-        # step-up: FIRST adjacent jump into the massive regime (paper: one block).
-        if up_layer is None and cur >= SPIKE_ABS_FLOOR and rise >= STEP_RATIO:
-            up_layer, up_ratio = i, rise
-        # step-down: the LARGEST late fall back out of the massive regime.
-        drop = prev / cur
-        if max_abs[i - 1] >= SPIKE_ABS_FLOOR and drop >= STEP_RATIO and drop > down_ratio:
-            down_layer, down_ratio = i, drop
-    band = None
-    if up_layer is not None:
-        band = [up_layer, down_layer if down_layer is not None else n - 1]
-    return {"step_up_layer": up_layer, "step_up_ratio": round(up_ratio, 2),
-            "step_down_layer": down_layer, "step_down_ratio": round(down_ratio, 2),
+        prev = arr[i - 1] if arr[i - 1] > 1e-9 else 1e-9
+        cur = arr[i] if arr[i] > 1e-9 else 1e-9
+        if up_layer is None and cur >= floor and cur / prev >= STEP_RATIO:
+            up_layer, up_ratio = i, cur / prev
+    down_layer, down_ratio = None, 1.0
+    for i in range(n - 1, 0, -1):
+        prev = arr[i - 1] if arr[i - 1] > 1e-9 else 1e-9
+        cur = arr[i] if arr[i] > 1e-9 else 1e-9
+        if arr[i - 1] >= floor and prev / cur >= STEP_RATIO and prev / cur > down_ratio:
+            down_layer, down_ratio = i, prev / cur
+    band = [up_layer, down_layer if down_layer is not None else n - 1] if up_layer else None
+    return {**base, "spike_profile": "massive",
+            "step_up_layer": up_layer, "step_up_ratio": round(up_ratio, 2),
+            "step_down_layer": down_layer,
+            "step_down_ratio": round(down_ratio, 2) if down_layer is not None else None,
             "spike_active_band": band}
 
 
@@ -262,7 +280,10 @@ def capture_forward(model_id: str, *, quant: str, prompts: list[str],
                               AutoProcessor, AutoTokenizer)
     fam = family or infer_family(model_id)
 
-    load_kwargs: dict[str, Any] = {"device_map": "auto"}
+    # gemma4_unified ships its converter as remote code with the checkpoint (the
+    # "gemma4 module"); without trust_remote_code, transformers falls back to its
+    # built-in class whose main-branch MLP rename drops down_proj on conversion.
+    load_kwargs: dict[str, Any] = {"device_map": "auto", "trust_remote_code": True}
     if with_attention:
         load_kwargs["attn_implementation"] = "eager"
     if quant == "4bit":
@@ -279,11 +300,11 @@ def capture_forward(model_id: str, *, quant: str, prompts: list[str],
             return cls.from_pretrained(model_id, torch_dtype=torch.bfloat16, **kw)
 
     if fam == "image_text":
-        proc = AutoProcessor.from_pretrained(model_id)
+        proc = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
         model = _load(AutoModelForImageTextToText)
         encode = lambda t: proc(text=[t], return_tensors="pt")  # noqa: E731
     else:
-        proc = AutoTokenizer.from_pretrained(model_id)
+        proc = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
         model = _load(AutoModelForCausalLM)
         encode = lambda t: proc(t, return_tensors="pt", truncation=True,  # noqa: E731
                                 max_length=max_tokens)
@@ -315,12 +336,19 @@ def capture_forward(model_id: str, *, quant: str, prompts: list[str],
 def summarize(report: dict) -> str:
     sl = report["spike_lifecycle"]
     ov = report["injection_overlap"]
+    profile = sl.get("spike_profile")
+    if profile == "massive":
+        life = (f"  MASSIVE spike (peak/median {sl['peak_over_median']}x): step-up @ "
+                f"L{sl['step_up_layer']} (x{sl['step_up_ratio']}), step-down @ "
+                f"L{sl['step_down_layer']} (x{sl['step_down_ratio']}), active band "
+                f"{sl['spike_active_band']}")
+    else:
+        life = (f"  SMOOTH profile (peak/median {sl['peak_over_median']}x, no massive "
+                f"spike): peak @ L{sl['peak_layer']}, no step-up/step-down lifecycle")
     lines = [
         f"SPIKE/SINK CENSUS — {report['model_id']} ({report['n_layers']} layers, "
         f"{report['n_prompts']} prompts)",
-        f"  spike lifecycle: step-up @ L{sl['step_up_layer']} (x{sl['step_up_ratio']}), "
-        f"step-down @ L{sl['step_down_layer']} (x{sl['step_down_ratio']}), "
-        f"active band {sl['spike_active_band']}",
+        life,
         f"  peak residual |act|: {max(report['per_layer_max_abs'])}  "
         f"(pos0 peak {max(report['per_layer_max_abs_pos0'])})",
         f"  spike channels @ L{report['spike_channels']['peak_layer']}: "

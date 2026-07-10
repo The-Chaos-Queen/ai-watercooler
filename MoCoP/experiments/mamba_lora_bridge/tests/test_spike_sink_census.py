@@ -53,9 +53,21 @@ def test_layer_magnitudes_tracks_spike():
 def test_find_step_layers_locates_lifecycle():
     hs = make_hidden_states(16, 64, spike_channel=3, spike_value=2500.0, up=4, down=11)
     step = find_step_layers(layer_magnitudes(hs)["max_abs"])
+    assert step["spike_profile"] == "massive"
     assert step["step_up_layer"] == 4
     assert step["step_down_layer"] == 11
     assert step["spike_active_band"] == [4, 11]
+
+
+def test_smooth_profile_no_spurious_lifecycle():
+    # a gentle ramp (Gemma-like): peak only a few x the median -> SMOOTH, no
+    # step-up/step-down, no spike-active band (the heuristic must not invent one).
+    ramp = [10, 12, 20, 40, 80, 140, 200, 236, 210, 150, 120, 90, 60, 40]
+    step = find_step_layers(ramp)
+    assert step["spike_profile"] == "smooth"
+    assert step["step_up_layer"] is None and step["step_down_layer"] is None
+    assert step["spike_active_band"] is None
+    assert step["peak_layer"] == 7  # the 236
 
 
 def test_spike_channels_identifies_planted_channel():

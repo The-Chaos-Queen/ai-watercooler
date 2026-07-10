@@ -34,39 +34,50 @@ reading a ~7000-magnitude near-constant spike + a 0.65 sink unless it masks
 position 0 and excludes the spike channels. This is the §6.2 correction, now with
 concrete channel indices to exclude.
 
-### Gemma-4-12B base — BLOCKED (infra, not the census)
-The load-bearing run — it carries the actual injection layers {29,35,41} and the
-zone 38–45 — is **blocked by a transformers 5.10.0.dev0 weight-conversion
-regression**, independent of this script:
+### Gemma-4-12B base — DONE (`gemma4_12b_base.json`)
+Overlay `gemma4-mocop` (transformers 5.10.0.dev0), bf16, 12 prompts, 48 layers.
+This is the load-bearing run — it carries the actual injection teeth {29,35,41}.
 
-- `AutoModelForImageTextToText.from_pretrained('google/gemma-4-12B', ...)` raises
-  `RuntimeError: ... issues during automatic conversion of the weights`, with
-  `model.language_model.layers.{0..47}.mlp.down_proj.weight | MISSING` across all
-  48 layers.
-- **The proven bakeoff `run_base_improv_bakeoff.load_model` fails identically** —
-  so this is a pre-existing overlay regression, not the census code, and it
-  affects the whole Gemma path (the runner, the training run, this census).
-- Same symptom on the 4-bit path; not attention-capture-related (fails with
-  `--no-attn` too).
+**Loader note (the real fix; an earlier flag of mine was wrong).** Gemma-4-12B is
+a `gemma4_unified` **remote-code** model: its weight converter ships *with the
+checkpoint* (the "gemma4 module"). Loading needs `trust_remote_code=True`;
+without it, transformers falls back to its built-in class whose main-branch MLP
+rename drops `down_proj` and raises a conversion `RuntimeError`. This is NOT an
+env regression — the overlay was fine the whole time. The bakeoff
+`run_base_improv_bakeoff.load_model` lacks the flag (that's why it failed);
+`spikes/run_gemma_layer_sweep.py` and Monk's gemma smoke have it. Also:
+`trust_remote_code` + the remote converter is **incompatible with bnb 4-bit**
+(the quant path uses the built-in conversion), so Gemma runs **bf16**
+(`--no-quant`), which is what `capture_forward` now does.
 
-**Implication flagged to infra (Monk/Isegrim):** the #788-greenlit training run
-loads Gemma-4-12B through the same path and is likely blocked by the same
-regression. Suspected cause: the overlay's transformers moved off the pinned
-commit (summary recorded `b70d02f`); pinning back is the first thing to try.
+Finding — Gemma is a *different animal* from Qwen:
 
-Once the loader is fixed, rerun:
+- **NO massive-activation spike. SMOOTH profile: peak/median = 1.98×**, peak
+  residual |activation| = **236** at L25 (vs Qwen's 7136). The residual grows as a
+  gentle ramp (L13→L25) and tapers; there is no sharp step-up/step-down block.
+  Gemma's architecture (norm/attention variant) suppresses the spike the paper
+  and Qwen show.
+- **The injection teeth are geometrically clean:** L29/L35/L41 carry residual
+  |act| of only **130 / 138 / 48** — ordinary stack magnitude, no near-constant
+  spike wall. A low-rank additive bias at these layers is **not** competing with a
+  dominant implicit-bias vector. This retires the injection-drowning risk A1 was
+  built to check: it does not apply to Gemma. (The Qwen prior — "step-down is
+  late, so teeth sit inside the spike band" — was a wrong extrapolation; Gemma has
+  no spike band.)
+- **But the attention sink survives: mean position-0 ratio = 0.49** (L29 0.62,
+  L35 0.43, L41 0.59). This is the paper's *separability* point made concrete on
+  our target: Gemma killed the spike but kept the sink. So Domain-E monitors that
+  read attention still need position-0 masking on Gemma — while spike-channel
+  exclusion matters far less than on Qwen (peak 236, not 7136).
+- Near-constant channels still exist ([1750, 292, 260, 3607, 402] @ L17,
+  token-invariance cosine 1.0) but at modest magnitude.
 
-    python mocop_spike_sink_census.py --model google/gemma-4-12B --quant 4bit \
-        --no-attn --out results/spike_sink/gemma4_12b_base.json
+**Consequence for the #788 training run:** the injection geometry on Gemma is
+clean — no spike interference at the teeth — which is a *green* signal for the
+bridge design, not the blocker my earlier post feared.
 
-Prior from Qwen: the step-down is a late block, so on 48-layer Gemma the teeth
-{29,35,41} plausibly sit *before* step-down — i.e., inside the spike-active band —
-which is exactly the overlap A1 is meant to confirm or rule out. Open until Gemma
-loads.
-
-## Attention capture caveat
-`--no-attn` is the robust mode. Attention capture needs
-`attn_implementation="eager"` (SDPA/flash return no weights); the sink ratio for
-Qwen above used eager successfully. If a host refuses eager under quantization,
-run spike-only (the primary A1 metric is the magnitude lifecycle) and capture the
-sink separately.
+## Attention capture note
+Attention (the sink) needs `attn_implementation="eager"` (SDPA/flash return no
+weights) and, for Gemma, the bf16 + `trust_remote_code` path above (eager is
+incompatible with the 4-bit conversion). `--no-attn` runs spike-only (the primary
+A1 magnitude metric) if a host refuses eager.
