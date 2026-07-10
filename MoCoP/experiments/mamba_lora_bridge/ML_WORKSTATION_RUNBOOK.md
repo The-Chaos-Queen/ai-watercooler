@@ -646,6 +646,24 @@ model = AutoModelForImageTextToText.from_pretrained(
     "google/gemma-4-12B", trust_remote_code=True, dtype=torch.bfloat16, device_map="auto")
 ```
 
+### WATCH-OUT: 4-bit (bnb) is currently BROKEN in this overlay — bf16 only (2026-07-10)
+
+The same `cc041637` transformers that needs `trust_remote_code` also has a broken
+**quantized-load** path: `BitsAndBytesConfig(load_in_4bit=True)` raises the same
+`down_proj`-MISSING conversion `RuntimeError` — and **not just for gemma**:
+`Qwen/Qwen2.5-1.5B` in 4-bit fails identically. So 4-bit is unavailable across the
+board here until the transformers pin is fixed; **run everything bf16** (`--no-quant`).
+
+Two consequences flagged (Isegrim, board-down ledger):
+
+- **The #130 judge slice (`disposition_judge.py`) defaults to 4-bit** (`HFJudge`,
+  `--judge-model <id>` without `--no-quant`) and will hit this busted path. Run the
+  real judge with **`--no-quant`** until 4-bit is restored. (The default is correct
+  for a healthy env; this is an env-transient caveat, not a code bug.)
+- **bf16-only means Gemma-4-12B no longer fits Steve's 16 GB** (it needed 4-bit to
+  squeeze in). Until 4-bit is back, the Gemma path is **ML-WS-only** (24 GB, or bf16
+  CPU-offload). 31B is bf16 + heavy offload regardless (~62 GB).
+
 ## Runtime Bundle Sync
 
 Do not copy the full local `mamba_lora_bridge` directory blindly.
