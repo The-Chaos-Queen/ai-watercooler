@@ -44,18 +44,21 @@ internalize as a bridge DC. ``delta = scenario - neutral`` is what the bridge is
 then trained to reproduce (source scenario-minus-neutral -> target
 scenario-minus-neutral).
 
-FP16 CAPTURE NOISE FLOOR (see the SNR metric)
----------------------------------------------
-Capture happens on an fp16 host, so each side carries per-element quantization
-error ~``eps_fp16 * |absolute|`` (``eps_fp16 ~ 4.9e-4``) that is baked in BEFORE
-the subtraction and, being from INDEPENDENT forwards, does NOT cancel. In the
+CAPTURE NOISE FLOOR (see the SNR metric)
+----------------------------------------
+Capture happens at the host dtype, so each side carries per-element quantization
+error ~``u * |absolute|`` (``u`` = the dtype unit roundoff) baked in BEFORE the
+subtraction and, being from INDEPENDENT forwards, it does NOT cancel. In the
 common-mode >> contrast regime this design targets, that noise can DOMINATE a
-small delta. Each artifact records a per-layer delta SNR
-(``||delta|| / (eps_fp16 * ||scenario_abs|| * sqrt(d))``); the CLI reports
-min/median SNR and offers a ``--min-snr`` warn/gate plus a ``--capture-dtype
-{fp16,fp32}`` escalation. fp32 STORAGE does not recover capture-time fp16 noise;
-fp32 CAPTURE (``--capture-dtype fp32``) is the real escalation, the SNR gate is
-the diagnostic. No verdict is hardcoded — the threshold is a run-time flag.
+small delta. Each artifact records a per-layer delta SNR (Codex #817 item 3):
+``||delta|| / (u * sqrt(||scenario||^2 + ||neutral||^2))`` — NO ``sqrt(d)`` (the
+componentwise error L2 is bounded by ``u*||x||`` directly), and BOTH sides' norms
+enter in quadrature. ``u`` is dtype-specific (``EPS_BY_DTYPE``): fp16 2^-11, bf16
+2^-8 (~8x, and Gemma-4 records in bf16), fp32 2^-24. The CLI reports min/median
+SNR, offers a ``--min-snr`` gate (pre-registered in the manifest, Cairn #816), and
+a ``--capture-dtype {fp16,bf16,fp32}`` escalation. fp32 STORAGE does not recover
+capture-time noise; fp32 CAPTURE is the real escalation, the SNR gate is the
+diagnostic. No verdict is hardcoded — the threshold is a run-time flag.
 
 FROZEN SPLIT (SEV scenario/skeleton split)
 ------------------------------------------
@@ -119,10 +122,20 @@ os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 RECIPE_TAG = "matched_delta_v1"
 SCHEMA_VERSION = "matched-delta-v1"
 
-# fp16 machine epsilon (2^-11). Capture-time per-element quantization error is
-# ~eps_fp16 * |value|; independent scenario/neutral forwards do NOT cancel it, so
-# it sets the delta noise floor (S1). Used by the per-layer SNR metric.
-EPS_FP16 = 2.0 ** -11
+# Per-dtype unit roundoff u (Codex #817 item 3): the capture dtype sets the noise
+# floor, and it is NOT always fp16. u = 2^-(mantissa_bits+1): fp16 (10 mantissa
+# bits) 2^-11, bf16 (7 bits) 2^-8 — ~8x LARGER, and Gemma-4 records in bf16, so
+# the fp16 constant would badly understate the real noise floor — fp32 (23 bits)
+# 2^-24. The SNR gate must use the epsilon of the dtype actually captured.
+EPS_BY_DTYPE = {"fp16": 2.0 ** -11, "bf16": 2.0 ** -8, "fp32": 2.0 ** -24}
+EPS_FP16 = EPS_BY_DTYPE["fp16"]  # back-compat alias
+
+
+def eps_for_dtype(capture_dtype: str) -> float:
+    if capture_dtype not in EPS_BY_DTYPE:
+        raise ValueError(f"unknown capture_dtype {capture_dtype!r}; "
+                         f"expected one of {sorted(EPS_BY_DTYPE)}")
+    return EPS_BY_DTYPE[capture_dtype]
 
 # v_proj comb teeth for the current 1.5B host (mirrors record_cheese_batch.py's
 # DEFAULT_TARGET_LAYERS / train_cheese_bridge.TARGET_SPECS). The delta recording
@@ -446,20 +459,32 @@ def _l2(vec: Sequence[float]) -> float:
 
 
 def delta_snr(delta: Sequence[float], scenario_abs: Sequence[float],
+              neutral_abs: Sequence[float] | None = None,
               *, eps: float = EPS_FP16) -> float:
-    """Per-layer delta signal-to-noise ratio against the fp16 capture noise floor.
+    """Per-layer delta signal-to-noise ratio against the capture noise floor.
 
-    ``SNR = ||delta|| / (eps * ||scenario_abs|| * sqrt(d))`` (S1). The denominator
-    estimates the L2 of the non-cancelling per-side fp16 quantization error: each
-    element carries ~``eps * |value|``, and over ``d`` independent elements the
-    error L2 scales ~``eps * ||abs|| * sqrt(d)`` in the worst-uniform case
-    (conservative — treats the whole absolute, dominated by the common mode, as the
-    noise-bearing magnitude). SNR < ~1 means the delta is at or below the noise
-    floor and the contrast is not reliably resolved in fp16. Returns ``inf`` for a
-    zero noise floor (e.g. a scripted fp-exact test with zero absolute).
+    ``SNR = ||delta|| / noise`` where ``noise = eps * sqrt(||scen||^2 + ||neut||^2)``
+    (Codex #817 item 3, corrected). Two corrections over the first cut:
+
+    * NO ``sqrt(d)``. For componentwise rounding, each element error is bounded by
+      ``eps*|x_i|``, so the vector error L2 is ``||e|| <= eps*||x||`` directly
+      (``||e||^2 = sum e_i^2 <= sum (eps*x_i)^2 = eps^2 ||x||^2``). The earlier
+      ``* sqrt(d)`` inflated the noise floor by ~sqrt(d) (~45x at d=2048) and
+      understated SNR by the same factor.
+    * BOTH sides contribute. ``delta = scenario - neutral`` with independent
+      rounding on each, so the delta noise adds in quadrature over the two absolute
+      norms, not the scenario alone.
+
+    ``neutral_abs=None`` falls back to the scenario norm only (scripted tests /
+    back-compat). SNR < ~1 means the delta is at or below the noise floor and the
+    contrast is not reliably resolved at the capture dtype. ``eps`` MUST be the
+    capture dtype's roundoff (see ``eps_for_dtype``). Returns ``inf`` for a zero
+    noise floor (a scripted fp-exact test with zero absolutes).
     """
-    d = len(scenario_abs)
-    noise = eps * _l2(scenario_abs) * (d ** 0.5)
+    n2 = _l2(scenario_abs) ** 2
+    if neutral_abs is not None:
+        n2 += _l2(neutral_abs) ** 2
+    noise = eps * (n2 ** 0.5)
     sig = _l2(delta)
     if noise <= 0.0:
         return float("inf") if sig > 0.0 else 0.0
@@ -518,6 +543,7 @@ def build_matched_delta_record(
     neutral_capture: dict[int, dict[str, Any]],
     target_layers: Sequence[int],
     keep_absolute: bool = True,
+    capture_dtype: str = "fp16",
 ) -> dict[str, Any]:
     """Assemble the per-scenario matched-delta artifact (schema v1).
 
@@ -560,7 +586,7 @@ def build_matched_delta_record(
         scen_out = _as_floats(scen_out)
         neut_out = _as_floats(neut_out)
         delta = compute_delta(scen_out, neut_out)
-        snr = delta_snr(delta, scen_out)
+        snr = delta_snr(delta, scen_out, neut_out, eps=eps_for_dtype(capture_dtype))
         snrs.append(snr)
         entry: dict[str, Any] = {
             # matched-delta target (the center of gravity — always present).
@@ -601,6 +627,11 @@ def build_matched_delta_record(
         "corpus_id": split.corpus_id,
         "target_layers": list(target_layers),
         "keep_absolute": bool(keep_absolute),
+        # SNR provenance (Codex #817 items 3+4): the dtype whose noise floor the SNR
+        # is measured against, its unit roundoff, and the corrected denominator form.
+        "capture_dtype": capture_dtype,
+        "snr_eps": eps_for_dtype(capture_dtype),
+        "snr_denominator": "eps * sqrt(||scenario||^2 + ||neutral||^2)",
         "min_delta_snr": min(snrs) if snrs else None,
         "median_delta_snr": _median(snrs) if snrs else None,
         "layers": layers,
@@ -632,24 +663,52 @@ class HFVProjCapture:
                  *, max_length: int = 2048, capture_inputs: bool = True,
                  capture_dtype: str = "fp16"):
         import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import (AutoConfig, AutoModelForCausalLM,
+                                  AutoModelForImageTextToText, AutoProcessor,
+                                  AutoTokenizer)
 
         self.target_layers = tuple(int(x) for x in target_layers)
         self.max_length = int(max_length)
         self.capture_inputs = bool(capture_inputs)
         self._torch = torch
-        # S1 escalation path: fp32 CAPTURE (not just storage) is what recovers the
-        # fp16 noise floor. fp32 1.5B is ~6GB and feasible on the workstation.
-        if capture_dtype not in ("fp16", "fp32"):
-            raise ValueError(f"capture_dtype must be fp16|fp32, got {capture_dtype!r}")
+        # The capture dtype sets the SNR noise floor (Codex #817 item 3), so it is
+        # first-class: fp16 | bf16 | fp32. bf16 is the ESTABLISHED Gemma-4 run dtype
+        # (4-bit is broken in the overlay, fp16 is not what Gemma trained/serves in);
+        # fp32 is the S1 escalation. It is stamped into every artifact.
+        if capture_dtype not in EPS_BY_DTYPE:
+            raise ValueError(f"capture_dtype must be one of {sorted(EPS_BY_DTYPE)}, "
+                             f"got {capture_dtype!r}")
         self.capture_dtype = capture_dtype
-        load_dtype = torch.float16 if capture_dtype == "fp16" else torch.float32
+        load_dtype = {"fp16": torch.float16, "bf16": torch.bfloat16,
+                      "fp32": torch.float32}[capture_dtype]
 
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        if self.tokenizer.pad_token is None and self.tokenizer.eos_token is not None:
+        # Loader-bug class fix (Codex #817 item 2, census-derived): gemma4_unified
+        # is a REMOTE-CODE image-text model. It must load via
+        # AutoModelForImageTextToText + AutoProcessor with trust_remote_code=True;
+        # a plain AutoModelForCausalLM without the flag drops down_proj on conversion
+        # (the loader saga, occurrence #3 today). Detect via config model_type / name.
+        cfg = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
+        is_image_text = (str(getattr(cfg, "model_type", "")).startswith("gemma4")
+                         or "gemma-4" in model_name.lower())
+
+        def _load(cls, **kw):
+            try:
+                return cls.from_pretrained(model_name, dtype=load_dtype,
+                                           device_map="auto", trust_remote_code=True, **kw)
+            except TypeError:  # older transformers: dtype -> torch_dtype
+                return cls.from_pretrained(model_name, torch_dtype=load_dtype,
+                                           device_map="auto", trust_remote_code=True, **kw)
+
+        if is_image_text:
+            self.proc = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
+            self.tokenizer = getattr(self.proc, "tokenizer", self.proc)
+            self.model = _load(AutoModelForImageTextToText)
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+            self.model = _load(AutoModelForCausalLM)
+        if getattr(self.tokenizer, "pad_token", None) is None \
+                and getattr(self.tokenizer, "eos_token", None) is not None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name, torch_dtype=load_dtype, device_map="auto")
         self.model.eval()
         self._layer_modules = self._resolve_layers()
         self._expected_out = {
@@ -781,7 +840,8 @@ def record_matched_delta(
         record = build_matched_delta_record(
             scenario_id=scenario_id, split=split,
             scenario_capture=scenario_cap, neutral_capture=neutral_cap,
-            target_layers=layers, keep_absolute=keep_absolute)
+            target_layers=layers, keep_absolute=keep_absolute,
+            capture_dtype=getattr(capture, "capture_dtype", "fp16"))
         records.append(record)
         if sink is not None:
             sink(record)
@@ -867,9 +927,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
                         help="SEV classes to record as scenarios (neutrals are controls)")
     parser.add_argument("--no-inputs", action="store_true",
                         help="skip v_proj input capture (output-delta only)")
-    parser.add_argument("--capture-dtype", choices=("fp16", "fp32"), default="fp16",
-                        help="host load/capture dtype; fp32 is the S1 noise-floor "
-                             "escalation (~6GB for 1.5B)")
+    parser.add_argument("--capture-dtype", choices=("fp16", "bf16", "fp32"),
+                        default="fp16",
+                        help="host load/capture dtype; sets the SNR noise floor. "
+                             "bf16 for the Gemma-4 run, fp32 is the S1 escalation")
     parser.add_argument("--min-snr", type=float, default=None,
                         help="fp16 delta SNR gate: warn (or fail with --fail-on-low-snr) "
                              "when deltas fall below this. Default off / warn-only.")
@@ -878,7 +939,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--holdout-skeletons", default="",
                         help="comma-separated SEV skeleton ids NEVER used as training "
                              "scenarios (eval-contamination guard, S6). Stamped into "
-                             "split_id. Default: no holdout (keeper decision).")
+                             "split_id. The WHICH is a keeper decision.")
+    parser.add_argument("--no-holdout-ack", action="store_true",
+                        help="consciously record with NO holdout. Required to run "
+                             "without --holdout-skeletons: per Cairn #816 the holdout "
+                             "default is 'required-per-run', so no-holdout must be an "
+                             "explicit acknowledgement, never a silent default.")
     return parser
 
 
@@ -890,6 +956,15 @@ def main(argv: list[str] | None = None) -> int:
     keep_classes = {c.strip() for c in args.scenario_classes.split(",") if c.strip()}
     held_out = tuple(s.strip() for s in args.holdout_skeletons.split(",") if s.strip())
 
+    # Cairn #816: the holdout default is "required-per-run". No-holdout must be a
+    # conscious acknowledgement, never a silent default.
+    if not held_out and not args.no_holdout_ack:
+        raise SystemExit(
+            "holdout is required per run (Cairn #816): pass --holdout-skeletons "
+            "<ids> (the WHICH is the keeper's call), or --no-holdout-ack to record "
+            "with no holdout on purpose. SEV is the eval battery; recording over all "
+            "of it trains on the test set.")
+
     corpus = load_sev_corpus()
     if not corpus:
         raise SystemExit(f"SEV corpus empty/not found at {_SEV_PATH}")
@@ -899,9 +974,21 @@ def main(argv: list[str] | None = None) -> int:
                                held_out_skeletons=held_out)
 
     # Freeze the manifest BEFORE recording (the split id every artifact carries).
+    # PRE-REGISTER the run config (Cairn #816 note 1): the --min-snr gate and the
+    # capture dtype are stamped before any capture, so the SNR floor cannot be
+    # lawyered down post-hoc.
     out_dir.mkdir(parents=True, exist_ok=True)
+    manifest = split.to_manifest()
+    manifest["run_config"] = {
+        "capture_dtype": args.capture_dtype,
+        "snr_eps": eps_for_dtype(args.capture_dtype),
+        "min_snr": args.min_snr,
+        "fail_on_low_snr": bool(args.fail_on_low_snr),
+        "max_length": args.max_length,
+        "no_holdout_ack": bool(args.no_holdout_ack),
+    }
     manifest_path = out_dir / args.manifest_name
-    manifest_path.write_text(json.dumps(split.to_manifest(), indent=2), encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"[matched-delta] frozen split {split.split_id} corpus {split.corpus_id} "
           f"scenarios={len(split.pairs)} held_out={list(split.held_out_skeletons)} "
           f"-> {manifest_path.name}")

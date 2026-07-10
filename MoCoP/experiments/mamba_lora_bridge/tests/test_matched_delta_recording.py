@@ -32,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from matched_delta_recording import (  # noqa: E402
     DEFAULT_TARGET_LAYERS,
+    EPS_BY_DTYPE,
     EPS_FP16,
     MissingNeutralError,
     ScriptedVProjCapture,
@@ -40,7 +41,9 @@ from matched_delta_recording import (  # noqa: E402
     compute_delta,
     corpus_fingerprint,
     delta_snr,
+    eps_for_dtype,
     load_frozen_split,
+    main,
     neutral_control_id,
     record_matched_delta,
     snr_gate_count,
@@ -312,11 +315,59 @@ def test_delta_snr_flags_noise_dominated_delta():
 
 
 def test_delta_snr_matches_closed_form():
+    # Codex #817 item 3: noise = eps * ||scenario||, NO sqrt(d).
     scen = [10.0, 0.0, 0.0, 0.0]
     delta = [1.0, 0.0, 0.0, 0.0]
-    d = len(scen)
-    expected = 1.0 / (EPS_FP16 * 10.0 * (d ** 0.5))
+    expected = 1.0 / (EPS_FP16 * 10.0)
     assert delta_snr(delta, scen) == pytest.approx(expected)
+
+
+def test_delta_snr_has_no_sqrt_d():
+    # zero-padding the vectors must NOT change the SNR (the old sqrt(d) form would
+    # have inflated the noise floor with each added dimension).
+    a = delta_snr([1.0], [10.0])
+    b = delta_snr([1.0, 0.0, 0.0, 0.0, 0.0], [10.0, 0.0, 0.0, 0.0, 0.0])
+    assert a == pytest.approx(b)
+
+
+def test_delta_snr_accounts_for_both_norms():
+    # with a neutral norm supplied, the floor grows in quadrature over both sides.
+    scen = [10.0, 0.0]
+    neut = [10.0, 0.0]
+    delta = [1.0, 0.0]
+    both = delta_snr(delta, scen, neut)
+    scen_only = delta_snr(delta, scen)
+    assert both == pytest.approx(1.0 / (EPS_FP16 * (10.0 ** 2 + 10.0 ** 2) ** 0.5))
+    assert both < scen_only          # a real neutral raises the floor, lowers SNR
+
+
+def test_eps_by_dtype_bf16_is_noisier():
+    # bf16 (7 mantissa bits) has ~8x the roundoff of fp16, so the SAME delta reads
+    # ~8x lower SNR — Gemma-4 records in bf16, so this is the operative floor.
+    assert eps_for_dtype("bf16") == EPS_BY_DTYPE["bf16"] == pytest.approx(2.0 ** -8)
+    fp16 = delta_snr([1.0], [10.0], eps=eps_for_dtype("fp16"))
+    bf16 = delta_snr([1.0], [10.0], eps=eps_for_dtype("bf16"))
+    assert fp16 / bf16 == pytest.approx(2.0 ** -8 / 2.0 ** -11)  # == 8
+
+
+def test_record_stamps_capture_dtype_and_snr_provenance():
+    split = build_frozen_split(TOY_CORPUS, scenario_ids=["craft_1_warm"])
+    scen = {12: {"v_proj_out": [2.0, 0.0]}}
+    neut = {12: {"v_proj_out": [0.0, 0.0]}}
+    rec = build_matched_delta_record(
+        scenario_id="craft_1_warm", split=split, scenario_capture=scen,
+        neutral_capture=neut, target_layers=(12,), capture_dtype="bf16")
+    assert rec["capture_dtype"] == "bf16"
+    assert rec["snr_eps"] == pytest.approx(2.0 ** -8)
+    assert "sqrt" in rec["snr_denominator"]
+
+
+def test_holdout_required_per_run(capsys):
+    # Cairn #816: running with no holdout and no explicit ack must be refused,
+    # before any model load. (main raises SystemExit at the holdout gate.)
+    with pytest.raises(SystemExit) as ei:
+        main(["--output-dir", "unused_delta_test"])
+    assert "holdout is required" in str(ei.value)
 
 
 def test_snr_summary_and_gate_count():
