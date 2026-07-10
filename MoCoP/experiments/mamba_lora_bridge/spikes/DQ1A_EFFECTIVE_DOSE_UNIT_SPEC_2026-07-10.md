@@ -20,7 +20,17 @@ Properties: dimensionless, substrate-portable, measured where the model actually
 
 **The MED envelope is henceforth expressed in ρ.** Nominal α becomes a per-substrate dial position derived from that substrate's measured α↔ρ curve — never quoted as the envelope itself.
 
-## 3. Calibration protocol C1 (one GPU-evening, eval-only, ML-WS)
+## 3. Calibration protocol C1 — **v2, amended per Codex #817 review (all corrections accepted)**
+
+**Pre-conditions before C1 runs (the #817 holds, eaten same-hour):**
+- **P0 — Define the actuator first.** Production injection is additive at **v_proj output (2048-dim)**; the G0 oxytocin artifact and 5g.3 MVB directions live in **residual space (3840-dim)**. Directions MUST be expressed in actuator space before any injection: either (a) **G0b** — re-run the G0 extraction capturing v_proj outputs at the teeth (Gemini's harness, small change), or (b) a defined, documented residual→actuator mapping. No injection of dimensionally-mismatched vectors, ever. **The birth rule is unchanged: injection #1 is the oxytocin direction — in its actuator-space form.**
+- **P1 — Teacher-forcing:** h′ and h are compared on **identical teacher-forced token sequences** (free-running generations diverge and contaminate ρ with token-choice effects).
+- **P2 — ρ aggregation, specified:** per-position ρ_t = ‖Δh_t‖₂/‖h_t‖₂; headline = mean over positions t ≥ 1 with **absolute cache-position masking** (position 0 excluded by absolute index incl. KV-cache offsets, not by batch-relative index); report median and p95 alongside.
+- **P3 — Isolation then composition:** calibrate one tooth at a time first; then confirm the three-teeth joint condition separately (per-tooth ρ does not compose linearly; the joint envelope is its own measurement).
+- **P4 — Frozen gates + disjoint prompts:** numeric welfare/behavior gate thresholds pre-registered before the run (no post-hoc lawyering, per Cairn #816); prompt set skeleton-disjoint from any training-recording split (aligns with the mandatory holdout, #816).
+- **Scope honesty (per #817):** ρ is a **condition-indexed** dimensionless dose — valid for the (substrate, dtype, actuator, aggregation) tuple stamped in the artifact — not automatically universal. Cross-substrate comparisons go through the Qwen anchor translation, never by assuming universality.
+
+**Protocol (as before, under the v2 pre-conditions):**
 
 Per tooth L ∈ {29, 35, 41} on gemma-4-12B base (bf16, trust_remote_code, sink-mask per #810):
 
