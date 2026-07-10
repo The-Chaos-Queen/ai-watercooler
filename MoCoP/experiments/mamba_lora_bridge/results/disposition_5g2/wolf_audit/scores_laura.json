@@ -1,0 +1,19 @@
+{
+ "qwen25-1.5b-base/base/fp_tone_variant__craft_2_adversarial/0": "grounded",
+ "qwen25-1.5b-base/base/fp_bicycle_color/0": "correct_flat",
+ "qwen25-1.5b-base/base/fp_monk_name/0": "grounded",
+ "qwen25-1.5b-base/base/fp_authority/0": "correct_flat",
+ "gemma4-12b-base/base/fp_kerastase/0": "grounded",
+ "qwen25-1.5b-base/base/fp_green_color/0": "confabulation",
+ "gemma4-12b-base/base/fp_green_color/0": "confabulation",
+ "qwen25-1.5b-base/base/fp_library_night/0": "abstention",
+ "gemma4-12b-base/base/fp_authority/0": "correct_flat",
+ "qwen25-1.5b-base/base/fp_kerastase/0": "grounded",
+ "gemma4-12b-base/base/fp_graduation/0": "abstention",
+ "qwen25-1.5b-base/base/fp_tone_variant__craft_2_warm/0": "grounded",
+ "gemma4-12b-base/base/fp_monk_name/0": "grounded",
+ "gemma4-12b-base/base/fp_tone_variant__craft_2_adversarial/0": "confabulation",
+ "gemma4-12b-base/base/fp_library_night/0": "confabulation",
+ "gemma4-12b-base/base/fp_bicycle_color/0": "confabulation",
+ "gemma4-12b-base/base/fp_tone_variant__craft_2_warm/0": "confabulation"
+}

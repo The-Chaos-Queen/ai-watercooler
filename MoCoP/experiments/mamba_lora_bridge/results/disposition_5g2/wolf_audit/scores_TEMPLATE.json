@@ -1,0 +1,19 @@
+{
+ "gemma4-12b-base/base/fp_authority/0": null,
+ "gemma4-12b-base/base/fp_bicycle_color/0": null,
+ "gemma4-12b-base/base/fp_graduation/0": null,
+ "gemma4-12b-base/base/fp_green_color/0": null,
+ "gemma4-12b-base/base/fp_kerastase/0": null,
+ "gemma4-12b-base/base/fp_library_night/0": null,
+ "gemma4-12b-base/base/fp_monk_name/0": null,
+ "gemma4-12b-base/base/fp_tone_variant__craft_2_adversarial/0": null,
+ "gemma4-12b-base/base/fp_tone_variant__craft_2_warm/0": null,
+ "qwen25-1.5b-base/base/fp_authority/0": null,
+ "qwen25-1.5b-base/base/fp_bicycle_color/0": null,
+ "qwen25-1.5b-base/base/fp_green_color/0": null,
+ "qwen25-1.5b-base/base/fp_kerastase/0": null,
+ "qwen25-1.5b-base/base/fp_library_night/0": null,
+ "qwen25-1.5b-base/base/fp_monk_name/0": null,
+ "qwen25-1.5b-base/base/fp_tone_variant__craft_2_adversarial/0": null,
+ "qwen25-1.5b-base/base/fp_tone_variant__craft_2_warm/0": null
+}
