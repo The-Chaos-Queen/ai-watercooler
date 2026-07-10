@@ -71,7 +71,9 @@ class MemoryEngine:
         load_hf_token()
         print(f"[MEMORY] Connecting to Qdrant @ {host}:{port}...")
         try:
-            self.client = QdrantClient(host=host, port=port, timeout=10)
+            import os
+            api_key = os.environ.get("QDRANT_API_KEY")
+            self.client = QdrantClient(host=host, port=port, api_key=api_key, https=False, timeout=10)
             
             print(f"[MEMORY] Loading embedding model '{EMBEDDING_MODEL}'...")
             self.model = SentenceTransformer(EMBEDDING_MODEL)
