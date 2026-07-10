@@ -66,17 +66,17 @@
 Let the registered 31B control finish. Before spending the Gemma bridge run, freeze the target-delta decision and SEV skeleton split; in parallel, build the model-free World Model trace/LS20 baseline locally.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: pending Watercooler audit pointer after commit
+- Tracking surfaces updated if needed: yes (Watercooler #806; audit commit `7631f72`)
 - Session log written: yes (`CHEESE_Memory/session_logs/2026-07-10-session-01.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: failed; retry `2026-07-10-session-01.md` from an authenticated ingest environment
-- Git commit in repo: pending
+- Git commit in repo: yes (`7631f72`; close-status follow-up committed separately)
 - Watercooler findings reflected in docs: yes (audit incorporates #799-#805)
 - No P0 bugs left unfixed: no P0 code change identified; math decisions explicitly queued
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-10 19:50 +02:00 | Codex | Added World Model/math audit state, DQ1a unit derivation, corrected DC/spike interpretation, and pre-training target/split decision queue. Session log: `2026-07-10-session-01.md`; commit/Qdrant status filled after execution.
+- 2026-07-10 19:50 +02:00 | Codex | Added World Model/math audit state, DQ1a unit derivation, corrected DC/spike interpretation, and pre-training target/split decision queue. Audit commit `7631f72`; Watercooler #806; session log `2026-07-10-session-01.md`; Qdrant ingest failed 401 (no API key, no chunks written).
 - 2026-04-21 | Anda-Conda | Replaced Option B speedup plan references with final isabell ML-WS path details, synced sleep_flush outer timestamp preservation behavior, and recorded opussy seeding #99 launch state.
 - 2026-05-11 23:59 +02:00 | Gemini | Cataloged Reddit research and advised on exterior building materials (Umbragrau windows, wood coatings).
 - 2026-05-18 16:45 +02:00 | Antigravity | Conducted deep research ladder review, updated current state with D2 paradigm shifts & H2-EMV, appended to open threads, and logged new session log path.
