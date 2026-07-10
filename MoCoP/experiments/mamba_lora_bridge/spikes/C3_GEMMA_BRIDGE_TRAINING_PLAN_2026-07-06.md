@@ -59,3 +59,11 @@ mechanism already production-proven on the current server (smoke GREEN at layers
 - Input: Mamba `hidden_last_token` [2560].
 - Trunk: MLP 2560 → 4096 (GELU) → per-target-layer heads 4096 → 3840, one head per tooth
   in {29, 35, 41} → **
+
+---
+
+## MONK INFRA REVIEW NOTE (2026-07-06)
+
+This file is a dead-branch fragment and should not be used as the runnable training plan. The line above is incomplete and stale for Gemma `v_proj`: live config smoke shows Gemma-4-12B has `hidden_size=3840`, `num_key_value_heads=8`, `head_dim=256`, so `v_proj` input width is 3840 but output width is **2048**, not 3840.
+
+Use this fragment only for the preserved zone-rule mapping in §1.3. For the complete design, use `GEMMA_BRIDGE_DESIGN_2026-07-06.md`. For infra blockers/acceptance criteria, see `C3_GEMMA_BRIDGE_TRAINING_PLAN_2026-07-06_INFRA_REVIEW_MONK.md`.
