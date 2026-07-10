@@ -198,6 +198,54 @@ def extract_target_output(target_activations, layer_idx: int, ep_name: str) -> t
     return recorded
 
 
+# --- matched-delta target consumption (Codex #806 / matched_delta_recording.py) ---
+# A record written by matched_delta_recording._write_records_torch carries the
+# recipe tag "matched_delta_v1" and a nested {"layers": {str(L): {...}}} block with
+# a per-layer "v_proj_out_delta". When training on such a dataset, DirectionalLoss'
+# target_dict[layer] must be that DELTA (scenario - neutral), NOT the absolute
+# v_proj_out — that is the entire fix: the delta removes the cross-sample COMMON
+# MODE (the model bias b_v exactly; the shared scaffold / position-0 spike
+# approximately, via matched neutrals), so the training target carries no shared
+# constant for the bridge to internalize as a DC (that DC is what post-hoc removal
+# #127 chased; it becomes unnecessary at this surface).
+#
+# This is the minimal seam: it does NOT rewire the episode/Mamba-state loop (the
+# SEV scenario<->neutral source pairing is the recording redesign's job and waits
+# on a pack decision). It exists so a delta-aware training path selects the delta
+# target through one documented call. See GEMMA/QWEN handling caveats in
+# matched_delta_recording (fp16 capture noise floor + the delta_snr metric; RMS
+# dose alpha/sqrt(d_v); GQA replication R COMMUTES with the delta; tokenwise-RMS
+# breaks the exact constant-bias identity at RUNTIME — the b_v cancellation this
+# delta relies on is exact only at the recorded-target level).
+def is_matched_delta_payload(payload) -> bool:
+    return (
+        isinstance(payload, dict)
+        and payload.get("recipe") == "matched_delta_v1"
+        and isinstance(payload.get("layers"), dict)
+    )
+
+
+def extract_matched_delta_target(payload, layer_idx: int, sample_label: str) -> torch.Tensor:
+    """target_dict[layer] for a matched-delta record: the v_proj_out DELTA.
+
+    Reads the nested {"layers": {str(L): {"v_proj_out_delta": ...}}} schema. HARD
+    ERROR (never a silent fall-back to the absolute) if the delta field is absent:
+    an unpaired/absolute target must not masquerade as a delta target.
+    """
+    layers = payload["layers"]
+    entry = layers.get(str(layer_idx), layers.get(layer_idx))
+    if not isinstance(entry, dict):
+        raise KeyError(f"{sample_label}: matched-delta record missing layer {layer_idx}.")
+    delta = entry.get("v_proj_out_delta")
+    if delta is None:
+        raise KeyError(
+            f"{sample_label} layer {layer_idx}: matched-delta record has no "
+            "v_proj_out_delta. Refusing to train on an absolute target as if it "
+            "were a matched delta."
+        )
+    return delta
+
+
 def extract_target_input(target_activations, layer_idx: int, ep_name: str) -> torch.Tensor | None:
     recorded = target_activations[layer_idx]
     if not isinstance(recorded, dict):
