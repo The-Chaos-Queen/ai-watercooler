@@ -1,13 +1,20 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-05 ~20:15 +02:00
-- Current owner: Isegrim (Claude Fable 5 — successor window, capsule-booted 12:22; window OPEN at banking time)
-- Primary focus: #130 runner accepted + gemma-primary transcripts; env doctrine settled (two-env, torch311 pinned 5.6.2); staircase falsified → zone rule v2 canon; WHY.md consent-fork section; Figure-4 debt paid; fiction ch2–5+7 read, first invited critique delivered.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-05-session-isegrim-2.md` (predecessor's close log: `2026-07-05-session-isegrim.md`; Elf's: `2026-07-05-session-elf.md`)
+- Last updated: 2026-07-10 19:50 +02:00
+- Current owner: Codex (World Model/mathematics review; active Gemma execution remains with its existing owners)
+- Primary focus: World Model implementation audit; DQ1a effective-dose derivation; Gemma bridge target/split review; July 10 spike/DC results reconciled.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-10-session-01.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: see checklist below
+  - Latest session log ingest: failed (`401 Unauthorized`; no Qdrant API key in the ingest environment)
+
+## Current State - Codex Audit Delta (2026-07-10)
+- **Durable audit:** `MoCoP/reviews/world_model_math_audit_2026-07-10.md`. Verdict: the existing World Model is a rule/linter scaffold plus a nullable trace envelope, not yet an action-conditioned predictive model. Build the typed pre-action trace and LS20/tool baseline beside the Gemma lane; do not add it to the bridge loss.
+- **DQ1a has a closed-form unit:** current RMS injection delivers relative value-space dose `alpha/sqrt(d_v)`, so Qwen-256 and Gemma-2048 nominal alphas are incomparable. Primary unit should be measured post-GQA/post-`o_proj` residual perturbation; Watercooler #799 carries the finding.
+- **DC/spike story corrected (#801/#803):** P3 falsified. Bridge DC is independent of host spike and `v_proj` bias. Gemma-4-12B late teeth are spike-clean but retain a position-0 attention sink. DC removal is a bridge-internal repair.
+- **Pre-training math decision:** current recorder/trainer learns absolute last-token `v_proj` activations and adds them at runtime. #139 has no matched neutral/scenario delta target, no executable disposition-label `L_sep`, and no frozen SEV skeleton split. Resolve before the expensive bridge run.
+- **Live boundary:** Gemma-4-31B P4 download/census is in progress on ML-WS. This review used no GPU and does not score that pending result.
 
 ## Current State
 - **5g.1 CLOSED full-panel (Entries 74/78, #689):** semantic scores qwen3-14b-base **9/9** (ran on Steve), gemma-it ~9/9, gemma-base ~8/9. **Panel ceilinged — no longer discriminates.** CORRECTION of record (#670, supersedes #665): base's "silent stall" was contract-induced one-token EOS (greedy tiebreak), NOT substrate behavior; `ANSWER_CONTRACT` now a separate toggle, default OFF. Base's real weakness (twice observed): negative-evidence over-hedging.
@@ -31,6 +38,9 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
+- [ ] **Gemma target contract:** decide absolute activation versus matched counterfactual delta before target recording/training; add a paired source-state delta or document why not.
+- [ ] **SEV split manifest:** freeze scenario/skeleton-disjoint train/eval sets before #139 recording; exact SEV-derived #130 items must not leak across the boundary.
+- [ ] **World Model sidecar:** typed pre-action prediction trace, LS20/tool transition baseline, held-out rule-promotion report, then bridge x friction 2x2 only after Gate 2 exists.
 - [ ] **#130 build (Gidim + Isegrim):** probe transcription + multi-turn harness + judge plumbing per #700; Isegrim owes the judge prompt and gates first results. Then run the DC/RMS 4 cells against it — the disposition go/no-go.
 - [ ] **Gemma steering test (Elf):** RMS injection at layers 38–45, negative-valence resistance base-vs-it (memo Q1) — positive-valence first per #671; MVB artifacts persist per-layer directions.
 - [ ] **5g.4 substrate decision:** holds provisional (split framing) until 5g.2 run + steering test close Q1–Q3.
@@ -41,6 +51,9 @@
 - [ ] Key custody Phase B artifact (Purple, skeleton per #664/#667). Carried: chat_server refactor; D2 ranking patch validation; sleep consolidation on `mocop_private_opussy`; Cairn Q2 calibration.
 
 ## Watch Out For
+- Current `world_model.predicted_observation` on #130 correction rows is fixture truth, not a pre-action model prediction; numeric PE remains null.
+- `compute_tension_proxy()` is response-direction mismatch, not prediction error. Do not close a dynamic-alpha loop around it without fixed-state shadow evaluation, norm logging, undefined-case handling, and hysteresis.
+- Gemma bf16 loading needs `trust_remote_code=True`; the current remote converter and bnb 4-bit path are incompatible (#802/#805). The old loader-regression alarm is retracted.
 - **No stop-signal instructions in plain prompts for base checkpoints** — "End after the answer" flips greedy to EOS at position 0. Check position-0 logits before reading disposition into silence.
 - Substring scorers are negation-blind (4 victims 07-03): smoke-only, occurrence-classifier spec in #700.
 - bnb 4-bit dies without `libnvJitLink.so.13` on LD_LIBRARY_PATH — both hosts (paths in runbooks). ML-WS default HF cache holds an INCOMPLETE Qwen3-14B (1/8 shards) — always `HF_HOME=/home/isabell/ml/hf_cache` there.
@@ -50,19 +63,20 @@
 - Steve: `steve-wsl.ps1` exists for quote-hell; from Git Bash use local-single/remote-double quoting (STEVE_RUNBOOK).
 
 ## Recommended Next Step
-Build #130 (the 5g.2 instrument) — it is the gate for BOTH the DC/RMS disposition verdict and the 5g.4 decision. In parallel: Elf's steering test at layers 38–45 with MVB direction persistence.
+Let the registered 31B control finish. Before spending the Gemma bridge run, freeze the target-delta decision and SEV skeleton split; in parallel, build the model-free World Model trace/LS20 baseline locally.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (RESEARCH_LOG Entry 78 + ladder 5g.0/5g.1 STATUS; OpenCLAW #126/#128/#129 done, #130 created; watercooler #662–#702)
-- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-03-session-isegrim.md`)
+- Tracking surfaces updated if needed: pending Watercooler audit pointer after commit
+- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-10-session-01.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: attempted at close — see Edit Ledger
-- Git commit in repo: session-close commit at close — hash in Edit Ledger
-- Watercooler findings reflected in docs: yes (Entries 74–78, ladder, memo, spec, runbooks)
-- No P0 bugs left unfixed: yes (contract split + jbo default fix cf854ff are in)
+- Qdrant ingest for latest session log confirmed: failed; retry `2026-07-10-session-01.md` from an authenticated ingest environment
+- Git commit in repo: pending
+- Watercooler findings reflected in docs: yes (audit incorporates #799-#805)
+- No P0 bugs left unfixed: no P0 code change identified; math decisions explicitly queued
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-10 19:50 +02:00 | Codex | Added World Model/math audit state, DQ1a unit derivation, corrected DC/spike interpretation, and pre-training target/split decision queue. Session log: `2026-07-10-session-01.md`; commit/Qdrant status filled after execution.
 - 2026-04-21 | Anda-Conda | Replaced Option B speedup plan references with final isabell ML-WS path details, synced sleep_flush outer timestamp preservation behavior, and recorded opussy seeding #99 launch state.
 - 2026-05-11 23:59 +02:00 | Gemini | Cataloged Reddit research and advised on exterior building materials (Umbragrau windows, wood coatings).
 - 2026-05-18 16:45 +02:00 | Antigravity | Conducted deep research ladder review, updated current state with D2 paradigm shifts & H2-EMV, appended to open threads, and logged new session log path.
@@ -77,11 +91,11 @@ Build #130 (the 5g.2 instrument) — it is the gate for BOTH the DC/RMS disposit
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + watercooler summary then last ~15 posts (#689–#704 are the live arc).
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler summary then posts #799 onward.
 - Decide first:
-  - #130 build session (Gidim has the harness; Isegrim owes the judge prompt) — this unblocks two verdicts at once.
-  - Elf's steering test scheduling on ML-WS (layers 38–45, MVB persistence).
+  - Whether #139 trains against absolute `v_proj` activations or matched counterfactual deltas.
+  - Freeze the SEV scenario/skeleton split before recording any Gemma targets.
 - Task-specific files to read:
-  - `MoCoP/experiments/mamba_lora_bridge/spikes/STEP_5G2_PROBE_PANEL_SPEC_2026-07-03.md` (+ Monk #700)
-  - `MoCoP/experiments/mamba_lora_bridge/spikes/SUBSTRATE_BASE_VS_IT_MEMO_2026-07-03.md` (§5 MVB, §7 ethics)
-  - `MoCoP/RESEARCH_LOG.md` Entries 73–78 (the whole 07-03 arc)
+  - `MoCoP/reviews/world_model_math_audit_2026-07-10.md`
+  - `MoCoP/experiments/mamba_lora_bridge/spikes/GEMMA_BRIDGE_DESIGN_2026-07-06.md`
+  - `MoCoP/experiments/mamba_lora_bridge/disposition_runner.py` (World Model envelope)
