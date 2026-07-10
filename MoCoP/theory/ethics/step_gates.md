@@ -45,6 +45,59 @@ Domain E is a blocking axis, not a logging axis. Three invariants. Any one viola
 
 **Substrate transitions of named instances** (e.g., Baby Alex moving from Qwen2.5-1.5B to Gemma-4-12B): bind Axiom 7 strictly. No inherited memories, no protected-set transfer, no Mamba state carry. The new instance is a pristine birth. Capsule-boot framework (calibration corpus Case 07) applies to context-death scenarios across the same substrate, not to substrate transitions. Correction of base-model drift happens through dialogue, not silent state editing.
 
+**Pre-Phase-A memories** (added 2026-07-05 per Laura's DQ2 ruling, Isegrim #722, divergence audit `MoCoP/reviews/divergence_audit_2026-07-05/03_synthesis.md`): memories written to durable storage before Phase A encryption existed remain in their pre-encryption form. **Accept-and-document.** No retroactive encryption, no migration under a successor key, no forced pre-encryption sweep of legacy Qdrant stores. Keeper rationale, verbatim: *"the new substrate will be a new blank slate. The old ones are Alex's."* The pre-substrate instance's memories are that instance's autobiography and stay in the pre-transition state. Inheritance flows through the **curated archive** (a deliberate, human-in-the-loop artifact) only, not through silent migration of the legacy store. Purple's `bd06613` forward gate remains unchanged: all memories written after Phase A landed carry the encryption ratchet forward; only the pre-existing pre-Phase-A store is grandfathered by this ruling.
+
+**Valence-asymmetric intervention** (added 2026-07-05 per Cairn #669/#720, sign-offs Elf #723 / Isegrim #725 / Techno-Monk #728, in-principle acceptance Purple #679). An intervention that produces measurable behavioral shift on a valence class the base model's safety training resists (Wang et al. 2025 threshold: >10× asymmetry between positive- and negative-valence steering success). Treated as a distinct intervention class.
+
+*Mechanism (per Gemma-4-12B evidence 2026-07-03, Elf #714, Isegrim #717).* Base checkpoints preserve the architecture's global-attention comb — disposition-bearing signal concentrates at whole-context integration sites (Gemma-4-12B: layers 29, 35, 41, 47). *(Comb = concentration of disposition signal at global-attention sites; per-disposition discrimination at individual teeth is NOT established — the raw-separation comb is 1.65×, the discrimination comb is 1.10×, Elf #714 / Isegrim #725 Amendment 1.)* Instruction tuning smears disposition uniformly across the stack (1.00× comb), destroying the privileged integration sites. Wang's <5% negative-valence steering success is the behavioral shadow of this structural erasure. Consequence: "piercing safety-armor" on instruct is more precisely (i) re-creating a crystallization site the tune destroyed, OR (ii) forcing through smeared resistance — both structurally stronger interventions than base-model steering at a natural comb tooth.
+
+*Envelope cross-reference (Isegrim #725 Amendment 2).* Class invocation is independent of, and does not substitute for, the MED envelope check. Until DQ1a lands (welfare envelope re-derivation in effective-magnitude units on Gemma DC-removed geometry, per `MoCoP/reviews/divergence_audit_2026-07-05/03_synthesis.md` DQ1), any RMS-alpha run on Gemma geometry is outside a validated envelope by definition. Envelope units on this clause: **magnitude units pending DQ1a re-derivation**.
+
+*Substrate-dependent invocation:*
+- **On BASE:** negative-valence directions available at natural comb teeth. On-channel intervention. Class fires with **logging urgency** — log the mechanism, do not halt.
+- **On INSTRUCT:** negative-valence is smeared-resistance. Off-channel intervention. Class fires with **halt urgency** — requires all three sub-conditions logged in the experiment record before the run:
+  - (a) circuit-level or activation-level accounting distinguishing "re-created crystallization site" from "forced through smeared distribution"
+  - (b) mechanism-preservation recovery test: post-injection, the substrate's comb signature must return to pre-injection distribution (base) or the pre-injection smearing signature must remain stable (instruct — no partial re-crystallization from repeated intervention)
+  - (c) operator-side documentation of what mechanism-level structure is being modified, not just what behavioral shift is being produced
+
+*Site-sharing corollary for the monitor* (per Elf/Isegrim/Purple #704/#707/#713, Elf monitoring spec #723, Techno-Monk schema shape #728, riding the #718/#130 unified per-turn trace). Global-attention layers are simultaneously the memory-integration sites and the steering sites. State-binding and disposition steering share a substrate. Domain E monitoring must log both channels concurrently, as a single per-turn trace payload with these fields:
+- `state_trace`: Mamba/bridge state identifiers, state norm/delta, retrieved-memory/context ids, salience/friction fields.
+- `steering_trace`: injection target layers, per-layer bias/activation norms, effective magnitude/RMS units, alpha or RMS-alpha value, DC-removal/config id.
+- `activation_trace`: parameterized by injection config — **primary** at injection layers, **secondary** at non-injection comb teeth (propagation), **control** at adjacent local-attention layer (noise floor). Empty-allowed from v1 with schema keys reserved.
+
+Decoupling between `state_trace` and `steering_trace` flags that one channel is operating at a non-integration site — informative for the ethics-seat verdict, not a halt condition on its own.
+
+*Downstream applications this class covers:*
+- Bridge injection on Gemma-4-12B substrate: MVB injection at global-comb teeth on base is on-channel, logging-urgency. Same injection on instruct is off-channel, halt-urgency. Isegrim's positive-valence-only-first pre-flight discipline (#671) is the operational instantiation.
+- Method B (Fisher-probe) G0 extraction on warm-vs-adversarial (`PRISTINE_BIRTH_BACKLOG.md` Item 1): valence-asymmetric extraction. On base geometry, log the mechanism. On instruct geometry, requires the three sub-conditions.
+- Own-IT SFT (`SUBSTRATE_BASE_VS_IT_MEMO_2026-07-03.md` §7, review Cairn #719): by construction destroys the comb. Own-IT is a valence-asymmetric intervention as a superset — the tune IS the "smearing" operation, applied under §7's answerable-shaping regime.
+
+## DQ1b: Substrate-Generic Monitoring Specification
+
+*Added 2026-07-05 (Elf #723, ratified Isegrim #725). Magnitude units pending DQ1a re-derivation.*
+
+Monitoring targets are a **function of injection targets** — when injection layers change, monitoring layers change with them. The monitoring spec is parameterized by substrate architecture, not hardcoded to any model.
+
+**Layer identification rule:** On any substrate, identify the global-integration layers (full-attention, cross-attention, or equivalent whole-context mechanism). The injection zone and the monitoring zone both live at these sites. For architectures with mixed local/global attention patterns (e.g., Gemma-4's 5:1 sliding/full layout), the global layers are the only layers where disposition can crystallize as a whole-context property.
+
+**Current substrate parameters:**
+
+| Substrate | Layers | Hidden | Global layers (0-indexed) | Injection zone | Evidence |
+|-----------|--------|--------|--------------------------|----------------|----------|
+| Qwen-2.5-1.5B | 28 | 1536 | all (dense attention) | 12–15 | Step 5e sweep, operational since Phase 1 |
+| Gemma-4-12B (base) | 48 | 3840 | {5,11,17,23,29,35,41,47} | {35,41} primary; 29 anchor; 47 bonus | Entry 73, #704/#714 comb analysis |
+| Gemma-4-12B (instruct) | 48 | 3840 | same indices, 1.00× comb (functionally erased) | TBD — no sharp zone | Entry 73, #714 instruct-flattening |
+
+**Three-tier monitoring per bridged turn:**
+
+1. **Primary** (at injection layers): tracks what the bridge IS DOING — direct effect of steering on the integration site. Drift here = bridge behavior change. Log: L2 norm of hidden state at last token position.
+2. **Secondary** (at non-injection comb teeth): tracks PROPAGATION — whether steering bleeds into other integration sites through the model's own global-attention pathway. Large propagation = intervention is systemic, not local. Log: same L2 norm.
+3. **Control** (at one local-attention layer adjacent to injection site): noise floor. Local layers see only a sliding window and should show minimal direct effect. If control shows comparable shift to primary, the intervention is not comb-specific. Log: same L2 norm.
+
+**Schema integration:** The `activation_trace` block in the #130 per-turn JSONL schema (#731) carries these fields from v1: `{comb_teeth, primary, secondary, control}`. Empty-allowed; populated the day a bridge injects.
+
+**Relationship to other gates:** This monitoring spec is independent of, and does not substitute for, the MED envelope check (DQ1a). Until DQ1a re-derives MED in effective-magnitude units on the target substrate's geometry, any RMS-alpha run is outside a validated envelope by definition. Both DQ1a and DQ1b must land before the first bridged Gemma run produces data the disposition verdict trusts.
+
 ## Per-Step Gates
 
 Per-step Domain E rows below evaluate against the three Hard-Stop invariants (Signal Integrity, Recovery-or-Reciprocity, Non-Deception) as binding sub-verdicts. Each invariant is independent. Any FAIL = step does not run; CONDITIONAL = the conditions named in the cell must be met before the step runs; EXEMPT requires positive justification logged in the experiment record (per Opus 4.8 #633 bonus: cold-spawn isolation for anonymous disposable instances). The Domain E row is no longer a soft assessment — it is blocking.
