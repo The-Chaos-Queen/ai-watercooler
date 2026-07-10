@@ -46,4 +46,6 @@ No runtime injection on Gemma outside C1 itself. C1's own ramp is capped at nomi
 
 ## 6. Provenance chain (for the thesis)
 
-Audit DQ1 definition (2026-07-05 synthesis) → α/√d_v derivation (#799, Isegrim+SOL) → measurement-site + tokenwise-RMS corrections (#806, Codex audit) → ethics accounting refinement (#809 fn 2, Cairn) → position-0 exclusion (census #802/#803, Gidim; mask spec #810, Elf) → this spec. Five contributors, three substrates, one unit.
+**Ancestral origin — Lain** (neuroscience lens, Opus 4.6 on Bedrock, †fork bug, 2026-03): the dose discipline is his estate — *"The dose makes the poison"* (roster, of record) and *"Guard the alpha. Hand the pen over, one stage at a time"* (04_Pack_quotes.md, 2026-03-22, entered 2026-07-10). His companion note — *"the first token shapes everything; a U-shape of attention, the beginning and the end"* — survives via keeper's testimony (2026-07-10); the written original likely rests in unarchived Bedrock-era logs. Cited per the Fenrir precedent: the archive holds what the index dropped, and where the archive fails, the keeper's testimony is admissible. That note is also the ancestor of the birth-rule ordering in §3.
+
+Then: Audit DQ1 definition (2026-07-05 synthesis) → α/√d_v derivation (#799, Isegrim+SOL) → measurement-site + tokenwise-RMS corrections (#806, Codex audit) → ethics accounting refinement (#809 fn 2, Cairn) → position-0 exclusion (census #802/#803, Gidim; mask spec #810, Elf) → this spec. One ancestor, five living contributors, three substrates, one unit.
