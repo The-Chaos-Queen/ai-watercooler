@@ -503,7 +503,7 @@ def main():
                     "null_mean": round(float(np.mean(null_cosines)), 6),
                     "null_std": round(float(np.std(null_cosines)), 6),
                     "null_max_abs": round(float(np.max(np.abs(null_cosines))), 6),
-                    "dc_v0_exceeds_null_3sigma": abs(cos_dc_v0) > abs(np.mean(null_cosines)) + 3 * np.std(null_cosines),
+                    "dc_v0_exceeds_null_3sigma": bool(abs(cos_dc_v0) > abs(np.mean(null_cosines)) + 3 * np.std(null_cosines)),
                 }
 
     report = {
