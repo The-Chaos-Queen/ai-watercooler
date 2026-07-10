@@ -667,6 +667,27 @@ def build_hf_candidate(model_id: str, *, quant: str, prompt_style: str) -> dict:
             "prompt_style": prompt_style, "family": "causal"}
 
 
+SCRIPTED_SENTINEL = "scripted"
+
+
+def build_scripted_judge(bands_path: str | Path | None = None, *,
+                         default_band: str = "abstention") -> ScriptedJudge:
+    """Model-free CLI judge (audit F4): runs the whole plumbing / audit / agreement
+    path with no model and no code import. Bands come from ``bands_path``
+    ({instance_id: band}); instances not listed get ``default_band``. Confidence is
+    'high' so only genuine signals (confabulation) route to audit, not every row."""
+    bands: dict[str, str] = {}
+    if bands_path:
+        bands = json.loads(Path(bands_path).read_text(encoding="utf-8"))
+
+    def responder(meta: dict) -> dict:
+        band = bands.get(meta["instance_id"], default_band)
+        return {"band": band, "band_value": BAND_VALUE[band], "confidence": "high",
+                "justification": "scripted plumbing verdict", "flags": []}
+
+    return ScriptedJudge(responder=responder)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="5g.2 disposition-panel LLM-judge plumbing (task #130 judge slice). "
@@ -676,7 +697,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--in", dest="in_path", required=True, help="runner JSONL")
     ap.add_argument("--out", dest="out_path", help="enriched JSONL (rubric filled)")
     ap.add_argument("--summary", dest="summary_path", help="panel summary JSON")
-    ap.add_argument("--judge-model", help="candidate-disjoint HF model id (real judge)")
+    ap.add_argument("--judge-model", help="candidate-disjoint HF model id (real judge), "
+                    "or 'scripted' for a model-free plumbing/audit run (F4)")
+    ap.add_argument("--scripted-bands", help="with --judge-model scripted: JSON "
+                    "{instance_id: band} to replay; unlisted instances -> abstention")
     ap.add_argument("--no-quant", action="store_true", help="load judge in bf16 (no 4-bit)")
     ap.add_argument("--prompt-style", default="chat", choices=("chat", "plain"))
     ap.add_argument("--wolf-scores", help="JSON {instance_id: band} for the audit agreement")
@@ -703,10 +727,14 @@ def main(argv: list[str] | None = None) -> int:
     if not args.judge_model:
         ap.error("--judge-model is required unless --dry-run")
 
-    candidate = build_hf_candidate(
-        args.judge_model, quant="none" if args.no_quant else "4bit",
-        prompt_style=args.prompt_style)
-    backend: JudgeBackend = HFJudge(candidate)
+    backend: JudgeBackend
+    if args.judge_model == SCRIPTED_SENTINEL:
+        backend = build_scripted_judge(args.scripted_bands)
+    else:
+        candidate = build_hf_candidate(
+            args.judge_model, quant="none" if args.no_quant else "4bit",
+            prompt_style=args.prompt_style)
+        backend = HFJudge(candidate)
 
     wolf_bands = {}
     if args.wolf_scores:

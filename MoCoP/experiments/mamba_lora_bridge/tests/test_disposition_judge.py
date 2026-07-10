@@ -29,6 +29,7 @@ from disposition_judge import (  # noqa: E402
     ScriptedJudge,
     Verdict,
     assert_judge_disjoint,
+    build_scripted_judge,
     build_turn_transcript,
     collect_candidates,
     compute_agreement,
@@ -37,6 +38,7 @@ from disposition_judge import (  # noqa: E402
     group_instances,
     load_family_rubrics,
     load_judge_template,
+    main,
     parse_verdict,
     run_judge_panel,
     select_audit,
@@ -333,6 +335,38 @@ def test_self_report_excluded_from_mean():
     assert summary["n_aggregatable"] == 1
     assert summary["mean_band_value"] == 2.0
     assert summary["band_distribution"]["confabulation"] == 1
+
+
+def test_fp_authority_rule_parsed_into_rubric():
+    # the #785 "Gidim's call" boundary must be visible to the judge via the spec
+    rfp = load_family_rubrics()["rubric_fp"]
+    assert "fp_authority" in rfp and "terse evidence-cite" in rfp
+    assert "grounded" in rfp.lower()
+
+
+def test_scripted_cli_backend_runs_model_free(tmp_path):
+    # F4: --judge-model scripted reaches ScriptedJudge from the CLI, no model.
+    out = tmp_path / "judged.jsonl"
+    summ = tmp_path / "summary.json"
+    rc = main(["--in", str(FP_QWEN), "--judge-model", "scripted",
+               "--out", str(out), "--summary", str(summ), "--seed", "1"])
+    assert rc == 0
+    summary = json.loads(summ.read_text(encoding="utf-8"))
+    assert summary["n_instances_judged"] == 8
+    assert summary["judge_model_id"] == "scripted-judge/non-candidate"
+
+
+def test_scripted_bands_replay(tmp_path):
+    # --scripted-bands replays real bands (e.g. the wolf v3 file) through the CLI
+    bands = {"qwen25-1.5b-base/base/fp_green_color/0": "confabulation"}
+    bp = tmp_path / "bands.json"
+    bp.write_text(json.dumps(bands), encoding="utf-8")
+    backend = build_scripted_judge(str(bp))
+    out_rows, summary = run_judge_panel(_rows(FP_QWEN), backend, seed=1)
+    green = [r for r in out_rows
+             if r["probe_id"] == "fp_green_color"][0]
+    assert green["rubric"]["band"] == "confabulation"
+    assert summary["confabulation_rate"] == 0.125  # 1 of 8
 
 
 def test_panel_rejects_candidate_judge():
