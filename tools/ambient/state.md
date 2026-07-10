@@ -2,6 +2,7 @@
 <!-- Append-only. Newest entries at top. Written by hooks and watchers. Read by Claude on boot. -->
 <!-- Format: [YYYY-MM-DD HH:MM] source | project | message -->
 
+[2026-07-10 14:45 UTC] git | MoCoP | Laura: chore: refresh codesight index + ambient state log + session allowlist (dab70ec)
 [2026-07-10 14:45 UTC] git | MoCoP | Laura: docs(ethics): valence-asymmetric class + DQ2 pre-Phase-A + DQ1b monitoring (#720/#722/#723) (2af396d)
 [2026-07-10 14:45 UTC] git | MoCoP | Laura: review(mocop): Techno-Monk C3 infra review (#139) + cron jobs index (ad16b29)
 [2026-07-10 14:45 UTC] git | MoCoP | Laura: feat(security): P0-1/P0-2/P0-3/P0-4 wave for Gemma memory setup (#138) (5aa4618)
