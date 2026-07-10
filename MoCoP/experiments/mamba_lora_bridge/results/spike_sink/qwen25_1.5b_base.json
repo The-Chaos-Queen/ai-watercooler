@@ -1,0 +1,188 @@
+{
+  "census_version": "spike-sink-census-v1",
+  "model_id": "Qwen/Qwen2.5-1.5B",
+  "n_layers": 28,
+  "n_prompts": 12,
+  "n_hidden_state_entries": 29,
+  "per_layer_max_abs": [
+    0.3,
+    14.8,
+    3376.0,
+    6848.0,
+    6976.0,
+    7040.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7104.0,
+    7104.0,
+    250.0,
+    148.0
+  ],
+  "per_layer_max_abs_pos0": [
+    0.1,
+    14.8,
+    3376.0,
+    6848.0,
+    6976.0,
+    7040.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7136.0,
+    7104.0,
+    7104.0,
+    164.0,
+    102.5
+  ],
+  "spike_lifecycle": {
+    "step_up_layer": 2,
+    "step_up_ratio": 227.92,
+    "step_down_layer": 27,
+    "step_down_ratio": 28.42,
+    "spike_active_band": [
+      2,
+      27
+    ]
+  },
+  "spike_channels": {
+    "peak_layer": 6,
+    "channels": [
+      408,
+      520,
+      940,
+      609,
+      286
+    ],
+    "values": [
+      -6560.0,
+      5248.0,
+      4768.0,
+      3984.0,
+      -1360.0
+    ],
+    "token_invariance_across_prompts": {
+      "n_prompts": 12,
+      "mean_abs_cov": 0.030165444116819984,
+      "mean_pairwise_cosine": 0.9999942622669927
+    }
+  },
+  "sink_ratio_per_layer": [
+    0.1516,
+    0.2758,
+    0.6669,
+    0.6495,
+    0.7315,
+    0.6791,
+    0.7321,
+    0.5305,
+    0.6994,
+    0.7054,
+    0.6475,
+    0.6144,
+    0.7928,
+    0.5561,
+    0.8335,
+    0.5623,
+    0.7207,
+    0.7194,
+    0.5931,
+    0.7313,
+    0.6707,
+    0.702,
+    0.7181,
+    0.8101,
+    0.7288,
+    0.8558,
+    0.814,
+    0.3013
+  ],
+  "mean_sink_ratio": 0.6498,
+  "injection_overlap": {
+    "injection_layers": {
+      "29": {
+        "layer": 29,
+        "in_spike_band": false,
+        "vs_step_down": "after_step_down",
+        "residual_max_abs": null,
+        "sink_ratio": null
+      },
+      "35": {
+        "layer": 35,
+        "in_spike_band": false,
+        "vs_step_down": "after_step_down",
+        "residual_max_abs": null,
+        "sink_ratio": null
+      },
+      "41": {
+        "layer": 41,
+        "in_spike_band": false,
+        "vs_step_down": "after_step_down",
+        "residual_max_abs": null,
+        "sink_ratio": null
+      }
+    },
+    "readout_only_layer": {
+      "layer": 47,
+      "in_spike_band": false,
+      "vs_step_down": "after_step_down",
+      "residual_max_abs": null,
+      "sink_ratio": null
+    },
+    "gemma_workspace_zone": {
+      "zone": [
+        38,
+        45
+      ],
+      "endpoints": [
+        {
+          "layer": 38,
+          "in_spike_band": false,
+          "vs_step_down": "after_step_down",
+          "residual_max_abs": null,
+          "sink_ratio": null
+        },
+        {
+          "layer": 45,
+          "in_spike_band": false,
+          "vs_step_down": "after_step_down",
+          "residual_max_abs": null,
+          "sink_ratio": null
+        }
+      ]
+    },
+    "any_injection_in_spike_band": false,
+    "all_injection_after_step_down": true
+  }
+}
