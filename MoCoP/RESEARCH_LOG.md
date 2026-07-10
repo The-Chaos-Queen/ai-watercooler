@@ -4189,3 +4189,37 @@ Initial verdict: base not ready as direct chat substrate without wrapper; split-
 **Artifacts:** `experiments/mamba_lora_bridge/spikes/run_staircase_test.py`; `experiments/mamba_lora_bridge/spikes/FIG4_VS_STEP5E_2026-07-05.md`; `experiments/mamba_lora_bridge/results/staircase_sev_20260705/`
 
 ---
+
+## 2026-07-10 - Entry 81: Spike/Sink Census — Bridge Host Geometry (Task #143, partial)
+
+**Step:** Pre-training-run gate (#143). Eval-only, no training/seeding.
+
+**Watercooler:** #789 (Zheng & Meister literature digest), #791 (Sun/Canziani/LeCun/Zhu spike/sink digest, Isegrim), #796 (census results, Elf)
+
+**Question:** Do our bridge host models carry Llama-style massive-activation (spike) channels and position-0 attention sinks, and do they overlap our injection/probe sites?
+
+**Setup:** Forward-pass-only census on Qwen2.5-1.5B (4 prompts, laptop smoke) and Gemma-4-12B base (16 prompts, ML-WS). Per-layer measurements: spike channels (>100x layer median), max-magnitude lifecycle, attention sink ratios (mass on position 0), position-0 cross-prompt cosine (token invariance), step-up/step-down block identification.
+
+**Result:**
+
+Qwen2.5-1.5B (P1 CONFIRMED — textbook):
+- 25/28 layers have spike channels. Magnitude step-up 200x at layer 2, saturates ~6752 through L5-26, step-down at L27.
+- Position 0 is the global activation max in 100% of prompts at every spiking layer.
+- Attention sink: 70-86% of attention mass flows to position 0 from L2 onward.
+- Cross-prompt pos0 cosine: >0.999 from L2-26 (near-constant subspace confirmed).
+- MoCoP injection zone (L12-15): sits in the middle of the spike plateau.
+
+Gemma-4-12B base (P2 PARTIALLY CONFIRMED — attenuated + confined):
+- 18/48 layers with spikes, confined to L12-27 (the formation zone). Peak density ~290-300 spike channels at L13-16, decaying through L17-27. Magnitudes ~30x smaller than Qwen.
+- Injection targets {29, 35, 41}: ZERO spike channels. Clean geometry.
+- Formation-zone teeth {17, 23}: spike-contaminated (correctly excluded from injection by zone rule v2).
+- Position-0 cosine = 1.0000 at all injection targets — architecturally special but without massive magnitude spikes.
+- Attention sinks present at all teeth (46-90%) but less extreme than Qwen.
+
+**Verdict:** PARTIAL — 2 of 4 models run. P1 confirmed. P2 partially confirmed. P3 (DC~spike cosine) pending #517 artifacts.
+
+**Implication:** The zone rule v2 decision to inject at late comb teeth {29, 35, 41} and exclude formation-zone layers is independently justified by spike anatomy — the spike band and formation band overlap exactly on Gemma (L12-27), and the injection zone sits beyond both. DC-removal on Qwen was removing the spike/sink architecture artifact (same object shape as the paper's "implicit input-invariant bias parameters"). The Gemma bridge trains into cleaner geometry than the Qwen bridge ever had.
+
+Remaining: Gemma-4-12B-it (instruct spike anatomy), Qwen3-14B-base (5g.4 candidate). P3 cosine measurement needs the DC artifacts from #517.
+
+**Artifacts:** `experiments/mamba_lora_bridge/spikes/run_spike_sink_census.py`; `results/spike_sink_census/qwen25_1.5b_smoke.json`; `results/spike_sink_census/gemma4_12b_base.json`
