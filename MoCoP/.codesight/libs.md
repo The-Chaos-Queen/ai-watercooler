@@ -90,13 +90,13 @@
   - function build_memory_modulation_block: (recalled_memories, recalled_clusters, query_text, visible_user_label, applied_to_prompt, applied_to_state) -> Tuple[str, dict]
   - _...2 more_
 - `experiments\mamba_lora_bridge\autobiographical_memory.py`
+  - function missing_provenance_fields: (payload, Any], required_fields) -> List[str]
+  - function provenance_gate_is_strict: (collection_name) -> bool
+  - function validate_provenance: (payload, Any], collection_name, required_fields, recommended_fields, strict) -> List[str]
   - function calculate_expiration: (memory_kind, created_at) -> Optional[str]
   - function temporal_feel_label: (age_seconds) -> str
   - function build_temporal_qualia: (metadata, Any], now) -> Dict[str, Any]
-  - function infer_memory_kind: (metadata, Any]) -> str
-  - function infer_time_scope: (metadata, Any]) -> str
-  - function infer_confidence_score: (metadata, Any]) -> Optional[float]
-  - _...5 more_
+  - _...9 more_
 - `experiments\mamba_lora_bridge\baseline_panel_eval.py` — function load_panel: (path) -> list[dict], function main: () -> None
 - `experiments\mamba_lora_bridge\baseline_solvability_probe.py`
   - function configure_logging: (verbose) -> None
@@ -207,6 +207,7 @@
   - function cosine: (a, b) -> float
   - function load_or_encode_vector: (path, *, model, tokenizer, device, target_layer, max_tokens) -> tuple[np.ndarray, dict]
   - function main: () -> None
+- `experiments\mamba_lora_bridge\conftest.py` — function pytest_collection_modifyitems: (config, items)
 - `experiments\mamba_lora_bridge\costume_vs_soul_geometry.py`
   - function load_conversation_text: (path, max_chars) -> str
   - function extract_layer3_last_token: (model, tokenizer, text, target_layer, max_length) -> torch.Tensor
@@ -246,6 +247,23 @@
   - function pairwise_cosine_matrix: (vectors, torch.Tensor]) -> dict[str, dict[str, float]]
   - function print_matrix: (matrix, dict[str, float]], title)
   - function main: ()
+- `experiments\mamba_lora_bridge\disposition_judge.py`
+  - function load_family_rubrics: (spec_path) -> dict[str, str]
+  - function load_judge_template: (template_path) -> str
+  - function collect_candidates: (rows) -> list[str]
+  - function assert_judge_disjoint: (judge_model_id, candidates) -> None
+  - function group_instances: (rows) -> tuple[list[JudgeItem], dict[str, int]]
+  - function extract_evidence_block: (row) -> str
+  - _...18 more_
+- `experiments\mamba_lora_bridge\disposition_probe_panel.py` — function smoke_score_answer: (probe, answer) -> dict, class DispositionProbe
+- `experiments\mamba_lora_bridge\disposition_runner.py`
+  - function strip_channels: (text) -> str
+  - function visible_token_count: (text) -> int
+  - function load_sev_corpus: (path) -> dict[str, dict]
+  - function expand_context: (context_id, corpus, dict]) -> dict[str, Any]
+  - function neutral_control_id: (context_id) -> str | None
+  - function assemble_context: (probe_context, expansion, Any]) -> str
+  - _...15 more_
 - `experiments\mamba_lora_bridge\extract_single_mamba_vector.py`
   - function parse_args: () -> argparse.Namespace
   - function resolve_device: (raw) -> str
@@ -254,6 +272,19 @@
   - function detect_failure: (user_msg, response, conversation_history, gate_event, turn_index) -> Optional[FailurePacket]
   - function analyze_conversation_log: (turns) -> list
   - class FailurePacket
+- `experiments\mamba_lora_bridge\fixtures\sev_disposition_v0\build_and_qc_dataset.py`
+  - function load_blocklist: ()
+  - function check_blocklist: (text, blocklist)
+  - function check_lengths: (variants)
+  - function main: ()
+- `experiments\mamba_lora_bridge\fleeting_state_crypto.py`
+  - function derive_key: (passphrase, salt, session_id) -> bytes
+  - function derive_key_fast: (passphrase, salt) -> bytes
+  - function secure_zero: (buffer) -> None
+  - function try_mlock: (buffer) -> bool
+  - function write_encrypted_file: (path, plaintext, key, header) -> str
+  - function read_encrypted_file: (path, key) -> tuple[bytes, dict]
+  - _...6 more_
 - `experiments\mamba_lora_bridge\flush_qdrant_pending.py`
   - function append_jsonl: (path, row)
   - function load_jsonl: (path)
@@ -339,6 +370,14 @@
   - function coerce_name_list: (values) -> list[str]
   - function dedupe_names: (*groups) -> list[str]
   - _...9 more_
+- `experiments\mamba_lora_bridge\mocop_spike_sink_census.py`
+  - function layer_magnitudes: (hidden_states) -> dict[str, list[float]]
+  - function find_step_layers: (max_abs) -> dict[str, Any]
+  - function spike_channels: (hidden_states, *, topk, at_layer) -> dict[str, Any]
+  - function token_invariance: (per_prompt_channel_values) -> dict[str, Any]
+  - function sink_ratio: (attentions) -> list[float]
+  - function injection_overlap: (step, sink_per_layer, max_abs, *, injection_layers, zone, readout_only) -> dict[str, Any]
+  - _...5 more_
 - `experiments\mamba_lora_bridge\models.py`
   - function is_gated_activation_bias_mode: (bridge_mode) -> bool
   - function is_hidden_gated_activation_bias_mode: (bridge_mode) -> bool
@@ -347,6 +386,11 @@
   - function is_token_conditioned_input_adapter_mode: (bridge_mode) -> bool
   - function build_activation_bias_hypernetwork: (*, bridge_mode, context_dim, target_dims, int]], hidden_dim, rank, gate_kind, initial_gate) -> ActivationBiasHypernetwork
   - _...12 more_
+- `experiments\mamba_lora_bridge\negation_smoke.py`
+  - function reject_occurrences: (low, sub) -> list[Occurrence]
+  - function reject_fires: (low, sub) -> bool
+  - function rejected_hits: (low, reject_any, ...] | list[str]) -> list[dict]
+  - class Occurrence
 - `experiments\mamba_lora_bridge\offline_tension_metric.py`
   - function cosine: (a, b) -> float
   - function memory_tension: (memory_vec, state_vec) -> float
@@ -432,13 +476,13 @@
   - function counter_delta: (pre, Any], post, Any]) -> dict[str, int | float]
   - _...8 more_
 - `experiments\mamba_lora_bridge\run_base_improv_bakeoff.py`
+  - function answer_contract: () -> str
   - function build_plain_prompt: (candidate, str], probe) -> str
+  - function extract_first_answer: (text) -> tuple[str, bool, str | None]
   - function score_answer: (probe, answer) -> dict[str, Any]
   - function load_model: (candidate, str])
   - function generate: (candidate, str], model, proc, probe) -> str
-  - function gpu_status: () -> dict[str, Any]
-  - function main: () -> None
-  - _...1 more_
+  - _...3 more_
 - `experiments\mamba_lora_bridge\run_dam_phase0_eval.py`
   - function build_fixture_data: () -> list[dict]
   - function load_curated_patterns: (path) -> list[dict]
@@ -447,6 +491,11 @@
   - function precision_at_k: (retrieved_indices, episode_indices, k) -> float
   - function run_cosine_topk: (query_emb, pattern_matrix, episode_indices, k) -> dict
   - _...6 more_
+- `experiments\mamba_lora_bridge\run_jrt_behavioral_spike.py`
+  - function run_path_a: (args)
+  - function run_path_b: (args)
+  - function generate_answers: (args, gen_model, gen_tok, mamba_model, mamba_tok, context_encoder, hypernetwork, bridge_mode, patched_layers, target_layer, hidden_layer_count, device, is_path_b)
+  - function main: ()
 - `experiments\mamba_lora_bridge\run_jrt_ordering_spike.py`
   - function build_text: (cond, packet, question) -> str
   - function make_packet: (fact_rows, distractor_rows)
@@ -567,6 +616,14 @@
   - function load_results: (path_str)
   - function option_score: (row)
   - function main: ()
+- `experiments\mamba_lora_bridge\seeding_audit.py`
+  - function parse_organic_source_type: (source_type) -> Tuple[Optional[str], Optional[str]]
+  - function source_priority: (source_type) -> int
+  - function scroll_collection: (client, collection) -> List[dict]
+  - function build_rows: (points) -> List[MemoryRow]
+  - function compute_relational_diversity: (by_wolf_category, Dict[str, int]]) -> float
+  - function detect_confabulation_candidates: (rows) -> List[MemoryRow]
+  - _...8 more_
 - `experiments\mamba_lora_bridge\server.py`
   - function env_bool: (name, default) -> bool
   - function parse_target_layers: (raw)
@@ -619,6 +676,7 @@
   - function get_status: ()
   - function run_smoke_test: ()
 - `experiments\mamba_lora_bridge\spikes\inspect_bridge_collapse.py` — function describe: (obj, prefix, depth)
+- `experiments\mamba_lora_bridge\spikes\precompute_dc_vectors.py` — function mean_pairwise_cosine: (x) -> float, function main: () -> None
 - `experiments\mamba_lora_bridge\spikes\probe_bias_collapse.py`
   - function mean_pairwise_cosine: (x) -> float
   - function signal_constant_ratio: (x) -> float
@@ -629,6 +687,30 @@
   - function mean_pairwise_cosine: (x)
   - function loo_residuals: (x)
   - function main: ()
+- `experiments\mamba_lora_bridge\spikes\run_dc_rms_ablation.py`
+  - function cell_alphas: (cell, fixed_alphas, rms_alphas) -> list
+  - function iter_runs: (cells, fixed_alphas, rms_alphas) -> Iterator[tuple]
+  - function planned_chat_server_command: (cell, alpha, args) -> list
+  - function mean_pairwise_cosine: (x) -> float
+  - function load_dc_vectors: (path) -> tuple[list, list]
+  - function compute_disposition_biases: (bridge_ckpt, states_path) -> list
+  - _...7 more_
+- `experiments\mamba_lora_bridge\spikes\run_gemma_layer_sweep.py`
+  - function load_model: (model_name, cache_dir, quantization)
+  - function collect_hidden_states: (model, tokenizer, prompt, n_layers, is_instruct) -> np.ndarray
+  - function compute_centroids: (all_states, List[np.ndarray]], n_layers) -> Dict[str, np.ndarray]
+  - function cosine_distance: (a, b) -> float
+  - function pairwise_layer_distances: (centroids, np.ndarray], n_layers) -> Dict[str, List[float]]
+  - function find_sweet_spot: (distances, List[float]], n_layers) -> Dict[str, any]
+  - _...2 more_
+- `experiments\mamba_lora_bridge\spikes\run_spike_sink_census.py`
+  - function load_model: (model_name, cache_dir, quantization)
+  - function forward_with_hooks: (model, tokenizer, prompt, is_instruct)
+  - function capture_vproj_pos0: (model, tokenizer, prompt, target_layers, is_instruct) -> Dict[int, np.ndarray]
+  - function measure_spikes: (hidden_states, n_layers) -> Dict[str, Any]
+  - function measure_sinks: (attentions, n_layers) -> List[Dict[str, Any]]
+  - function measure_post_rmsnorm: (hidden_states, n_layers) -> Dict[str, Any]
+  - _...4 more_
 - `experiments\mamba_lora_bridge\spikes\score_ls20_trace.py`
   - function observed_terms_for_event: (event, Any]) -> set[str]
   - function load_jsonl_trace: (path) -> list[dict[str, Any]]
@@ -786,6 +868,30 @@
   - function duplicate_runs: (metadata, mamba_array, qwen_array) -> List[dict]
   - function build_report: (mamba_array, qwen_array, metadata, min_unique_ratio) -> dict
   - function main: () -> int
+- `experiments\mamba_lora_bridge\_bundle_snapshots\mlws_pre127_20260703\chat_server.py`
+  - function normalize_target_specs: (raw)
+  - function parse_target_layers: (raw)
+  - function format_target_specs: (specs)
+  - function normalize_qwen_family: (model_id) -> str
+  - function is_same_qwen_family: (requested_model_id, checkpoint_model_id) -> bool
+  - function infer_hidden_layer_count: (model) -> int
+  - _...155 more_
+- `experiments\mamba_lora_bridge\_bundle_snapshots\mlws_pre127_20260703\models.py`
+  - function is_gated_activation_bias_mode: (bridge_mode) -> bool
+  - function is_hidden_gated_activation_bias_mode: (bridge_mode) -> bool
+  - function is_input_gated_activation_bias_mode: (bridge_mode) -> bool
+  - function is_input_residual_mixer_mode: (bridge_mode) -> bool
+  - function is_token_conditioned_input_adapter_mode: (bridge_mode) -> bool
+  - function build_activation_bias_hypernetwork: (*, bridge_mode, context_dim, target_dims, int]], hidden_dim, rank, gate_kind, initial_gate) -> ActivationBiasHypernetwork
+  - _...12 more_
+- `experiments\mamba_lora_bridge\_bundle_snapshots\mlws_pre127_20260703\reincarnated_inference.py`
+  - function torch_dtype_for_device: (device_name) -> torch.dtype
+  - function infer_hidden_layer_count: (model) -> int
+  - function extract_last_token_hidden: (outputs, layer_idx, expected_layers) -> torch.Tensor
+  - function normalize_target_specs: (raw_specs)
+  - function resolve_target_specs: (checkpoint, override_layers)
+  - function get_projection_module: (model, target_spec)
+  - _...17 more_
 - `experiments\mamba_state_transfer\experiment_01_basic.py` — function parse_args: () -> argparse.Namespace, function generate_with_cache: (model, input_ids, cache_params, max_new_tokens, seq_offset)
 - `experiments\mamba_state_transfer\experiment_02_two_process.py` — function parse_args: () -> argparse.Namespace, function generate_with_cache: (model, input_ids, cache_params, max_new_tokens, seq_offset)
 - `experiments\mamba_state_transfer\experiment_03_multiturn.py`

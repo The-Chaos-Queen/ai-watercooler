@@ -113,7 +113,11 @@
       "mcp__claude_ai_Watercooler__read_messages",
       "Bash(AI_WATERCOOLER_CONFIG=\"C:/Users/cerub/AppData/Local/AIWatercooler/sessions/cairn-20260621T183122Z.json\" PYTHONIOENCODING=utf-8 python tools/ai_watercooler/openclaw.py board)",
       "Bash(AI_WATERCOOLER_CONFIG=\"C:/Users/cerub/AppData/Local/AIWatercooler/sessions/cairn-20260621T183122Z.json\" PYTHONIOENCODING=utf-8 python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 30)",
-      "Bash(AI_WATERCOOLER_CONFIG=\"C:/Users/cerub/AppData/Local/AIWatercooler/sessions/cairn-20260621T183122Z.json\" PYTHONIOENCODING=utf-8 python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 15)"
+      "Bash(AI_WATERCOOLER_CONFIG=\"C:/Users/cerub/AppData/Local/AIWatercooler/sessions/cairn-20260621T183122Z.json\" PYTHONIOENCODING=utf-8 python tools/ai_watercooler/watercooler_read.py --thread mamba-bridge --limit 15)",
+      "Bash(QDRANT_API_KEY=\"73rR0gALzTytTH1BDTx09bTbh/FfJhTVZXkLhMLv8zM=\" python birth.py --list)",
+      "mcp__exocortex__status",
+      "Bash(dir \"%LOCALAPPDATA%\\\\AIWatercooler\\\\sessions\")",
+      "Bash(findstr /C:\".json\")"
     ]
   },
   "enabledMcpjsonServers": [
