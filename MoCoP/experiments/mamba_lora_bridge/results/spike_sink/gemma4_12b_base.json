@@ -110,6 +110,7 @@
     "peak_layer": 25,
     "peak_value": 236.0,
     "peak_over_median": 1.98,
+    "median_abs": 119.0,
     "spike_profile": "smooth",
     "step_up_layer": null,
     "step_up_ratio": null,

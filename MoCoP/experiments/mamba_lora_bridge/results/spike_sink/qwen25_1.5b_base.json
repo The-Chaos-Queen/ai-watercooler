@@ -67,8 +67,14 @@
     102.5
   ],
   "spike_lifecycle": {
+    "peak_layer": 6,
+    "peak_value": 7136.0,
+    "peak_over_median": 1.0,
+    "median_abs": 7136.0,
+    "spike_profile": "massive",
+    "persistence": "persistent",
     "step_up_layer": 2,
-    "step_up_ratio": 227.92,
+    "step_up_ratio": 228.11,
     "step_down_layer": 27,
     "step_down_ratio": 28.42,
     "spike_active_band": [

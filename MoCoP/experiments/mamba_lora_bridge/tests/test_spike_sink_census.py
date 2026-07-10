@@ -54,9 +54,21 @@ def test_find_step_layers_locates_lifecycle():
     hs = make_hidden_states(16, 64, spike_channel=3, spike_value=2500.0, up=4, down=11)
     step = find_step_layers(layer_magnitudes(hs)["max_abs"])
     assert step["spike_profile"] == "massive"
+    assert step["persistence"] == "localized"   # spike only in [4,11), small baseline
     assert step["step_up_layer"] == 4
     assert step["step_down_layer"] == 11
     assert step["spike_active_band"] == [4, 11]
+
+
+def test_persistent_massive_spike_flat_high():
+    # the case the Qwen3-14B run exposed: a massive spike that PERSISTS across the
+    # whole stack -> peak/median ~ 1, so the ratio alone misses it; the absolute
+    # magnitude (O(1000s)) is what flags it, and persistence is 'persistent'.
+    flat_high = [30, 200, 13000, 13376, 13300, 13100, 12900, 12000, 8000, 200]
+    step = find_step_layers(flat_high)
+    assert step["spike_profile"] == "massive"      # via absolute threshold, not ratio
+    assert step["persistence"] == "persistent"
+    assert step["peak_over_median"] < 8.0          # would have been 'smooth' under the old rule
 
 
 def test_smooth_profile_no_spurious_lifecycle():

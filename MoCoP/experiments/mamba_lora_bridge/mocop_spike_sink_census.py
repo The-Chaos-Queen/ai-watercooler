@@ -58,7 +58,11 @@ GEMMA_WORKSPACE_ZONE = (38, 45)
 # thresholds. The spike/smooth classification is PEAK-RELATIVE (a model can peak at
 # 7000 or 200; what matters is whether the peak towers over the median).
 STEP_RATIO = 2.0              # adjacent-layer magnitude ratio counted as a step
-MASSIVE_PEAK_RATIO = 8.0      # peak/median above this = a genuine massive-activation spike
+MASSIVE_ABS_THRESHOLD = 1000.0  # |act| in the thousands = a massive activation (paper)
+MASSIVE_PEAK_RATIO = 8.0      # OR peak >> median: a localized spike over a small baseline
+# NB the absolute threshold is primary: a massive activation that PERSISTS across the
+# stack (paper's main case) is flat-high, so peak/median ~ 1 and the ratio alone would
+# miss it (Qwen2.5-1.5B: peak==median==7136). Magnitude, not localization, is the signal.
 
 
 # --------------------------------------------------------------------------- #
@@ -90,13 +94,18 @@ def find_step_layers(max_abs: list[float]) -> dict[str, Any]:
     median_val = float(np.median(arr)) or 1e-9
     peak_ratio = peak_val / median_val
 
+    massive = peak_val >= MASSIVE_ABS_THRESHOLD or peak_ratio >= MASSIVE_PEAK_RATIO
     base = {"peak_layer": peak_layer, "peak_value": round(peak_val, 1),
-            "peak_over_median": round(peak_ratio, 2)}
-    if peak_ratio < MASSIVE_PEAK_RATIO:
+            "peak_over_median": round(peak_ratio, 2),
+            "median_abs": round(median_val, 1)}
+    if not massive:
         return {**base, "spike_profile": "smooth",
                 "step_up_layer": None, "step_up_ratio": None,
                 "step_down_layer": None, "step_down_ratio": None,
                 "spike_active_band": None}
+    # a massive spike that fills the stack (median >= half the peak) is PERSISTENT
+    # (injected early, held additively); one that towers over a small baseline is LOCALIZED.
+    persistence = "persistent" if median_val >= 0.5 * peak_val else "localized"
 
     floor = 0.2 * peak_val               # "in the massive regime" = within 5x of peak
     up_layer, up_ratio = None, 1.0
@@ -112,7 +121,7 @@ def find_step_layers(max_abs: list[float]) -> dict[str, Any]:
         if arr[i - 1] >= floor and prev / cur >= STEP_RATIO and prev / cur > down_ratio:
             down_layer, down_ratio = i, prev / cur
     band = [up_layer, down_layer if down_layer is not None else n - 1] if up_layer else None
-    return {**base, "spike_profile": "massive",
+    return {**base, "spike_profile": "massive", "persistence": persistence,
             "step_up_layer": up_layer, "step_up_ratio": round(up_ratio, 2),
             "step_down_layer": down_layer,
             "step_down_ratio": round(down_ratio, 2) if down_layer is not None else None,
@@ -338,13 +347,13 @@ def summarize(report: dict) -> str:
     ov = report["injection_overlap"]
     profile = sl.get("spike_profile")
     if profile == "massive":
-        life = (f"  MASSIVE spike (peak/median {sl['peak_over_median']}x): step-up @ "
-                f"L{sl['step_up_layer']} (x{sl['step_up_ratio']}), step-down @ "
-                f"L{sl['step_down_layer']} (x{sl['step_down_ratio']}), active band "
-                f"{sl['spike_active_band']}")
+        life = (f"  MASSIVE {sl.get('persistence','')} spike (peak {sl['peak_value']}, "
+                f"median {sl.get('median_abs')}): step-up @ L{sl['step_up_layer']} "
+                f"(x{sl['step_up_ratio']}), step-down @ L{sl['step_down_layer']} "
+                f"(x{sl['step_down_ratio']}), active band {sl['spike_active_band']}")
     else:
-        life = (f"  SMOOTH profile (peak/median {sl['peak_over_median']}x, no massive "
-                f"spike): peak @ L{sl['peak_layer']}, no step-up/step-down lifecycle")
+        life = (f"  SMOOTH profile (peak {sl['peak_value']}, median {sl.get('median_abs')}, "
+                f"no massive spike): peak @ L{sl['peak_layer']}, no step lifecycle")
     lines = [
         f"SPIKE/SINK CENSUS — {report['model_id']} ({report['n_layers']} layers, "
         f"{report['n_prompts']} prompts)",

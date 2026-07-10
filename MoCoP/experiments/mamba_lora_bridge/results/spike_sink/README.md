@@ -10,6 +10,40 @@ massive, near-constant "implicit bias" spike (drown / eigenvector-collision
 risk)? And which channels/positions must the Domain-E monitors spike/sink-correct
 so they measure the animal, not the architecture?
 
+## Headline: it's ARCHITECTURE, not scale — and Gemma is built to not spike
+
+| host | params | peak \|act\| | profile | mean sink |
+|---|---|---|---|---|
+| Qwen2.5-1.5B base | 1.5B | **7136** | massive, persistent (L2→27) | 0.65 |
+| Qwen3-14B base | 14B | **13376** | massive, persistent (L7→40) | (not measured) |
+| Gemma-4-12B base | 12B | **236** | smooth, no spike | 0.49 |
+
+Both Qwen checkpoints carry a massive persistent activation (7136 at 1.5B, 13376
+at 14B — scale amplifies it); the 12B Gemma *between* them in size carries none.
+Scale is ruled out: the difference is the **architecture**.
+
+The mechanism is in `modeling_gemma4.py`, and it's the paper's suppressor catalogue
+implemented in one model: **QK-norm** (`q_norm`/`k_norm` RMSNorm on the head
+dimension of Q and K — the paper's single strongest lever, ~99.9% spike
+reduction), **sandwich norm** (a `post_attention_layernorm` *and*
+`post_feedforward_layernorm` in addition to the pre-norms — normalizing the output
+of every sublayer, the paper's ~86% lever), plus **value-norm** and **attention
+softcapping**. Qwen uses the standard pre-norm-only RMSNorm recipe and keeps the
+spike; Gemma turns on essentially every anti-spike knob the paper identifies, so it
+has no massive activation to begin with. Confirmed both ways: by measurement (two
+Qwen scales spike, Gemma doesn't) and by mechanism (Gemma implements the exact
+suppressors).
+
+**Consequence for the bridge (#788):** Gemma's injection sites {29,35,41} are
+geometrically clean — no massive-activation wall to drown a low-rank additive bias.
+The census also shows this was *not* guaranteed by substrate choice: on Qwen3-14B,
+the same layer indices {29,35} sit *inside* its 13376 persistent-spike band, so a
+Qwen-14B bridge would have had a real injection-drowning problem. Gemma's
+normalization stack retires that risk. The sink, however, survives on Gemma (0.49) —
+spikes and sinks are separable (the paper's point), so Domain-E *attention*
+monitors still need position-0 masking, while spike-channel exclusion matters far
+less than on the Qwens.
+
 ## Runs
 
 ### Qwen2.5-1.5B base — DONE (`qwen25_1.5b_base.json`)
@@ -33,6 +67,24 @@ Takeaway: any monitor reading activation norm or position-0 attention on Qwen is
 reading a ~7000-magnitude near-constant spike + a 0.65 sink unless it masks
 position 0 and excludes the spike channels. This is the §6.2 correction, now with
 concrete channel indices to exclude.
+
+### Qwen3-14B base — DONE (`qwen3_14b_base.json`)
+bf16 (CPU-offloaded), 12 prompts, 40 layers. The scale control for the
+architecture-vs-scale question — a Qwen at ~Gemma size.
+
+- **Peak residual |activation| = 13376** — a massive persistent spike, *larger*
+  than the 1.5B's (scale amplifies the spike within the family), step-up @ L7,
+  step-down @ L40, band [7, 40].
+- Spike channels @ L21 [731, 2994, 1016, 2863, 5020], token-invariance cosine
+  0.9999 — same implicit-bias signature.
+- **Injection overlap (real, on this host):** layers {29, 35} sit *inside* the
+  spike band at magnitude 13376. This is the concrete counter-example: had 5g.4
+  selected Qwen3-14B, the comb teeth would land in a persistent 13k spike and the
+  drowning risk A1 checks for would be live. (Attention/sink not captured this
+  run — spike census only.)
+
+Together with the 1.5B, this is the scale control: Qwen spikes at both 1.5B and
+14B; Gemma (12B, between them) does not. Architecture, not size.
 
 ### Gemma-4-12B base — DONE (`gemma4_12b_base.json`)
 Overlay `gemma4-mocop` (transformers 5.10.0.dev0), bf16, 12 prompts, 48 layers.
