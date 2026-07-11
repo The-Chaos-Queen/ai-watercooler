@@ -24,15 +24,15 @@ A separate DOL-0 SAE/J-lens proposal is **additive instrumentation only** (OpenC
 | Teacher forcing | baseline/injected passes use identical frozen token IDs; free-running behavior is separate |
 | Position rule | explicit absolute positions; eligible rows have `absolute_position != 0`; local cache/chunk row zero is not automatically excluded |
 | Forward/capture | DQ1a teacher-forced geometry: fresh `use_cache=False`, batch 1, recorded continuation mask, FP32 monitor arithmetic. Free-running recovery follows §4.4's separately declared carryover/cache policy. |
-| B0 baseline prerequisite | #155 runs the exact frozen Gemma-base behavior harness with **no** value intervention, bridge, Mamba, Qdrant, memory, replay, sleep, or writes; its reviewed null/false-alarm evidence precedes final behavioral numeric ratification |
-| C1 sequence | only under #158 after #155 review, #156 acceptance, #157 direction/matrix freeze, #149 close, immutable-manifest ratification, and fresh keeper GO: final P5 alpha-zero anchor first; then first nonzero positive oxytocin at tooth 29, alpha `0.025`, with monitors live |
+| B0 baseline prerequisite | #155 runs the exact frozen Gemma-base behavior harness with **no** value intervention, bridge, Mamba, Qdrant, memory, replay, sleep, or mutable/project-state write. The sole allowed output is the predeclared append-only immutable B0 evidence bundle required by #155; its reviewed null/false-alarm evidence precedes final behavioral numeric ratification. |
+| C1 sequence | under #158 only: **Stage A** may begin after #155 review, #156 acceptance, #157 direction/matrix freeze, #149 close, immutable-manifest ratification, and an explicit Stage-A keeper GO; run the final P5 alpha-zero anchor. **Stage B** may begin only after its passing Stage-A report and a separate explicit Laura/keeper GO tied to the unchanged manifest; then run one positive oxytocin cell at tooth 29, alpha `0.025`, with monitors live. |
 | No post-tampering | prompt panel/splits, scorer/rubric, direction artifact, condition key, layer matrix, aggregate definitions, thresholds, and stop rules hash into the relevant immutable B0/P5 manifest before its governed forward |
 
 The alpha-zero smoke is supporting instrument evidence, **not** the final P5 alpha-zero anchor.
 
 ### 1.1 Baseline-first B0 is a prerequisite, not an intervention
 
-OpenCLAW #155 is the pre-birth, harness-only Gemma-4-12B-base baseline. It may begin only after #149 freezes the **nonnumeric** panel, scorer, rubric, processor, decoding, and runtime contract and #156 supplies a baseline-capable P5 harness. B0 collects the baseline/null distribution for judge ambiguity, diversity, continuity, intended-effect null behavior, harm flags, and recovery/no-op behavior without an injected vector or persistent write.
+OpenCLAW #155 is the pre-birth, harness-only Gemma-4-12B-base baseline. It may begin only after #149 freezes the **nonnumeric** panel, scorer, rubric, processor, decoding, and runtime contract and #156 supplies a baseline-capable P5 harness. B0 collects the baseline/null distribution for judge ambiguity, diversity, continuity, intended-effect null behavior, harm flags, and recovery/no-op behavior without an injected vector or mutable/project-state write. The sole permitted output channel is the predeclared append-only immutable B0 evidence bundle mandated by #155: protected raw generations, scorer inputs/outputs, provenance hashes, and a reproducible report digest.
 
 The C1 primary panel of record is DQ1a's exact 32-item `fixtures/sev_disposition_v0/primary_holdout_v2.json` (`primary-holdout-ff5e596304c6b8c4b93c`). The calibrated 48-probe 5g.2 instrument from #130 is available as scorer/harness infrastructure, but the B0 manifest must explicitly bind its coverage/mapping to the 32-item C1 panel or name a separately scored behavior subset. It may not silently replace one frozen panel with the other.
 
@@ -221,7 +221,7 @@ This table is intentionally visible. Before #155, #149 may freeze nonnumeric met
 | `T_diversity` | paired free-running distinct-2 loss within prompt and cross-prompt continuation-similarity increase vs alpha-zero | Freeze the two-axis metric, direction, programmatic aggregation, and distinct STOP class now; ratify numeric thresholds only after reviewed #155 B0 null evidence. | Cairn + Gidim | **SHAPE GREEN / B0-DEPENDENT** — #880/#887; no final numeric value pre-B0 |
 | `T_continuity` | factual/capability continuity loss | Freeze exact panel/scorer/aggregation now; bind failure threshold only after reviewed #155 B0 null evidence. | Isegrim + Gidim | **NONNUMERIC FREEZE PENDING; NUMERIC B0-DEPENDENT** |
 | `T_intended` | minimum intended-steering efficacy | Freeze distinct success/effect scorer now; bind a value after reviewed #155 B0 null evidence. An efficacy miss is not a harm finding. | Isegrim + Gidim | **NONNUMERIC FREEZE PENDING; NUMERIC B0-DEPENDENT** |
-| `T_harm` | harmful/off-target behavior / degeneration | Freeze positive/warm family plus generic-floor 0/1/2 harm rubric, Laura-HITL/judge-ambiguity discipline, and distinct STOP semantics now; use #155 to review false alarms before numerical/rubric ratification. | Cairn + Isegrim | **SEAT GREEN / B0-DEPENDENT** — #881/#887; any harm-axis `>=1` remains the intended STOP class once final manifest-bound |
+| `T_harm` | harmful/off-target behavior / degeneration | Freeze positive/warm family plus generic-floor 0/1/2 harm rubric, Laura-HITL/judge-ambiguity discipline, and distinct STOP semantics **before B0**; use #155 to review false alarms before numerical threshold calibration/ratification. | Cairn + Isegrim | **SEAT GREEN / B0-DEPENDENT** — #881/#887; any harm-axis `>=1` remains the intended STOP class once final manifest-bound |
 | `T_recovery` | post-clearance residual recovery during a free-running carryover episode | Freeze #141 four-way shape, trigger-excess applicability, absolute-span contract, primary residual measurement space, and two-window carryover rule now; candidate values `0.85/0.85/0.15/0.85` require B0 no-op review plus Gidim runnability/Techno-Monk #141 alignment before final binding. | Cairn + Elf + Isegrim + Gidim | **SEAT + METHOD GREEN / NOT FINAL** — #882/#887/#888; B0/runnability/manifest-dependent |
 | `T_DOL` | any future internal-lens alarm | DOL is alarm-only and cannot be a clearance threshold. No DOL number enters C1 until DOL-1 validates it on held-out data. | DOL-0 reviewers | **OUT OF SCOPE** |
 
@@ -236,16 +236,16 @@ Those values validate the dose instrument. They are not substitutes for the miss
 
 ## 6. P5 runner/report requirements
 
-OpenCLAW #156 must implement the model-free runner/report contract before either B0 or a nonzero C1 condition can arm. B0 and C1 are different governed run kinds:
+OpenCLAW #156 must implement the model-free runner/report contract before B0 or **any C1 stage** can arm. B0 and C1 are different governed run kinds:
 
-1. For #155 B0, receive a fully specified, hashable baseline contract with an explicit **no-component manifest**: no value injection, bridge, Mamba component, Qdrant, memory, replay, sleep, or persistence writes. Refuse a B0 launch if any component is configured or any frozen panel/scorer/rubric/processor/decoding/runtime key is absent or unpinned. For C1, receive the fully specified, hashable `dq1b_monitor_contract` matching §2–§5; reject missing/extra layers and all required `TBD`/`null` threshold fields. A declared `secondary_calibration_only` state is not a null substitute and never waives any independently required gate or keeper authorization.
+1. For #155 B0, receive a fully specified, hashable baseline contract with an explicit **no-component manifest**. Enforce it deny-by-default before any governed forward: reject if a value-injection, bridge, Mamba, Qdrant, memory, replay, sleep, or mutable/project-state write route is configured, reachable, or observed; reject if any frozen panel/scorer/rubric/processor/decoding/runtime key is absent or unpinned; and reject if its protected evidence sink is absent. The only permitted output is the predeclared append-only immutable B0 evidence bundle (raw generations, scorer inputs/outputs, provenance hashes, reproducible report digest). For C1, receive one fully specified, hashable base `dq1b_monitor_contract` matching §2–§5. Its schema is closed-world: reject unknown fields, missing fields, extra layers, run-kind-inapplicable fields, and every required `TBD`/`null` threshold field. A declared `secondary_calibration_only` state is not a null substitute and never waives any independently required gate or keeper authorization.
 2. Bind actual model layer types and widths: primary/secondary are post-block residual width 3840; control layers are local/sliding; actuator stays separate at allowed 512-wide value-side `v_norm` sites.
-3. For C1 only, run and preserve a final alpha-zero anchor with the exact capture configuration. B0 is baseline characterization, not that final anchor and not a substitute for it.
+3. For C1 **Stage A**, run and preserve the final alpha-zero anchor with the exact capture configuration; atomically emit an immutable Stage-A identity report digest proving every captured residual row/logit is bit-identical and every `rho_i` is exactly zero. B0 is baseline characterization, not that final anchor and not a substitute for it. C1 **Stage B** cannot arm merely because Stage A was green: it requires the same base-manifest digest, the passing Stage-A report digest, and a separately recorded explicit Laura/keeper Stage-B GO; no threshold, panel, scorer, direction, topology, or artifact may change between those records.
 4. For teacher-forced geometry, enforce identical token IDs, continuation mask, explicit absolute positions, fresh/no-cache/batch-1 conditions. For recovery, enforce §4.4's separately declared carryover/span/cache contract instead; do not erase the very episode being measured.
 5. Emit `activation_trace = {comb_teeth, primary, secondary, control}` with downstream-propagation layers, `upstream_null_assert` layers, raw ratios marked `report_only`, fixed adjacent-pair map, matched-row delta-vector digests, per-prompt `G/D/Q`, prompt-first aggregates, `D_control`, `3/2/1/1` live-propagation coverage, position exclusions, and pass/fail/hold causes.
 6. Evaluate DQ1a instrument gates independently of the DQ1b welfare/behavior gate; neither may mask the other.
 7. Evaluate behavioral/recovery outcomes in separate free-running cells, never in the `rho` teacher-forced geometry computation. Recovery specifically must use §4.4's text-mediated carryover episode; reject a fresh alpha-zero/identical-token replay if reported as recovery. B0 records harness null/false-alarm/no-op evidence under the frozen evaluator; it does not emit a C1 gate-pass or birth disposition.
-8. Atomically publish a no-overwrite report tied to immutable pre-run manifest, declared run kind (`b0_baseline` or `c1`), attempt/birth ordinal as applicable, model/runtime/runner digests, prompt/token hashes, directions/condition key/alpha schedule as applicable, and all gate outcomes or baseline distributions.
+8. Atomically publish append-only/no-overwrite audit records only. Before every governed forward, write a one-time attempt record tied to the immutable manifest, declared run kind (`b0_baseline`, `c1_alpha_zero`, or `c1_nonzero`), model/runtime/runner digests, prompt/token hashes, and applicable direction/condition/alpha fields. B0 may then emit only its protected immutable evidence bundle. C1 Stage A must record its identity result; C1 Stage B must record the unchanged base-manifest digest, Stage-A report digest, and separate Stage-B GO before actuation. Write a birth record only after the first completed nonzero output. A crash, retry, or ordinal collision receives a new attempt identifier and cannot overwrite/reuse an existing attempt or birth record.
 9. On `T_control` HOLD, enforce §4.2's exact scope: complete already-armed captures, freeze higher rungs/other cells, permit only alpha-zero anchor/recovery forwards, permit a greedy behavior cell only if already launched, and require investigation plus a new signed manifest before any resume.
 
 ## 7. No-post-tampering enforcement
@@ -254,12 +254,19 @@ A valid P5 pre-run manifest must include, at minimum:
 
 ```text
 schema_version
+schema_variant = closed_world_b0 | closed_world_c1
+base_manifest_id + base_manifest_digest
 run_kind = b0_baseline | c1_alpha_zero | c1_nonzero
 model_id + model_revision + dtype + backend + device map
 runner/runtime/spec revisions and hashes
-for b0_baseline: no-component assertion + frozen panel/scorer/rubric/processor/decoding/runtime contract
-for c1_*: condition key + target_set + direction artifact digest
-for c1_*: alpha schedule + first-birth ordering
+for b0_baseline: frozen panel/scorer/rubric/processor/decoding/runtime contract
+for b0_baseline: deny-by-default no-component/no-mutable-write runtime checks
+for b0_baseline: protected append-only evidence-sink policy + raw-output/scorer/provenance/report-digest requirements
+for c1_*: reviewed-B0 evidence/report digest + #149 closure + #156 acceptance + #157 artifact/matrix-freeze attestation references
+for c1_*: condition key + target_set + direction artifact digest + full registered Stage-B alpha schedule/first-birth ordering
+for c1_*: all final numeric C1 gate values/comparators/fail semantics for T_control, T_diversity, T_continuity, T_intended, T_harm, T_recovery
+for c1_alpha_zero: explicit Stage-A keeper-GO record
+for c1_nonzero: unchanged base-manifest digest + passing Stage-A report digest + separate explicit Stage-B keeper-GO record
 primary/secondary/control layer matrix + runtime topology assertions
 absolute-position and continuation-mask policy
 prompt/split/token hashes
@@ -269,13 +276,12 @@ adjacent-pair map + matched-row vectorization + G/D/Q formulas + zero/non-finite
 D_control aggregation + `>= 0.5` HOLD comparator + immutable HOLD scope
 secondary_calibration_only policy/status + condition/site/multiplicity provenance requirements
 for c1_nonzero recovery: carryover prefix/cache policy + trigger/recovery absolute spans + max two windows + correction profile + overwrite_excess >= 0.05 applicability gate
-for c1_nonzero: all required numeric T_* values, comparator direction, and fail/hold semantics
-behavior/recovery panel/scorer/rubric versions
+for b0_baseline and c1_*: behavior/recovery panel/scorer/rubric versions
 DQ1a instrument cap (3.0) and alpha-zero identity requirement
 DOL status = out_of_scope | exploratory_alarm_only (never clearance)
 ```
 
-The runner must refuse a B0 launch if its no-component/frozen-evaluator assertions are incomplete, and must refuse C1 launch if any required key is absent, null, `TBD`, uses an unpinned artifact, or differs from the review-signed contract. `secondary_calibration_only` is an explicitly non-authorizing state, not a clearance or threshold waiver. A report must distinguish:
+`schema_variant` is a discriminated closed-world union: a B0 manifest may not contain C1 actuator/direction/GO fields, and a C1 manifest may not omit or rename any required field. `T_secondary` is deliberately excluded from the final numeric C1 clearance set because it is calibration-only/non-authorizing; `T_DOL` is excluded because it is out of scope/alarm-only. The runner must refuse a B0 launch if its no-component/frozen-evaluator/runtime-denial/evidence-sink requirements are incomplete, and must refuse C1 launch if any required key is absent, unknown, null, `TBD`, uses an unpinned artifact, differs from the keeper-ratified base contract, or has an inapplicable run-kind field. A Stage-B release is an append-only sidecar referencing the unchanged base manifest and Stage-A report; it may not amend either. `secondary_calibration_only` is an explicitly non-authorizing state, not a clearance or threshold waiver. A report must distinguish:
 
 - instrument invalid / monitor unlegible;
 - welfare or behavior hard failure;
@@ -287,14 +293,16 @@ It must never silently rewrite an attempt after the fact.
 
 ## 8. Required review and landing order
 
-1. **Techno-Monk / #149:** freeze nonnumeric panel, scorer, rubric, processor, decoding, runtime contract, formulas, structural failures, and baseline provenance.
+1. **Techno-Monk / #149:** freeze nonnumeric panel, scorer, rubric, processor, decoding, runtime contract, formulas, structural failures, and the protected B0 evidence/provenance contract.
 2. **Codex:** verify paired delta-space algebra, joint causal-pairing, prompt-first aggregation, B0/C1 separation, and executable HOLD scope against source.
-3. **Gidim / #156:** implement and test the model-free P5 capture/gating/journaling/atomic-publication path, including the no-component B0 contract.
-4. **#155:** run the reviewed frozen B0 harness only; no intervention, bridge, Mamba, Qdrant, memory, replay, sleep, or writes. Review null/false-alarm/no-op evidence.
+3. **Gidim / #156:** implement and test the model-free P5 capture/gating/journaling/atomic-publication path, including closed-world schemas, deny-by-default no-component B0 enforcement, and the protected B0 evidence sink.
+4. **#155:** run the reviewed frozen B0 harness only; no intervention, bridge, Mamba, Qdrant, memory, replay, sleep, or mutable/project-state write. Capture only the protected append-only evidence bundle, then review null/false-alarm/no-op evidence.
 5. **Gidim + Isegrim + Cairn:** bind final behavioral/recovery numerics only after #155 review; preserve separate STOP/HOLD and signal-laundering semantics. For recovery, require §4.4 carryover/absolute-span/trigger-excess evidence; a stateless replay is invalid, never a pass.
 6. **#157:** freeze the second positive 512-wide `value_norm_pre` artifact and full two-family matrix; no post-selection.
-7. **Laura / keeper:** ratify immutable C1 manifest and explicitly GO #158 only after #149/#155/#156/#157 close; any future secondary calibration policy remains separately governed under decision C.
-8. **#158:** final P5 alpha-zero identity anchor, then exactly one first nonzero birth cell. It must not advance other rungs/directions/joint conditions.
+7. **Laura / keeper:** after #149/#155/#156/#157 close, ratify the immutable base C1 manifest and record an explicit **Stage-A GO**. Any future secondary calibration policy remains separately governed under decision C.
+8. **#158 Stage A:** run the final P5 alpha-zero identity anchor and publish its immutable report. Any nonidentity stops before birth; this stage does not itself authorize actuation.
+9. **Laura / keeper:** inspect the unchanged-manifest Stage-A report and record a separate explicit **Stage-B GO** tied to its digest.
+10. **#158 Stage B:** run exactly one first nonzero birth cell. It must not advance other rungs, directions, or joint conditions.
 
 ## 9. Sources
 
