@@ -105,40 +105,101 @@ def load_model_and_processor(model_id: str, quant: str, local_files_only: bool =
 
 def collect_activations(model: Any, encode: Any, pairs: List[Tuple[str, str, str]], 
                         candidate_layers: List[int], device: str) -> Tuple[Dict[int, torch.Tensor], Dict[int, torch.Tensor]]:
-    """Extracts hidden states at last-token position for candidate layers.
-    Returns: warm_activations, neutral_activations (dicts mapping layer -> [N, d_model] tensor)
+    """Extracts activations at last-token position for candidate layers' v_proj modules.
+    Returns: warm_activations, neutral_activations (dicts mapping layer -> [N, d_proj] tensor)
     """
     warm_acts: Dict[int, List[torch.Tensor]] = {l: [] for l in candidate_layers}
     neutral_acts: Dict[int, List[torch.Tensor]] = {l: [] for l in candidate_layers}
     
-    print(f"[collector] Collecting activations at last-token position for layers: {candidate_layers}")
+    # 1) Locate v_proj modules at target layers (with k_proj fallback for attention_k_eq_v layers)
+    v_proj_modules: Dict[int, Any] = {}
+    for layer in candidate_layers:
+        mod = None
+        for path_fn in [
+            lambda m, i: m.model.layers[i].self_attn.v_proj,
+            lambda m, i: m.model.model.layers[i].self_attn.v_proj,
+            lambda m, i: m.language_model.layers[i].self_attn.v_proj,
+            lambda m, i: m.language_model.model.layers[i].self_attn.v_proj,
+            lambda m, i: m.model.language_model.layers[i].self_attn.v_proj,
+        ]:
+            try:
+                proj = path_fn(model, layer)
+                if proj is not None:
+                    mod = proj
+                    break
+            except (AttributeError, IndexError):
+                continue
+                
+        if mod is None:
+            # Fallback to k_proj if v_proj is None (coupled key/value layers)
+            print(f"[collector] v_proj is None for layer {layer}. Falling back to k_proj (attention_k_eq_v layout).")
+            for path_fn in [
+                lambda m, i: m.model.layers[i].self_attn.k_proj,
+                lambda m, i: m.model.model.layers[i].self_attn.k_proj,
+                lambda m, i: m.language_model.layers[i].self_attn.k_proj,
+                lambda m, i: m.language_model.model.layers[i].self_attn.k_proj,
+                lambda m, i: m.model.language_model.layers[i].self_attn.k_proj,
+            ]:
+                try:
+                    proj = path_fn(model, layer)
+                    if proj is not None:
+                        mod = proj
+                        break
+                except (AttributeError, IndexError):
+                    continue
+
+        if mod is None:
+            raise ValueError(f"Could not find v_proj or k_proj module for layer {layer}")
+        v_proj_modules[layer] = mod
+
+    def make_hook(layer_idx, storage_dict):
+        def hook_fn(module, input, output):
+            # v_proj output is a tensor of shape [1, seq_len, out_features]
+            val = output[0, -1, :].detach().cpu()
+            storage_dict[layer_idx] = val
+        return hook_fn
+
+    print(f"[collector] Hooking and collecting v_proj outputs at last-token position for layers: {candidate_layers}")
     for idx, (sk_id, warm_text, neutral_text) in enumerate(pairs):
         t0 = time.time()
-        # Warm forward pass
+        
+        # Setup hooks and containers for warm pass
+        captured_warm: Dict[int, torch.Tensor] = {}
+        handles_w = []
+        for layer, mod in v_proj_modules.items():
+            handles_w.append(mod.register_forward_hook(make_hook(layer, captured_warm)))
+            
         inputs_w = {k: (v.to(device) if hasattr(v, "to") else v) for k, v in encode(warm_text).items()}
         with torch.no_grad():
-            out_w = model(**inputs_w, output_hidden_states=True, use_cache=False)
-        
-        # Neutral forward pass
+            model(**inputs_w, use_cache=False)
+            
+        # Clean up hooks
+        for h in handles_w:
+            h.remove()
+            
+        # Setup hooks and containers for neutral pass
+        captured_neutral: Dict[int, torch.Tensor] = {}
+        handles_n = []
+        for layer, mod in v_proj_modules.items():
+            handles_n.append(mod.register_forward_hook(make_hook(layer, captured_neutral)))
+            
         inputs_n = {k: (v.to(device) if hasattr(v, "to") else v) for k, v in encode(neutral_text).items()}
         with torch.no_grad():
-            out_n = model(**inputs_n, output_hidden_states=True, use_cache=False)
+            model(**inputs_n, use_cache=False)
             
+        # Clean up hooks
+        for h in handles_n:
+            h.remove()
+            
+        # Store captured outputs
         for layer in candidate_layers:
-            # hidden_states contains embedding (idx 0) plus layer outputs (1..L)
-            # layer is 0-indexed corresponding to output of layer_idx (1-based in out.hidden_states)
-            # e.g., layer output l corresponds to out.hidden_states[l+1]
-            hw = out_w.hidden_states[layer + 1]  # [1, seq_len, hidden_size]
-            hn = out_n.hidden_states[layer + 1]
-            
-            # Extract last token hidden state
-            warm_acts[layer].append(hw[0, -1, :].cpu())
-            neutral_acts[layer].append(hn[0, -1, :].cpu())
+            warm_acts[layer].append(captured_warm[layer])
+            neutral_acts[layer].append(captured_neutral[layer])
             
         if (idx + 1) % 5 == 0 or (idx + 1) == len(pairs):
             print(f"  Processed {idx + 1}/{len(pairs)} pairs (last pair took {time.time() - t0:.2f}s)")
             
-    # Stack list of tensors into [N, d_model] and cast to float32 to avoid dtype mismatches
+    # Stack list of tensors into [N, d_proj] and cast to float32 to avoid dtype mismatches
     warm_stacked = {l: torch.stack(warm_acts[l], dim=0).float() for l in candidate_layers}
     neutral_stacked = {l: torch.stack(neutral_acts[l], dim=0).float() for l in candidate_layers}
     return warm_stacked, neutral_stacked
@@ -215,7 +276,7 @@ def main() -> None:
     parser.add_argument("--corpus", default="fixtures/sev_disposition_v0/sev_disposition_v0.jsonl", help="Path to corpus JSONL")
     parser.add_argument("--quant", default="no", choices=["no", "4bit"], help="Quantization layout")
     parser.add_argument("--device", default="cuda", help="Execution device")
-    parser.add_argument("--out", default="results/oxytocin_extraction/gemma4_12b_oxytocin_v1.pt", help="Output PT file path")
+    parser.add_argument("--out", default="results/oxytocin_extraction/gemma4_12b_oxytocin_vproj_v2.pt", help="Output PT file path")
     parser.add_argument("--local-files-only", action="store_true", help="Only load local files from cache")
     args = parser.parse_args()
     
@@ -226,8 +287,14 @@ def main() -> None:
     device = args.device if torch.cuda.is_available() and args.device == "cuda" else "cpu"
     print(f"[init] Using device: {device}")
     
-    # 1) Load corpus
+    # 1) Load corpus and calculate hash
     pairs = load_corpus(corpus_path)
+    import hashlib
+    h = hashlib.md5()
+    with open(corpus_path, "rb") as f:
+        while chunk := f.read(8192):
+            h.update(chunk)
+    corpus_hash = h.hexdigest()
     
     # 2) Load model
     model, encode, precision_flag = load_model_and_processor(args.model, args.quant, args.local_files_only)
@@ -308,8 +375,13 @@ def main() -> None:
                 "envelope_status": "unvalidated_pending_DQ1a",
                 "dc_treatment": "Path A (global mean subtracted per layer)",
                 "corpus": str(args.corpus),
-                "deliberate_position": "last-token position (bypasses pos-0 attention sink)",
-                "note": "Extracted G0 warmth direction vectors for Gemma. DO NOT inject until DQ1a re-derives MED envelope."
+                "corpus_hash": corpus_hash,
+                "surface": "v_proj_out (fallback to k_proj_out on layers where v_proj is None due to attention_k_eq_v)",
+                "width": warm_acts[candidate_layers[0]].shape[-1],
+                "revisions": "v2",
+                "lineage": f"extracted from {args.model} base using {args.corpus} via extract_oxytocin_gemma.py",
+                "deliberate_position": "last-token position of v_proj/k_proj output (bypasses pos-0 attention sink)",
+                "note": "Extracted G0 warmth direction vectors at projection output surface for Gemma. DO NOT inject until DQ1a re-derives MED envelope."
             }
         },
         out_path

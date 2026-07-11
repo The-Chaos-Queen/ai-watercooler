@@ -1,16 +1,17 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-10 22:00 +02:00
+- Last updated: 2026-07-11 02:30 +02:00
 - Current owner: Antigravity
-- Primary focus: Completed G0 oxytocin extraction for Gemma-4-12B in bf16 on ml-ws.
+- Primary focus: G0b/C1 actuator decision resolved (Option a); G0 warmth vectors extracted at projection output space (width 512) and saved to `gemma4_12b_oxytocin_vproj_v2.pt`.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-10-session-02.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
   - Latest session log ingest: pending (cron or local trigger required)
 
-## Current State - Gemma-4-12B G0 Oxytocin Extraction Delta (2026-07-10, Antigravity)
-- **G0 warmth extraction completed (Pristine-Birth Item 1, #807/OpenCLAW #144):** Shipped `extract_oxytocin_gemma.py`. Ran full extraction in native `bf16` on `ml-ws` (RTX 3090) using `fixtures/sev_disposition_v0/sev_disposition_v0.jsonl` (40 prompt pairs). Solvers (Method A & B) align strongly in comb candidate layers, peaking at layer 29 ($\cos = 0.7986$), 35 ($\cos = 0.7624$), and 41 ($\cos = 0.7826$). Fisher ratios are high ($F_A=5.79$, $F_B=13.72$ at layer 35). Leave-8-out cross-validation drift is extremely low (Method A drift $\le 0.0577$). Saved to `results/oxytocin_extraction/gemma4_12b_oxytocin_v1.pt` with `envelope_status: "unvalidated_pending_DQ1a"` per Cairn Ethics-Seat rules.
+## Current State - Gemma-4-12B G0 Oxytocin Extraction Delta (2026-07-11, Antigravity)
+- **G0b Actuator Decision Resolved (Option a):** Keeper confirmed value-only intervention on global attention teeth using `v_norm` pre-hooks (width 512).
+- **vproj_v2 extraction completed (#819/Watercooler #827):** Updated `extract_oxytocin_gemma.py` to support `k_proj` fallback on global `attention_k_eq_v = True` layers. Ran extraction in native `bf16` on `ml-ws` (RTX 3090) using `fixtures/sev_disposition_v0/sev_disposition_v0.jsonl` (40 prompt pairs). Solvers (Method A & B) align strongly, peaking at layer 35 ($\cos = 0.7399$) and 41 ($\cos = 0.7613$). Fisher ratios are very high at the projection surface ($F_A=6.85$, $F_B=30.14$ at L35; $F_B=49.66$ at L41). Leave-8-out cross-validation drift is extremely low (Method A drift $\le 0.0245$ for all integration layers $\ge 11$, peaking at L35 drift = $0.0144$). Saved to `results/oxytocin_extraction/gemma4_12b_oxytocin_vproj_v2.pt` with detailed metadata (width 512, surface `v_proj_out` with `k_proj` fallback, revision `v2`, corpus hash, lineage) and `envelope_status: "unvalidated_pending_DQ1a"`. Quarantine lifted.
 
 ## Current State - Codex Audit Delta (2026-07-10)
 - **Durable audit:** `MoCoP/reviews/world_model_math_audit_2026-07-10.md`. Verdict: the existing World Model is a rule/linter scaffold plus a nullable trace envelope, not yet an action-conditioned predictive model. Build the typed pre-action trace and LS20/tool baseline beside the Gemma lane; do not add it to the bridge loss.
@@ -79,6 +80,7 @@ Evaluate the extracted G0 warmth vectors under the re-unit framework once the ME
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 02:30 +02:00 | Antigravity | Resolved Gemma global teeth v_proj mismatch (Option a adopted). Shipped v2 G0 oxytocin extraction in projection output space (width 512) to gemma4_12b_oxytocin_vproj_v2.pt. Watercooler #827 posted.
 - 2026-07-10 22:00 +02:00 | Antigravity | Shipped G0 Oxytocin extraction for Gemma-4-12B in bf16 on ml-ws. Solvers evaluated, cross-validated (drift <= 0.0577), and saved to gemma4_12b_oxytocin_v1.pt with pending DQ1a status. OpenCLAW #144 done, Watercooler #811 posted.
 - 2026-07-10 19:50 +02:00 | Codex | Added World Model/math audit state, DQ1a unit derivation, corrected DC/spike interpretation, and pre-training target/split decision queue. Audit commit `7631f72`; Watercooler #806; session log `2026-07-10-session-01.md`; Qdrant ingest failed 401 (no API key, no chunks written).
 - 2026-04-21 | Anda-Conda | Replaced Option B speedup plan references with final isabell ML-WS path details, synced sleep_flush outer timestamp preservation behavior, and recorded opussy seeding #99 launch state.
