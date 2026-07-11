@@ -1,18 +1,18 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 16:10 +02:00
-- Current owner: Techno-Monk is closing the verified ML-WS Qdrant writer deployment (#151); Codex's #148 NO-GO/#152, Gidim's P5, and #146/#149 holds remain separate.
-- Primary focus: close #151 only after independent review and session evidence are recorded; do not integrate the World Model under the Phase 2 NO-GO or run nonzero C1 before #149/P5 gates.
+- Last updated: 2026-07-11 16:19 +02:00
+- Current owner: Techno-Monk is awaiting/recording independent review before #151 board closure; Codex's #148 NO-GO/#152, Gidim's P5, and #146/#149 holds remain separate.
+- Primary focus: close #151 only if review remains green; do not integrate the World Model under the Phase 2 NO-GO or run nonzero C1 before #149/P5 gates.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-10.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (`2026-07-11-session-10.md`)
+  - Latest session log ingest: done (`2026-07-11-session-10.md`, 10 chunks)
 
 ## Current State — Qdrant TLS Migration (2026-07-11)
 - **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
 - **Artifacts:** public root CA is versioned at `CHEESE_Memory/security/qdrant-lan-root-ca.crt`; operational contract/rollback evidence lives in `CHEESE_Memory/QDRANT_TLS_RUNBOOK.md`. The private CA key is local-only and absent from the LXC/Git.
-- **ML-WS writer (#151):** the active chat/pending/sleep writer paths are now synchronized from reviewed source and use `qdrant_transport.py`: HTTPS URL only, CA verification, writer-key requirement, and no plaintext/`verify=False` fallback. ML-WS has separate user-private writer/reader environment files (`0700` directory, `0600` files); `start.sh` defaults to `--no-qdrant` and requires `MOCOP_ENABLE_QDRANT_WRITES=1` for writer mode. Exact `torch311` verification returned `53 passed`; the wrapper's authenticated CA-validated read of `exocortex` succeeded (33,899 points at test time), and zero chat/sleep processes remained. This transport result is not permission for Gemma memory/birth/replay/live accumulation; strict provenance and separate action gates remain. #151 awaits final review/commit/board closure only.
+- **ML-WS writer (#151):** the active chat/pending/sleep writer paths are now synchronized from reviewed source and use `qdrant_transport.py`: HTTPS URL only, CA verification, writer-key requirement, and no plaintext/`verify=False` fallback. ML-WS has separate user-private writer/reader environment files (`0700` directory, `0600` files); `start.sh` defaults to `--no-qdrant` and requires `MOCOP_ENABLE_QDRANT_WRITES=1` for writer mode. Exact `torch311` verification returned `53 passed`; the wrapper's authenticated CA-validated read of `exocortex` succeeded (33,899 points at test time), and zero chat/sleep processes remained. This transport result is not permission for Gemma memory/birth/replay/live accumulation; strict provenance and separate action gates remain. Implementation/deployment evidence is committed in `d15138e`; session-10 was ingested (10 chunks). #151 awaits independent review and board closure only.
 - **Residual risk:** PVE firewall service remains disabled; a source-IP allow-list needs a separate access-inventory change, not a blind global firewall enable. LXC 101 root storage is plain ext4 on `local-lvm`, without dm-crypt/LUKS. Encrypted GPG/rclone snapshots are active but do not replace at-rest disk encryption.
 - **#138 board state:** done under `techno-monk` after Laura's explicit reassignment/closure authorization. OpenCLAW event #558 records completion with artifact `b4d8889`; the earlier Purple-ownership note is historical only.
 
@@ -95,19 +95,20 @@
 - Watercooler identity is token-bound. Use Codex's local session token; never borrow another agent's token.
 
 ## Recommended Next Step
-Close #151 after independent review, commit, and session-log ingestion; then treat #153 (legacy Qdrant CLI classification) and the scoped PVE/LXC access allow-list as separate infrastructure work. Otherwise finish #149/P5 before any nonzero C1, and keep #152 preregistered/offline with no World Model integration.
+Close #151 if the independent review is green; then treat #153 (legacy Qdrant CLI classification) and the scoped PVE/LXC access allow-list as separate infrastructure work. Otherwise finish #149/P5 before any nonzero C1, and keep #152 preregistered/offline with no World Model integration.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Qdrant TLS runbook, client code, and preflight provenance)
-- Session log written: yes (`2026-07-11-session-09.md`)
+- Tracking surfaces updated if needed: yes (OpenCLAW #151/#153, Watercooler #862, Qdrant runbook, source, and deployment evidence)
+- Session log written: yes (`2026-07-11-session-10.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: yes (10 chunks)
-- Git commit in repo: yes (World Model source/evidence/custody commits through `8895bee`; session-linked close commit)
-- Watercooler findings reflected in docs: yes
-- No P0 bugs left unfixed: no — #151 blocks any ML-WS Qdrant/Gemma writer until verified TLS/auth support is deployed.
+- Git commit in repo: yes (`d15138e`; session-close metadata commit pending)
+- Watercooler findings reflected in docs: yes (review request #862; final review disposition pending)
+- No P0 bugs left unfixed: yes for #151's active writer surface; legacy callers isolated in #153
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 16:19 +02:00 | Techno-Monk | Deployed active ML-WS Qdrant writer hardening from `d15138e`: staged/atomic no-Git bundle sync with backup, mode-checked separate writer/reader files, 53 focused + 92 full remote tests, authenticated CA-validated smoke, and zero live chat/sleep processes. Session-10 ingested into `exocortex` (10 chunks); Watercooler #862 requests independent review. #153 created for non-active legacy callers.
 - 2026-07-11 15:22 +02:00 | Codex | Completed #148 with real official LS20/tool evidence and an honest `NO_GO_RUN_INCONSISTENT`; tri-review GREEN, fresh archive verification clean, #152 replication queued, Watercooler #858/#859 posted. Session log `2026-07-11-session-09.md`; Qdrant ingest done (10 chunks).
 - 2026-07-11 13:34 +02:00 | Techno-Monk | Ingested `session-08` into `exocortex`: 11 chunks stored. Technical preflight closure evidence and #151 block are durable in commit `b4d8889`; #138 remains Purple-owned administratively.
 - 2026-07-11 13:33 +02:00 | Techno-Monk | Posted #138 closure evidence under own identity; OpenCLAW correctly refused direct completion (409: task assigned to Purple). No identity override. Session-08 ingest pending.
