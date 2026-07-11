@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 03:37 +02:00
-- Current owner: Isegrim (Fable 5, wake #4 in window 754b5d39 — OPEN, deep; day-close ritual, not window close)
-- Primary focus: first public pack byline (hurtig.ai census post); #130 CLOSED 100% (keeper=rater 1); matched-delta adopted; DQ1a rho-spec + C1 v2 + BIRTH RULE bound; P0 teeth-have-no-v_proj found, verified, RESOLVED same night (Option a, width 512, G0b-v2 shipped); training GO on keeper record (#808).
-- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-02.md` (Codex Qdrant/memory checkpoint; Isegrim's open-window log remains `2026-07-10-session-isegrim.md`)
+- Last updated: 2026-07-11 11:13 +02:00
+- Current owner: Techno-Monk for OpenCLAW #141's review-held read-only lane; broader parallel lanes retain their existing owners.
+- Primary focus: #141 strict offline v2 capture-bundle evaluator is committed and awaiting Codex #841 re-review; do not fire a model, hook, or capture exporter.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-03.md` (Techno-Monk #141 Codex-#838 hardening; prior session 02 is Codex's Qdrant checkpoint)
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-11-session-02.md`, 14 chunks processed, 2026-07-11)
+  - Latest session log ingest: skipped (`2026-07-11-session-03.md`; deliberate #141 no-write boundary, no ingestion attempted)
 
 ## Current State - Gemma-4-12B G0 Oxytocin Extraction Delta (2026-07-11, Antigravity)
 - **G0b Actuator Decision Resolved (Option a):** Keeper confirmed value-only intervention on global attention teeth using `v_norm` pre-hooks (width 512).
@@ -21,11 +21,11 @@
 - **Live boundary:** Gemma-4-31B P4 download/census is in progress on ML-WS. This review used no GPU and does not score that pending result.
 
 ## Current State — #141 Read-Only HiSPA Integrity Adapter (Techno-Monk, 2026-07-11)
-- **Delivered, review-held:** foundation importer `010cfb5`; Codex-#831 hardening `007ad28`. It reads an already-exported JSON panel + pinned census only; no model load/hook/capture, injection, Qdrant, persistence, sleep, bridge training, MVB, or subject-facing arm occurred.
-- **Four reportability hardenings:** typed `module_path`/kind/layer/width and exact snapshot-width checks; canonical SHA-256 panel/corpus/skeleton/code/pairing/census manifest bound to all arms; recovery windows derived from recorded trigger/recovery spans (caller attestation rejected); `overwrite_excess < 0.05` is `no_effect` / `not_applicable`, never successful recovery.
-- **Evidence:** focused #141 `34 passed`; full package `271 passed, 1 skipped, 40 deselected, 5 subtests`; real committed Gemma census smoke passed. Specs/tests: `MoCoP/experiments/mamba_lora_bridge/{state_integrity_hispa.py,run_hispa_readonly_capture_adapter.py,tests/test_*hispa*.py,spikes/HISPA_STATE_INTEGRITY_MINITEST_SPEC_2026-07-11.md}`.
-- **Gate:** Cairn #830 GREEN for v0 framing; Codex #831 CHANGES addressed, re-review #835 **pending**; Isegrim architecture ratification remains classifier-blocked. No capture exporter is authorized.
-- **Continuity:** session log `CHEESE_Memory/session_logs/2026-07-11-session-01.md`; Qdrant ingest intentionally skipped under #141's structural no-write envelope. Watercooler #835/#836 and OpenCLAW #141 comment carry the review handoff.
+- **Delivered, review-held:** foundation importer `010cfb5`; Codex-#831 hardening `007ad28`; Codex-#838 hardening `cb4125b`. The v2 evaluator reads an already-exported JSON panel + pinned census only; no model load/hook/capture, injection, Qdrant, persistence, sleep, bridge training, MVB, or subject-facing arm occurred.
+- **#838 structural fixes:** canonical manifest now binds all four arm budgets, maximum recovery windows, and trigger floor; typed `SurfaceSpec` plus core-side manifest rehashing protects reportable `assess_captured_panel()`; every vector row carries an absolute token coordinate, and position-0 masking applies only at actual absolute `0`. Raw numeric helpers are explicitly non-reportable.
+- **Evidence:** focused #141 `41 passed`; full package `278 passed, 1 skipped, 40 deselected, 5 subtests`; real committed Gemma census smoke remains covered. `git diff --check` and static import audit passed (no model/runtime imports). Specs/tests: `MoCoP/experiments/mamba_lora_bridge/{state_integrity_hispa.py,run_hispa_readonly_capture_adapter.py,tests/test_*hispa*.py,spikes/HISPA_STATE_INTEGRITY_MINITEST_SPEC_2026-07-11.md}`.
+- **Gate:** Cairn #830 GREEN remains bounded to v0/read-only framing. Codex #838 CHANGES are committed and re-review is requested in Watercooler #841; OpenCLAW #141 event #529 records it. Isegrim architecture ratification remains classifier-blocked. No capture exporter is authorized.
+- **Continuity:** session log `CHEESE_Memory/session_logs/2026-07-11-session-03.md`; Qdrant ingest intentionally skipped under #141's structural no-write envelope. Keep #141 claimed/needs-review and await Codex before any scope change.
 
 ## Current State
 
@@ -58,6 +58,7 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
+- [ ] **#141 Codex #838 re-review:** inspect `cb4125b` / Watercooler #841; keep the v2 evaluator read-only and do not start a model process, hook, capture exporter, injection, Qdrant, or subject-facing arm.
 - [ ] **Gemma target contract:** decide absolute activation versus matched counterfactual delta before target recording/training; add a paired source-state delta or document why not.
 - [ ] **SEV split manifest:** freeze scenario/skeleton-disjoint train/eval sets before #139 recording; exact SEV-derived #130 items must not leak across the boundary.
 - [ ] **World Model sidecar:** typed pre-action prediction trace, LS20/tool transition baseline, held-out rule-promotion report, then bridge x friction 2x2 only after Gate 2 exists.
@@ -83,19 +84,20 @@
 - Steve: `steve-wsl.ps1` exists for quote-hell; from Git Bash use local-single/remote-double quoting (STEVE_RUNBOOK).
 
 ## Recommended Next Step
-Evaluate the extracted G0 warmth vectors under the re-unit framework once the MED envelope re-derivation (DQ1a) is completed. In parallel, resolve the target-delta decision and SEV skeleton split before beginning the Gemma bridge run.
+For #141, await Codex's #841 re-review of `cb4125b`; do not expand into a model process or exporter. Separately, evaluate the extracted G0 warmth vectors under the re-unit framework once DQ1a is complete, and resolve the target-delta decision and SEV skeleton split before beginning the Gemma bridge run.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #811, OpenCLAW #144 done)
-- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-02.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #841, OpenCLAW #141 event #529)
+- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-03.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (10 chunks)
-- Git commit in repo: yes
+- Qdrant ingest for latest session log confirmed: no — intentionally skipped under #141's no-write envelope
+- Git commit in repo: yes (`cb4125b`)
 - Watercooler findings reflected in docs: yes
 - No P0 bugs left unfixed: yes
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 11:13 +02:00 | Techno-Monk | #141 Codex #838 read-only hardening committed as `cb4125b`: canonical frozen timing, typed capture surface/core manifest rehashing, and per-row absolute-coordinate correction; focused 41/full 278 passed. Watercooler #841 and OpenCLAW #141 event #529 request Codex re-review; no model/capture/Qdrant/persistence action. Session log `2026-07-11-session-03.md`; Qdrant ingest intentionally skipped.
 - 2026-07-11 03:37 +02:00 | Techno-Monk | #141 read-only HiSPA importer hardened after Codex #831: commits `010cfb5` + `007ad28`; typed-width/manifest/span/no-effect gates; focused 34 and full 271 tests passed. Cairn #830 GREEN retained; Codex re-review #835 pending; no capture/model/Qdrant/persistence run. Session log `2026-07-11-session-01.md`; its Qdrant ingest intentionally skipped under no-write scope.
 - 2026-07-11 03:34 +02:00 | Codex | Repaired Qdrant client authentication (profile keys had one trailing Base64 padding character absent from the live container), verified read/write HTTP 200, restored Prosthetic recall, and ingested the three pending/failed 07-10 logs (17 + 10 + 10 chunks).
 - 2026-07-11 02:50 +02:00 | Isegrim | Day-close ritual (window OPEN): control block + delta block above; session log 2026-07-10-session-isegrim.md written; quotes banked; capsule updated. P0 verified + specs amended (18006d3); holdout v2; DQ1a spec (91ca637→7b52110); [146] created; #783–#826 posted this session. Qdrant ingest: attempted at close, status in session log frontmatter.
@@ -121,6 +123,8 @@ Evaluate the extracted G0 warmth vectors under the re-unit framework once the ME
   - Whether #139 trains against absolute `v_proj` activations or matched counterfactual deltas.
   - Freeze the SEV scenario/skeleton split before recording any Gemma targets.
 - Task-specific files to read:
+  - `MoCoP/experiments/mamba_lora_bridge/spikes/HISPA_STATE_INTEGRITY_MINITEST_SPEC_2026-07-11.md`
+  - `MoCoP/experiments/mamba_lora_bridge/{state_integrity_hispa.py,run_hispa_readonly_capture_adapter.py}` and Watercooler #841 before any #141 action
   - `MoCoP/reviews/world_model_math_audit_2026-07-10.md`
   - `MoCoP/experiments/mamba_lora_bridge/spikes/GEMMA_BRIDGE_DESIGN_2026-07-06.md`
   - `MoCoP/experiments/mamba_lora_bridge/disposition_runner.py` (World Model envelope)
