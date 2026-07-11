@@ -1,4 +1,14 @@
-# Holdout Selection Procedure (pre-registered)
+# Holdout Selection Procedure (pre-registered) — v2
+
+**v2 amendment (2026-07-11, review findings 2+3 accepted, keeper aware):** the PRIMARY holdout is
+now **deterministic topic-stratified** — one skeleton per topic, chosen by fixed content-hash, no
+rankings and no human selection in the loop (outcome-selection bias eliminated). The SNR-ranked,
+keeper-red-penned selection below is demoted to a separately-labeled **SENSITIVITY PANEL** — it
+measures transfer on high-signal items and is never the headline general-transfer estimate.
+**Ordering constraint (finding 3): the split freezes BEFORE G0b is fitted** — the birth vector must
+never have seen a held-out skeleton. G0b fits on training-side pairs only.
+
+## v1 procedure (now: sensitivity panel selection)
 
 **Date:** 2026-07-11 (scoped in-session with keeper) · **Scope:** Isegrim · **Execution:** Elf (5g.3-lineage capture tooling) · **Veto:** keeper · **Gate context:** Cairn #816 (holdout mandatory, ≥20% of skeletons, WHICH = keeper's call)
 
