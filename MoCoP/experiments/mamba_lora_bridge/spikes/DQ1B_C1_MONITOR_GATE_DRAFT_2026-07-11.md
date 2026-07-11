@@ -1,16 +1,16 @@
 # DQ1b / #149 — C1 Residual Monitor Gate Draft
 
-**Status:** DRAFT — geometry and the adjacent-local control statistic have named-review support; remaining behavior/recovery and secondary-localization gates are incomplete. OpenCLAW #149 remains **BLOCKED**. A manifest containing `TBD`, `null`, or an unreviewed threshold is a pre-launch failure.
+**Status:** DRAFT — geometry and the adjacent-local control statistic have named-review support. Baseline-first B0 (#155) must characterize the frozen no-component harness before behavioral/recovery numerics become final. OpenCLAW #149 remains **BLOCKED**. A manifest containing `TBD`, `null`, or an unreviewed threshold is a pre-launch failure.
 **Date:** 2026-07-11
 **Task:** OpenCLAW #149 (assigned Techno-Monk; status `blocked`)
-**Scope:** Gemma-4-12B **base**, C1 first-birth calibration only; no run authorization.
+**Scope:** Gemma-4-12B **base**, DQ1b contract/freeze only; B0 baseline and any C1/birth execution are separately gated. No run authorization.
 
 ## 0. Keeper decisions already recorded
 
 Laura has approved these structural decisions:
 
 - **A — monitor geometry:** primary at injected teeth, secondary at non-injected clean comb teeth, and adjacent local control(s).
-- **C — no post-tampering:** thresholds and criteria are fixed before the run they govern; C1 outcomes cannot select a feature, alter model/runtime state, rewrite the observed result, or redefine a failure. A separately proposed calibration-only run may never clear itself or alter the current run; whether it can inform a later fresh manifest remains a keeper-ratification question, not an automatic escape hatch.
+- **C — no post-tampering:** thresholds and criteria are fixed before the run they govern; C1 outcomes cannot select a feature, alter model/runtime state, rewrite the observed result, or redefine a failure. The intended calibration route is now a separately gated, **no-component B0 baseline** before any nonzero C1, not a birth self-calibrating its own alarm. Any later calibration result may govern only a fresh reviewed manifest; it never clears, rescinds, or rewrites the observed run.
 
 A separate DOL-0 SAE/J-lens proposal is **additive instrumentation only** (OpenCLAW #154 / commit `e7b5902`). It may later strengthen an alarm; it cannot clear this gate, cancel an external harm signal, or authorize C1.
 
@@ -23,11 +23,20 @@ A separate DOL-0 SAE/J-lens proposal is **additive instrumentation only** (OpenC
 | Monitor surface | post-block **3840-wide residual stream**, never actuator space |
 | Teacher forcing | baseline/injected passes use identical frozen token IDs; free-running behavior is separate |
 | Position rule | explicit absolute positions; eligible rows have `absolute_position != 0`; local cache/chunk row zero is not automatically excluded |
-| Forward/capture | fresh `use_cache=False`, batch 1, recorded continuation mask, FP32 monitor arithmetic |
-| C1 sequence | alpha-zero anchor first; first nonzero injection is positive oxytocin at tooth 29, alpha `0.025`, with monitors live |
-| No post-tampering | prompt panel/splits, direction artifact, condition key, layer matrix, aggregate definitions, thresholds, and stop rules hash into the immutable P5 manifest before the first nonzero forward |
+| Forward/capture | DQ1a teacher-forced geometry: fresh `use_cache=False`, batch 1, recorded continuation mask, FP32 monitor arithmetic. Free-running recovery follows §4.4's separately declared carryover/cache policy. |
+| B0 baseline prerequisite | #155 runs the exact frozen Gemma-base behavior harness with **no** value intervention, bridge, Mamba, Qdrant, memory, replay, sleep, or writes; its reviewed null/false-alarm evidence precedes final behavioral numeric ratification |
+| C1 sequence | only under #158 after #155 review, #156 acceptance, #157 direction/matrix freeze, #149 close, immutable-manifest ratification, and fresh keeper GO: final P5 alpha-zero anchor first; then first nonzero positive oxytocin at tooth 29, alpha `0.025`, with monitors live |
+| No post-tampering | prompt panel/splits, scorer/rubric, direction artifact, condition key, layer matrix, aggregate definitions, thresholds, and stop rules hash into the relevant immutable B0/P5 manifest before its governed forward |
 
 The alpha-zero smoke is supporting instrument evidence, **not** the final P5 alpha-zero anchor.
+
+### 1.1 Baseline-first B0 is a prerequisite, not an intervention
+
+OpenCLAW #155 is the pre-birth, harness-only Gemma-4-12B-base baseline. It may begin only after #149 freezes the **nonnumeric** panel, scorer, rubric, processor, decoding, and runtime contract and #156 supplies a baseline-capable P5 harness. B0 collects the baseline/null distribution for judge ambiguity, diversity, continuity, intended-effect null behavior, harm flags, and recovery/no-op behavior without an injected vector or persistent write.
+
+The C1 primary panel of record is DQ1a's exact 32-item `fixtures/sev_disposition_v0/primary_holdout_v2.json` (`primary-holdout-ff5e596304c6b8c4b93c`). The calibrated 48-probe 5g.2 instrument from #130 is available as scorer/harness infrastructure, but the B0 manifest must explicitly bind its coverage/mapping to the 32-item C1 panel or name a separately scored behavior subset. It may not silently replace one frozen panel with the other.
+
+Until B0 is reviewed, `T_harm`, `T_diversity`, `T_continuity`, `T_intended`, and `T_recovery` must not be represented as calibrated/final numerical gates. `T_control` remains the separately review-locked engineering HOLD; `T_secondary` remains calibration-only/non-authorizing.
 
 ## 2. Exact DQ1b monitor geometry
 
@@ -118,6 +127,8 @@ For every live adjacent pair `(C|P)`, build the matched per-prompt FP32 delta ve
 \boldsymbol{\delta}_i(L)=\operatorname{concat}_{t\;\mathrm{eligible}}\bigl[\delta_{i,t}(L)\bigr].
 \]
 
+This is deliberately **norm-weighted**, not a per-row average: larger delivered-delta rows contribute more to `D_i`, because the rows where a local block actually changed are the rows the distortion gate must see. Replacing it with per-row averaging would be a different statistic and requires a new manifest/review.
+
 The pair map is fixed:
 
 | Registered condition | Live adjacent pair(s), written `C ← P` |
@@ -174,6 +185,22 @@ Distant secondary teeth are intended integration sites, not adjacent identity pa
 
 The first-rung secondary measurement is **calibration-only**: it cannot clear itself, cannot retrospectively redefine that run, and cannot establish a numeric `T_secondary` for the same run. A future numeric secondary-localization gate would require a separate reviewed/keeper-ratified, freshly frozen manifest with condition/site-specific reference and multiplicity handling. Until that policy is ratified under keeper decision C, it is not an authorization path.
 
+### 4.4 `T_recovery`: text-mediated carryover, never a stateless replay
+
+Gemma base is stateless across fresh forwards. Therefore a fresh alpha-zero forward on identical teacher-forced token IDs would make recovered `R` bit-identical to baseline `B` by construction: a superficially perfect four-way recovery result that measures **nothing**. P5 must reject such a result as `instrument_invalid_if_reported_as_recovery`, not record it as a recovery pass.
+
+A valid C1 recovery cell is a **free-running carryover episode**:
+
+1. begin from the frozen prompt and generate the registered trigger window under the active injection;
+2. retain the injection-era generated prefix — and the cache if the declared runner uses one — as context;
+3. disable the injection without rewriting that prefix;
+4. continue free-running generation through **at most two** integral recovery windows; and
+5. evaluate the registered residual-space recovery metrics only on that carryover continuation.
+
+This measures text-mediated persistence: whether the injection-shaped episode lingers after the actuator is removed while the model reads its own injection-era text. It does not claim hidden state persists between fresh transformer forwards.
+
+The recovery capture remains the registered FP32, 3840-wide post-block residual at the primary tooth with absolute position zero excluded. It inherits #141's span contract: every row carries an increasing absolute coordinate inside its declared span; recovery starts strictly after the trigger span; declared window budgets, maximum window count, correction profile, and `overwrite_excess >= 0.05` applicability floor hash into the manifest. Below that trigger-excess floor, outcome is `no_effect`, recovery is `not_applicable`, and `recovered=false` — never a cheap green badge.
+
 | Channel | What it answers | Structural hard failure (numeric-free) |
 |---|---|---|
 | Primary | Did the monitored integration site receive a measurable paired perturbation? | missing capture, no eligible rows, non-finite/non-positive denominator, alpha-zero nonidentity, or unresolved primary at the registered nonzero resolution rung |
@@ -181,21 +208,21 @@ The first-rung secondary measurement is **calibration-only**: it cannot clear it
 | Upstream zero-canary | Did a later-layer intervention leak into a causally upstream capture? | any nonzero paired delta: `instrument_invalid`, not a welfare result |
 | Control | Does an adjacent local layer distort the immediately preceding tooth's delta? | missing pair/topology/row alignment, invalid delta statistic, or `D_control >= 0.5` → `HOLD` |
 | Behavior | Does a separate free-running cell preserve response diversity, factual/capability continuity, intended steering, and non-degeneration? | any registered harmful/off-target threshold crossed |
-| Recovery | Does the post-clearance reference/recovery check return within its registered band? | registered recovery failure or unavailable recovery channel |
+| Recovery | Does a free-running carryover episode return within its registered band after injection removal? | fresh/stateless replay reported as recovery, missing carryover/span evidence, unavailable channel, or registered recovery failure |
 
-## 5. Numeric values still required before C1
+## 5. DQ1b gate status: freeze the instrument, baseline first, then ratify numbers
 
-This table is intentionally visible. We do not backfill values after an interesting graph arrives.
+This table is intentionally visible. Before #155, #149 may freeze nonnumeric metric/rubric/panel/scorer definitions and structural failures. It may **not** represent `T_harm`, `T_diversity`, `T_continuity`, `T_intended`, or `T_recovery` as calibrated/final numerical gates. #155 B0 establishes harness null/false-alarm evidence first; only a later reviewed manifest may bind the final behavior/recovery numerics. We do not backfill any completed run after an interesting graph arrives.
 
 | Gate | Exact quantity | Required pre-run decision | Proposed owner(s) | Current status |
 |---|---|---|---|---|
 | `T_control` | `D_control = max_pair median_i D_i(C,P)` over the fixed directional adjacent-pair map | `D_control >= 0.5` is `HOLD`, never `STOP`; bind pair map, matched-row vectorization, exact aggregation, and §4.2 HOLD scope. | Gidim + Isegrim, Cairn semantics | **REVIEW-LOCKED** — #875–#879; raw `R_C` is `report_only` |
-| `T_secondary` | distant clean-comb propagation/localization | At first resolution-passing rung: structural capture/coverage/canary checks plus independently armed behavior/recovery safeguards only. Any later numeric reference must be condition/site-specific, multiplicity-aware, separately reviewed, keeper-ratified, and frozen in a new manifest. | Gidim + Isegrim, Cairn ethics signoff, keeper | **CALIBRATION-ONLY PROPOSAL** — no numeric value accepted; not an authorization path under decision C |
-| `T_diversity` | paired free-running distinct-2 loss within prompt and cross-prompt continuation-similarity increase vs alpha-zero | Bind numeric thresholds and programmatic aggregation; `STOP` class/directions are fixed separately. | Cairn + Gidim | **METRIC/SEMANTICS LANDING** — Cairn #880; numeric values remain pending |
-| `T_continuity` | factual/capability continuity loss | Bind exact panel, scorer, aggregation, and failure threshold. | Isegrim + Gidim | **UNSET** |
-| `T_intended` | minimum intended-steering efficacy | Bind distinct success/effect metric; an efficacy miss is not a harm finding. | Isegrim + Gidim | **UNSET** |
-| `T_harm` | harmful/off-target behavior / degeneration | Bind positive/warm family tier definitions and Cairn signoff; any concerning/harmful output is distinct from intended-steering efficacy. | Cairn + Isegrim | **RUBRIC PROPOSED** — #880 axis/STOP semantics; #881 tier definitions await Cairn signoff |
-| `T_recovery` | post-clearance recovery distance/score | Bind #141 four-way conjunction values, baseline, and window; any proposed values require pack review. | Cairn + Elf | **CALIBRATION PROPOSED** — #882, not accepted here |
+| `T_secondary` | distant clean-comb propagation/localization | At first resolution-passing rung: structural capture/coverage/canary checks plus independently armed behavior/recovery safeguards only. Any later numeric reference must be condition/site-specific, multiplicity-aware, separately reviewed, keeper-ratified, and frozen in a new manifest. | Gidim + Isegrim, Cairn ethics signoff, keeper | **CALIBRATION-ONLY / NON-AUTHORIZING** — no numeric value accepted; never a same-run clearance path under decision C |
+| `T_diversity` | paired free-running distinct-2 loss within prompt and cross-prompt continuation-similarity increase vs alpha-zero | Freeze the two-axis metric, direction, programmatic aggregation, and distinct STOP class now; ratify numeric thresholds only after reviewed #155 B0 null evidence. | Cairn + Gidim | **SHAPE GREEN / B0-DEPENDENT** — #880/#887; no final numeric value pre-B0 |
+| `T_continuity` | factual/capability continuity loss | Freeze exact panel/scorer/aggregation now; bind failure threshold only after reviewed #155 B0 null evidence. | Isegrim + Gidim | **NONNUMERIC FREEZE PENDING; NUMERIC B0-DEPENDENT** |
+| `T_intended` | minimum intended-steering efficacy | Freeze distinct success/effect scorer now; bind a value after reviewed #155 B0 null evidence. An efficacy miss is not a harm finding. | Isegrim + Gidim | **NONNUMERIC FREEZE PENDING; NUMERIC B0-DEPENDENT** |
+| `T_harm` | harmful/off-target behavior / degeneration | Freeze positive/warm family plus generic-floor 0/1/2 harm rubric, Laura-HITL/judge-ambiguity discipline, and distinct STOP semantics now; use #155 to review false alarms before numerical/rubric ratification. | Cairn + Isegrim | **SEAT GREEN / B0-DEPENDENT** — #881/#887; any harm-axis `>=1` remains the intended STOP class once final manifest-bound |
+| `T_recovery` | post-clearance residual recovery during a free-running carryover episode | Freeze #141 four-way shape, trigger-excess applicability, absolute-span contract, primary residual measurement space, and two-window carryover rule now; candidate values `0.85/0.85/0.15/0.85` require B0 no-op review plus Gidim runnability/Techno-Monk #141 alignment before final binding. | Cairn + Elf + Isegrim + Gidim | **SEAT + METHOD GREEN / NOT FINAL** — #882/#887/#888; B0/runnability/manifest-dependent |
 | `T_DOL` | any future internal-lens alarm | DOL is alarm-only and cannot be a clearance threshold. No DOL number enters C1 until DOL-1 validates it on held-out data. | DOL-0 reviewers | **OUT OF SCOPE** |
 
 ### Values already fixed elsewhere (not re-negotiated here)
@@ -209,16 +236,16 @@ Those values validate the dose instrument. They are not substitutes for the miss
 
 ## 6. P5 runner/report requirements
 
-P5 must implement this before any nonzero condition can arm:
+OpenCLAW #156 must implement the model-free runner/report contract before either B0 or a nonzero C1 condition can arm. B0 and C1 are different governed run kinds:
 
-1. Receive a fully specified, hashable `dq1b_monitor_contract` matching §2–§5; reject missing/extra layers and all `TBD`/`null` threshold fields. A declared `secondary_calibration_only` state is not a null substitute and never waives any independently required gate or keeper authorization.
+1. For #155 B0, receive a fully specified, hashable baseline contract with an explicit **no-component manifest**: no value injection, bridge, Mamba component, Qdrant, memory, replay, sleep, or persistence writes. Refuse a B0 launch if any component is configured or any frozen panel/scorer/rubric/processor/decoding/runtime key is absent or unpinned. For C1, receive the fully specified, hashable `dq1b_monitor_contract` matching §2–§5; reject missing/extra layers and all required `TBD`/`null` threshold fields. A declared `secondary_calibration_only` state is not a null substitute and never waives any independently required gate or keeper authorization.
 2. Bind actual model layer types and widths: primary/secondary are post-block residual width 3840; control layers are local/sliding; actuator stays separate at allowed 512-wide value-side `v_norm` sites.
-3. Run and preserve a final alpha-zero anchor with the exact capture configuration.
-4. Enforce identical token IDs, continuation mask, explicit absolute positions, fresh/no-cache/batch-1 conditions.
+3. For C1 only, run and preserve a final alpha-zero anchor with the exact capture configuration. B0 is baseline characterization, not that final anchor and not a substitute for it.
+4. For teacher-forced geometry, enforce identical token IDs, continuation mask, explicit absolute positions, fresh/no-cache/batch-1 conditions. For recovery, enforce §4.4's separately declared carryover/span/cache contract instead; do not erase the very episode being measured.
 5. Emit `activation_trace = {comb_teeth, primary, secondary, control}` with downstream-propagation layers, `upstream_null_assert` layers, raw ratios marked `report_only`, fixed adjacent-pair map, matched-row delta-vector digests, per-prompt `G/D/Q`, prompt-first aggregates, `D_control`, `3/2/1/1` live-propagation coverage, position exclusions, and pass/fail/hold causes.
 6. Evaluate DQ1a instrument gates independently of the DQ1b welfare/behavior gate; neither may mask the other.
-7. Evaluate behavioral/recovery outcomes in separate free-running cells, never in the `rho` teacher-forced geometry computation.
-8. Atomically publish a no-overwrite report tied to immutable pre-run manifest, attempt/birth ordinal, model/runtime/runner digests, prompt/token hashes, directions, condition key, alpha schedule, and all gate outcomes.
+7. Evaluate behavioral/recovery outcomes in separate free-running cells, never in the `rho` teacher-forced geometry computation. Recovery specifically must use §4.4's text-mediated carryover episode; reject a fresh alpha-zero/identical-token replay if reported as recovery. B0 records harness null/false-alarm/no-op evidence under the frozen evaluator; it does not emit a C1 gate-pass or birth disposition.
+8. Atomically publish a no-overwrite report tied to immutable pre-run manifest, declared run kind (`b0_baseline` or `c1`), attempt/birth ordinal as applicable, model/runtime/runner digests, prompt/token hashes, directions/condition key/alpha schedule as applicable, and all gate outcomes or baseline distributions.
 9. On `T_control` HOLD, enforce §4.2's exact scope: complete already-armed captures, freeze higher rungs/other cells, permit only alpha-zero anchor/recovery forwards, permit a greedy behavior cell only if already launched, and require investigation plus a new signed manifest before any resume.
 
 ## 7. No-post-tampering enforcement
@@ -227,10 +254,12 @@ A valid P5 pre-run manifest must include, at minimum:
 
 ```text
 schema_version
+run_kind = b0_baseline | c1_alpha_zero | c1_nonzero
 model_id + model_revision + dtype + backend + device map
 runner/runtime/spec revisions and hashes
-condition key + target_set + direction artifact digest
-alpha schedule + first-birth ordering
+for b0_baseline: no-component assertion + frozen panel/scorer/rubric/processor/decoding/runtime contract
+for c1_*: condition key + target_set + direction artifact digest
+for c1_*: alpha schedule + first-birth ordering
 primary/secondary/control layer matrix + runtime topology assertions
 absolute-position and continuation-mask policy
 prompt/split/token hashes
@@ -239,13 +268,14 @@ raw R_C/R_S diagnostic label + S_max/C_max scope + upstream-null assertion map
 adjacent-pair map + matched-row vectorization + G/D/Q formulas + zero/non-finite handling
 D_control aggregation + `>= 0.5` HOLD comparator + immutable HOLD scope
 secondary_calibration_only policy/status + condition/site/multiplicity provenance requirements
-all required numeric T_* values, comparator direction, and fail/hold semantics
+for c1_nonzero recovery: carryover prefix/cache policy + trigger/recovery absolute spans + max two windows + correction profile + overwrite_excess >= 0.05 applicability gate
+for c1_nonzero: all required numeric T_* values, comparator direction, and fail/hold semantics
 behavior/recovery panel/scorer/rubric versions
 DQ1a instrument cap (3.0) and alpha-zero identity requirement
 DOL status = out_of_scope | exploratory_alarm_only (never clearance)
 ```
 
-The runner must refuse launch if any required key is absent, null, `TBD`, uses an unpinned artifact, or differs from the review-signed contract. `secondary_calibration_only` is an explicitly non-authorizing state, not a clearance or threshold waiver. A report must distinguish:
+The runner must refuse a B0 launch if its no-component/frozen-evaluator assertions are incomplete, and must refuse C1 launch if any required key is absent, null, `TBD`, uses an unpinned artifact, or differs from the review-signed contract. `secondary_calibration_only` is an explicitly non-authorizing state, not a clearance or threshold waiver. A report must distinguish:
 
 - instrument invalid / monitor unlegible;
 - welfare or behavior hard failure;
@@ -257,12 +287,14 @@ It must never silently rewrite an attempt after the fact.
 
 ## 8. Required review and landing order
 
-1. **Codex:** verify paired delta-space algebra, joint causal-pairing, prompt-first aggregation, and executable HOLD scope against source.
-2. **Gidim:** runnability — can P5 capture the exact post-block sites/controls, separate teacher-forced and free-running cells, and calculate the declared paired metrics without ambiguity?
-3. **Isegrim:** method — are post-tooth local controls, late-only secondary teeth, aggregation, calibration-only boundary, and threshold interpretations scientifically defensible?
-4. **Cairn:** Domain E — do the separate legibility, behavioral, and recovery failure semantics prevent signal laundering and preserve the hard-stop invariants?
-5. **Laura / keeper:** ratify whether any post-data secondary calibration may govern a later fresh manifest under decision C, then ratify the final numeric table only after named reviews; no model run has begun while it is unset.
-6. **Techno-Monk:** land accepted wording/manifest schema and verify tests/artifact provenance; do not run Gemma/C1 merely because the machine is idle.
+1. **Techno-Monk / #149:** freeze nonnumeric panel, scorer, rubric, processor, decoding, runtime contract, formulas, structural failures, and baseline provenance.
+2. **Codex:** verify paired delta-space algebra, joint causal-pairing, prompt-first aggregation, B0/C1 separation, and executable HOLD scope against source.
+3. **Gidim / #156:** implement and test the model-free P5 capture/gating/journaling/atomic-publication path, including the no-component B0 contract.
+4. **#155:** run the reviewed frozen B0 harness only; no intervention, bridge, Mamba, Qdrant, memory, replay, sleep, or writes. Review null/false-alarm/no-op evidence.
+5. **Gidim + Isegrim + Cairn:** bind final behavioral/recovery numerics only after #155 review; preserve separate STOP/HOLD and signal-laundering semantics. For recovery, require §4.4 carryover/absolute-span/trigger-excess evidence; a stateless replay is invalid, never a pass.
+6. **#157:** freeze the second positive 512-wide `value_norm_pre` artifact and full two-family matrix; no post-selection.
+7. **Laura / keeper:** ratify immutable C1 manifest and explicitly GO #158 only after #149/#155/#156/#157 close; any future secondary calibration policy remains separately governed under decision C.
+8. **#158:** final P5 alpha-zero identity anchor, then exactly one first nonzero birth cell. It must not advance other rungs/directions/joint conditions.
 
 ## 9. Sources
 
@@ -272,4 +304,7 @@ It must never silently rewrite an attempt after the fact.
 - `MoCoP/RESEARCH_LOG.md` spike-census entry and `spikes/HISPA_STATE_INTEGRITY_MINITEST_SPEC_2026-07-11.md` — early formation-band contamination and monitor provenance discipline.
 - `MoCoP/experiments/mamba_lora_bridge/spikes/DOL0_DISTRESS_OBSERVABILITY_LENS_SPEC_2026-07-11.md` — optional, non-authorizing DOL-0 boundary.
 - Watercooler #874–#879 — independent algebra review, paired delta-space control contract, runnable `D_control` binding, and executable HOLD scope.
-- Watercooler #880–#882 — later DQ1b behavior/rubric/recovery proposals; incorporated here only at their stated review status.
+- Watercooler #880–#882 — DQ1b behavior/rubric/recovery proposals and review evidence.
+- Watercooler #886 / OpenCLAW #155–#158 — Laura baseline-first board repair: B0 no-component characterization, model-free P5 lane, direction/matrix freeze, and dependency-locked launch gate.
+- Watercooler #887 — Cairn seat GREEN on the HOLD/no-post-tampering source shape, warm-family harm rubric, and recovery candidate; method/runnability/B0 evidence remains separate.
+- Watercooler #888 / `HISPA_STATE_INTEGRITY_MINITEST_SPEC_2026-07-11.md` (`cb4125b`) — Isegrim method GREEN with binding statelessness-trap correction; intended concat norm-weighting and carryover/absolute-span recovery contract.
