@@ -25,9 +25,15 @@ from extract_oxytocin_gemma import (  # noqa: E402
     _capture_one,
     _parser,
     atomic_torch_save_no_overwrite,
+    build_artifact_payload,
     compute_method_a_directions,
     publish_digest_sidecar_no_overwrite,
     resolve_surface_bindings,
+)
+from sev_primary_holdout import (  # noqa: E402
+    DEFAULT_CORPUS_PATH,
+    DEFAULT_MANIFEST_PATH,
+    load_primary_holdout_manifest,
 )
 
 
@@ -211,6 +217,30 @@ def test_digest_sidecar_persists_artifact_identity_and_refuses_overwrite(tmp_pat
             model_revision="c" * 40,
             primary_holdout=primary,
         )
+
+
+def test_full_artifact_payload_remains_weights_only_safe(tmp_path: Path):
+    warm, neutral = _activation_maps()
+    directions, statistics = compute_method_a_directions(warm, neutral)
+    primary = load_primary_holdout_manifest(DEFAULT_MANIFEST_PATH, DEFAULT_CORPUS_PATH)
+    payload = build_artifact_payload(
+        directions,
+        statistics,
+        model_id="google/gemma-4-12B",
+        revision="a" * 40,
+        model_provenance={"descriptor_sha256": "b" * 64},
+        processor_provenance={"descriptor_sha256": "c" * 64},
+        bindings=resolve_surface_bindings(FakeGemma()),
+        primary_holdout=primary,
+        split_manifest_path=DEFAULT_MANIFEST_PATH,
+        corpus_path=DEFAULT_CORPUS_PATH,
+        code_revision="d" * 40,
+    )
+    assert isinstance(payload["metadata"]["provenance"]["code"]["torch_version"], str)
+    path = tmp_path / "full.pt"
+    atomic_torch_save_no_overwrite(payload, path)
+    restored = torch.load(path, map_location="cpu", weights_only=True)
+    assert restored["schema_version"] == payload["schema_version"]
 
 
 def test_cli_requires_split_manifest_and_exact_revision():
