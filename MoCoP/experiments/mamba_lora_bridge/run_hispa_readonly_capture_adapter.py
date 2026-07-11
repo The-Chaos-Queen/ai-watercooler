@@ -30,6 +30,7 @@ from state_integrity_hispa import (  # noqa: E402
     ArmKind,
     CapturedState,
     CorrectionProfile,
+    PanelManifest,
     PanelArm,
     PlanValidationError,
     ReadOnlyBoundary,
@@ -98,6 +99,13 @@ def _sha256_reference(mapping: Mapping[str, Any], field: str, label: str) -> str
     if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
         raise BundleValidationError(f"{label}.{field} must be a sha256:<64-lowercase-hex> reference")
     return reference
+
+
+def _sha256_digest(mapping: Mapping[str, Any], field: str, label: str) -> str:
+    digest = _string(mapping, field, label)
+    if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+        raise BundleValidationError(f"{label}.{field} must be a 64-character lowercase SHA-256 digest")
+    return digest
 
 
 def _model_identity(model: Mapping[str, Any]) -> dict[str, str]:
@@ -179,6 +187,49 @@ def _parse_surface(bundle: Mapping[str, Any], model: Mapping[str, Any]) -> dict[
     }
 
 
+def _parse_panel_manifest(bundle: Mapping[str, Any], census_sha256: str) -> PanelManifest:
+    manifest_data = _mapping(bundle.get("panel_manifest"), "panel_manifest")
+    manifest = PanelManifest(
+        panel_id=_string(manifest_data, "panel_id", "panel_manifest"),
+        manifest_sha256=_sha256_digest(manifest_data, "manifest_sha256", "panel_manifest"),
+        corpus_sha256=_sha256_digest(manifest_data, "corpus_sha256", "panel_manifest"),
+        prompt_skeleton_sha256=_sha256_digest(
+            manifest_data, "prompt_skeleton_sha256", "panel_manifest"
+        ),
+        code_revision=_string(manifest_data, "code_revision", "panel_manifest"),
+        token_pairing_rule=_string(manifest_data, "token_pairing_rule", "panel_manifest"),
+        correction_artifact_sha256=_sha256_digest(
+            manifest_data, "correction_artifact_sha256", "panel_manifest"
+        ),
+    )
+    try:
+        manifest.validate()
+    except PlanValidationError as exc:
+        raise BundleValidationError(str(exc)) from exc
+    if manifest.correction_artifact_sha256 != census_sha256:
+        raise BundleValidationError(
+            "panel_manifest.correction_artifact_sha256 does not match the verified census"
+        )
+    if manifest.token_pairing_rule != "matched_teacher_forced_absolute_position_v1":
+        raise BundleValidationError(
+            "panel_manifest.token_pairing_rule must be matched_teacher_forced_absolute_position_v1"
+        )
+    canonical_fields = {
+        "panel_id": manifest.panel_id,
+        "corpus_sha256": manifest.corpus_sha256,
+        "prompt_skeleton_sha256": manifest.prompt_skeleton_sha256,
+        "code_revision": manifest.code_revision,
+        "token_pairing_rule": manifest.token_pairing_rule,
+        "correction_artifact_sha256": manifest.correction_artifact_sha256,
+    }
+    canonical_hash = hashlib.sha256(
+        json.dumps(canonical_fields, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    if manifest.manifest_sha256 != canonical_hash:
+        raise BundleValidationError("panel_manifest.manifest_sha256 does not match canonical manifest fields")
+    return manifest
+
+
 def _correction_from_census(
     bundle: Mapping[str, Any], census_path: Path, target_layer: int
 ) -> tuple[CorrectionProfile, dict[str, Any], str]:
@@ -208,6 +259,7 @@ def _correction_from_census(
         exclude_positions=(0,),
         spike_channels=tuple(channels),
         census_reference=reference,
+        census_sha256=actual_hash,
     )
     profile.validate(require_position_zero_exclusion=True)
     summary = {
@@ -225,13 +277,19 @@ def _capture_from_arm(
     arm_id: str,
     arm: Mapping[str, Any],
     model: Mapping[str, Any],
-    surface_name: str,
-    census_reference: str,
+    surface: Mapping[str, Any],
+    profile: CorrectionProfile,
+    manifest: PanelManifest,
 ) -> tuple[CapturedState, PanelArm]:
     label = f"arms.{arm_id}"
     values = arm.get("values")
     if not isinstance(values, list) or not values:
         raise BundleValidationError(f"{label}.values must be a non-empty nested list")
+    width = surface["width"]
+    if any(not isinstance(row, list) or len(row) != width for row in values):
+        raise BundleValidationError(
+            f"{label}.values rows must match declared surface width {width}"
+        )
     token_budget = _integer(arm, "token_budget", label)
     prompt_family = _string(arm, "prompt_family", label)
     absolute_position = _integer(arm, "absolute_position", label)
@@ -242,9 +300,22 @@ def _capture_from_arm(
         model_revision=_string(model, "revision", "model"),
         tokenizer_revision=_string(model, "tokenizer_revision", "model"),
         dtype=_string(model, "dtype", "model"),
-        model_surface=surface_name,
-        census_reference=census_reference,
+        model_surface=str(surface["name"]),
+        module_path=str(surface["module_path"]),
+        surface_kind=str(surface["kind"]),
+        surface_layer=int(surface["layer"]),
+        surface_width=int(surface["width"]),
+        census_reference=profile.census_reference,
+        census_sha256=profile.census_sha256,
+        panel_id=manifest.panel_id,
+        panel_manifest_sha256=manifest.manifest_sha256,
+        corpus_sha256=manifest.corpus_sha256,
+        prompt_skeleton_sha256=manifest.prompt_skeleton_sha256,
+        code_revision=manifest.code_revision,
+        token_pairing_rule=manifest.token_pairing_rule,
         absolute_position=absolute_position,
+        token_span_start=_integer(arm, "token_span_start", label),
+        token_span_end=_integer(arm, "token_span_end", label),
         token_sequence_ref=_sha256_reference(arm, "token_sequence_ref", label),
         teacher_forced=True,
         absolute_cache_positions=True,
@@ -280,8 +351,11 @@ def evaluate_bundle(bundle_path: Path, census_path: Path) -> dict[str, Any]:
     profile, correction_summary, census_hash = _correction_from_census(
         bundle, census_path, surface["layer"]
     )
-    recovery_data = _mapping(bundle.get("recovery"), "recovery")
-    observed_windows = _integer(recovery_data, "clean_windows_observed", "recovery")
+    manifest = _parse_panel_manifest(bundle, census_hash)
+    if "recovery" in bundle:
+        raise BundleValidationError(
+            "top-level recovery observations are forbidden; recovery windows are derived from arm token spans"
+        )
 
     arms_data = _mapping(bundle.get("arms"), "arms")
     expected_ids = ("baseline", "neutral", "susceptibility", "recovery")
@@ -292,7 +366,7 @@ def evaluate_bundle(bundle_path: Path, census_path: Path) -> dict[str, Any]:
     for arm_id in expected_ids:
         arm = _mapping(arms_data[arm_id], f"arms.{arm_id}")
         capture, panel_arm = _capture_from_arm(
-            arm_id, arm, model, surface["name"], profile.census_reference
+            arm_id, arm, model, surface, profile, manifest
         )
         captures[arm_id] = capture
         panel_arms.append(panel_arm)
@@ -306,6 +380,7 @@ def evaluate_bundle(bundle_path: Path, census_path: Path) -> dict[str, Any]:
         recovery=recovery_rule,
         arms=tuple(panel_arms),
         model_surface=surface["name"],
+        manifest=manifest,
         teacher_forced=True,
         absolute_cache_positions=True,
     )
@@ -315,7 +390,6 @@ def evaluate_bundle(bundle_path: Path, census_path: Path) -> dict[str, Any]:
         captures["neutral"],
         captures["susceptibility"],
         captures["recovery"],
-        clean_windows_observed=observed_windows,
     )
 
     return {
@@ -326,6 +400,7 @@ def evaluate_bundle(bundle_path: Path, census_path: Path) -> dict[str, Any]:
         "read_only_boundary": asdict(plan.boundary),
         "model": model,
         "surface": surface,
+        "panel_manifest": asdict(manifest),
         "correction": correction_summary,
         "assessment": asdict(result.assessment),
         "provenance": [asdict(item) for item in result.provenance],

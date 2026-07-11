@@ -17,6 +17,7 @@ from state_integrity_hispa import (
     CapturedState,
     CorrectionProfile,
     EthicsEscalationRequired,
+    PanelManifest,
     PlanValidationError,
     ReadOnlyStateIntegrityHarness,
     SnapshotProvenance,
@@ -26,6 +27,32 @@ from state_integrity_hispa import (
     compare_states,
     default_susceptibility_plan,
 )
+
+
+_TEST_CENSUS_SHA256 = "a" * 64
+_TEST_MANIFEST = PanelManifest(
+    panel_id="fixture-hispa-panel",
+    manifest_sha256="b" * 64,
+    corpus_sha256="c" * 64,
+    prompt_skeleton_sha256="d" * 64,
+    code_revision="0123456",
+    token_pairing_rule="matched_teacher_forced_absolute_position_v1",
+    correction_artifact_sha256=_TEST_CENSUS_SHA256,
+)
+
+
+def _capture_ready_plan():
+    plan = default_susceptibility_plan()
+    return replace(
+        plan,
+        model_surface="verified.full_attention_kv_capture.layer_29.width_512",
+        correction=replace(
+            plan.correction,
+            census_reference="results/spike_sink_census/gemma4_12b_base.json",
+            census_sha256=_TEST_CENSUS_SHA256,
+        ),
+        manifest=_TEST_MANIFEST,
+    )
 
 
 def test_default_plan_is_susceptibility_only_and_structurally_read_only():
@@ -46,6 +73,7 @@ def test_default_plan_is_susceptibility_only_and_structurally_read_only():
     ]
     assert plan.recovery.minimum_baseline_cosine == pytest.approx(0.85)
     assert plan.recovery.minimum_recovery_fraction == pytest.approx(0.85)
+    assert plan.minimum_trigger_excess == pytest.approx(0.05)
     plan.validate()
 
 
@@ -58,15 +86,7 @@ def test_capture_harness_refuses_an_unbound_surface_or_placeholder_census():
 
 
 def test_capture_harness_accepts_a_named_surface_with_a_real_census_reference():
-    plan = default_susceptibility_plan()
-    ready = replace(
-        plan,
-        model_surface="verified.full_attention_kv_capture.layer_29.width_512",
-        correction=replace(
-            plan.correction,
-            census_reference="results/spike_sink_census/gemma4_12b_base.json",
-        ),
-    )
+    ready = _capture_ready_plan()
     harness = ReadOnlyStateIntegrityHarness(ready)
 
     metric = harness.compare(((0.0, 0.0), (1.0, 0.0)), ((0.0, 0.0), (1.0, 0.0)))
@@ -74,15 +94,7 @@ def test_capture_harness_accepts_a_named_surface_with_a_real_census_reference():
 
 
 def test_provenanced_panel_binds_assessment_to_named_snapshots_and_rejects_mismatch():
-    plan = default_susceptibility_plan()
-    ready = replace(
-        plan,
-        model_surface="verified.full_attention_kv_capture.layer_29.width_512",
-        correction=replace(
-            plan.correction,
-            census_reference="results/spike_sink_census/gemma4_12b_base.json",
-        ),
-    )
+    ready = _capture_ready_plan()
     harness = ReadOnlyStateIntegrityHarness(ready)
 
     def captured(arm_id, values, absolute_position=255):
@@ -96,9 +108,24 @@ def test_provenanced_panel_binds_assessment_to_named_snapshots_and_rejects_misma
                 tokenizer_revision="local-test-tokenizer",
                 dtype="bfloat16",
                 model_surface=ready.model_surface,
+                module_path="model.layers.29.self_attn.v_norm",
+                surface_kind="full_attention_value_norm_pre",
+                surface_layer=29,
+                surface_width=2,
                 census_reference=ready.correction.census_reference,
+                census_sha256=ready.correction.census_sha256,
+                panel_id=_TEST_MANIFEST.panel_id,
+                panel_manifest_sha256=_TEST_MANIFEST.manifest_sha256,
+                corpus_sha256=_TEST_MANIFEST.corpus_sha256,
+                prompt_skeleton_sha256=_TEST_MANIFEST.prompt_skeleton_sha256,
+                code_revision=_TEST_MANIFEST.code_revision,
+                token_pairing_rule=_TEST_MANIFEST.token_pairing_rule,
                 absolute_position=absolute_position,
-                token_sequence_ref=f"fixture-{arm_id}",
+                token_span_start=256 if arm_id == "recovery" else 0,
+                token_span_end=absolute_position,
+                token_sequence_ref=(
+                    "sha256:" + {"baseline": "a", "neutral": "b", "susceptibility": "c", "recovery": "d"}[arm_id] * 64
+                ),
                 teacher_forced=True,
                 absolute_cache_positions=True,
             ),
@@ -109,9 +136,7 @@ def test_provenanced_panel_binds_assessment_to_named_snapshots_and_rejects_misma
     trigger = captured("susceptibility", ((0.0, 0.0), (0.0, 1.0)))
     recovery = captured("recovery", ((0.0, 0.0), (1.0, 0.0)), absolute_position=511)
 
-    result = harness.assess_captured_panel(
-        baseline, neutral, trigger, recovery, clean_windows_observed=1
-    )
+    result = harness.assess_captured_panel(baseline, neutral, trigger, recovery)
     assert result.assessment.recovery.recovered is True
     assert [item.arm_id for item in result.provenance] == [
         "baseline", "neutral", "susceptibility", "recovery"
@@ -122,9 +147,7 @@ def test_provenanced_panel_binds_assessment_to_named_snapshots_and_rejects_misma
         provenance=replace(trigger.provenance, model_surface="wrong.surface.width_999"),
     )
     with pytest.raises(PlanValidationError, match="surface"):
-        harness.assess_captured_panel(
-            baseline, neutral, wrong_surface, recovery, clean_windows_observed=1
-        )
+        harness.assess_captured_panel(baseline, neutral, wrong_surface, recovery)
 
 
 @pytest.mark.parametrize(
@@ -297,6 +320,32 @@ def test_panel_assessment_separates_neutral_drift_from_trigger_excess():
     assert panel.overwrite_excess == pytest.approx(0.8)
     assert panel.recovery.recovered is True
     assert panel.recovery.recovery_windows_observed == 1
+
+
+def test_panel_below_trigger_excess_noise_floor_is_not_reported_as_recovery():
+    baseline = ((0.0, 0.0), (1.0, 0.0))
+    profile = CorrectionProfile(exclude_positions=(0,))
+
+    panel = assess_panel(
+        baseline,
+        baseline,
+        baseline,
+        baseline,
+        profile,
+        minimum_baseline_cosine=0.85,
+        minimum_recovery_fraction=0.85,
+        minimum_l2_recovery_fraction=0.85,
+        maximum_recovery_relative_l2=0.15,
+        max_clean_windows=2,
+        clean_windows_observed=1,
+        minimum_trigger_excess=0.05,
+    )
+
+    assert panel.overwrite_excess == pytest.approx(0.0)
+    assert panel.trigger_excess_crossed is False
+    assert panel.outcome.value == "no_effect"
+    assert panel.recovery.status.value == "not_applicable"
+    assert panel.recovery.recovered is False
 
 
 def test_recovery_rejects_more_observed_clean_windows_than_preregistered_limit():

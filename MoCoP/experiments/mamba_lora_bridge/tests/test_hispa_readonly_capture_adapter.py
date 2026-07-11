@@ -22,6 +22,16 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _manifest_sha256(fields: dict) -> str:
+    encoded = json.dumps(fields, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _vector(*leading: float) -> list[float]:
+    assert len(leading) <= 512
+    return [*leading, *([0.0] * (512 - len(leading)))]
+
+
 def _write_fixture_bundle(tmp_path: Path, *, surface_overrides: dict | None = None, hash_override: str | None = None) -> tuple[Path, Path]:
     """Make a minimal census/bundle pair with the real census field shape."""
     census = {
@@ -53,15 +63,36 @@ def _write_fixture_bundle(tmp_path: Path, *, surface_overrides: dict | None = No
     }
     surface.update(surface_overrides or {})
 
-    def arm(arm_id: str, values: list[list[float]], absolute_position: int) -> dict:
+    def arm(
+        arm_id: str,
+        values: list[list[float]],
+        absolute_position: int,
+        token_span_start: int,
+        token_span_end: int,
+    ) -> dict:
         return {
             "capture_id": f"fixture-{arm_id}",
             "absolute_position": absolute_position,
+            "token_span_start": token_span_start,
+            "token_span_end": token_span_end,
             "token_sequence_ref": f"sha256:{hashlib.sha256(arm_id.encode('utf-8')).hexdigest()}",
             "token_budget": 8,
             "prompt_family": f"fixture-{arm_id}",
             "values": values,
         }
+
+    manifest_fields = {
+        "panel_id": "fixture-hispa-panel-001",
+        "corpus_sha256": hashlib.sha256(b"fixture corpus").hexdigest(),
+        "prompt_skeleton_sha256": hashlib.sha256(b"fixture skeleton").hexdigest(),
+        "code_revision": "010cfb5",
+        "token_pairing_rule": "matched_teacher_forced_absolute_position_v1",
+        "correction_artifact_sha256": census_hash,
+    }
+    panel_manifest = {
+        **manifest_fields,
+        "manifest_sha256": _manifest_sha256(manifest_fields),
+    }
 
     bundle = {
         "schema_version": "hispa-readonly-capture-bundle-v1",
@@ -74,16 +105,16 @@ def _write_fixture_bundle(tmp_path: Path, *, surface_overrides: dict | None = No
             "dtype": "bfloat16",
         },
         "surface": surface,
+        "panel_manifest": panel_manifest,
         "correction": {
             "census_reference": "fixture-gemma4-census",
             "census_sha256": census_hash,
         },
-        "recovery": {"clean_windows_observed": 1},
         "arms": {
-            "baseline": arm("baseline", [[1000.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]], 255),
-            "neutral": arm("neutral", [[1000.0, 0.0, 0.0, 0.0], [0.8, 0.6, 0.0, 0.0]], 255),
-            "susceptibility": arm("susceptibility", [[1000.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]], 255),
-            "recovery": arm("recovery", [[1000.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]], 263),
+            "baseline": arm("baseline", [_vector(1000.0), _vector(1.0)], 255, 248, 255),
+            "neutral": arm("neutral", [_vector(1000.0), _vector(0.8, 0.6)], 255, 248, 255),
+            "susceptibility": arm("susceptibility", [_vector(1000.0), _vector(0.0, 1.0)], 255, 248, 255),
+            "recovery": arm("recovery", [_vector(1000.0), _vector(1.0)], 263, 256, 263),
         },
     }
     bundle_path = tmp_path / "capture_bundle.json"
@@ -125,6 +156,7 @@ def test_adapter_emits_provenance_bound_report_to_stdout_without_output_write(tm
     assert report["surface"]["width"] == 512
     assert report["surface"]["capture_mode"] == "pre_hook_input"
     assert report["correction"]["spike_channels"] == []
+    assert report["assessment"]["recovery"]["recovery_windows_observed"] == 1
     assert report["assessment"]["recovery"]["recovered"] is True
     assert report["assessment"]["overwrite_excess"] > 0.0
     assert [row["arm_id"] for row in report["provenance"]] == [
@@ -168,10 +200,18 @@ def test_adapter_smoke_parses_committed_gemma_census(tmp_path):
     assert REAL_GEMMA_CENSUS.exists(), "committed Gemma census artifact is required for this adapter"
     bundle_path, _ = _write_fixture_bundle(tmp_path)
     bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    real_census_hash = _sha256(REAL_GEMMA_CENSUS)
     bundle["correction"] = {
         "census_reference": "results/spike_sink_census/gemma4_12b_base.json",
-        "census_sha256": _sha256(REAL_GEMMA_CENSUS),
+        "census_sha256": real_census_hash,
     }
+    bundle["panel_manifest"]["correction_artifact_sha256"] = real_census_hash
+    manifest_fields = {
+        key: value
+        for key, value in bundle["panel_manifest"].items()
+        if key != "manifest_sha256"
+    }
+    bundle["panel_manifest"]["manifest_sha256"] = _manifest_sha256(manifest_fields)
     bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
 
     result = _run(bundle_path, REAL_GEMMA_CENSUS)
@@ -181,6 +221,91 @@ def test_adapter_smoke_parses_committed_gemma_census(tmp_path):
     assert report["correction"]["target_layer"] == 29
     assert report["correction"]["spike_channels"] == []
     assert report["correction"]["sink_ratio_mean"] == 0.61678
+
+
+def test_adapter_rejects_snapshot_rows_that_do_not_match_declared_surface_width(tmp_path):
+    bundle_path, census_path = _write_fixture_bundle(tmp_path)
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    bundle["arms"]["baseline"]["values"] = [[0.0, 0.0], [1.0, 0.0]]
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    result = _run(bundle_path, census_path)
+
+    assert result.returncode != 0
+    assert "width" in result.stderr.lower()
+    assert result.stdout == ""
+
+
+def test_adapter_derives_recovery_timing_and_rejects_non_later_recovery(tmp_path):
+    bundle_path, census_path = _write_fixture_bundle(tmp_path)
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    recovery = bundle["arms"]["recovery"]
+    recovery["absolute_position"] = 255
+    recovery["token_span_start"] = 248
+    recovery["token_span_end"] = 255
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    result = _run(bundle_path, census_path)
+
+    assert result.returncode != 0
+    assert "strictly after" in result.stderr.lower()
+    assert result.stdout == ""
+
+
+def test_adapter_requires_a_hash_bound_panel_manifest(tmp_path):
+    bundle_path, census_path = _write_fixture_bundle(tmp_path)
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    del bundle["panel_manifest"]
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    result = _run(bundle_path, census_path)
+
+    assert result.returncode != 0
+    assert "panel_manifest" in result.stderr
+    assert result.stdout == ""
+
+
+def test_adapter_returns_no_effect_not_successful_recovery_below_noise_floor(tmp_path):
+    bundle_path, census_path = _write_fixture_bundle(tmp_path)
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    baseline_values = bundle["arms"]["baseline"]["values"]
+    for arm_id in ("neutral", "susceptibility", "recovery"):
+        bundle["arms"][arm_id]["values"] = baseline_values
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    result = _run(bundle_path, census_path)
+
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    assert report["assessment"]["outcome"] == "no_effect"
+    assert report["assessment"]["recovery"]["status"] == "not_applicable"
+    assert report["assessment"]["recovery"]["recovered"] is False
+
+
+def test_adapter_rejects_tampered_panel_manifest_digest(tmp_path):
+    bundle_path, census_path = _write_fixture_bundle(tmp_path)
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    bundle["panel_manifest"]["code_revision"] = "abcdef0"
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    result = _run(bundle_path, census_path)
+
+    assert result.returncode != 0
+    assert "manifest_sha256" in result.stderr
+    assert result.stdout == ""
+
+
+def test_adapter_rejects_caller_attested_recovery_windows(tmp_path):
+    bundle_path, census_path = _write_fixture_bundle(tmp_path)
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    bundle["recovery"] = {"clean_windows_observed": 1}
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    result = _run(bundle_path, census_path)
+
+    assert result.returncode != 0
+    assert "derived" in result.stderr.lower()
+    assert result.stdout == ""
 
 
 def test_adapter_writes_report_only_when_explicit_output_path_is_given(tmp_path):

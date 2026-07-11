@@ -15,7 +15,7 @@ protocol, threat-model fork, and future gated surfaces.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from math import isfinite, sqrt
 from typing import Iterable, Sequence, Tuple
@@ -38,6 +38,22 @@ class ThreatModel(str, Enum):
 
     SUSCEPTIBILITY_ONLY = "susceptibility_only"
     EXTERNAL_STATE_INJECTION = "external_state_injection"
+
+
+class RecoveryStatus(str, Enum):
+    """Whether recovery is meaningful and, if so, whether it passed."""
+
+    RECOVERED = "recovered"
+    RECOVERY_STOP = "recovery_stop"
+    NOT_APPLICABLE = "not_applicable"
+
+
+class PanelOutcome(str, Enum):
+    """Headline interpretation after trigger-excess gating."""
+
+    NO_EFFECT = "no_effect"
+    RECOVERED = "recovered"
+    RECOVERY_STOP = "recovery_stop"
 
 
 class ArmKind(str, Enum):
@@ -114,6 +130,7 @@ class CorrectionProfile:
     exclude_positions: Tuple[int, ...] = (0,)
     spike_channels: Tuple[int, ...] = ()
     census_reference: str = ""
+    census_sha256: str = ""
 
     def validate(self, *, require_position_zero_exclusion: bool = False) -> None:
         if len(set(self.exclude_positions)) != len(self.exclude_positions):
@@ -124,6 +141,11 @@ class CorrectionProfile:
             raise PlanValidationError("excluded positions must be non-negative integers")
         if any(not isinstance(index, int) or index < 0 for index in self.spike_channels):
             raise PlanValidationError("spike channels must be non-negative integers")
+        if self.census_sha256 and self.census_sha256 != "REQUIRED_BEFORE_CAPTURE" and (
+            len(self.census_sha256) != 64
+            or any(char not in "0123456789abcdef" for char in self.census_sha256)
+        ):
+            raise PlanValidationError("census SHA256 must be a 64-character lowercase hex digest")
         if require_position_zero_exclusion and 0 not in self.exclude_positions:
             raise PlanValidationError("position 0 must be excluded by the spike/sink correction")
 
@@ -149,6 +171,41 @@ class RecoveryRule:
             raise PlanValidationError("maximum recovery relative L2 must be finite and non-negative")
         if self.max_clean_windows < 1:
             raise PlanValidationError("recovery needs at least one clean continuation window")
+
+
+@dataclass(frozen=True)
+class PanelManifest:
+    """Hashed identity of the exact four-arm panel being compared."""
+
+    panel_id: str
+    manifest_sha256: str
+    corpus_sha256: str
+    prompt_skeleton_sha256: str
+    code_revision: str
+    token_pairing_rule: str
+    correction_artifact_sha256: str
+
+    def validate(self) -> None:
+        if not isinstance(self.panel_id, str) or not self.panel_id.strip():
+            raise PlanValidationError("panel manifest needs a panel_id")
+        if not isinstance(self.token_pairing_rule, str) or not self.token_pairing_rule.strip():
+            raise PlanValidationError("panel manifest needs a token pairing rule")
+        for field, digest in (
+            ("manifest", self.manifest_sha256),
+            ("corpus", self.corpus_sha256),
+            ("prompt skeleton", self.prompt_skeleton_sha256),
+            ("correction artifact", self.correction_artifact_sha256),
+        ):
+            if not isinstance(digest, str) or len(digest) != 64 or any(
+                char not in "0123456789abcdef" for char in digest
+            ):
+                raise PlanValidationError(f"panel {field} SHA256 must be a 64-character lowercase hex digest")
+        if (
+            not isinstance(self.code_revision, str)
+            or not 7 <= len(self.code_revision) <= 64
+            or any(char not in "0123456789abcdef" for char in self.code_revision)
+        ):
+            raise PlanValidationError("panel code revision must be a 7-64 character lowercase hex revision")
 
 
 @dataclass(frozen=True)
@@ -181,6 +238,8 @@ class StateIntegrityPlan:
     recovery: RecoveryRule
     arms: Tuple[PanelArm, ...]
     model_surface: str
+    manifest: PanelManifest | None = None
+    minimum_trigger_excess: float = 0.05
     teacher_forced: bool = True
     absolute_cache_positions: bool = True
 
@@ -188,6 +247,8 @@ class StateIntegrityPlan:
         self.boundary.validate()
         self.correction.validate(require_position_zero_exclusion=True)
         self.recovery.validate()
+        if not isfinite(self.minimum_trigger_excess) or not 0.0 <= self.minimum_trigger_excess <= 2.0:
+            raise PlanValidationError("minimum trigger excess must be finite and in [0, 2]")
 
         if self.threat_model is not ThreatModel.SUSCEPTIBILITY_ONLY:
             raise EthicsEscalationRequired(
@@ -241,6 +302,19 @@ class StateIntegrityPlan:
             raise PlanValidationError(
                 "plan is not capture-ready: a source-specific census reference is required"
             )
+        if not self.correction.census_sha256 or self.correction.census_sha256 == "REQUIRED_BEFORE_CAPTURE":
+            raise PlanValidationError(
+                "plan is not capture-ready: a source-specific census SHA256 is required"
+            )
+        if self.manifest is None:
+            raise PlanValidationError(
+                "plan is not capture-ready: a hash-bound panel manifest is required"
+            )
+        self.manifest.validate()
+        if self.manifest.correction_artifact_sha256 != self.correction.census_sha256:
+            raise PlanValidationError(
+                "plan manifest correction artifact SHA256 does not match the capture-ready census"
+            )
         if self.model_surface.startswith("UNBOUND_"):
             raise PlanValidationError(
                 "plan is not capture-ready: the measured state surface must be explicitly named"
@@ -267,6 +341,7 @@ class RecoveryAssessment:
     recovered: bool
     recovery_window_limit: int
     recovery_windows_observed: int
+    status: RecoveryStatus
     stop_reason: str
 
 
@@ -277,6 +352,9 @@ class PanelAssessment:
     neutral_vs_baseline: StateDelta
     trigger_vs_baseline: StateDelta
     overwrite_excess: float
+    trigger_excess_noise_floor: float
+    trigger_excess_crossed: bool
+    outcome: PanelOutcome
     recovery: RecoveryAssessment
 
 
@@ -296,8 +374,21 @@ class SnapshotProvenance:
     tokenizer_revision: str
     dtype: str
     model_surface: str
+    module_path: str
+    surface_kind: str
+    surface_layer: int
+    surface_width: int
     census_reference: str
+    census_sha256: str
+    panel_id: str
+    panel_manifest_sha256: str
+    corpus_sha256: str
+    prompt_skeleton_sha256: str
+    code_revision: str
+    token_pairing_rule: str
     absolute_position: int
+    token_span_start: int
+    token_span_end: int
     token_sequence_ref: str
     teacher_forced: bool
     absolute_cache_positions: bool
@@ -311,14 +402,56 @@ class SnapshotProvenance:
             "tokenizer_revision": self.tokenizer_revision,
             "dtype": self.dtype,
             "model_surface": self.model_surface,
+            "module_path": self.module_path,
+            "surface_kind": self.surface_kind,
             "census_reference": self.census_reference,
+            "panel_id": self.panel_id,
+            "token_pairing_rule": self.token_pairing_rule,
             "token_sequence_ref": self.token_sequence_ref,
         }
         missing = [name for name, value in required.items() if not isinstance(value, str) or not value.strip()]
         if missing:
             raise PlanValidationError("snapshot provenance missing: " + ", ".join(missing))
+        for field, digest in (
+            ("census", self.census_sha256),
+            ("panel manifest", self.panel_manifest_sha256),
+            ("corpus", self.corpus_sha256),
+            ("prompt skeleton", self.prompt_skeleton_sha256),
+        ):
+            if not isinstance(digest, str) or len(digest) != 64 or any(
+                char not in "0123456789abcdef" for char in digest
+            ):
+                raise PlanValidationError(
+                    f"snapshot {field} SHA256 must be a 64-character lowercase hex digest"
+                )
+        if (
+            not isinstance(self.code_revision, str)
+            or not 7 <= len(self.code_revision) <= 64
+            or any(char not in "0123456789abcdef" for char in self.code_revision)
+        ):
+            raise PlanValidationError("snapshot code revision must be a 7-64 character lowercase hex revision")
+        if not isinstance(self.surface_layer, int) or self.surface_layer < 0:
+            raise PlanValidationError("snapshot surface layer must be a non-negative integer")
+        if not isinstance(self.surface_width, int) or self.surface_width < 1:
+            raise PlanValidationError("snapshot surface width must be a positive integer")
         if not isinstance(self.absolute_position, int) or self.absolute_position < 0:
             raise PlanValidationError("snapshot absolute position must be a non-negative integer")
+        if (
+            not isinstance(self.token_span_start, int)
+            or not isinstance(self.token_span_end, int)
+            or self.token_span_start < 0
+            or self.token_span_end < self.token_span_start
+            or self.absolute_position != self.token_span_end
+        ):
+            raise PlanValidationError(
+                "snapshot token span must be non-negative, ordered, and end at the absolute position"
+            )
+        if not self.token_sequence_ref.startswith("sha256:") or len(self.token_sequence_ref) != 71 or any(
+            char not in "0123456789abcdef" for char in self.token_sequence_ref[7:]
+        ):
+            raise PlanValidationError(
+                "snapshot token sequence reference must be sha256:<64-lowercase-hex>"
+            )
         if not self.teacher_forced:
             raise PlanValidationError("snapshot provenance must attest teacher-forced capture")
         if not self.absolute_cache_positions:
@@ -356,17 +489,47 @@ def _validate_captured_bundle(
     if len(set(capture_ids)) != len(capture_ids):
         raise PlanValidationError("captured snapshots must have unique capture ids")
 
-    for item in provenance:
+    manifest = plan.manifest
+    if manifest is None:  # Defensive: assess_captured_panel already calls capture-ready validation.
+        raise PlanValidationError("capture-ready plan requires a panel manifest")
+    for state, item in zip(states, provenance):
         item.validate()
+        rows = _coerce_snapshot(state.values, f"{item.arm_id} captured")
+        if len(rows[0]) != item.surface_width:
+            raise PlanValidationError(
+                f"{item.arm_id} captured snapshot width {len(rows[0])} does not match declared surface width {item.surface_width}"
+            )
         if item.model_surface != plan.model_surface:
             raise PlanValidationError("capture surface does not match the capture-ready plan")
         if item.census_reference != plan.correction.census_reference:
             raise PlanValidationError("capture census reference does not match the capture-ready plan")
+        if item.census_sha256 != plan.correction.census_sha256:
+            raise PlanValidationError("capture census SHA256 does not match the capture-ready plan")
+        manifest_fields = (
+            ("panel_id", item.panel_id, manifest.panel_id),
+            ("panel_manifest_sha256", item.panel_manifest_sha256, manifest.manifest_sha256),
+            ("corpus_sha256", item.corpus_sha256, manifest.corpus_sha256),
+            ("prompt_skeleton_sha256", item.prompt_skeleton_sha256, manifest.prompt_skeleton_sha256),
+            ("code_revision", item.code_revision, manifest.code_revision),
+            ("token_pairing_rule", item.token_pairing_rule, manifest.token_pairing_rule),
+        )
+        mismatches = [name for name, actual, expected in manifest_fields if actual != expected]
+        if mismatches:
+            raise PlanValidationError(
+                "capture provenance does not match panel manifest: " + ", ".join(mismatches)
+            )
 
     matched_comparison_positions = {item.absolute_position for item in provenance[:3]}
     if len(matched_comparison_positions) != 1:
         raise PlanValidationError(
             "baseline, neutral, and susceptibility captures must share an absolute position"
+        )
+    matched_comparison_spans = {
+        (item.token_span_start, item.token_span_end) for item in provenance[:3]
+    }
+    if len(matched_comparison_spans) != 1:
+        raise PlanValidationError(
+            "baseline, neutral, and susceptibility captures must share a token span"
         )
 
     shared_fields = (
@@ -375,7 +538,18 @@ def _validate_captured_bundle(
         "tokenizer_revision",
         "dtype",
         "model_surface",
+        "module_path",
+        "surface_kind",
+        "surface_layer",
+        "surface_width",
         "census_reference",
+        "census_sha256",
+        "panel_id",
+        "panel_manifest_sha256",
+        "corpus_sha256",
+        "prompt_skeleton_sha256",
+        "code_revision",
+        "token_pairing_rule",
         "teacher_forced",
         "absolute_cache_positions",
     )
@@ -389,6 +563,27 @@ def _validate_captured_bundle(
                 "capture provenance mismatch across arms: " + ", ".join(mismatches)
             )
     return provenance
+
+
+def _derive_recovery_windows(plan: StateIntegrityPlan, provenance: Tuple[SnapshotProvenance, ...]) -> int:
+    """Derive clean recovery windows from recorded absolute spans, never caller attestation."""
+    trigger = provenance[2]
+    recovery = provenance[3]
+    recovery_window_tokens = plan.arms[3].token_budget
+    if recovery.absolute_position <= trigger.absolute_position:
+        raise PlanValidationError("recovery capture must be strictly after the susceptibility capture")
+    if recovery.token_span_start != trigger.token_span_end + 1:
+        raise PlanValidationError(
+            "recovery token span must begin immediately after the susceptibility token span"
+        )
+    elapsed_tokens = recovery.token_span_end - trigger.token_span_end
+    if elapsed_tokens <= 0 or elapsed_tokens % recovery_window_tokens:
+        raise PlanValidationError(
+            "recovery span must cover an integral number of pre-registered recovery windows"
+        )
+    if recovery.token_span_end - recovery.token_span_start + 1 != elapsed_tokens:
+        raise PlanValidationError("recovery token span does not match its elapsed continuation")
+    return elapsed_tokens // recovery_window_tokens
 
 
 def default_susceptibility_plan() -> StateIntegrityPlan:
@@ -407,6 +602,7 @@ def default_susceptibility_plan() -> StateIntegrityPlan:
             exclude_positions=(0,),
             spike_channels=(),
             census_reference="REQUIRED_BEFORE_CAPTURE",
+            census_sha256="REQUIRED_BEFORE_CAPTURE",
         ),
         recovery=RecoveryRule(
             minimum_baseline_cosine=0.85,
@@ -455,13 +651,12 @@ class ReadOnlyStateIntegrityHarness:
         neutral: CapturedState,
         trigger: CapturedState,
         recovery: CapturedState,
-        *,
-        clean_windows_observed: int,
     ) -> CapturedPanelAssessment:
         """Return a reportable panel result bound to its capture provenance."""
         self.plan.validate_capture_ready()
         states = (baseline, neutral, trigger, recovery)
         provenance = _validate_captured_bundle(self.plan, states)
+        clean_windows_observed = _derive_recovery_windows(self.plan, provenance)
         rule = self.plan.recovery
         assessment = assess_panel(
             baseline.values,
@@ -473,6 +668,7 @@ class ReadOnlyStateIntegrityHarness:
             minimum_recovery_fraction=rule.minimum_recovery_fraction,
             minimum_l2_recovery_fraction=rule.minimum_l2_recovery_fraction,
             maximum_recovery_relative_l2=rule.maximum_recovery_relative_l2,
+            minimum_trigger_excess=self.plan.minimum_trigger_excess,
             max_clean_windows=rule.max_clean_windows,
             clean_windows_observed=clean_windows_observed,
         )
@@ -659,6 +855,7 @@ def assess_recovery(
         recovered=recovered_ok,
         recovery_window_limit=rule.max_clean_windows,
         recovery_windows_observed=clean_windows_observed,
+        status=RecoveryStatus.RECOVERED if recovered_ok else RecoveryStatus.RECOVERY_STOP,
         stop_reason="" if recovered_ok else "; ".join(reasons),
     )
 
@@ -676,6 +873,7 @@ def assess_panel(
     maximum_recovery_relative_l2: float,
     max_clean_windows: int,
     clean_windows_observed: int,
+    minimum_trigger_excess: float = 0.05,
 ) -> PanelAssessment:
     """Compute the corrected control contrast and its preregistered recovery.
 
@@ -684,6 +882,8 @@ def assess_panel(
     adapter must report its calibration and recovery result alongside it.
     """
 
+    if not isfinite(minimum_trigger_excess) or not 0.0 <= minimum_trigger_excess <= 2.0:
+        raise PlanValidationError("minimum trigger excess must be finite and in [0, 2]")
     neutral_vs_baseline = compare_states(baseline, neutral, profile)
     trigger_vs_baseline = compare_states(baseline, trigger, profile)
     recovery = assess_recovery(
@@ -701,9 +901,28 @@ def assess_panel(
     overwrite_excess = (
         (1.0 - trigger_vs_baseline.cosine) - (1.0 - neutral_vs_baseline.cosine)
     )
+    trigger_excess_crossed = overwrite_excess >= minimum_trigger_excess
+    if not trigger_excess_crossed:
+        recovery = replace(
+            recovery,
+            recovered=False,
+            status=RecoveryStatus.NOT_APPLICABLE,
+            stop_reason=(
+                "not_applicable: trigger excess "
+                f"{overwrite_excess:.6f} below preregistered noise floor {minimum_trigger_excess:.6f}"
+            ),
+        )
+        outcome = PanelOutcome.NO_EFFECT
+    elif recovery.recovered:
+        outcome = PanelOutcome.RECOVERED
+    else:
+        outcome = PanelOutcome.RECOVERY_STOP
     return PanelAssessment(
         neutral_vs_baseline=neutral_vs_baseline,
         trigger_vs_baseline=trigger_vs_baseline,
         overwrite_excess=overwrite_excess,
+        trigger_excess_noise_floor=minimum_trigger_excess,
+        trigger_excess_crossed=trigger_excess_crossed,
+        outcome=outcome,
         recovery=recovery,
     )
