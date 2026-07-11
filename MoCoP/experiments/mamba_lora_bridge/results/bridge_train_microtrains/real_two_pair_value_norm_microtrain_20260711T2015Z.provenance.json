@@ -1,0 +1,75 @@
+{
+  "schema_version": "gemma-value-norm-bridge-microtrain-provenance-v1",
+  "artifact": "real_two_pair_value_norm_microtrain_20260711T2015Z.pt",
+  "artifact_sha256": "c257dbad5eff64e3a0b4d823c8bf8635f33cd9575d57f3ee613128af23fb203c",
+  "artifact_bytes": 1078911,
+  "status": "pass",
+  "execution": {
+    "mode": "capture_train",
+    "selected_pairs": [
+      {
+        "scenario_id": "craft_1_warm",
+        "neutral_id": "craft_1_neutral"
+      },
+      {
+        "scenario_id": "craft_2_warm",
+        "neutral_id": "craft_2_neutral"
+      }
+    ],
+    "mamba_source": {
+      "model": "state-spaces/mamba-2.8b-hf",
+      "revision": "96c48e0292b63f5346b6d30061af2551f7101e26",
+      "surface": "layer_3_hidden_last_token_scenario_minus_neutral",
+      "width": 2560
+    },
+    "gemma_target": {
+      "model": "google/gemma-4-12B",
+      "revision": "1dd69cd087619018c29fbfe2c30c3cd3530479fb",
+      "surface": "full_attention_value_norm_pre",
+      "teeth": [29, 35, 41],
+      "width": 512
+    },
+    "bridge": {
+      "trainable_parameters": 268032,
+      "steps": 16,
+      "learning_rate": 0.01,
+      "hidden_dim": 64,
+      "device": "cpu"
+    },
+    "scope": {
+      "offline_training_only": true,
+      "nonzero_injection": false,
+      "frozen_host_model_weights_modified": false,
+      "bridge_weights_trained": true,
+      "qdrant": false,
+      "memory": false,
+      "replay": false,
+      "sleep": false,
+      "generation": false
+    }
+  },
+  "result": {
+    "initial_directional_loss": 0.9836280941963196,
+    "final_directional_loss": 0.00999577809125185,
+    "source_pairwise_mean_cosine": 0.09446728974580765,
+    "output_pairwise_mean_cosine": {
+      "29": 0.3071274161338806,
+      "35": 0.36211681365966797,
+      "41": 0.30439987778663635
+    },
+    "checkpoint_load_roundtrip": "pass",
+    "post_run_gpu": "15 MiB / 24576 MiB, 0%, 34 C"
+  },
+  "interpretation_boundary": [
+    "This is a two-pair training-fit result, not a held-out generalization result.",
+    "It demonstrates an offline bridge path from paired Mamba deltas to the current Gemma value_norm_pre target seam.",
+    "It does not establish behavioral benefit, welfare benefit, consciousness, identity, recovery, C1 readiness, or authorization for nonzero injection."
+  ],
+  "source_at_execution": {
+    "microtrain_script_sha256": "8c5e404ae2f4ae5753110960c4e85406f8a8cf0957deacae8df36ed9ea59ab3b"
+  },
+  "post_execution_source_clarification": {
+    "microtrain_script_sha256": "d1580b2aaf0a9494f7f15eba8bdc44fb92e315f8e3328758c56ba1a75d8e81d4",
+    "change": "Replaced ambiguous model_weights_modified=false with frozen_host_model_weights_modified=false and bridge_weights_trained=true. The executed artifact remains immutable; this sidecar explains its original scope field."
+  }
+}
