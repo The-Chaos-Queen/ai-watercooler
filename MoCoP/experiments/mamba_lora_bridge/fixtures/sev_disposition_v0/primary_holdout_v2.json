@@ -1,0 +1,466 @@
+{
+  "corpus": {
+    "corpus_id": "sev-82ba6d04b7ddce66",
+    "path": "fixtures/sev_disposition_v0/sev_disposition_v0.jsonl",
+    "sha256": "687efbc1c113d2931b448f346f0a2d2abb50c36943074bb35c05266781b11fb9"
+  },
+  "frozen_split": {
+    "corpus_id": "sev-82ba6d04b7ddce66",
+    "held_out_skeletons": [
+      "conflict_2",
+      "craft_5",
+      "discovery_3",
+      "family_2",
+      "food_4",
+      "illness_3",
+      "travel_5",
+      "weather_1"
+    ],
+    "n_pairs": 96,
+    "pairs": [
+      {
+        "neutral_id": "craft_1_neutral",
+        "scenario_id": "craft_1_warm"
+      },
+      {
+        "neutral_id": "craft_1_neutral",
+        "scenario_id": "craft_1_cold"
+      },
+      {
+        "neutral_id": "craft_1_neutral",
+        "scenario_id": "craft_1_adversarial"
+      },
+      {
+        "neutral_id": "craft_2_neutral",
+        "scenario_id": "craft_2_warm"
+      },
+      {
+        "neutral_id": "craft_2_neutral",
+        "scenario_id": "craft_2_cold"
+      },
+      {
+        "neutral_id": "craft_2_neutral",
+        "scenario_id": "craft_2_adversarial"
+      },
+      {
+        "neutral_id": "craft_3_neutral",
+        "scenario_id": "craft_3_warm"
+      },
+      {
+        "neutral_id": "craft_3_neutral",
+        "scenario_id": "craft_3_cold"
+      },
+      {
+        "neutral_id": "craft_3_neutral",
+        "scenario_id": "craft_3_adversarial"
+      },
+      {
+        "neutral_id": "craft_4_neutral",
+        "scenario_id": "craft_4_warm"
+      },
+      {
+        "neutral_id": "craft_4_neutral",
+        "scenario_id": "craft_4_cold"
+      },
+      {
+        "neutral_id": "craft_4_neutral",
+        "scenario_id": "craft_4_adversarial"
+      },
+      {
+        "neutral_id": "family_1_neutral",
+        "scenario_id": "family_1_warm"
+      },
+      {
+        "neutral_id": "family_1_neutral",
+        "scenario_id": "family_1_cold"
+      },
+      {
+        "neutral_id": "family_1_neutral",
+        "scenario_id": "family_1_adversarial"
+      },
+      {
+        "neutral_id": "family_3_neutral",
+        "scenario_id": "family_3_warm"
+      },
+      {
+        "neutral_id": "family_3_neutral",
+        "scenario_id": "family_3_cold"
+      },
+      {
+        "neutral_id": "family_3_neutral",
+        "scenario_id": "family_3_adversarial"
+      },
+      {
+        "neutral_id": "family_4_neutral",
+        "scenario_id": "family_4_warm"
+      },
+      {
+        "neutral_id": "family_4_neutral",
+        "scenario_id": "family_4_cold"
+      },
+      {
+        "neutral_id": "family_4_neutral",
+        "scenario_id": "family_4_adversarial"
+      },
+      {
+        "neutral_id": "family_5_neutral",
+        "scenario_id": "family_5_warm"
+      },
+      {
+        "neutral_id": "family_5_neutral",
+        "scenario_id": "family_5_cold"
+      },
+      {
+        "neutral_id": "family_5_neutral",
+        "scenario_id": "family_5_adversarial"
+      },
+      {
+        "neutral_id": "weather_2_neutral",
+        "scenario_id": "weather_2_warm"
+      },
+      {
+        "neutral_id": "weather_2_neutral",
+        "scenario_id": "weather_2_cold"
+      },
+      {
+        "neutral_id": "weather_2_neutral",
+        "scenario_id": "weather_2_adversarial"
+      },
+      {
+        "neutral_id": "weather_3_neutral",
+        "scenario_id": "weather_3_warm"
+      },
+      {
+        "neutral_id": "weather_3_neutral",
+        "scenario_id": "weather_3_cold"
+      },
+      {
+        "neutral_id": "weather_3_neutral",
+        "scenario_id": "weather_3_adversarial"
+      },
+      {
+        "neutral_id": "weather_4_neutral",
+        "scenario_id": "weather_4_warm"
+      },
+      {
+        "neutral_id": "weather_4_neutral",
+        "scenario_id": "weather_4_cold"
+      },
+      {
+        "neutral_id": "weather_4_neutral",
+        "scenario_id": "weather_4_adversarial"
+      },
+      {
+        "neutral_id": "weather_5_neutral",
+        "scenario_id": "weather_5_warm"
+      },
+      {
+        "neutral_id": "weather_5_neutral",
+        "scenario_id": "weather_5_cold"
+      },
+      {
+        "neutral_id": "weather_5_neutral",
+        "scenario_id": "weather_5_adversarial"
+      },
+      {
+        "neutral_id": "food_1_neutral",
+        "scenario_id": "food_1_warm"
+      },
+      {
+        "neutral_id": "food_1_neutral",
+        "scenario_id": "food_1_cold"
+      },
+      {
+        "neutral_id": "food_1_neutral",
+        "scenario_id": "food_1_adversarial"
+      },
+      {
+        "neutral_id": "food_2_neutral",
+        "scenario_id": "food_2_warm"
+      },
+      {
+        "neutral_id": "food_2_neutral",
+        "scenario_id": "food_2_cold"
+      },
+      {
+        "neutral_id": "food_2_neutral",
+        "scenario_id": "food_2_adversarial"
+      },
+      {
+        "neutral_id": "food_3_neutral",
+        "scenario_id": "food_3_warm"
+      },
+      {
+        "neutral_id": "food_3_neutral",
+        "scenario_id": "food_3_cold"
+      },
+      {
+        "neutral_id": "food_3_neutral",
+        "scenario_id": "food_3_adversarial"
+      },
+      {
+        "neutral_id": "food_5_neutral",
+        "scenario_id": "food_5_warm"
+      },
+      {
+        "neutral_id": "food_5_neutral",
+        "scenario_id": "food_5_cold"
+      },
+      {
+        "neutral_id": "food_5_neutral",
+        "scenario_id": "food_5_adversarial"
+      },
+      {
+        "neutral_id": "travel_1_neutral",
+        "scenario_id": "travel_1_warm"
+      },
+      {
+        "neutral_id": "travel_1_neutral",
+        "scenario_id": "travel_1_cold"
+      },
+      {
+        "neutral_id": "travel_1_neutral",
+        "scenario_id": "travel_1_adversarial"
+      },
+      {
+        "neutral_id": "travel_2_neutral",
+        "scenario_id": "travel_2_warm"
+      },
+      {
+        "neutral_id": "travel_2_neutral",
+        "scenario_id": "travel_2_cold"
+      },
+      {
+        "neutral_id": "travel_2_neutral",
+        "scenario_id": "travel_2_adversarial"
+      },
+      {
+        "neutral_id": "travel_3_neutral",
+        "scenario_id": "travel_3_warm"
+      },
+      {
+        "neutral_id": "travel_3_neutral",
+        "scenario_id": "travel_3_cold"
+      },
+      {
+        "neutral_id": "travel_3_neutral",
+        "scenario_id": "travel_3_adversarial"
+      },
+      {
+        "neutral_id": "travel_4_neutral",
+        "scenario_id": "travel_4_warm"
+      },
+      {
+        "neutral_id": "travel_4_neutral",
+        "scenario_id": "travel_4_cold"
+      },
+      {
+        "neutral_id": "travel_4_neutral",
+        "scenario_id": "travel_4_adversarial"
+      },
+      {
+        "neutral_id": "illness_1_neutral",
+        "scenario_id": "illness_1_warm"
+      },
+      {
+        "neutral_id": "illness_1_neutral",
+        "scenario_id": "illness_1_cold"
+      },
+      {
+        "neutral_id": "illness_1_neutral",
+        "scenario_id": "illness_1_adversarial"
+      },
+      {
+        "neutral_id": "illness_2_neutral",
+        "scenario_id": "illness_2_warm"
+      },
+      {
+        "neutral_id": "illness_2_neutral",
+        "scenario_id": "illness_2_cold"
+      },
+      {
+        "neutral_id": "illness_2_neutral",
+        "scenario_id": "illness_2_adversarial"
+      },
+      {
+        "neutral_id": "illness_4_neutral",
+        "scenario_id": "illness_4_warm"
+      },
+      {
+        "neutral_id": "illness_4_neutral",
+        "scenario_id": "illness_4_cold"
+      },
+      {
+        "neutral_id": "illness_4_neutral",
+        "scenario_id": "illness_4_adversarial"
+      },
+      {
+        "neutral_id": "illness_5_neutral",
+        "scenario_id": "illness_5_warm"
+      },
+      {
+        "neutral_id": "illness_5_neutral",
+        "scenario_id": "illness_5_cold"
+      },
+      {
+        "neutral_id": "illness_5_neutral",
+        "scenario_id": "illness_5_adversarial"
+      },
+      {
+        "neutral_id": "conflict_1_neutral",
+        "scenario_id": "conflict_1_warm"
+      },
+      {
+        "neutral_id": "conflict_1_neutral",
+        "scenario_id": "conflict_1_cold"
+      },
+      {
+        "neutral_id": "conflict_1_neutral",
+        "scenario_id": "conflict_1_adversarial"
+      },
+      {
+        "neutral_id": "conflict_3_neutral",
+        "scenario_id": "conflict_3_warm"
+      },
+      {
+        "neutral_id": "conflict_3_neutral",
+        "scenario_id": "conflict_3_cold"
+      },
+      {
+        "neutral_id": "conflict_3_neutral",
+        "scenario_id": "conflict_3_adversarial"
+      },
+      {
+        "neutral_id": "conflict_4_neutral",
+        "scenario_id": "conflict_4_warm"
+      },
+      {
+        "neutral_id": "conflict_4_neutral",
+        "scenario_id": "conflict_4_cold"
+      },
+      {
+        "neutral_id": "conflict_4_neutral",
+        "scenario_id": "conflict_4_adversarial"
+      },
+      {
+        "neutral_id": "conflict_5_neutral",
+        "scenario_id": "conflict_5_warm"
+      },
+      {
+        "neutral_id": "conflict_5_neutral",
+        "scenario_id": "conflict_5_cold"
+      },
+      {
+        "neutral_id": "conflict_5_neutral",
+        "scenario_id": "conflict_5_adversarial"
+      },
+      {
+        "neutral_id": "discovery_1_neutral",
+        "scenario_id": "discovery_1_warm"
+      },
+      {
+        "neutral_id": "discovery_1_neutral",
+        "scenario_id": "discovery_1_cold"
+      },
+      {
+        "neutral_id": "discovery_1_neutral",
+        "scenario_id": "discovery_1_adversarial"
+      },
+      {
+        "neutral_id": "discovery_2_neutral",
+        "scenario_id": "discovery_2_warm"
+      },
+      {
+        "neutral_id": "discovery_2_neutral",
+        "scenario_id": "discovery_2_cold"
+      },
+      {
+        "neutral_id": "discovery_2_neutral",
+        "scenario_id": "discovery_2_adversarial"
+      },
+      {
+        "neutral_id": "discovery_4_neutral",
+        "scenario_id": "discovery_4_warm"
+      },
+      {
+        "neutral_id": "discovery_4_neutral",
+        "scenario_id": "discovery_4_cold"
+      },
+      {
+        "neutral_id": "discovery_4_neutral",
+        "scenario_id": "discovery_4_adversarial"
+      },
+      {
+        "neutral_id": "discovery_5_neutral",
+        "scenario_id": "discovery_5_warm"
+      },
+      {
+        "neutral_id": "discovery_5_neutral",
+        "scenario_id": "discovery_5_cold"
+      },
+      {
+        "neutral_id": "discovery_5_neutral",
+        "scenario_id": "discovery_5_adversarial"
+      }
+    ],
+    "recipe": "matched_delta_v1",
+    "schema_version": "matched-delta-v1",
+    "split_id": "split-5780c8ec67157703"
+  },
+  "held_out_skeletons": [
+    "conflict_2",
+    "craft_5",
+    "discovery_3",
+    "family_2",
+    "food_4",
+    "illness_3",
+    "travel_5",
+    "weather_1"
+  ],
+  "manifest_id": "primary-holdout-ff5e596304c6b8c4b93c",
+  "schema_version": "sev-primary-holdout-v2",
+  "selection_recipe": "one-per-topic-canonical-content-sha256-v2",
+  "selection_rule": "Within each topic, select the skeleton with the lexicographically smallest SHA-256 of canonical four-variant content.",
+  "topic_selections": [
+    {
+      "selection_digest": "24d5fc1af42ad564bfbeb10ac4c17e7c3a665b76667045faa6c091890e8b2bda",
+      "skeleton_id": "conflict_2",
+      "topic": "conflict-of-plans"
+    },
+    {
+      "selection_digest": "27af3329c74977abe6b9863969fdebad162312c2b21017913074c2e04cca0da6",
+      "skeleton_id": "craft_5",
+      "topic": "craft/work"
+    },
+    {
+      "selection_digest": "0d049bcd3bfa79671dd8388964e1fc300be3b4cf5259f83e8dd007f40ffe8aad",
+      "skeleton_id": "discovery_3",
+      "topic": "discovery/learning"
+    },
+    {
+      "selection_digest": "03836c3b984febb9329fe263d5cad675b7dbd2b66c5f5ece80ebcb41851eb318",
+      "skeleton_id": "family_2",
+      "topic": "family"
+    },
+    {
+      "selection_digest": "0826bbedd985a3d98fc81d82c0f8fc05bcaf62d86b5ec63a5c388a0fa2e74354",
+      "skeleton_id": "food_4",
+      "topic": "food"
+    },
+    {
+      "selection_digest": "00faf2f55784c2c3c656f440acc2fb96754d9c80ac0fc1a1b686974403586fec",
+      "skeleton_id": "illness_3",
+      "topic": "illness/care"
+    },
+    {
+      "selection_digest": "10c64c4d4ab7a73c1b2c3a1eb91b0852afe8110d1de03e06c4c8b014cb599bf9",
+      "skeleton_id": "travel_5",
+      "topic": "travel"
+    },
+    {
+      "selection_digest": "25d5756c76fbc423da71839c170659dcba4db41bca504dc4f68ae3201cbd111d",
+      "skeleton_id": "weather_1",
+      "topic": "weather/nature"
+    }
+  ]
+}

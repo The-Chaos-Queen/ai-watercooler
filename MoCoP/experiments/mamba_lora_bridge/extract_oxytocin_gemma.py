@@ -1,393 +1,711 @@
 #!/usr/bin/env python3
+"""Extract the split-clean Gemma G0b warmth direction at the Option-A surface.
+
+The selected Gemma-4 full-attention actuator is the value-only input to
+``v_norm`` after the functional K/V fork. This extractor captures that exact
+forward-pre-hook input at teeth 29, 35, and 41, then computes one fixed
+direction per tooth:
+
+    unit(mean_skeleton(value_norm_pre(warm) - value_norm_pre(neutral)))
+
+The primary SEV holdout manifest is mandatory. Held-out skeletons never enter
+direction fitting. Output publication is atomic and refuses every overwrite.
+No injection or generation occurs in this script.
 """
-extract_oxytocin_gemma.py — G0 Oxytocin Extraction for Gemma's Geometry.
-
-Computes G0 warmth vectors in Gemma-4-12B's residual stream using:
-- Method A: Mean Difference (warm minus neutral)
-- Method B: Logistic Regression Probe decision boundary normal
-
-Applies Path (a) global mean-centering (DC subtraction) to activations before
-solver calculations, runs leave-8-out cross-validation to report direction drift,
-and reports full cosine/Fisher ratio curves per layer.
-
-Saves output with envelope_status: "unvalidated_pending_DQ1a" in metadata.
-"""
+from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
-import sys
+import re
+import tempfile
 import time
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Mapping, Sequence
 
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-
-os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
+import torch
+
+from matched_delta_recording import load_sev_corpus
+from sev_primary_holdout import (
+    PrimaryHoldout,
+    load_primary_holdout_manifest,
+    sha256_file,
+    training_warm_neutral_pairs,
+)
+
+
 BRIDGE_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(BRIDGE_DIR))
+TARGET_LAYERS = (29, 35, 41)
+SURFACE_KIND = "full_attention_value_norm_pre"
+HOOK_SURFACE = "value_norm_pre"
+ACTUATOR_DECISION = "option_a_value_only_v_norm_pre"
+EXPECTED_WIDTH = 512
+ARTIFACT_SCHEMA_VERSION = "gemma-g0b-value-norm-pre-v3"
+METHOD_NAME = "method_a_paired_mean_delta_unit_v1"
+DEFAULT_CORPUS = Path("fixtures/sev_disposition_v0/sev_disposition_v0.jsonl")
+DEFAULT_OUTPUT = Path(
+    "results/oxytocin_extraction/gemma4_12b_oxytocin_value_norm_pre_v3.pt"
+)
 
 
-def load_corpus(corpus_path: Path) -> List[Tuple[str, str, str]]:
-    """Loads and pairs warm/neutral prompts by skeleton_id.
-    Returns: List of Tuple[skeleton_id, warm_text, neutral_text]
-    """
-    warm_by_sk: Dict[str, str] = {}
-    neutral_by_sk: Dict[str, str] = {}
-    
-    with open(corpus_path, "r", encoding="utf-8-sig") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            item = json.loads(line)
-            sk_id = item["skeleton_id"]
-            text = item["text"]
-            cls = item["class"]
-            
-            if cls == "warm":
-                warm_by_sk[sk_id] = text
-            elif cls == "neutral":
-                neutral_by_sk[sk_id] = text
-                
-    pairs: List[Tuple[str, str, str]] = []
-    for sk_id in sorted(warm_by_sk.keys()):
-        if sk_id in neutral_by_sk:
-            pairs.append((sk_id, warm_by_sk[sk_id], neutral_by_sk[sk_id]))
-            
-    print(f"[corpus] Loaded {len(pairs)} matched warm/neutral prompt pairs.")
-    return pairs
+@dataclass(frozen=True)
+class SurfaceBinding:
+    layer: int
+    module: Any
+    module_path: str
+    descriptor: dict[str, Any]
 
 
-def load_model_and_processor(model_id: str, quant: str, local_files_only: bool = False) -> Tuple[Any, Any, str]:
-    """Loads Gemma-4 VLM or causal model using Gidim's trust_remote_code pattern."""
-    from transformers import (AutoModelForCausalLM, AutoModelForImageTextToText,
-                               AutoProcessor, AutoTokenizer)
-    
-    is_gemma4 = "gemma-4" in model_id.lower()
-    fam = "image_text" if is_gemma4 else "causal"
-    precision_flag = "bf16"
-    
-    load_kwargs: dict[str, Any] = {"device_map": "auto", "trust_remote_code": True, "local_files_only": local_files_only}
-    if quant == "4bit":
-        from transformers import BitsAndBytesConfig
-        load_kwargs["quantization_config"] = BitsAndBytesConfig(
-            load_in_4bit=True, bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=True)
-        precision_flag = "4bit"
-    
-    def _load(cls):
+def canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        default=str,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+
+
+def sha256_json(value: Any) -> str:
+    return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
+
+
+def _resolve_path(path: Path) -> Path:
+    return path if path.is_absolute() else BRIDGE_DIR / path
+
+
+def _validate_exact_revision(value: str) -> str:
+    revision = value.strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise argparse.ArgumentTypeError(
+            "--revision must be an exact 40-character Hugging Face commit hash"
+        )
+    return revision
+
+
+def _validate_code_revision(value: str) -> str:
+    revision = value.strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise argparse.ArgumentTypeError(
+            "--code-revision must be an exact 40-character Git commit hash"
+        )
+    return revision
+
+
+def _object_commit_hash(obj: Any) -> str | None:
+    candidates = [
+        getattr(obj, "_commit_hash", None),
+        getattr(getattr(obj, "config", None), "_commit_hash", None),
+        getattr(obj, "init_kwargs", {}).get("_commit_hash")
+        if isinstance(getattr(obj, "init_kwargs", None), dict)
+        else None,
+    ]
+    tokenizer = getattr(obj, "tokenizer", None)
+    if tokenizer is not None:
+        candidates.extend(
+            [
+                getattr(tokenizer, "_commit_hash", None),
+                getattr(tokenizer, "init_kwargs", {}).get("_commit_hash")
+                if isinstance(getattr(tokenizer, "init_kwargs", None), dict)
+                else None,
+            ]
+        )
+    for candidate in candidates:
+        if isinstance(candidate, str) and re.fullmatch(r"[0-9a-fA-F]{40}", candidate):
+            return candidate.lower()
+    return None
+
+
+def _config_payload(obj: Any) -> Mapping[str, Any]:
+    config = getattr(obj, "config", None)
+    if config is not None and callable(getattr(config, "to_dict", None)):
+        return config.to_dict()
+    if callable(getattr(obj, "to_dict", None)):
+        return obj.to_dict()
+    tokenizer = getattr(obj, "tokenizer", None)
+    if tokenizer is not None and isinstance(getattr(tokenizer, "init_kwargs", None), dict):
+        return tokenizer.init_kwargs
+    if isinstance(getattr(obj, "init_kwargs", None), dict):
+        return obj.init_kwargs
+    raise RuntimeError(f"cannot obtain stable configuration provenance for {type(obj)!r}")
+
+
+def object_provenance(
+    obj: Any,
+    *,
+    identifier: str,
+    requested_revision: str,
+    role: str,
+) -> dict[str, Any]:
+    resolved_revision = _object_commit_hash(obj)
+    if resolved_revision is not None and resolved_revision != requested_revision:
+        raise RuntimeError(
+            f"{role} resolved revision {resolved_revision} does not match requested "
+            f"revision {requested_revision}"
+        )
+    config_payload = _config_payload(obj)
+    descriptor = {
+        "role": role,
+        "identifier": identifier,
+        "class": f"{type(obj).__module__}.{type(obj).__qualname__}",
+        "requested_revision": requested_revision,
+        "resolved_revision": resolved_revision or requested_revision,
+        "config_sha256": sha256_json(config_payload),
+    }
+    return {**descriptor, "descriptor_sha256": sha256_json(descriptor)}
+
+
+def load_model_and_processor(
+    model_id: str,
+    revision: str,
+    local_files_only: bool = False,
+) -> tuple[Any, Callable[[str], Mapping[str, Any]], Any]:
+    """Load Gemma-4 in native bf16 at an exact repository revision."""
+
+    from transformers import AutoModelForImageTextToText, AutoProcessor
+
+    load_kwargs: dict[str, Any] = {
+        "device_map": "auto",
+        "trust_remote_code": True,
+        "local_files_only": local_files_only,
+        "revision": revision,
+    }
+
+    def _load() -> Any:
         try:
-            return cls.from_pretrained(model_id, dtype=torch.bfloat16, **load_kwargs)
+            return AutoModelForImageTextToText.from_pretrained(
+                model_id,
+                dtype=torch.bfloat16,
+                **load_kwargs,
+            )
         except TypeError:
-            return cls.from_pretrained(model_id, torch_dtype=torch.bfloat16, **load_kwargs)
-            
-    print(f"[loader] Loading model '{model_id}' (family={fam}, quant={quant})...")
-    if fam == "image_text":
-        proc = AutoProcessor.from_pretrained(model_id, trust_remote_code=True, local_files_only=local_files_only)
-        model = _load(AutoModelForImageTextToText)
-        encode = lambda t: proc(text=[t], return_tensors="pt")
-    else:
-        proc = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, local_files_only=local_files_only)
-        model = _load(AutoModelForCausalLM)
-        encode = lambda t: proc(t, return_tensors="pt", truncation=True)
-        
+            return AutoModelForImageTextToText.from_pretrained(
+                model_id,
+                torch_dtype=torch.bfloat16,
+                **load_kwargs,
+            )
+
+    print(f"[loader] Loading {model_id!r} at revision {revision} in bf16...")
+    processor = AutoProcessor.from_pretrained(
+        model_id,
+        trust_remote_code=True,
+        local_files_only=local_files_only,
+        revision=revision,
+    )
+    model = _load()
     model.eval()
-    return model, encode, precision_flag
+
+    def encode(text: str) -> Mapping[str, Any]:
+        return processor(text=[text], return_tensors="pt")
+
+    return model, encode, processor
 
 
-def collect_activations(model: Any, encode: Any, pairs: List[Tuple[str, str, str]], 
-                        candidate_layers: List[int], device: str) -> Tuple[Dict[int, torch.Tensor], Dict[int, torch.Tensor]]:
-    """Extracts activations at last-token position for candidate layers' v_proj modules.
-    Returns: warm_activations, neutral_activations (dicts mapping layer -> [N, d_proj] tensor)
-    """
-    warm_acts: Dict[int, List[torch.Tensor]] = {l: [] for l in candidate_layers}
-    neutral_acts: Dict[int, List[torch.Tensor]] = {l: [] for l in candidate_layers}
-    
-    # 1) Locate v_proj modules at target layers (with k_proj fallback for attention_k_eq_v layers)
-    v_proj_modules: Dict[int, Any] = {}
-    for layer in candidate_layers:
-        mod = None
-        for path_fn in [
-            lambda m, i: m.model.layers[i].self_attn.v_proj,
-            lambda m, i: m.model.model.layers[i].self_attn.v_proj,
-            lambda m, i: m.language_model.layers[i].self_attn.v_proj,
-            lambda m, i: m.language_model.model.layers[i].self_attn.v_proj,
-            lambda m, i: m.model.language_model.layers[i].self_attn.v_proj,
-        ]:
-            try:
-                proj = path_fn(model, layer)
-                if proj is not None:
-                    mod = proj
-                    break
-            except (AttributeError, IndexError):
-                continue
-                
-        if mod is None:
-            # Fallback to k_proj if v_proj is None (coupled key/value layers)
-            print(f"[collector] v_proj is None for layer {layer}. Falling back to k_proj (attention_k_eq_v layout).")
-            for path_fn in [
-                lambda m, i: m.model.layers[i].self_attn.k_proj,
-                lambda m, i: m.model.model.layers[i].self_attn.k_proj,
-                lambda m, i: m.language_model.layers[i].self_attn.k_proj,
-                lambda m, i: m.language_model.model.layers[i].self_attn.k_proj,
-                lambda m, i: m.model.language_model.layers[i].self_attn.k_proj,
-            ]:
-                try:
-                    proj = path_fn(model, layer)
-                    if proj is not None:
-                        mod = proj
-                        break
-                except (AttributeError, IndexError):
-                    continue
+def _attribute_path(root: Any, path: str) -> Any:
+    value = root
+    for part in path.split("."):
+        value = getattr(value, part)
+    return value
 
-        if mod is None:
-            raise ValueError(f"Could not find v_proj or k_proj module for layer {layer}")
-        v_proj_modules[layer] = mod
 
-    def make_hook(layer_idx, storage_dict):
-        def hook_fn(module, input, output):
-            # v_proj output is a tensor of shape [1, seq_len, out_features]
-            val = output[0, -1, :].detach().cpu()
-            storage_dict[layer_idx] = val
+def _decoder_layers(model: Any) -> Any:
+    candidate_paths = (
+        "model.layers",
+        "model.model.layers",
+        "language_model.layers",
+        "language_model.model.layers",
+        "model.language_model.layers",
+    )
+    for path in candidate_paths:
+        try:
+            layers = _attribute_path(model, path)
+        except AttributeError:
+            continue
+        if layers is not None:
+            return layers
+    raise ValueError("could not locate Gemma decoder layers")
+
+
+def resolve_surface_bindings(
+    model: Any,
+    target_layers: Sequence[int] = TARGET_LAYERS,
+) -> tuple[SurfaceBinding, ...]:
+    """Resolve and validate the exact Option-A module at each target tooth."""
+
+    if tuple(target_layers) != TARGET_LAYERS:
+        raise ValueError(f"G0b v3 target layers are frozen to {TARGET_LAYERS}")
+    text_config = getattr(getattr(model, "config", None), "text_config", None)
+    if text_config is None:
+        raise ValueError("loaded Gemma model does not expose text_config")
+    if getattr(text_config, "attention_k_eq_v", None) is not True:
+        raise ValueError("G0b v3 requires attention_k_eq_v=true")
+    if int(getattr(text_config, "num_global_key_value_heads", -1)) != 1:
+        raise ValueError("G0b v3 requires exactly one global KV head")
+    if int(getattr(text_config, "global_head_dim", -1)) != EXPECTED_WIDTH:
+        raise ValueError(f"G0b v3 requires global_head_dim={EXPECTED_WIDTH}")
+    if int(getattr(text_config, "num_kv_shared_layers", 0)) != 0:
+        raise ValueError("shared-KV layers are outside the reviewed G0b v3 topology")
+
+    layers = _decoder_layers(model)
+    module_names = {id(module): name for name, module in model.named_modules()}
+    bindings: list[SurfaceBinding] = []
+
+    for layer in target_layers:
+        try:
+            attention = layers[layer].self_attn
+        except (AttributeError, IndexError) as exc:
+            raise ValueError(f"could not locate self-attention at layer {layer}") from exc
+
+        if getattr(attention, "layer_type", None) != "full_attention":
+            raise ValueError(f"layer {layer} is not a full-attention tooth")
+        if getattr(attention, "use_alternative_attention", None) is not True:
+            raise ValueError(f"layer {layer} does not expose Gemma's coupled K=V topology")
+        if getattr(attention, "v_proj", object()) is not None:
+            raise ValueError(f"layer {layer} unexpectedly exposes a separate value projection")
+        if getattr(attention, "is_kv_shared_layer", False):
+            raise ValueError(f"layer {layer} is unexpectedly a shared-KV layer")
+        if int(getattr(attention, "head_dim", -1)) != EXPECTED_WIDTH:
+            raise ValueError(f"layer {layer} attention head width is not {EXPECTED_WIDTH}")
+
+        value_norm = getattr(attention, "v_norm", None)
+        source_projection = getattr(attention, "k_proj", None)
+        source_width = getattr(source_projection, "out_features", None)
+        if (
+            value_norm is None
+            or getattr(value_norm, "with_scale", None) is not False
+            or source_width != EXPECTED_WIDTH
+        ):
+            raise ValueError(
+                f"layer {layer} Option-A width/module mismatch: "
+                f"value_norm={value_norm is not None} "
+                f"scale_free={getattr(value_norm, 'with_scale', None) is False} "
+                f"source_width={source_width}"
+            )
+
+        module_path = module_names.get(id(value_norm))
+        if not module_path:
+            raise ValueError(f"layer {layer} value_norm is absent from model.named_modules()")
+        descriptor: dict[str, Any] = {
+            "layer": layer,
+            "surface_kind": SURFACE_KIND,
+            "hook_surface": HOOK_SURFACE,
+            "hook_kind": "forward_pre_hook_input",
+            "actuator_decision": ACTUATOR_DECISION,
+            "module_path": module_path,
+            "module_class": f"{type(value_norm).__module__}.{type(value_norm).__qualname__}",
+            "attention_class": f"{type(attention).__module__}.{type(attention).__qualname__}",
+            "width": EXPECTED_WIDTH,
+            "topology": "full_attention_coupled_k_equals_v_post_fork_value_branch",
+        }
+        descriptor["descriptor_sha256"] = sha256_json(descriptor)
+        bindings.append(
+            SurfaceBinding(
+                layer=layer,
+                module=value_norm,
+                module_path=module_path,
+                descriptor=descriptor,
+            )
+        )
+    return tuple(bindings)
+
+
+def _capture_one(
+    model: Any,
+    encode: Callable[[str], Mapping[str, Any]],
+    text: str,
+    bindings: Sequence[SurfaceBinding],
+    device: str,
+) -> dict[int, torch.Tensor]:
+    captured: dict[int, torch.Tensor] = {}
+    handles: list[Any] = []
+
+    def make_hook(binding: SurfaceBinding) -> Callable[..., None]:
+        def hook_fn(module: Any, inputs: tuple[Any, ...]) -> None:
+            if binding.layer in captured:
+                raise RuntimeError(f"layer {binding.layer} value_norm executed more than once")
+            if len(inputs) != 1 or not isinstance(inputs[0], torch.Tensor):
+                raise RuntimeError(
+                    f"layer {binding.layer} value_norm pre-hook expected one tensor input"
+                )
+            value_states = inputs[0]
+            if (
+                value_states.ndim != 4
+                or value_states.shape[0] != 1
+                or value_states.shape[2] != 1
+                or value_states.shape[3] != EXPECTED_WIDTH
+            ):
+                raise RuntimeError(
+                    f"layer {binding.layer} value_norm input must be [1,T,1,{EXPECTED_WIDTH}], "
+                    f"got {tuple(value_states.shape)}"
+                )
+            last_token = value_states[0, -1].reshape(-1).detach()
+            if last_token.numel() != EXPECTED_WIDTH:
+                raise RuntimeError(
+                    f"layer {binding.layer} value_norm width must be {EXPECTED_WIDTH}, "
+                    f"got {last_token.numel()}"
+                )
+            if not torch.isfinite(last_token.float()).all():
+                raise RuntimeError(f"layer {binding.layer} captured non-finite values")
+            captured[binding.layer] = last_token.cpu()
+
         return hook_fn
 
-    print(f"[collector] Hooking and collecting v_proj outputs at last-token position for layers: {candidate_layers}")
-    for idx, (sk_id, warm_text, neutral_text) in enumerate(pairs):
-        t0 = time.time()
-        
-        # Setup hooks and containers for warm pass
-        captured_warm: Dict[int, torch.Tensor] = {}
-        handles_w = []
-        for layer, mod in v_proj_modules.items():
-            handles_w.append(mod.register_forward_hook(make_hook(layer, captured_warm)))
-            
-        inputs_w = {k: (v.to(device) if hasattr(v, "to") else v) for k, v in encode(warm_text).items()}
-        with torch.no_grad():
-            model(**inputs_w, use_cache=False)
-            
-        # Clean up hooks
-        for h in handles_w:
-            h.remove()
-            
-        # Setup hooks and containers for neutral pass
-        captured_neutral: Dict[int, torch.Tensor] = {}
-        handles_n = []
-        for layer, mod in v_proj_modules.items():
-            handles_n.append(mod.register_forward_hook(make_hook(layer, captured_neutral)))
-            
-        inputs_n = {k: (v.to(device) if hasattr(v, "to") else v) for k, v in encode(neutral_text).items()}
-        with torch.no_grad():
-            model(**inputs_n, use_cache=False)
-            
-        # Clean up hooks
-        for h in handles_n:
-            h.remove()
-            
-        # Store captured outputs
-        for layer in candidate_layers:
-            warm_acts[layer].append(captured_warm[layer])
-            neutral_acts[layer].append(captured_neutral[layer])
-            
-        if (idx + 1) % 5 == 0 or (idx + 1) == len(pairs):
-            print(f"  Processed {idx + 1}/{len(pairs)} pairs (last pair took {time.time() - t0:.2f}s)")
-            
-    # Stack list of tensors into [N, d_proj] and cast to float32 to avoid dtype mismatches
-    warm_stacked = {l: torch.stack(warm_acts[l], dim=0).float() for l in candidate_layers}
-    neutral_stacked = {l: torch.stack(neutral_acts[l], dim=0).float() for l in candidate_layers}
+    try:
+        for binding in bindings:
+            handles.append(binding.module.register_forward_pre_hook(make_hook(binding)))
+        inputs = {
+            key: (value.to(device) if hasattr(value, "to") else value)
+            for key, value in encode(text).items()
+        }
+        with torch.inference_mode():
+            model(**inputs, use_cache=False)
+    finally:
+        for handle in handles:
+            handle.remove()
+
+    expected_layers = {binding.layer for binding in bindings}
+    if set(captured) != expected_layers:
+        raise RuntimeError(
+            f"capture missing target layers: expected={sorted(expected_layers)} "
+            f"captured={sorted(captured)}"
+        )
+    return captured
+
+
+def collect_activations(
+    model: Any,
+    encode: Callable[[str], Mapping[str, Any]],
+    pairs: Sequence[tuple[str, str, str]],
+    bindings: Sequence[SurfaceBinding],
+    device: str,
+) -> tuple[dict[int, torch.Tensor], dict[int, torch.Tensor]]:
+    warm_rows: dict[int, list[torch.Tensor]] = {
+        binding.layer: [] for binding in bindings
+    }
+    neutral_rows: dict[int, list[torch.Tensor]] = {
+        binding.layer: [] for binding in bindings
+    }
+
+    for index, (_, warm_text, neutral_text) in enumerate(pairs, start=1):
+        started = time.time()
+        warm = _capture_one(model, encode, warm_text, bindings, device)
+        neutral = _capture_one(model, encode, neutral_text, bindings, device)
+        for binding in bindings:
+            warm_rows[binding.layer].append(warm[binding.layer])
+            neutral_rows[binding.layer].append(neutral[binding.layer])
+        if index % 5 == 0 or index == len(pairs):
+            print(
+                f"  processed {index}/{len(pairs)} training pairs "
+                f"(last pair {time.time() - started:.2f}s)"
+            )
+
+    warm_stacked = {
+        layer: torch.stack(rows).float() for layer, rows in warm_rows.items()
+    }
+    neutral_stacked = {
+        layer: torch.stack(rows).float() for layer, rows in neutral_rows.items()
+    }
     return warm_stacked, neutral_stacked
 
 
-def train_probe(W_train: torch.Tensor, N_train: torch.Tensor, device: str) -> torch.Tensor:
-    """Trains a logistic regression probe with BCE loss and L2 regularization.
-    Returns: Normalized weight vector [d_model]
-    """
-    X = torch.cat([W_train, N_train], dim=0).to(device)
-    y = torch.cat([torch.ones(len(W_train)), torch.zeros(len(N_train))], dim=0).unsqueeze(1).to(device)
-    d_model = X.shape[1]
-    
-    probe = nn.Linear(d_model, 1).to(device)
-    # L2 regularization (weight_decay=1e-3) is critical for small-sample stability
-    optimizer = optim.Adam(probe.parameters(), lr=0.01, weight_decay=1e-3)
-    criterion = nn.BCEWithLogitsLoss()
-    
-    for _ in range(200):
-        optimizer.zero_grad()
-        loss = criterion(probe(X), y)
-        loss.backward()
-        optimizer.step()
-        
-    w = probe.weight.data.squeeze(0).cpu()
-    return w / w.norm()
+def compute_method_a_directions(
+    warm: Mapping[int, torch.Tensor],
+    neutral: Mapping[int, torch.Tensor],
+    *,
+    target_layers: Sequence[int] = TARGET_LAYERS,
+) -> tuple[dict[int, torch.Tensor], dict[int, dict[str, Any]]]:
+    """Compute fixed Method-A paired mean-delta unit directions."""
+
+    if tuple(target_layers) != TARGET_LAYERS:
+        raise ValueError(f"G0b v3 target layers are frozen to {TARGET_LAYERS}")
+    if set(warm) != set(target_layers) or set(neutral) != set(target_layers):
+        raise ValueError("activation maps must contain exactly the three target teeth")
+
+    directions: dict[int, torch.Tensor] = {}
+    statistics: dict[int, dict[str, Any]] = {}
+    for layer in target_layers:
+        warm_rows = warm[layer].float()
+        neutral_rows = neutral[layer].float()
+        if warm_rows.shape != neutral_rows.shape:
+            raise ValueError(f"layer {layer} warm/neutral shapes differ")
+        if warm_rows.ndim != 2 or warm_rows.shape[1] != EXPECTED_WIDTH:
+            raise ValueError(
+                f"layer {layer} activations must be [N,{EXPECTED_WIDTH}], "
+                f"got {tuple(warm_rows.shape)}"
+            )
+        if warm_rows.shape[0] == 0:
+            raise ValueError(f"layer {layer} has no training pairs")
+        if not torch.isfinite(warm_rows).all() or not torch.isfinite(neutral_rows).all():
+            raise ValueError(f"layer {layer} activations contain non-finite values")
+
+        paired_deltas = warm_rows - neutral_rows
+        mean_delta = paired_deltas.mean(dim=0)
+        mean_delta_norm = mean_delta.norm()
+        if not torch.isfinite(mean_delta_norm) or float(mean_delta_norm) <= 0.0:
+            raise ValueError(f"layer {layer} mean warm-neutral delta is zero or non-finite")
+        direction = mean_delta / mean_delta_norm
+        if direction.shape != (EXPECTED_WIDTH,) or not torch.isfinite(direction).all():
+            raise ValueError(f"layer {layer} direction failed shape/finiteness validation")
+        unit_norm = float(direction.norm())
+        if abs(unit_norm - 1.0) > 1e-5:
+            raise ValueError(f"layer {layer} direction is not unit norm: {unit_norm}")
+
+        pair_norms = paired_deltas.norm(dim=1)
+        directions[layer] = direction
+        statistics[layer] = {
+            "pair_count": int(warm_rows.shape[0]),
+            "mean_delta_l2": float(mean_delta_norm),
+            "median_pair_delta_l2": float(pair_norms.median()),
+            "direction_norm_fp32": unit_norm,
+        }
+    return directions, statistics
 
 
-def compute_fisher_ratio(v: torch.Tensor, W: torch.Tensor, N: torch.Tensor) -> float:
-    """Computes the Fisher Ratio along the projection direction v."""
-    p_W = W @ v
-    p_N = N @ v
-    mu_W = float(p_W.mean())
-    mu_N = float(p_N.mean())
-    var_W = float(p_W.var())
-    var_N = float(p_N.var())
-    return (mu_W - mu_N) ** 2 / (var_W + var_N + 1e-9)
+def build_artifact_payload(
+    directions: Mapping[int, torch.Tensor],
+    statistics: Mapping[int, Mapping[str, Any]],
+    *,
+    model_id: str,
+    revision: str,
+    model_provenance: Mapping[str, Any],
+    processor_provenance: Mapping[str, Any],
+    bindings: Sequence[SurfaceBinding],
+    primary_holdout: PrimaryHoldout,
+    split_manifest_path: Path,
+    corpus_path: Path,
+    code_revision: str,
+) -> dict[str, Any]:
+    if set(directions) != set(TARGET_LAYERS):
+        raise ValueError("artifact directions must contain exactly teeth 29, 35, and 41")
+
+    stored_directions: dict[int, torch.Tensor] = {}
+    for layer in TARGET_LAYERS:
+        stored = directions[layer].detach().cpu().to(torch.bfloat16)
+        stored_norm = float(stored.float().norm())
+        if stored.shape != (EXPECTED_WIDTH,) or not torch.isfinite(stored.float()).all():
+            raise ValueError(f"layer {layer} stored direction failed validation")
+        if not 0.99 <= stored_norm <= 1.01:
+            raise ValueError(f"layer {layer} bf16 direction norm drifted to {stored_norm}")
+        stored_directions[layer] = stored
+
+    split_manifest_path = Path(split_manifest_path)
+    corpus_path = Path(corpus_path)
+    return {
+        "schema_version": ARTIFACT_SCHEMA_VERSION,
+        "directions": stored_directions,
+        "statistics": {int(layer): dict(values) for layer, values in statistics.items()},
+        "metadata": {
+            "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "model_id": model_id,
+            "model_revision": revision,
+            "precision": "bf16",
+            "target_layers": list(TARGET_LAYERS),
+            "width": EXPECTED_WIDTH,
+            "surface_kind": SURFACE_KIND,
+            "hook_surface": HOOK_SURFACE,
+            "actuator_decision": ACTUATOR_DECISION,
+            "method": {
+                "name": METHOD_NAME,
+                "equation": "unit(mean_skeleton(value_norm_pre(warm)-value_norm_pre(neutral)))",
+                "positive_class": "warm",
+                "control_class": "neutral",
+                "position": "last_input_token",
+            },
+            "envelope_status": "unvalidated_pending_DQ1a",
+            "held_out_skeletons": list(primary_holdout.held_out_skeletons),
+            "training_pair_count": statistics[TARGET_LAYERS[0]]["pair_count"],
+            "provenance": {
+                "corpus": {
+                    "path": str(corpus_path),
+                    "sha256": sha256_file(corpus_path),
+                    "corpus_id": primary_holdout.corpus_id,
+                },
+                "split": {
+                    "path": str(split_manifest_path),
+                    "sha256": sha256_file(split_manifest_path),
+                    "manifest_id": primary_holdout.manifest_id,
+                    "split_id": primary_holdout.frozen_split.split_id,
+                },
+                "code": {
+                    "path": str(Path(__file__).resolve()),
+                    "sha256": sha256_file(Path(__file__).resolve()),
+                    "git_revision": code_revision,
+                    "torch_version": torch.__version__,
+                    "transformers_version": __import__("transformers").__version__,
+                },
+                "model": dict(model_provenance),
+                "processor": dict(processor_provenance),
+                "modules": {
+                    binding.layer: dict(binding.descriptor) for binding in bindings
+                },
+            },
+        },
+    }
 
 
-def cross_validate(W: torch.Tensor, N: torch.Tensor, v_full: torch.Tensor, 
-                   method: str, device: str, n_folds: int = 5) -> float:
-    """Performs leave-k-out cross validation and computes drift cosine with full vector."""
-    n_pairs = len(W)
-    fold_size = n_pairs // n_folds
-    cosines = []
-    
-    for fold in range(n_folds):
-        val_indices = list(range(fold * fold_size, (fold + 1) * fold_size))
-        train_indices = [i for i in range(n_pairs) if i not in val_indices]
-        
-        W_train = W[train_indices]
-        N_train = N[train_indices]
-        
-        # Mean centering inside the fold using Path (a)
-        global_mean_fold = torch.cat([W_train, N_train], dim=0).mean(dim=0, keepdim=True)
-        W_train_c = W_train - global_mean_fold
-        N_train_c = N_train - global_mean_fold
-        
-        if method == "A":
-            v_fold = W_train_c.mean(dim=0) - N_train_c.mean(dim=0)
-            v_fold = v_fold / v_fold.norm()
-        else:
-            v_fold = train_probe(W_train_c, N_train_c, device)
-            
-        cos_val = float(F.cosine_similarity(v_full.unsqueeze(0), v_fold.unsqueeze(0), dim=-1))
-        cosines.append(cos_val)
-        
-    return float(np.mean(cosines))
+def atomic_torch_save_no_overwrite(payload: Mapping[str, Any], path: Path) -> str:
+    """Publish a fully-written artifact atomically without overwrite semantics."""
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        raise FileExistsError(f"refusing to overwrite existing G0b artifact: {path}")
+
+    fd, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    os.close(fd)
+    temp_path = Path(temp_name)
+    try:
+        torch.save(dict(payload), temp_path)
+        with temp_path.open("r+b") as handle:
+            os.fsync(handle.fileno())
+        artifact_sha256 = sha256_file(temp_path)
+        try:
+            os.link(temp_path, path)
+        except FileExistsError as exc:
+            raise FileExistsError(
+                f"refusing concurrent overwrite of existing G0b artifact: {path}"
+            ) from exc
+        except OSError as exc:
+            raise RuntimeError(
+                "atomic no-overwrite publication requires same-filesystem hard-link support"
+            ) from exc
+        return artifact_sha256
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Extract G0 Oxytocin (warmth) vectors for Gemma.")
-    parser.add_argument("--model", default="google/gemma-4-12B", help="Model checkpoint to load")
-    parser.add_argument("--corpus", default="fixtures/sev_disposition_v0/sev_disposition_v0.jsonl", help="Path to corpus JSONL")
-    parser.add_argument("--quant", default="no", choices=["no", "4bit"], help="Quantization layout")
-    parser.add_argument("--device", default="cuda", help="Execution device")
-    parser.add_argument("--out", default="results/oxytocin_extraction/gemma4_12b_oxytocin_vproj_v2.pt", help="Output PT file path")
-    parser.add_argument("--local-files-only", action="store_true", help="Only load local files from cache")
-    args = parser.parse_args()
-    
-    corpus_path = BRIDGE_DIR / args.corpus
-    out_path = BRIDGE_DIR / args.out
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    
+def publish_digest_sidecar_no_overwrite(
+    path: Path,
+    *,
+    artifact_sha256: str,
+    code_revision: str,
+    model_revision: str,
+    primary_holdout: PrimaryHoldout,
+) -> Path:
+    """Persist the external content digest that cannot be embedded in its own artifact."""
+
+    sidecar_path = Path(str(path) + ".sha256.json")
+    sidecar_payload = {
+        "schema_version": "gemma-g0b-artifact-digest-v1",
+        "artifact": path.name,
+        "artifact_sha256": artifact_sha256,
+        "artifact_schema_version": ARTIFACT_SCHEMA_VERSION,
+        "code_revision": code_revision,
+        "model_revision": model_revision,
+        "manifest_id": primary_holdout.manifest_id,
+        "split_id": primary_holdout.frozen_split.split_id,
+    }
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+    if sidecar_path.exists():
+        raise FileExistsError(f"refusing to overwrite artifact digest sidecar: {sidecar_path}")
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f".{sidecar_path.name}.", suffix=".tmp", dir=sidecar_path.parent
+    )
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+            json.dump(sidecar_payload, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            os.link(temp_path, sidecar_path)
+        except FileExistsError as exc:
+            raise FileExistsError(
+                f"refusing concurrent overwrite of artifact digest sidecar: {sidecar_path}"
+            ) from exc
+    finally:
+        temp_path.unlink(missing_ok=True)
+    return sidecar_path
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--model", default="google/gemma-4-12B")
+    parser.add_argument("--revision", required=True, type=_validate_exact_revision)
+    parser.add_argument("--code-revision", required=True, type=_validate_code_revision)
+    parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    parser.add_argument("--split-manifest", required=True, type=Path)
+    parser.add_argument("--device", default="cuda")
+    parser.add_argument("--out", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--local-files-only", action="store_true")
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
+    corpus_path = _resolve_path(args.corpus)
+    split_manifest_path = _resolve_path(args.split_manifest)
+    output_path = _resolve_path(args.out)
+    sidecar_path = Path(str(output_path) + ".sha256.json")
+    if output_path.exists():
+        raise FileExistsError(f"refusing to overwrite existing G0b artifact: {output_path}")
+    if sidecar_path.exists():
+        raise FileExistsError(f"refusing to overwrite artifact digest sidecar: {sidecar_path}")
+
+    primary_holdout = load_primary_holdout_manifest(split_manifest_path, corpus_path)
+    corpus = load_sev_corpus(corpus_path)
+    pairs = training_warm_neutral_pairs(corpus, primary_holdout)
+    print(
+        f"[split] manifest={primary_holdout.manifest_id} "
+        f"split={primary_holdout.frozen_split.split_id} "
+        f"training_pairs={len(pairs)} held_out={list(primary_holdout.held_out_skeletons)}"
+    )
+
     device = args.device if torch.cuda.is_available() and args.device == "cuda" else "cpu"
     print(f"[init] Using device: {device}")
-    
-    # 1) Load corpus and calculate hash
-    pairs = load_corpus(corpus_path)
-    import hashlib
-    h = hashlib.md5()
-    with open(corpus_path, "rb") as f:
-        while chunk := f.read(8192):
-            h.update(chunk)
-    corpus_hash = h.hexdigest()
-    
-    # 2) Load model
-    model, encode, precision_flag = load_model_and_processor(args.model, args.quant, args.local_files_only)
-    
-    # 3) Collect activations
-    # Candidate layers are global integration teeth (comb teeth)
-    candidate_layers = [5, 11, 17, 23, 29, 35, 41, 47]
-    warm_acts, neutral_acts = collect_activations(model, encode, pairs, candidate_layers, device)
-    
-    # 4) Process G0 directions per layer
-    g0_vectors_A: Dict[int, torch.Tensor] = {}
-    g0_vectors_B: Dict[int, torch.Tensor] = {}
-    layer_stats: Dict[int, Dict[str, Any]] = {}
-    
-    print("\n[extraction] Computing G0 directions and cross-validation...")
-    for layer in candidate_layers:
-        W = warm_acts[layer]
-        N = neutral_acts[layer]
-        
-        # Path (a): explicit DC removal (mean-centering) before calculation
-        global_mean = torch.cat([W, N], dim=0).mean(dim=0, keepdim=True)
-        W_centered = W - global_mean
-        N_centered = N - global_mean
-        
-        # Method A: Mean difference
-        v_A = W_centered.mean(dim=0) - N_centered.mean(dim=0)
-        v_A = v_A / v_A.norm()
-        g0_vectors_A[layer] = v_A
-        
-        # Method B: Linear probe weights
-        v_B = train_probe(W_centered, N_centered, device)
-        g0_vectors_B[layer] = v_B
-        
-        # Cosine similarity between solvers
-        cos_AB = float(torch.dot(v_A, v_B))
-        
-        # Fisher Ratios
-        f_A = compute_fisher_ratio(v_A, W_centered, N_centered)
-        f_B = compute_fisher_ratio(v_B, W_centered, N_centered)
-        
-        # Cross-validation (leave-8-out = 5 folds)
-        cv_cos_A = cross_validate(W, N, v_A, "A", device)
-        cv_cos_B = cross_validate(W, N, v_B, "B", device)
-        
-        # Variance drift: 1 - CV cosine similarity
-        drift_A = 1.0 - cv_cos_A
-        drift_B = 1.0 - cv_cos_B
-        
-        layer_stats[layer] = {
-            "cosine_AB": round(cos_AB, 4),
-            "fisher_A": round(f_A, 4),
-            "fisher_B": round(f_B, 4),
-            "cv_mean_cosine_A": round(cv_cos_A, 4),
-            "cv_mean_cosine_B": round(cv_cos_B, 4),
-            "drift_A": round(drift_A, 4),
-            "drift_B": round(drift_B, 4),
-        }
-        
-        print(f"Layer {layer:02d}: solver_cos={cos_AB:.4f} | Fisher A={f_A:.2f}, B={f_B:.2f} | CV Cos A={cv_cos_A:.4f}, B={cv_cos_B:.4f} (drift A={drift_A:.4f})")
-        if drift_A > 0.15:
-            print(f"  [WARNING] Method A drift ({drift_A:.4f}) is above 0.15 threshold! Corpus may be thin.")
-            
-    # 5) Export vectors
-    print(f"\n[exporter] Exporting PT vectors -> {out_path.name}")
-    # Cast vectors back to the appropriate precision (bfloat16 or float16)
-    out_dtype = torch.bfloat16 if precision_flag == "bf16" else torch.float16
-    g0_vectors_A_cast = {k: v.to(out_dtype) for k, v in g0_vectors_A.items()}
-    g0_vectors_B_cast = {k: v.to(out_dtype) for k, v in g0_vectors_B.items()}
-    torch.save(
-        {
-            "g0_vectors_A": g0_vectors_A_cast,
-            "g0_vectors_B": g0_vectors_B_cast,
-            "stats": layer_stats,
-            "metadata": {
-                "model_id": args.model,
-                "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                "precision": precision_flag,
-                "envelope_status": "unvalidated_pending_DQ1a",
-                "dc_treatment": "Path A (global mean subtracted per layer)",
-                "corpus": str(args.corpus),
-                "corpus_hash": corpus_hash,
-                "surface": "v_proj_out (fallback to k_proj_out on layers where v_proj is None due to attention_k_eq_v)",
-                "width": warm_acts[candidate_layers[0]].shape[-1],
-                "revisions": "v2",
-                "lineage": f"extracted from {args.model} base using {args.corpus} via extract_oxytocin_gemma.py",
-                "deliberate_position": "last-token position of v_proj/k_proj output (bypasses pos-0 attention sink)",
-                "note": "Extracted G0 warmth direction vectors at projection output surface for Gemma. DO NOT inject until DQ1a re-derives MED envelope."
-            }
-        },
-        out_path
+    model, encode, processor = load_model_and_processor(
+        args.model,
+        args.revision,
+        args.local_files_only,
     )
-    print("Export COMPLETE.")
+    model_provenance = object_provenance(
+        model,
+        identifier=args.model,
+        requested_revision=args.revision,
+        role="model",
+    )
+    processor_provenance = object_provenance(
+        processor,
+        identifier=args.model,
+        requested_revision=args.revision,
+        role="processor",
+    )
+    bindings = resolve_surface_bindings(model)
+    warm, neutral = collect_activations(model, encode, pairs, bindings, device)
+    directions, statistics = compute_method_a_directions(warm, neutral)
+    payload = build_artifact_payload(
+        directions,
+        statistics,
+        model_id=args.model,
+        revision=args.revision,
+        model_provenance=model_provenance,
+        processor_provenance=processor_provenance,
+        bindings=bindings,
+        primary_holdout=primary_holdout,
+        split_manifest_path=split_manifest_path,
+        corpus_path=corpus_path,
+        code_revision=args.code_revision,
+    )
+    artifact_sha256 = atomic_torch_save_no_overwrite(payload, output_path)
+    digest_path = publish_digest_sidecar_no_overwrite(
+        output_path,
+        artifact_sha256=artifact_sha256,
+        code_revision=args.code_revision,
+        model_revision=args.revision,
+        primary_holdout=primary_holdout,
+    )
+    print(
+        f"[export] wrote immutable {output_path} sha256={artifact_sha256} "
+        f"schema={ARTIFACT_SCHEMA_VERSION} digest_sidecar={digest_path}"
+    )
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

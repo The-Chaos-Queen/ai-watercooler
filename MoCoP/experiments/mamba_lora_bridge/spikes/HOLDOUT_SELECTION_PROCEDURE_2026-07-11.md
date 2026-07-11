@@ -8,6 +8,19 @@ measures transfer on high-signal items and is never the headline general-transfe
 **Ordering constraint (finding 3): the split freezes BEFORE G0b is fitted** — the birth vector must
 never have seen a held-out skeleton. G0b fits on training-side pairs only.
 
+**Executable authority:** `sev_primary_holdout.py` hashes each skeleton's canonical four-variant
+content with SHA-256 and selects the lexicographically smallest digest in each topic. The frozen
+manifest is `fixtures/sev_disposition_v0/primary_holdout_v2.json`; re-derive and verify it with:
+
+```powershell
+python sev_primary_holdout.py check --manifest fixtures/sev_disposition_v0/primary_holdout_v2.json
+```
+
+Frozen primary membership: `{conflict_2, craft_5, discovery_3, family_2, food_4, illness_3,
+travel_5, weather_1}`. Frozen matched-delta split: `split-5780c8ec67157703` (96 training
+scenarios; G0b uses the 32 training-side warm-neutral pairs). Any corpus or membership change
+invalidates the manifest and requires an explicit new version.
+
 ## v1 procedure (now: sensitivity panel selection)
 
 **Date:** 2026-07-11 (scoped in-session with keeper) · **Scope:** Isegrim · **Execution:** Elf (5g.3-lineage capture tooling) · **Veto:** keeper · **Gate context:** Cairn #816 (holdout mandatory, ≥20% of skeletons, WHICH = keeper's call)
