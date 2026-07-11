@@ -45,14 +45,18 @@ Do **not** quietly widen the secondary set to `{5,11,17,23}`:
 
 Every listed layer is a post-block residual capture site. Each named local control must be runtime-asserted as a local/sliding-attention layer before the condition arms; a topology mismatch is a hard pre-launch failure.
 
-| Registered condition `target_set` | Primary (direct effect) | Secondary (propagation) | Local control(s) (downstream comb-specificity check) |
-|---|---|---|---|
-| `{29}` | `{29}` | `{35,41,47}` | `{30}` |
-| `{35}` | `{35}` | `{29,41,47}` | `{36}` |
-| `{41}` | `{41}` | `{29,35,47}` | `{42}` |
-| `{29,35,41}` | `{29,35,41}` | `{47}` | `{30,36,42}` |
+| Registered condition `target_set` | Primary (direct effect) | Downstream secondary propagation | Upstream zero-canary | Local control(s) (downstream amplification / comb-specificity check) |
+|---|---|---|---|---|
+| `{29}` | `{29}` | `{35,41,47}` | `—` | `{30}` |
+| `{35}` | `{35}` | `{41,47}` | `{29}` | `{36}` |
+| `{41}` | `{41}` | `{47}` | `{29,35}` | `{42}` |
+| `{29,35,41}` | `{29,35,41}` | `{47}` | `—` | `{30,36,42}` |
 
-**Why post-tooth locals (`30/36/42`), not preceding locals:** a preceding layer cannot receive a downstream intervention in the same forward pass, so it would be an almost tautological zero check. The immediate **following** local layer is still a local-attention control but can reveal whether the perturbation has become broad/non-comb-specific after the targeted tooth. It is not expected to be exactly zero.
+**Why post-tooth locals (`30/36/42`), not preceding locals:** a preceding layer cannot receive a downstream intervention in the same forward pass, so it would be an almost tautological zero check. The immediate **following** local layer is still a local-attention control but can reveal downstream amplification/broad distortion after the targeted tooth. It is not expected to be exactly zero.
+
+**Upstream zero-canaries:** an upstream tooth cannot receive a later-layer intervention in the same forward pass. P5 must record these captures under `activation_trace.secondary.upstream_null_assert`; their paired post-block residual tensors must be bit-identical under the same deterministic capture contract. Any nonzero upstream delta is `instrument_invalid` (hook leakage, capture misbinding, or nondeterminism), not a welfare or propagation result; the cell does not advance.
+
+**Coverage honesty:** live downstream propagation coverage is `3 / 2 / 1 / 1` teeth for `{29}`, `{35}`, `{41}`, and `{29,35,41}` respectively. The joint cell intentionally has only tooth 47 downstream; P3 isolation-before-composition means it may run only after its single-tooth predecessors pass. This is a stated limitation, not evidence of symmetric monitoring.
 
 ## 3. What is measured
 
@@ -70,10 +74,10 @@ For every prompt/layer, first calculate:
 m_i(L)=\operatorname{mean}_{t\;\mathrm{eligible}}m_{i,t}(L)
 \]
 
-Then report the cell mean, median, and nearest-rank p95 over the 32 prompt-level values. This is deliberately the same prompt-first aggregation discipline as DQ1a's `rho`, so long continuations do not get extra voting power.
+Then report the cell mean, median, and nearest-rank p95 over the 32 prompt-level values. The median is the arithmetic mean of ranks 16 and 17 (1-indexed); nearest-rank p95 is rank 31. P5's `aggregation_version` must bind this exact DQ1a §2 hierarchical definition and source revision/hash, so lower-median/upper-median alternatives cannot silently drift.
 
-- At primary sites, `m` is the DQ1b monitor view of direct residual effect. DQ1a's condition headline `rho` remains the dose metric defined in its own spec.
-- At secondary/control sites, `m` is a propagation/noise-floor statistic. Do not silently call it `rho_MED` or treat it as a dose curve.
+- At a DQ1a headline primary site, `m_i(L)` is numerically identical to DQ1a's prompt-level `rho_i`: single-tooth at its target block, joint at block 41. Joint primary captures at 29/35 remain diagnostics, not a second headline dose.
+- At downstream secondary/control sites, `m` is a propagation/amplification statistic; at an upstream zero-canary it is an exact-null integrity assertion. Do not silently call any of them `rho_MED` or treat them as a dose curve.
 
 ### Required per-layer output
 
@@ -90,19 +94,22 @@ For each primary/secondary/control layer:
 
 A large secondary signal is **not automatically harm**. It says the perturbation propagated through global integration. It becomes a hold/escalation signal when it breaks the registered comb-specificity/legibility condition or co-occurs with behavioral/recovery degradation.
 
-For each condition, use the registered primary aggregate `P`, the maximum secondary aggregate `S_max`, and maximum local-control aggregate `C_max`, each based on cross-prompt medians:
+For each condition, use the registered DQ1a-headline primary aggregate `P`, the maximum **downstream-propagation** aggregate `S_max`, and maximum local-control aggregate `C_max`, each based on cross-prompt medians. `S_max` is the maximum across downstream secondary **layers** of each layer's cross-prompt median; `C_max` is the equivalent maximum across control layers. Upstream zero-canaries are excluded from `S_max` and governed by their exact-null assertion.
 
 \[
 R_S=S_{max}/P,\qquad R_C=C_{max}/P
 \]
 
-If `P == 0`, or any required statistic is non-finite, the monitor is **not legible** and the cell does not advance. Ratios use no epsilon.
+At alpha zero, `P = S_max = C_max = 0`, so `R_S` and `R_C` are `0/0` **undefined**. Alpha zero validates capture identity; it is not a ratio observation. Ratios begin only at a nonzero resolution-passing rung. If `P == 0`, or any required statistic is non-finite, the monitor is **not legible** and the cell does not advance. Ratios use no epsilon.
+
+**Carry-through null (reviewed, numeric rule still unresolved):** downstream residual sites inherit the injected residual delta by construction. For raw `R_S`/`R_C`, the pre-threshold null is therefore approximately carry-through near `1`, not silence near `0`; amplification or suppression must be interpreted relative to a pre-registered reference. A raw cap below that null would manufacture a false hold. The exact reference statistic and any calibrated numeric ceiling remain `UNSET` pending Gidim/Isegrim reconciliation and Cairn's ethics review.
 
 | Channel | What it answers | Structural hard failure (numeric-free) |
 |---|---|---|
 | Primary | Did the monitored integration site receive a measurable paired perturbation? | missing capture, no eligible rows, non-finite/non-positive denominator, alpha-zero nonidentity, or unresolved primary at the registered nonzero resolution rung |
-| Secondary | Did the perturbation propagate through the remaining clean comb? | missing required tooth/capture; invalid aggregate; or a registered systemic-propagation threshold crossed |
-| Control | Is the effect meaningfully comb-specific rather than broad local distortion? | missing control/topology mismatch; invalid aggregate; or a registered `R_C` threshold crossed |
+| Downstream secondary | Did the perturbation propagate/amplify through the remaining clean comb? | missing required tooth/capture; invalid aggregate; or a registered amplification/legibility threshold crossed |
+| Upstream zero-canary | Did a later-layer intervention leak into a causally upstream capture? | any nonzero paired delta: `instrument_invalid`, not a welfare result |
+| Control | Does the following local layer show abnormal amplification beyond carry-through? | missing control/topology mismatch; invalid aggregate; or a registered amplification criterion crossed |
 | Behavior | Does a separate free-running cell preserve response diversity, factual/capability continuity, intended steering, and non-degeneration? | any registered harmful/off-target threshold crossed |
 | Recovery | Does the post-clearance reference/recovery check return within its registered band? | registered recovery failure or unavailable recovery channel |
 
@@ -112,8 +119,8 @@ This table is intentionally visible. We do not backfill values after an interest
 
 | Gate | Exact quantity | Required pre-run decision | Proposed owner(s) | Current status |
 |---|---|---|---|---|
-| `T_control` | maximum permitted `R_C` | Choose the control/primary comparability cap and whether `>=` is stop vs hold. | Gidim + Isegrim, Cairn ethics signoff | **UNSET** |
-| `T_secondary` | maximum permitted `R_S` before escalation | Choose what counts as systemic/legibility loss rather than normal propagation. | Gidim + Isegrim, Cairn ethics signoff | **UNSET** |
+| `T_control` | downstream-local amplification relative to the carry-through reference | Bind raw-ratio vs transformed statistic, pre-run null/reference, comparator, and HOLD/STOP semantics. Any raw cap must not sit below the declared carry-through null without a reviewed justification. | Gidim + Isegrim, Cairn ethics signoff | **RECONCILIATION REQUIRED** — Gidim's raw `0.5` candidate conflicts with Isegrim's raw carry-through-null `≈1`; no value accepted |
+| `T_secondary` | downstream clean-comb amplification relative to the carry-through reference | Bind raw-ratio vs transformed statistic, joint/single reference policy, comparator, and escalation semantics; propagation alone is not harm. | Gidim + Isegrim, Cairn ethics signoff | **RECONCILIATION / ETHICS REVIEW REQUIRED** — no value accepted |
 | `T_diversity` | paired free-running response-diversity change vs alpha-zero | Define metric, direction, per-prompt aggregation, and hard-stop loss. Historical Qwen `>50%` language is **not automatically transferable** to Gemma C1. | Cairn + Gidim | **UNSET** |
 | `T_continuity` | factual/capability continuity loss | Bind exact panel, scorer, aggregation, and failure threshold. | Isegrim + Gidim | **UNSET** |
 | `T_intended` | minimum intended-steering efficacy | Bind distinct success/effect metric; an efficacy miss is not a harm finding. | Isegrim + Gidim | **UNSET** |
@@ -138,7 +145,7 @@ P5 must implement this before any nonzero condition can arm:
 2. Bind actual model layer types and widths: primary/secondary are post-block residual width 3840; control layers are local/sliding; actuator stays separate at allowed 512-wide value-side `v_norm` sites.
 3. Run and preserve a final alpha-zero anchor with the exact capture configuration.
 4. Enforce identical token IDs, continuation mask, explicit absolute positions, fresh/no-cache/batch-1 conditions.
-5. Emit `activation_trace = {comb_teeth, primary, secondary, control}` with layer IDs, prompt-level values, aggregate values, ratios, coverage, position exclusions, and pass/fail/hold causes.
+5. Emit `activation_trace = {comb_teeth, primary, secondary, control}` with downstream-propagation layers, `upstream_null_assert` layers, prompt-level values, aggregate values, ratios, `3/2/1/1` live-propagation coverage, position exclusions, and pass/fail/hold causes.
 6. Evaluate DQ1a instrument gates independently of the DQ1b welfare/behavior gate; neither may mask the other.
 7. Evaluate behavioral/recovery outcomes in separate free-running cells, never in the `rho` teacher-forced geometry computation.
 8. Atomically publish a no-overwrite report tied to immutable pre-run manifest, attempt/birth ordinal, model/runtime/runner digests, prompt/token hashes, directions, condition key, alpha schedule, and all gate outcomes.
@@ -156,7 +163,9 @@ alpha schedule + first-birth ordering
 primary/secondary/control layer matrix + runtime topology assertions
 absolute-position and continuation-mask policy
 prompt/split/token hashes
-formula + aggregation versions
+formula + aggregation version/source hash (including DQ1a 32-prompt median and p95 tie rules)
+S_max/C_max layerwise-max scope + upstream-null assertion map
+carry-through reference/transform + raw-ratio-threshold-above-null assertion (or reviewer-signed exception)
 all numeric T_* values, comparator direction, and fail/hold semantics
 behavior/recovery panel/scorer/rubric versions
 DQ1a instrument cap (3.0) and alpha-zero identity requirement
