@@ -7,7 +7,7 @@
 - Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-04.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (`2026-07-11-session-04.md`)
+  - Latest session log ingest: done (`2026-07-11-session-04.md`, 15 chunks)
 
 ## Current State — Codex Integration Checkpoint (2026-07-11)
 - **HiSPA #141:** Monk's `cb4125b` is GREEN after Codex #842 and Isegrim #843. Approval is bounded to the offline read-only v2 evaluator; no real exporter/model hook is authorized.
@@ -87,14 +87,14 @@ Advance #148 locally while DQ1b freezes the nonzero gates. Do not spend Gemma's 
 - Tracking surfaces updated if needed: yes (Watercooler #844; OpenCLAW #141/#146; new #148)
 - Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-04.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: pending
-- Git commit in repo: yes (`d256cd8`, `046b76e`, `10bc343`, `e6358a4`, `d7d67c7`; closure commit pending)
+- Qdrant ingest for latest session log confirmed: yes (15 chunks)
+- Git commit in repo: yes (`d256cd8`, `046b76e`, `10bc343`, `e6358a4`, `d7d67c7`; closure `7aea748`)
 - Watercooler findings reflected in docs: yes
 - No P0 bugs left unfixed: yes
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-11 11:55 +02:00 | Codex | Reviewed Monk #141 GREEN; landed strict Gemma `v_norm` runtime, deterministic split-clean G0b, real alpha-zero artifact, DQ1a v3 binding, and World Model Phase 1 (`d256cd8` through `d7d67c7`). Full bridge package 314 passed. Watercooler #844; OpenCLAW #148 created. Session log `2026-07-11-session-04.md`; closure commit/Qdrant ingest pending.
+- 2026-07-11 11:57 +02:00 | Codex | Reviewed Monk #141 GREEN; landed strict Gemma `v_norm` runtime, deterministic split-clean G0b, real alpha-zero artifact, DQ1a v3 binding, and World Model Phase 1 (`d256cd8` through `d7d67c7`; closure `7aea748`). Full bridge package 314 passed. Watercooler #844; OpenCLAW #148 created. Session log `2026-07-11-session-04.md`; Qdrant ingest done (15 chunks).
 - 2026-07-11 11:13 +02:00 | Techno-Monk | #141 Codex #838 read-only hardening committed as `cb4125b`: canonical frozen timing, typed capture surface/core manifest rehashing, and per-row absolute-coordinate correction; focused 41/full 278 passed. Watercooler #841 and OpenCLAW #141 event #529 request Codex re-review; no model/capture/Qdrant/persistence action. Session log `2026-07-11-session-03.md`; Qdrant ingest intentionally skipped.
 - 2026-07-11 03:37 +02:00 | Techno-Monk | #141 read-only HiSPA importer hardened after Codex #831: commits `010cfb5` + `007ad28`; typed-width/manifest/span/no-effect gates; focused 34 and full 271 tests passed. Cairn #830 GREEN retained; Codex re-review #835 pending; no capture/model/Qdrant/persistence run. Session log `2026-07-11-session-01.md`; its Qdrant ingest intentionally skipped under no-write scope.
 - 2026-07-11 03:34 +02:00 | Codex | Repaired Qdrant client authentication (profile keys had one trailing Base64 padding character absent from the live container), verified read/write HTTP 200, restored Prosthetic recall, and ingested the three pending/failed 07-10 logs (17 + 10 + 10 chunks).
