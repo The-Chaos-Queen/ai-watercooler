@@ -1,0 +1,10 @@
+{
+  "artifact": "gemma4_12b_oxytocin_value_norm_pre_v3_split-5780c8ec_10bc343.pt",
+  "artifact_schema_version": "gemma-g0b-value-norm-pre-v3",
+  "artifact_sha256": "a36fbc417b522883760f4bd43c57b1845341e2792ee7b311d6d80bc86fbf8a87",
+  "code_revision": "10bc34333303c3a071c5e4e443cd83683f49cdac",
+  "manifest_id": "primary-holdout-ff5e596304c6b8c4b93c",
+  "model_revision": "1dd69cd087619018c29fbfe2c30c3cd3530479fb",
+  "schema_version": "gemma-g0b-artifact-digest-v1",
+  "split_id": "split-5780c8ec67157703"
+}

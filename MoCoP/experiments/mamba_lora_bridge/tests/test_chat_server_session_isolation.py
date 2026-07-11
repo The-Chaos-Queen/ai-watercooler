@@ -4,24 +4,54 @@ import os
 import copy
 from unittest.mock import MagicMock
 
-# Mock heavy ML dependencies before importing chat_server
-sys.modules['torch'] = MagicMock()
-sys.modules['torch.nn'] = MagicMock()
-sys.modules['torch.nn.functional'] = MagicMock()
-sys.modules['transformers'] = MagicMock()
-sys.modules['sentence_transformers'] = MagicMock()
-sys.modules['qdrant_client'] = MagicMock()
-sys.modules['qdrant_client.models'] = MagicMock()
-
 # Ensure chat_server can be imported if this is run from tests/
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import chat_server
-from chat_server import (
-    get_or_create_chat_session,
-    switch_to_chat_session,
-    save_active_chat_session,
-)
+# Keep the import cheap without replacing process-global dependencies for every
+# test collected after this module.
+_dependency_stubs = {
+    "torch": MagicMock(),
+    "torch.nn": MagicMock(),
+    "torch.nn.functional": MagicMock(),
+    "transformers": MagicMock(),
+    "sentence_transformers": MagicMock(),
+    "qdrant_client": MagicMock(),
+    "qdrant_client.models": MagicMock(),
+    "autobiographical_memory": MagicMock(),
+    "memory_evidence": MagicMock(),
+    "lesson_memory": MagicMock(),
+    "astrocyte_memory_controller": MagicMock(),
+    "failure_detector": MagicMock(),
+    "mamba_runtime_compat": MagicMock(),
+    "models": MagicMock(),
+    "reincarnated_inference": MagicMock(),
+}
+_missing = object()
+_previous_modules = {
+    name: sys.modules.get(name, _missing)
+    for name in (*_dependency_stubs, "chat_server")
+}
+try:
+    sys.modules.update(_dependency_stubs)
+    sys.modules.pop("chat_server", None)
+    import chat_server
+    from chat_server import (
+        get_or_create_chat_session,
+        switch_to_chat_session,
+        save_active_chat_session,
+    )
+finally:
+    for _name, _previous in _previous_modules.items():
+        if _previous is _missing:
+            sys.modules.pop(_name, None)
+        else:
+            sys.modules[_name] = _previous
+
+
+def test_dependency_stubs_do_not_escape_collection():
+    import torch
+
+    assert not isinstance(torch, MagicMock)
 
 @pytest.fixture(autouse=True)
 def isolated_chat_server_globals():
