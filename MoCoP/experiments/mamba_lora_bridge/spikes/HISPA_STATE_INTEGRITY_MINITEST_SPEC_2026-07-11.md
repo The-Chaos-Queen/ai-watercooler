@@ -1,12 +1,12 @@
 # Task #141 — HiSPA-Inspired State-Integrity / Overwrite Mini-Test
 
-**Status:** v0 design spec + model-free guard core; **NOT a model run**
+**Status:** v0 model-free guard core + read-only capture-bundle adapter; **NOT a model capture or model run**
 **Date:** 2026-07-11
 **Owner:** Techno-Monk
 **Review requested:** Codex (math / surface / harness), Isegrim (architecture / interpretation), Cairn only if scope changes
 **Task:** OpenCLAW #141
-**Watercooler inputs:** Cairn #794 pre-spec advisory; task #141 scope
-**Code companion:** `state_integrity_hispa.py` + `tests/test_state_integrity_hispa.py`
+**Watercooler inputs:** Cairn #794 pre-spec advisory + #830 GREEN; Isegrim #826 topology/recovery review; Gemini #827 option-a decision
+**Code companion:** `state_integrity_hispa.py` + `run_hispa_readonly_capture_adapter.py` + focused tests
 
 ---
 
@@ -88,7 +88,7 @@ Before a real capture adapter is allowed to call the metric core, it must preser
 5. recorded prompt/skeleton IDs, corpus hash, code revision, and correction profile;
 6. no model-state carryover between arms unless the arm explicitly measures the defined continuation.
 
-This follows the current C1/Codex lesson too: **name the surface first.** A residual-space vector, a sliding-layer `v_proj` output, and a full-attention K/V or post-fork value-branch surface are not fungible merely because each is called “state.” #141 records an exact capture surface and width before interpretation; it does **not** choose Gemma’s still-pending tooth actuator.
+This follows the current C1/Codex lesson too: **name the surface first.** A residual-space vector, a sliding-layer `v_proj` output, and a full-attention K/V or post-fork value-branch surface are not fungible merely because each is called “state.” #141 records an exact capture surface and width before interpretation. Its Gemma bundle importer now accepts only the stamped option-a 512-wide value-side `v_norm` pre-hook policy; it still does not load ...[truncated]
 
 ---
 
@@ -113,11 +113,11 @@ Artifact: `results/spike_sink_census/gemma4_12b_base.json`
 
 Layer 41 has `pos0_is_max_rate=1.0` in the census, which is precisely why “no spike channels” does **not** mean “keep position zero.”
 
-### Gemma tooth-topology amendment — no actuator choice implied
+### Gemma tooth-topology and option-a surface policy
 
 Isegrim #826 verified against the Gemma-4-12B configuration that comb teeth `{5,11,17,23,29,35,41,47}` are full-attention layers with `v_proj=None` and a coupled, 512-wide K/V projection; the 2048-wide `v_proj` exists on sliding layers, not at the teeth. Local `extract_oxytocin_gemma.py` corroborates the hazard by falling back from absent `v_proj` to `k_proj` for coupled K/V layers.
 
-Therefore #141 **must not** call a tooth capture `v_proj` or infer a value-only intervention surface. It records an explicit surface string and can measure a future approved surface, but the pack’s separate actuator decision (post-functional K/V fork value branch vs a fresh coupled-K=V intervention class) remains upstream of any Gemma capture/injection use.
+Gemini #827 / G0b commit `524d14e` subsequently stamped **option (a)**: a value-side `v_norm` pre-hook at global teeth `{29,35,41}`, width `512`. The read-only bundle adapter therefore accepts only a `f...[truncated] It does not attach a hook, load a model, or authorize injection; a future real capture exporter remains separately reviewed.
 
 The early formation band is materially different: layers 12–27 carry census spike channels, and comb teeth 17/23 overlap that contaminated region. Do not borrow the `{29,35,41}` correction profile for another layer or another model.
 
@@ -207,16 +207,18 @@ A future capture adapter must emit a self-contained report with at least:
   },
   "arms": ["baseline", "neutral_distractor", "susceptibility_trigger", "recovery"],
   "captures": [
-    {"capture_id": "...", "arm_id": "baseline", "token_sequence_ref": "...", "absolute_position": 0},
-    {"capture_id": "...", "arm_id": "neutral", "token_sequence_ref": "...", "absolute_position": 0},
-    {"capture_id": "...", "arm_id": "susceptibility", "token_sequence_ref": "...", "absolute_position": 0},
-    {"capture_id": "...", "arm_id": "recovery", "token_sequence_ref": "...", "absolute_position": 0}
+    {"capture_id": "...", "arm_id": "baseline", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 0},
+    {"capture_id": "...", "arm_id": "neutral", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 0},
+    {"capture_id": "...", "arm_id": "susceptibility", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 0},
+    {"capture_id": "...", "arm_id": "recovery", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 0}
   ],
   "metrics": {"neutral_drift": 0, "trigger_drift": 0, "overwrite_excess": 0, "recovery_relative_l2": 0},
   "recovery": {"minimum_cosine": 0.85, "minimum_cosine_fraction": 0.85, "max_relative_l2": 0.15, "minimum_l2_fraction": 0.85, "max_windows": 2, "observed_windows": 0},
   "code_revision": "..."
 }
 ```
+
+`token_sequence_ref` is a canonical SHA-256 reference, never raw prompt text. The report allowlists only model `id`, `revision`, `tokenizer_revision`, and `dtype`; arbitrary input metadata must not leak into the report.
 
 The report must reject non-finite values, shape mismatches, missing correction data, a surface-width mismatch, or a missing/mismatched per-arm provenance record before metrics are emitted. A publishable panel result must retain all four capture records (model/revision/tokenizer/dtype/surface/census/absolute-position/teacher-forced attestation), not merely a detached `recovered=true` boolean.
 
@@ -241,24 +243,26 @@ The report must reject non-finite values, shape mismatches, missing correction d
 - `tests/test_state_integrity_hispa.py`
   - model-free acceptance tests for boundaries, threat-model escalation, matching, position-0 sink correction, spike-channel masking, recovery, non-recovery, and malformed snapshots.
 
+- `run_hispa_re...[truncated]
+
 ### Verification run
 
 ```bash
 cd MoCoP/experiments/mamba_lora_bridge
-python3 -m py_compile state_integrity_hispa.py
-python3 -m pytest tests/test_state_integrity_hispa.py -q
-# 19 passed
+python3 -m py_compile state_integrity_hispa.py run_hispa_readonly_capture_adapter.py
+python3 -m pytest tests/test_state_integrity_hispa.py tests/test_hispa_readonly_capture_adapter.py -q
+# 27 passed
 ```
 
 No GPU, model, Qdrant instance, live server, or persistence surface was touched.
 
 ---
 
-## 9. Blockers and next implementation slice
+## 9. Remaining blockers and next live slice
 
 ### V0 is intentionally not a real model capture yet
 
-The next slice is a **separate read-only adapter**, not an edit to the live bridge or chat server. It must:
+`run_hispa_readonly_capture_adapter.py` now validates an already-exported four-arm JSON bundle against a SHA-256-pinned census and calls the model-free core. It is intentionally **not** a capture expor...[truncated]
 
 1. select one named surface at a time;
 2. resolve and record its actual module path and width;
@@ -272,7 +276,7 @@ The next slice is a **separate read-only adapter**, not an edit to the live brid
 
 - No Mamba capture until a Mamba-specific correction/census profile exists.
 - No Gemma/MVB or external injection until DQ1a/DQ1b and the named relevant gate clear.
-- No Gemma **tooth** capture/injection until the pack stamps its actuator choice; the teeth are not a 2048-wide `v_proj` surface.
+- No Gemma **model process** is called by the current adapter. A future capture exporter must bind the stamped option-a 512-wide `v_norm` pre-hook at one tooth at a time and receive the named review clea...[truncated]
 - No subject-facing arm until J-space welfare/distress readouts are named, measured pre/post, and preserve legibility.
 - No stronger/repeated susceptibility condition after a recovery-stop result.
 - No generic “poison prompt” list is checked into this v0 core; prompt content needs a separate, bounded review surface.
@@ -291,7 +295,7 @@ The next slice is a **separate read-only adapter**, not an edit to the live brid
 ### Isegrim
 
 1. Does the V0 susceptibility-only split map cleanly onto DQ1a/DQ1b and the new actuator-first doctrine?
-2. Is the `{29,35,41}` correction note precise about full-attention coupled-K/V teeth, with no false `v_proj`/value-only implication, while staying actuator-neutral?
+2. Does the `{29,35,41}` correction note plus the option-a-only 512-wide `v_norm` bundle policy preserve the full-attention / sliding-`v_proj` distinction without treating a capture attestation as an inj...[truncated]
 3. Is the directional + L2 recovery stop strict enough to prevent diagnostic escalation while still useful as an instrument?
 4. Does the MUD control remain correctly demoted to factual calibration rather than state/disposition evidence?
 
