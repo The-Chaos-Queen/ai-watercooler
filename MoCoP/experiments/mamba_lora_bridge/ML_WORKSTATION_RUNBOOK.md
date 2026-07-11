@@ -458,7 +458,39 @@ PY"
 - Active ML working directories live under `/home/isabell/ml`.
 - The current lean MoCoP chat runtime bundle is deployed at `/home/isabell/mocop/mamba_lora_bridge`.
 - The deployed `chat_server.py` default speaker label is neutral `User`, not `Laura`. Pass `--user-label Laura` only for sessions that should explicitly be Laura.
-- Existing Qdrant default `192.168.2.191:6333` is reachable from ML-WS.
+- Qdrant is reachable from ML-WS only as a **TLS-authenticated** service at
+  `https://192.168.2.191:6333`; reachability alone is not a valid client smoke.
+
+### Qdrant transport gate before any ML-WS memory write
+
+The public LAN root CA is installed at:
+
+```text
+/home/isabell/.hermes/security/qdrant-lan-ca/root-ca.crt
+```
+
+**Hard stop (2026-07-11):** the deployed runtime bundle's `chat_server.py` is
+older than the local security hardening. It has no Qdrant API-key, HTTPS, or CA
+configuration. Do **not** start it with Qdrant writes, replay, or live memory
+accumulation against the TLS-only service. A reachable `192.168.2.191:6333`
+does not make its old host/port client safe or functional.
+
+Before any ML-WS runner is allowed to write Qdrant:
+
+1. Sync/review a TLS-capable Qdrant client implementation; it must use the
+   HTTPS URL and `verify=/home/isabell/.hermes/security/qdrant-lan-ca/root-ca.crt`.
+2. Supply only the appropriate non-Git credentials at launch:
+   `QDRANT_API_KEY` for writers, `QDRANT_READ_KEY` for readers, and
+   `QDRANT_CA_CERT` for the trust path. Never put their values in this runbook.
+3. Run the disposable Qdrant preflight: unauthenticated read rejected,
+   read key write rejected, temporary collection create/read/snapshot-export/
+   delete succeeds, and legacy collection count is unchanged.
+4. For Gemma collections, retain the strict provenance write gate; do not set
+   `MOCOP_PROVENANCE_STRICT=0` as a convenience escape hatch.
+
+The service-level smoke was green on 2026-07-11. This gate is about the **ML-WS
+runner**, which is a separate deployment surface.
+
 - Before long jobs, check thermals and VRAM:
 
 ```powershell

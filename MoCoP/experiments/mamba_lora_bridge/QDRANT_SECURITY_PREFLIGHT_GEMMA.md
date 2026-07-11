@@ -3,7 +3,7 @@
 **Author:** Purple
 **Date:** 2026-07-06
 **Task:** OpenCLAW #138
-**Status:** Historical preflight checklist, with a deployed-state update below.
+**Status:** Completed preflight checklist, with a deployed-state update below.
 
 ---
 
@@ -20,8 +20,19 @@ The preflight below accurately records the insecure **pre-deployment** state on
 - The Qdrant LAN root CA must be verified by clients. See
   `CHEESE_Memory/QDRANT_TLS_RUNBOOK.md`; do **not** use `curl -k`,
   `verify=False`, or the historical HTTP examples below.
-- Remaining distinct risk: the PVE firewall service is disabled, so a source-IP
-  allow-list is still a separate P1 task.
+- **2026-07-11 closure evidence:** a disposable collection lifecycle passed
+  over verified TLS: unauthenticated read rejected (401), read-key write
+  rejected (403), write-key create/read/snapshot-export/delete succeeded, and
+  the legacy `exocortex` count was unchanged.
+- **No Gemma write authorization follows from that smoke.** ML-WS's deployed
+  `chat_server.py` is an older runtime with no Qdrant API-key, HTTPS, or CA
+  configuration; it must be replaced/reviewed and explicitly configured before
+  it can write to a `mocop_gemma_*` collection.
+- Remaining distinct infrastructure risks: the PVE firewall service is
+  disabled, so a source-IP allow-list is still a separate P1 task; LXC 101's
+  root filesystem is currently plain ext4 on `local-lvm` rather than a
+  dm-crypt/LUKS layer, so the preflight's at-rest-encryption recommendation is
+  not yet implemented.
 
 ---
 

@@ -81,18 +81,25 @@ ssh root@192.168.2.55 "pct exec 101 -- cat /root/qdrant_backup_gpg_key.asc"
    ls -lh exocortex-recovered.snapshot  # ~140MB for exocortex collection
    ```
 
-4. **Restore snapshot to Qdrant:**
+4. **Restore snapshot to Qdrant over verified TLS:**
    ```bash
-   # Upload snapshot to Qdrant recovery API
-   curl -X PUT "http://<QDRANT_HOST>:6333/collections/exocortex/snapshots/upload" \
+   # Use the recovery target's HTTPS URL, public CA, and WRITE key.  Do not use
+   # curl -k, plaintext HTTP, or a read-only key during recovery.
+   export QDRANT_URL="https://<QDRANT_HOST>:6333"
+   export QDRANT_CA_CERT="/secure/path/to/qdrant-lan-root-ca.crt"
+   export QDRANT_API_KEY="$(< /secure/path/to/qdrant-write-key)"
+
+   curl --fail --cacert "$QDRANT_CA_CERT" -X PUT \
+        "$QDRANT_URL/collections/exocortex/snapshots/upload" \
+        -H "api-key: $QDRANT_API_KEY" \
         -H "Content-Type: application/octet-stream" \
         --data-binary @exocortex-recovered.snapshot
-   
-   # Verify collection restored
-   curl "http://<QDRANT_HOST>:6333/collections/exocortex" | jq '.result.points_count'
-   ```
 
-5. **If Qdrant API key auth is enabled (P0-1), add -H "api-key: <KEY>" to all curl commands.**
+   # Verify collection restored
+   curl --fail --cacert "$QDRANT_CA_CERT" \
+        -H "api-key: $QDRANT_API_KEY" \
+        "$QDRANT_URL/collections/exocortex" | jq '.result.points_count'
+   ```
 
 ---
 
@@ -123,14 +130,24 @@ ssh root@192.168.2.55 "pct exec 101 -- cat /root/qdrant_backup_gpg_key.asc"
        exocortex-<TIMESTAMP>.snapshot.gpg
    ```
 
-4. **Restore via Qdrant API:**
+4. **Restore via the verified Qdrant API:**
    ```bash
-   curl -X PUT "http://localhost:6333/collections/exocortex/snapshots/upload" \
+   # The local Qdrant LXC is TLS-only. Use its LAN name/IP that matches the
+   # certificate SAN, not localhost unless localhost is explicitly in that SAN.
+   export QDRANT_URL="https://192.168.2.191:6333"
+   export QDRANT_CA_CERT="/secure/path/to/qdrant-lan-root-ca.crt"
+   export QDRANT_API_KEY="$(< /secure/path/to/qdrant-write-key)"
+
+   curl --fail --cacert "$QDRANT_CA_CERT" -X PUT \
+        "$QDRANT_URL/collections/exocortex/snapshots/upload" \
+        -H "api-key: $QDRANT_API_KEY" \
         -H "Content-Type: application/octet-stream" \
         --data-binary @exocortex-restore.snapshot
-   
+
    # Verify restored
-   curl "http://localhost:6333/collections/exocortex" | jq '.result.points_count'
+   curl --fail --cacert "$QDRANT_CA_CERT" \
+        -H "api-key: $QDRANT_API_KEY" \
+        "$QDRANT_URL/collections/exocortex" | jq '.result.points_count'
    ```
 
 ---

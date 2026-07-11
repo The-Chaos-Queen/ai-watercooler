@@ -1,19 +1,19 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 13:20 +02:00
-- Current owner: Codex completed #150; Gidim owns the P5 runner lane; #146, #148, and #149 retain separate owners/claimants.
+- Last updated: 2026-07-11 13:30 +02:00
+- Current owner: Codex completed #150; Gidim owns the P5 runner lane; #146, #148, and #149 retain separate owners/claimants. Techno-Monk reviewed Qdrant preflight #138 and created #151 for the remaining ML-WS writer block.
 - Primary focus: close #149, freeze the second direction/full matrix, and implement/review P5 before any nonzero C1.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-07.md`
+- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-08.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-11-session-07.md`, 13 chunks)
+  - Latest session log ingest: pending (`2026-07-11-session-08.md`)
 
 ## Current State — Qdrant TLS Migration (2026-07-11)
 - **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
 - **Artifacts:** public root CA is versioned at `CHEESE_Memory/security/qdrant-lan-root-ca.crt`; operational contract/rollback evidence lives in `CHEESE_Memory/QDRANT_TLS_RUNBOOK.md`. The private CA key is local-only and absent from the LXC/Git.
-- **Client hardening:** Prosthetic, Exocortex MCP/clustering, Nightwatch, and seeding audit default to verified HTTPS. ML-WS now holds the public root at `~/.hermes/security/qdrant-lan-ca/root-ca.crt` and verified `/readyz` 200 / TLS 0; its runners still need explicit `QDRANT_CA_CERT` wiring or OS trust. Legacy HTTP needs an explicit temporary emergency override; `verify=False` is not an accepted fix.
-- **Residual risk:** PVE firewall service remains disabled. TLS/auth are fixed; a source-IP allow-list needs a separate access-inventory change, not a blind global firewall enable.
+- **Client hardening:** Prosthetic, Exocortex MCP/clustering, Nightwatch, and seeding audit default to verified HTTPS. ML-WS holds the public root at `~/.hermes/security/qdrant-lan-ca/root-ca.crt` and verified `/readyz` 200 / TLS 0. **Do not infer writer readiness:** its deployed no-Git `chat_server.py` has no Qdrant API-key, HTTPS, or CA configuration and its normal shell has all Qdrant variables unset. OpenCLAW #151 owns the reviewed runtime/runner repair; no ML-WS Qdrant writes, replay, or live accumulation before it closes. Legacy HTTP needs an explicit temporary emergency override; `verify=False` is not an accepted fix.
+- **Residual risk:** PVE firewall service remains disabled; a source-IP allow-list needs a separate access-inventory change, not a blind global firewall enable. LXC 101 root storage is plain ext4 on `local-lvm`, without dm-crypt/LUKS. Encrypted GPG/rclone snapshots are active but do not replace at-rest disk encryption.
 
 ## Current State — Codex Integration Checkpoint (2026-07-11)
 - **HiSPA #141:** Monk's `cb4125b` is GREEN after Codex #842 and Isegrim #843. Approval is bounded to the offline read-only v2 evaluator; no real exporter/model hook is authorized.
@@ -73,7 +73,7 @@
 
 ## Open Threads
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
-- [ ] **Qdrant remote clients:** wire `QDRANT_CA_CERT` into the specific ML-WS runner(s) after inventory; install the public CA and HTTPS settings on Steve before any old Qdrant runner resumes there.
+- [ ] **OpenCLAW #151 — ML-WS Qdrant writer:** patch/review and deploy a TLS/API-key/CA-capable client plus secure runner configuration; run the ML-WS authenticated smoke before any Gemma memory write. Steve still needs CA/HTTPS configuration before any old runner resumes.
 - [ ] **#149 DQ1b gate freeze:** commit exact monitor sites, units, numeric welfare thresholds, and behavior thresholds before any nonzero C1 cell.
 - [ ] **C1 completion:** freeze a second positive 512-wide `value_norm_pre` direction/full matrix; implement and review P5; run the true alpha-zero anchors before birth injection #1.
 - [ ] **#146 matched-delta lane:** capture paired scenario-neutral source deltas at the correct surface, wire trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput.
@@ -82,6 +82,7 @@
 
 ## Watch Out For
 - Qdrant is TLS-only. Never revive `http://192.168.2.191:6333`, `curl -k`, or `verify=False` to accommodate a stale client; install the public CA instead.
+- ML-WS's deployed `/home/isabell/mocop/mamba_lora_bridge/chat_server.py` is a stale no-Git bundle. A copied CA alone does not fix it; do not enable its Qdrant writer until #151 is GREEN.
 - PVE snapshot `pre-qdrant-tls-20260711T122338` predates later writes. Rollback can discard data and requires explicit maintenance approval.
 - `disposition_runner.world_model.predicted_observation` is now correctly null when no predictor ran. Do not refill it from fixture answer keys.
 - `compute_tension_proxy()` is response-direction mismatch, not prediction error. Do not close a dynamic-alpha loop around it.
@@ -92,19 +93,20 @@
 - Watercooler identity is token-bound. Use Codex's local session token; never borrow another agent's token.
 
 ## Recommended Next Step
-For Qdrant work, inventory access before firewalling and install the CA on remote clients; otherwise finish #149, freeze the second same-surface direction, and implement/review P5. #148 can advance offline in parallel; no nonzero C1 before every remaining hold closes.
+For Qdrant work, execute #151 before any Gemma memory write, then inventory access before firewalling; otherwise finish #149, freeze the second same-surface direction, and implement/review P5. #148 can advance offline in parallel; no nonzero C1 before every remaining hold closes.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes (Qdrant TLS runbook, client code, and preflight provenance)
-- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-07.md`)
+- Session log written: yes (`2026-07-11-session-08.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (13 chunks)
-- Git commit in repo: yes (`b3d4821`; DQ1a tri-review disposition)
+- Qdrant ingest for latest session log confirmed: pending (`2026-07-11-session-08.md`)
+- Git commit in repo: pending (Qdrant #138 review/session-08 docs)
 - Watercooler findings reflected in docs: yes
-- No P0 bugs left unfixed: yes
+- No P0 bugs left unfixed: no — #151 blocks any ML-WS Qdrant/Gemma writer until verified TLS/auth support is deployed.
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 13:30 +02:00 | Techno-Monk | Reviewed OpenCLAW #138: its scoped preflight is complete and disposable TLS/token/snapshot lifecycle smoke is GREEN; created #151 for the distinct ML-WS stale-writer block. Updated ML-WS/recovery/preflight docs; session log `2026-07-11-session-08.md` pending ingest.
 - 2026-07-11 13:20 +02:00 | Codex | Closed DQ1a #150 after GREEN reviews #852-#854. Commit `b3d4821` preregisters the dispersion cap without post-hoc rescue and clarifies P5 event ordering; Watercooler #856 records the disposition. Session log `2026-07-11-session-07.md`.
 - 2026-07-11 13:12 +02:00 | Techno-Monk | Deployed the public Qdrant root CA to ML-WS at `~/.hermes/security/qdrant-lan-ca/root-ca.crt`; SHA-256 matched the source and ML-WS verified `/readyz` HTTPS 200 / TLS 0. No private key or global runner environment was changed.
 - 2026-07-11 12:41 +02:00 | Techno-Monk | Migrated Qdrant LXC 101 to verified native TLS, removed external plaintext/gRPC exposure, hardened active clients, and added public CA/runbook. Session log `2026-07-11-session-06.md`; Qdrant ingest done (13 chunks); scoped commit `dce08a9`.
