@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** Review; no canon enacted and no runtime code changed
+**Status:** Phase 2 evidence published; `NO_GO_RUN_INCONSISTENT`; no bridge integration authorized
 
 **Scope:** Formal bridge mathematics, World Model implementation state, and sequencing relative to the active Gemma/Mamba bridge lane
 **Review boundary:** Repository through the 2026-07-10 spike/DC results and Watercooler posts #799-#805. The Gemma-4-31B census was still running and is not treated as evidence here.
@@ -37,6 +37,46 @@ subtests passed`. OpenCLAW #148 owns the next falsifiable step: collect real
 pre-action LS20/tool traces and publish a held-out report under the same
 leakage constraints. The sidecar remains excluded from bridge loss, Gemma dose
 targets, and online control.
+
+## Phase 2 Real-Trace Update - 2026-07-11
+
+OpenCLAW #148's falsifiable step is implemented in source commit `29abc1b` and
+published at
+`experiments/mamba_lora_bridge/results/world_model_phase2/phase2_real_v1/`.
+The bundle contains official offline LS20 0.9.8/arcengine 0.9.3 transitions and
+fixed-argv filesystem-tool transitions. Its pre-action journal records and
+fsyncs the state source and frozen forecast before the environment step or tool
+call, then records the outcome separately. Train/eval runs, episodes, source
+groups, and seeds are disjoint.
+
+The immutable identities are:
+
+- source revision: `29abc1bee07d91bbe2cb2b32ea08d315613deed7`;
+- pre-run manifest: `497acb5cbbea6f26afecfaf9c8f28d4bbd7cebba081e35d2f34d07ddef4facd2`;
+- frozen baseline bundle: `6e96fae900fa85a12ac638df6e33d652ae6398cc8648dd143d6934679097bc7a`;
+- pre-evaluation freeze: `7a7d2b856724ed29bff5e24de4b7f5db917ee746415d30cf3762980214d856d2`.
+
+The realized sample is 352 training and 176 held-out transitions. Both domains
+clear preregistered support, transition-micro, and run-macro effect gates. The
+tool domain is positive against both the train-only empirical-marginal and
+action-shuffle nulls on every metric in all 4/4 held-out runs. LS20 is strongly
+positive in aggregate, but only 2/3 held-out runs are positive against both
+nulls on NLL and class-summed multiclass Brier. That is below the frozen 0.75
+run-consistency requirement, producing the honest decision
+`NO_GO_RUN_INCONSISTENT`.
+
+The result does not authorize an offline learned-observer prototype or any
+bridge-loss, Gemma-dose, online action-selection, Qdrant-write, memory-routing,
+or dynamic-alpha integration. A later replication must be a new preregistered
+artifact with more independent LS20 runs; this bundle and its thresholds must
+not be edited after seeing the result.
+
+The verifier re-derives journal custody, source/action/outcome continuity,
+materialized traces, train-frozen estimators, evaluation forecasts, scores,
+decision checks, report text, and artifact hashes. It explicitly claims
+internal consistency only, not independent external attestation. Verification
+after integration: `355 passed, 45 deselected, 5 subtests passed`; Ruff,
+byte-compilation, and whitespace checks clean.
 
 ## Executive Verdict
 

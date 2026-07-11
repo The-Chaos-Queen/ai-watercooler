@@ -1,0 +1,379 @@
+{
+  "alpha": 1.0,
+  "baseline_bundle_sha256": "6e96fae900fa85a12ac638df6e33d652ae6398cc8648dd143d6934679097bc7a",
+  "domains": {
+    "ls20": {
+      "action_shuffle_null": {
+        "estimator_id": "action-shuffle-null-v1:001b866749367806",
+        "mapping": {
+          "{\"arguments\":{},\"name\":\"ACTION1\"}": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+          "{\"arguments\":{},\"name\":\"ACTION2\"}": "{\"arguments\":{},\"name\":\"ACTION4\"}",
+          "{\"arguments\":{},\"name\":\"ACTION3\"}": "{\"arguments\":{},\"name\":\"ACTION2\"}",
+          "{\"arguments\":{},\"name\":\"ACTION4\"}": "{\"arguments\":{},\"name\":\"ACTION1\"}"
+        },
+        "seed": "world-model-phase2-real-v1:ls20"
+      },
+      "action_space": [
+        "{\"arguments\":{},\"name\":\"ACTION1\"}",
+        "{\"arguments\":{},\"name\":\"ACTION2\"}",
+        "{\"arguments\":{},\"name\":\"ACTION3\"}",
+        "{\"arguments\":{},\"name\":\"ACTION4\"}"
+      ],
+      "empirical_marginal_null": {
+        "alpha": 1.0,
+        "counts": [
+          {
+            "observation": "avatar_blocked",
+            "weight": 76.0
+          },
+          {
+            "observation": "avatar_moved",
+            "weight": 212.0
+          }
+        ],
+        "estimator_id": "empirical-marginal-null-v1:ls20:29b3f349d43f6ae2",
+        "observation_space": [
+          "avatar_blocked",
+          "avatar_moved",
+          "level_advanced",
+          "terminal_game_over",
+          "terminal_win"
+        ],
+        "schema_version": "empirical-marginal-null-v1"
+      },
+      "observation_space": [
+        "avatar_blocked",
+        "avatar_moved",
+        "level_advanced",
+        "terminal_game_over",
+        "terminal_win"
+      ],
+      "state_ref_extractor": "ls20-avatar-mask-v1",
+      "tabular": {
+        "alpha": 1.0,
+        "counts": [
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION1\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0011",
+            "weight": 7.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION2\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0011",
+            "weight": 15.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0011",
+            "weight": 11.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION4\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0011",
+            "weight": 11.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION2\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0100",
+            "weight": 1.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0100",
+            "weight": 1.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0101",
+            "weight": 2.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION4\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0101",
+            "weight": 1.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION1\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0111",
+            "weight": 11.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION1\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0111",
+            "weight": 4.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION2\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0111",
+            "weight": 7.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0111",
+            "weight": 5.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION4\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=0111",
+            "weight": 5.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION1\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1001",
+            "weight": 3.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1001",
+            "weight": 2.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION4\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1001",
+            "weight": 1.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION1\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1010",
+            "weight": 8.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION2\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1010",
+            "weight": 7.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1010",
+            "weight": 5.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION4\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1010",
+            "weight": 2.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION1\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1011",
+            "weight": 8.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION2\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1011",
+            "weight": 12.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1011",
+            "weight": 17.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION4\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1011",
+            "weight": 14.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION1\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1100",
+            "weight": 7.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION2\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1100",
+            "weight": 2.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1100",
+            "weight": 5.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1100",
+            "weight": 1.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION1\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1101",
+            "weight": 11.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION2\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1101",
+            "weight": 7.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1101",
+            "weight": 6.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION4\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1101",
+            "weight": 4.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION1\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1110",
+            "weight": 10.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION2\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1110",
+            "weight": 11.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1110",
+            "weight": 10.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION4\"}",
+            "observation": "avatar_blocked",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1110",
+            "weight": 6.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION1\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1111",
+            "weight": 9.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION2\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1111",
+            "weight": 15.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION3\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1111",
+            "weight": 9.0
+          },
+          {
+            "action": "{\"arguments\":{},\"name\":\"ACTION4\"}",
+            "observation": "avatar_moved",
+            "state_ref": "ls20-avatar-mask-v1:state=NOT_FINISHED:level=0:mask=1111",
+            "weight": 15.0
+          }
+        ],
+        "estimator_id": "dirichlet-tabular-v1:ls20:29b3f349d43f6ae2",
+        "observation_space": [
+          "avatar_blocked",
+          "avatar_moved",
+          "level_advanced",
+          "terminal_game_over",
+          "terminal_win"
+        ],
+        "schema_version": "dirichlet-tabular-v1"
+      }
+    },
+    "tool": {
+      "action_shuffle_null": {
+        "estimator_id": "action-shuffle-null-v1:395ad5738b77845e",
+        "mapping": {
+          "{\"arguments\":{\"path\":\"missing.txt\"},\"name\":\"read_text\"}": "{\"arguments\":{\"path\":\"present.txt\"},\"name\":\"read_text\"}",
+          "{\"arguments\":{\"path\":\"present.txt\"},\"name\":\"read_text\"}": "{\"arguments\":{\"path\":\"missing.txt\"},\"name\":\"read_text\"}"
+        },
+        "seed": "world-model-phase2-real-v1:tool"
+      },
+      "action_space": [
+        "{\"arguments\":{\"path\":\"present.txt\"},\"name\":\"read_text\"}",
+        "{\"arguments\":{\"path\":\"missing.txt\"},\"name\":\"read_text\"}"
+      ],
+      "empirical_marginal_null": {
+        "alpha": 1.0,
+        "counts": [
+          {
+            "observation": "not_found",
+            "weight": 32.0
+          },
+          {
+            "observation": "success",
+            "weight": 32.0
+          }
+        ],
+        "estimator_id": "empirical-marginal-null-v1:tool:29b3f349d43f6ae2",
+        "observation_space": [
+          "not_found",
+          "success",
+          "timeout",
+          "tool_error"
+        ],
+        "schema_version": "empirical-marginal-null-v1"
+      },
+      "observation_space": [
+        "not_found",
+        "success",
+        "timeout",
+        "tool_error"
+      ],
+      "state_ref_extractor": "tool-sandbox-v1",
+      "tabular": {
+        "alpha": 1.0,
+        "counts": [
+          {
+            "action": "{\"arguments\":{\"path\":\"missing.txt\"},\"name\":\"read_text\"}",
+            "observation": "not_found",
+            "state_ref": "tool-sandbox-v1:presence=10",
+            "weight": 32.0
+          },
+          {
+            "action": "{\"arguments\":{\"path\":\"present.txt\"},\"name\":\"read_text\"}",
+            "observation": "success",
+            "state_ref": "tool-sandbox-v1:presence=10",
+            "weight": 32.0
+          }
+        ],
+        "estimator_id": "dirichlet-tabular-v1:tool:29b3f349d43f6ae2",
+        "observation_space": [
+          "not_found",
+          "success",
+          "timeout",
+          "tool_error"
+        ],
+        "schema_version": "dirichlet-tabular-v1"
+      }
+    }
+  },
+  "manifest_sha256": "497acb5cbbea6f26afecfaf9c8f28d4bbd7cebba081e35d2f34d07ddef4facd2",
+  "schema_version": "world-model-phase2-baselines-v1",
+  "shuffle_seed": "world-model-phase2-real-v1",
+  "train_trace_sha256": "29b3f349d43f6ae29b3a8509d0513177198a38f5232346fae3e27b88e9f657ef"
+}

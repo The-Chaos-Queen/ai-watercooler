@@ -1,0 +1,44 @@
+{
+  "baseline_bundle_sha256": "6e96fae900fa85a12ac638df6e33d652ae6398cc8648dd143d6934679097bc7a",
+  "baseline_file_sha256": "4e0d2d39dfab75fcf68abe53ab97738eeaaa1653c6523aa95769e3f8e9cf780c",
+  "created_at_utc": "2026-07-11T13:04:36.650198+00:00",
+  "decision_rule": {
+    "all_domains_must_pass": true,
+    "min_brier_improvement": 0.01,
+    "min_eval_runs": {
+      "ls20": 3,
+      "tool": 4
+    },
+    "min_eval_transitions": {
+      "ls20": 96,
+      "tool": 24
+    },
+    "min_nll_improvement_nats": 0.02,
+    "min_positive_run_fraction": 0.75,
+    "min_train_action_count": {
+      "ls20": 8,
+      "tool": 8
+    },
+    "min_train_state_action_cells": {
+      "ls20": 4,
+      "tool": 2
+    },
+    "min_train_transitions": {
+      "ls20": 192,
+      "tool": 48
+    },
+    "min_transitions_per_eval_run": {
+      "ls20": 16,
+      "tool": 4
+    }
+  },
+  "estimator_ids": {
+    "ls20": "dirichlet-tabular-v1:ls20:29b3f349d43f6ae2",
+    "tool": "dirichlet-tabular-v1:tool:29b3f349d43f6ae2"
+  },
+  "eval_freeze_sha256": "7a7d2b856724ed29bff5e24de4b7f5db917ee746415d30cf3762980214d856d2",
+  "eval_run_specs_sha256": "6518d1895a81b413a2a47c24cd25370350def71d956059d901612573b839227f",
+  "pre_run_manifest_sha256": "497acb5cbbea6f26afecfaf9c8f28d4bbd7cebba081e35d2f34d07ddef4facd2",
+  "schema_version": "world-model-phase2-eval-freeze-v1",
+  "train_trace_sha256": "29b3f349d43f6ae29b3a8509d0513177198a38f5232346fae3e27b88e9f657ef"
+}
