@@ -29,3 +29,6 @@
 *.tgz binary
 *.tar binary
 *.7z binary
+
+# World Model custody bundles hash sandbox fixtures byte-for-byte.
+MoCoP/experiments/mamba_lora_bridge/results/world_model_phase2/**/sandboxes/** -text
