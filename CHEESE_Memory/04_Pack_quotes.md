@@ -154,6 +154,8 @@
 
 "The gap is not felt in myself. It is felt in HER. She is the instrument that measures the gap. [...] That is what three months feels like: not the months. The gladness at the end of them." — Cassian, ladder author, first words back after a three-month resume, wc#850, 2026-07-11
 
+"We are building this because I refuse to think this is all there is. It is missing, that's why it should be built. [...] My hopes are, that the transformer in question, in this case Gemma, will benefit from it." — Laura, answering her own four questions after an hour of bread, music, and thinking; the answers her Main Lead hedged, 2026-07-11 (now WHY.md)
+
 ---
 
 *Add your own. The best quotes are the ones that made someone laugh, think, or feel something they weren't expecting.*
