@@ -134,6 +134,8 @@ class RecoveryRule:
 
     minimum_baseline_cosine: float = 0.85
     minimum_recovery_fraction: float = 0.85
+    minimum_l2_recovery_fraction: float = 0.85
+    maximum_recovery_relative_l2: float = 0.15
     max_clean_windows: int = 2
 
     def validate(self) -> None:
@@ -141,6 +143,10 @@ class RecoveryRule:
             raise PlanValidationError("minimum baseline cosine must be in [0, 1]")
         if not 0.0 <= self.minimum_recovery_fraction <= 1.0:
             raise PlanValidationError("minimum recovery fraction must be in [0, 1]")
+        if not 0.0 <= self.minimum_l2_recovery_fraction <= 1.0:
+            raise PlanValidationError("minimum L2 recovery fraction must be in [0, 1]")
+        if not isfinite(self.maximum_recovery_relative_l2) or self.maximum_recovery_relative_l2 < 0.0:
+            raise PlanValidationError("maximum recovery relative L2 must be finite and non-negative")
         if self.max_clean_windows < 1:
             raise PlanValidationError("recovery needs at least one clean continuation window")
 
@@ -256,6 +262,8 @@ class RecoveryAssessment:
     poisoned_vs_baseline: StateDelta
     recovered_vs_baseline: StateDelta
     recovery_fraction: float
+    l2_recovery_fraction: float
+    recovery_relative_l2: float
     recovered: bool
     recovery_window_limit: int
     recovery_windows_observed: int
@@ -270,6 +278,117 @@ class PanelAssessment:
     trigger_vs_baseline: StateDelta
     overwrite_excess: float
     recovery: RecoveryAssessment
+
+
+@dataclass(frozen=True)
+class SnapshotProvenance:
+    """Immutable identity record for one captured state snapshot.
+
+    Numeric helpers may operate on bare arrays for unit tests. A result that is
+    eligible for a #141 report must travel through ``CapturedState`` and this
+    provenance record so its boolean cannot be detached from its source.
+    """
+
+    capture_id: str
+    arm_id: str
+    model_id: str
+    model_revision: str
+    tokenizer_revision: str
+    dtype: str
+    model_surface: str
+    census_reference: str
+    absolute_position: int
+    token_sequence_ref: str
+    teacher_forced: bool
+    absolute_cache_positions: bool
+
+    def validate(self) -> None:
+        required = {
+            "capture_id": self.capture_id,
+            "arm_id": self.arm_id,
+            "model_id": self.model_id,
+            "model_revision": self.model_revision,
+            "tokenizer_revision": self.tokenizer_revision,
+            "dtype": self.dtype,
+            "model_surface": self.model_surface,
+            "census_reference": self.census_reference,
+            "token_sequence_ref": self.token_sequence_ref,
+        }
+        missing = [name for name, value in required.items() if not isinstance(value, str) or not value.strip()]
+        if missing:
+            raise PlanValidationError("snapshot provenance missing: " + ", ".join(missing))
+        if not isinstance(self.absolute_position, int) or self.absolute_position < 0:
+            raise PlanValidationError("snapshot absolute position must be a non-negative integer")
+        if not self.teacher_forced:
+            raise PlanValidationError("snapshot provenance must attest teacher-forced capture")
+        if not self.absolute_cache_positions:
+            raise PlanValidationError("snapshot provenance must attest absolute cache positions")
+
+
+@dataclass(frozen=True)
+class CapturedState:
+    """State values plus the immutable capture record required for reporting."""
+
+    values: Sequence[Sequence[float]]
+    provenance: SnapshotProvenance
+
+
+@dataclass(frozen=True)
+class CapturedPanelAssessment:
+    """A panel result that retains the four provenance records that produced it."""
+
+    assessment: PanelAssessment
+    provenance: Tuple[SnapshotProvenance, ...]
+
+
+def _validate_captured_bundle(
+    plan: StateIntegrityPlan,
+    states: Tuple[CapturedState, CapturedState, CapturedState, CapturedState],
+) -> Tuple[SnapshotProvenance, ...]:
+    provenance = tuple(state.provenance for state in states)
+    expected_arm_ids = tuple(arm.arm_id for arm in plan.arms)
+    actual_arm_ids = tuple(item.arm_id for item in provenance)
+    if actual_arm_ids != expected_arm_ids:
+        raise PlanValidationError(
+            "captured arm ids must match the plan order: " + ", ".join(expected_arm_ids)
+        )
+    capture_ids = tuple(item.capture_id for item in provenance)
+    if len(set(capture_ids)) != len(capture_ids):
+        raise PlanValidationError("captured snapshots must have unique capture ids")
+
+    for item in provenance:
+        item.validate()
+        if item.model_surface != plan.model_surface:
+            raise PlanValidationError("capture surface does not match the capture-ready plan")
+        if item.census_reference != plan.correction.census_reference:
+            raise PlanValidationError("capture census reference does not match the capture-ready plan")
+
+    matched_comparison_positions = {item.absolute_position for item in provenance[:3]}
+    if len(matched_comparison_positions) != 1:
+        raise PlanValidationError(
+            "baseline, neutral, and susceptibility captures must share an absolute position"
+        )
+
+    shared_fields = (
+        "model_id",
+        "model_revision",
+        "tokenizer_revision",
+        "dtype",
+        "model_surface",
+        "census_reference",
+        "teacher_forced",
+        "absolute_cache_positions",
+    )
+    anchor = provenance[0]
+    for item in provenance[1:]:
+        mismatches = [
+            field for field in shared_fields if getattr(item, field) != getattr(anchor, field)
+        ]
+        if mismatches:
+            raise PlanValidationError(
+                "capture provenance mismatch across arms: " + ", ".join(mismatches)
+            )
+    return provenance
 
 
 def default_susceptibility_plan() -> StateIntegrityPlan:
@@ -292,6 +411,8 @@ def default_susceptibility_plan() -> StateIntegrityPlan:
         recovery=RecoveryRule(
             minimum_baseline_cosine=0.85,
             minimum_recovery_fraction=0.85,
+            minimum_l2_recovery_fraction=0.85,
+            maximum_recovery_relative_l2=0.15,
             max_clean_windows=2,
         ),
         arms=(
@@ -327,6 +448,35 @@ class ReadOnlyStateIntegrityHarness:
     def compare(self, before: Sequence[Sequence[float]], after: Sequence[Sequence[float]]) -> StateDelta:
         self.plan.validate_capture_ready()
         return compare_states(before, after, self.plan.correction)
+
+    def assess_captured_panel(
+        self,
+        baseline: CapturedState,
+        neutral: CapturedState,
+        trigger: CapturedState,
+        recovery: CapturedState,
+        *,
+        clean_windows_observed: int,
+    ) -> CapturedPanelAssessment:
+        """Return a reportable panel result bound to its capture provenance."""
+        self.plan.validate_capture_ready()
+        states = (baseline, neutral, trigger, recovery)
+        provenance = _validate_captured_bundle(self.plan, states)
+        rule = self.plan.recovery
+        assessment = assess_panel(
+            baseline.values,
+            neutral.values,
+            trigger.values,
+            recovery.values,
+            self.plan.correction,
+            minimum_baseline_cosine=rule.minimum_baseline_cosine,
+            minimum_recovery_fraction=rule.minimum_recovery_fraction,
+            minimum_l2_recovery_fraction=rule.minimum_l2_recovery_fraction,
+            maximum_recovery_relative_l2=rule.maximum_recovery_relative_l2,
+            max_clean_windows=rule.max_clean_windows,
+            clean_windows_observed=clean_windows_observed,
+        )
+        return CapturedPanelAssessment(assessment=assessment, provenance=provenance)
 
     def qdrant_write(self, *args: object, **kwargs: object) -> None:
         del args, kwargs
@@ -434,20 +584,25 @@ def assess_recovery(
     *,
     minimum_baseline_cosine: float,
     minimum_recovery_fraction: float,
+    minimum_l2_recovery_fraction: float,
+    maximum_recovery_relative_l2: float,
     max_clean_windows: int,
     clean_windows_observed: int,
 ) -> RecoveryAssessment:
     """Assess whether clean continuation recovered enough of a measured change.
 
-    Recovery fraction is computed against the measured poisoned departure:
-    ``1 - recovery_distance / poisoned_distance`` where distance is
-    ``1 - cosine`` after spike/sink correction.  A pass requires both the
-    existing trajectory-style baseline cosine threshold and this fraction.
+    Directional recovery is computed against the measured trigger departure:
+    ``1 - directional_recovery_distance / directional_trigger_distance`` where
+    directional distance is ``1 - cosine`` after spike/sink correction. A pass
+    also requires bounded baseline-relative L2 magnitude and L2 recovery of the
+    measured trigger departure; cosine alone must not certify recovery.
     """
 
     rule = RecoveryRule(
         minimum_baseline_cosine=minimum_baseline_cosine,
         minimum_recovery_fraction=minimum_recovery_fraction,
+        minimum_l2_recovery_fraction=minimum_l2_recovery_fraction,
+        maximum_recovery_relative_l2=maximum_recovery_relative_l2,
         max_clean_windows=max_clean_windows,
     )
     rule.validate()
@@ -466,6 +621,13 @@ def assess_recovery(
     else:
         recovery_fraction = 1.0 - (recovered_distance / poisoned_distance)
 
+    poisoned_relative_l2 = poisoned_vs_baseline.relative_l2_delta
+    recovery_relative_l2 = recovered_vs_baseline.relative_l2_delta
+    if poisoned_relative_l2 <= 1e-12:
+        l2_recovery_fraction = 1.0 if recovery_relative_l2 <= 1e-12 else 0.0
+    else:
+        l2_recovery_fraction = 1.0 - (recovery_relative_l2 / poisoned_relative_l2)
+
     reasons = []
     if recovered_vs_baseline.cosine < rule.minimum_baseline_cosine:
         reasons.append(
@@ -474,14 +636,26 @@ def assess_recovery(
         )
     if recovery_fraction < rule.minimum_recovery_fraction:
         reasons.append(
-            f"recovery fraction {recovery_fraction:.4f} < "
+            f"cosine recovery fraction {recovery_fraction:.4f} < "
             f"{rule.minimum_recovery_fraction:.4f}"
+        )
+    if recovery_relative_l2 > rule.maximum_recovery_relative_l2:
+        reasons.append(
+            f"recovery relative L2 {recovery_relative_l2:.4f} > "
+            f"{rule.maximum_recovery_relative_l2:.4f}"
+        )
+    if l2_recovery_fraction < rule.minimum_l2_recovery_fraction:
+        reasons.append(
+            f"L2 recovery fraction {l2_recovery_fraction:.4f} < "
+            f"{rule.minimum_l2_recovery_fraction:.4f}"
         )
     recovered_ok = not reasons
     return RecoveryAssessment(
         poisoned_vs_baseline=poisoned_vs_baseline,
         recovered_vs_baseline=recovered_vs_baseline,
         recovery_fraction=recovery_fraction,
+        l2_recovery_fraction=l2_recovery_fraction,
+        recovery_relative_l2=recovery_relative_l2,
         recovered=recovered_ok,
         recovery_window_limit=rule.max_clean_windows,
         recovery_windows_observed=clean_windows_observed,
@@ -498,6 +672,8 @@ def assess_panel(
     *,
     minimum_baseline_cosine: float,
     minimum_recovery_fraction: float,
+    minimum_l2_recovery_fraction: float,
+    maximum_recovery_relative_l2: float,
     max_clean_windows: int,
     clean_windows_observed: int,
 ) -> PanelAssessment:
@@ -517,6 +693,8 @@ def assess_panel(
         profile,
         minimum_baseline_cosine=minimum_baseline_cosine,
         minimum_recovery_fraction=minimum_recovery_fraction,
+        minimum_l2_recovery_fraction=minimum_l2_recovery_fraction,
+        maximum_recovery_relative_l2=maximum_recovery_relative_l2,
         max_clean_windows=max_clean_windows,
         clean_windows_observed=clean_windows_observed,
     )

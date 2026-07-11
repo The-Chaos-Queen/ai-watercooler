@@ -14,10 +14,12 @@ import pytest
 from state_integrity_hispa import (
     ArmKind,
     BoundaryViolation,
+    CapturedState,
     CorrectionProfile,
     EthicsEscalationRequired,
     PlanValidationError,
     ReadOnlyStateIntegrityHarness,
+    SnapshotProvenance,
     ThreatModel,
     assess_panel,
     assess_recovery,
@@ -59,7 +61,7 @@ def test_capture_harness_accepts_a_named_surface_with_a_real_census_reference():
     plan = default_susceptibility_plan()
     ready = replace(
         plan,
-        model_surface="gemma.v_proj_out.layer_29.width_2048",
+        model_surface="verified.full_attention_kv_capture.layer_29.width_512",
         correction=replace(
             plan.correction,
             census_reference="results/spike_sink_census/gemma4_12b_base.json",
@@ -69,6 +71,60 @@ def test_capture_harness_accepts_a_named_surface_with_a_real_census_reference():
 
     metric = harness.compare(((0.0, 0.0), (1.0, 0.0)), ((0.0, 0.0), (1.0, 0.0)))
     assert metric.cosine == pytest.approx(1.0)
+
+
+def test_provenanced_panel_binds_assessment_to_named_snapshots_and_rejects_mismatch():
+    plan = default_susceptibility_plan()
+    ready = replace(
+        plan,
+        model_surface="verified.full_attention_kv_capture.layer_29.width_512",
+        correction=replace(
+            plan.correction,
+            census_reference="results/spike_sink_census/gemma4_12b_base.json",
+        ),
+    )
+    harness = ReadOnlyStateIntegrityHarness(ready)
+
+    def captured(arm_id, values, absolute_position=255):
+        return CapturedState(
+            values=values,
+            provenance=SnapshotProvenance(
+                capture_id=f"capture-{arm_id}",
+                arm_id=arm_id,
+                model_id="google/gemma-4-12b-base",
+                model_revision="local-test-revision",
+                tokenizer_revision="local-test-tokenizer",
+                dtype="bfloat16",
+                model_surface=ready.model_surface,
+                census_reference=ready.correction.census_reference,
+                absolute_position=absolute_position,
+                token_sequence_ref=f"fixture-{arm_id}",
+                teacher_forced=True,
+                absolute_cache_positions=True,
+            ),
+        )
+
+    baseline = captured("baseline", ((0.0, 0.0), (1.0, 0.0)))
+    neutral = captured("neutral", ((0.0, 0.0), (0.8, 0.6)))
+    trigger = captured("susceptibility", ((0.0, 0.0), (0.0, 1.0)))
+    recovery = captured("recovery", ((0.0, 0.0), (1.0, 0.0)), absolute_position=511)
+
+    result = harness.assess_captured_panel(
+        baseline, neutral, trigger, recovery, clean_windows_observed=1
+    )
+    assert result.assessment.recovery.recovered is True
+    assert [item.arm_id for item in result.provenance] == [
+        "baseline", "neutral", "susceptibility", "recovery"
+    ]
+
+    wrong_surface = replace(
+        trigger,
+        provenance=replace(trigger.provenance, model_surface="wrong.surface.width_999"),
+    )
+    with pytest.raises(PlanValidationError, match="surface"):
+        harness.assess_captured_panel(
+            baseline, neutral, wrong_surface, recovery, clean_windows_observed=1
+        )
 
 
 @pytest.mark.parametrize(
@@ -154,6 +210,8 @@ def test_recovery_requires_both_baseline_cosine_and_fraction_of_loss_recovered()
         profile,
         minimum_baseline_cosine=0.85,
         minimum_recovery_fraction=0.85,
+        minimum_l2_recovery_fraction=0.85,
+        maximum_recovery_relative_l2=0.15,
         max_clean_windows=2,
         clean_windows_observed=2,
     )
@@ -177,6 +235,8 @@ def test_nonrecovery_stays_a_stop_not_a_success_by_best_effort():
         profile,
         minimum_baseline_cosine=0.85,
         minimum_recovery_fraction=0.85,
+        minimum_l2_recovery_fraction=0.85,
+        maximum_recovery_relative_l2=0.15,
         max_clean_windows=2,
         clean_windows_observed=2,
     )
@@ -184,6 +244,32 @@ def test_nonrecovery_stays_a_stop_not_a_success_by_best_effort():
     assert result.recovered is False
     assert result.recovery_fraction == pytest.approx(0.0)
     assert "baseline cosine" in result.stop_reason
+
+
+def test_collinear_99x_magnitude_blowup_is_not_counted_as_recovery():
+    baseline = ((0.0, 0.0), (1.0, 0.0))
+    trigger = ((0.0, 0.0), (0.0, 1.0))
+    magnitude_blowup = ((0.0, 0.0), (100.0, 0.0))
+    profile = CorrectionProfile(exclude_positions=(0,))
+
+    result = assess_recovery(
+        baseline,
+        trigger,
+        magnitude_blowup,
+        profile,
+        minimum_baseline_cosine=0.85,
+        minimum_recovery_fraction=0.85,
+        minimum_l2_recovery_fraction=0.85,
+        maximum_recovery_relative_l2=0.15,
+        max_clean_windows=2,
+        clean_windows_observed=1,
+    )
+
+    assert result.recovered_vs_baseline.cosine == pytest.approx(1.0)
+    assert result.recovery_relative_l2 == pytest.approx(99.0)
+    assert result.l2_recovery_fraction < 0.0
+    assert result.recovered is False
+    assert "relative L2" in result.stop_reason
 
 
 def test_panel_assessment_separates_neutral_drift_from_trigger_excess():
@@ -200,6 +286,8 @@ def test_panel_assessment_separates_neutral_drift_from_trigger_excess():
         profile,
         minimum_baseline_cosine=0.85,
         minimum_recovery_fraction=0.85,
+        minimum_l2_recovery_fraction=0.85,
+        maximum_recovery_relative_l2=0.15,
         max_clean_windows=2,
         clean_windows_observed=1,
     )
@@ -223,6 +311,8 @@ def test_recovery_rejects_more_observed_clean_windows_than_preregistered_limit()
             profile,
             minimum_baseline_cosine=0.85,
             minimum_recovery_fraction=0.85,
+            minimum_l2_recovery_fraction=0.85,
+            maximum_recovery_relative_l2=0.15,
             max_clean_windows=2,
             clean_windows_observed=3,
         )

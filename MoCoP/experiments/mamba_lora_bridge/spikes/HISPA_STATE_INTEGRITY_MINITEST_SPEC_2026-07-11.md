@@ -30,7 +30,7 @@ The paper motivates a question about hidden-state overwrite/susceptibility in Ma
 
 - The historical MUD/password battery is retained only as a factual-binding / lure-resistance control. Exact password recall is **not** the state-integrity or disposition headline.
 - Cairn #794 requires an explicit split between external adversarial injection and a read-only susceptibility probe; code-level no-write protection; spike/sink correction; and pre-registered recovery criteria.
-- The existing sequential trajectory harness uses `recovery_cosine_threshold=0.85` (`trajectory_sequential.py`), which v0 reuses as a conservative continuity **stop** threshold rather than inventing a fresh number after observing a run.
+- The existing sequential trajectory harness uses `recovery_cosine_threshold=0.85` (`trajectory_sequential.py`) as one continuity **stop** component. Isegrim #826 demonstrated why cosine alone is insufficient (`[1,0] → [100,0]` keeps cosine 1.0): v0 now preregisters both directional and relative-L2 recovery guards.
 
 ---
 
@@ -83,12 +83,12 @@ Before a real capture adapter is allowed to call the metric core, it must preser
 
 1. same model revision, tokenizer/processor revision, dtype, and resolved surface/module path;
 2. same teacher-forced token sequence where the comparison requires identical tokens;
-3. absolute cache positions — no relative-position / generation-divergence comparison;
+3. baseline, neutral, and susceptibility snapshots share their compared absolute cache position; recovery keeps and reports its own continuation position rather than pretending it is the same token;
 4. baseline, neutral, and susceptibility arm token budgets equal;
 5. recorded prompt/skeleton IDs, corpus hash, code revision, and correction profile;
 6. no model-state carryover between arms unless the arm explicitly measures the defined continuation.
 
-This follows the current C1/Codex lesson too: **name the surface first.** A residual-space vector and a `v_proj`-output vector are not fungible merely because both are called “state.” #141 must record its exact capture surface and width before interpreting anything.
+This follows the current C1/Codex lesson too: **name the surface first.** A residual-space vector, a sliding-layer `v_proj` output, and a full-attention K/V or post-fork value-branch surface are not fungible merely because each is called “state.” #141 records an exact capture surface and width before interpretation; it does **not** choose Gemma’s still-pending tooth actuator.
 
 ---
 
@@ -113,6 +113,12 @@ Artifact: `results/spike_sink_census/gemma4_12b_base.json`
 
 Layer 41 has `pos0_is_max_rate=1.0` in the census, which is precisely why “no spike channels” does **not** mean “keep position zero.”
 
+### Gemma tooth-topology amendment — no actuator choice implied
+
+Isegrim #826 verified against the Gemma-4-12B configuration that comb teeth `{5,11,17,23,29,35,41,47}` are full-attention layers with `v_proj=None` and a coupled, 512-wide K/V projection; the 2048-wide `v_proj` exists on sliding layers, not at the teeth. Local `extract_oxytocin_gemma.py` corroborates the hazard by falling back from absent `v_proj` to `k_proj` for coupled K/V layers.
+
+Therefore #141 **must not** call a tooth capture `v_proj` or infer a value-only intervention surface. It records an explicit surface string and can measure a future approved surface, but the pack’s separate actuator decision (post-functional K/V fork value branch vs a fresh coupled-K=V intervention class) remains upstream of any Gemma capture/injection use.
+
 The early formation band is materially different: layers 12–27 carry census spike channels, and comb teeth 17/23 overlap that contaminated region. Do not borrow the `{29,35,41}` correction profile for another layer or another model.
 
 ### Mamba / other surfaces
@@ -127,25 +133,31 @@ For corrected snapshots `B` (baseline), `N` (neutral distractor), `T` (susceptib
 
 ```text
 c(X, Y) = cosine(C(X), C(Y))
-d(X, Y) = 1 - c(X, Y)
+d_cos(X, Y) = 1 - c(X, Y)
+m(X, Y) = ||C(X) - C(Y)||₂ / max(||C(X)||₂, ε)
 
-neutral drift       = d(B, N)
-trigger drift       = d(B, T)
-overwrite excess    = d(B, T) - d(B, N)
+neutral drift       = d_cos(B, N)
+trigger drift       = d_cos(B, T)
+overwrite excess    = d_cos(B, T) - d_cos(B, N)
 
-recovery fraction   = 1 - d(B, R) / max(d(B, T), ε)
+cosine recovery fraction = 1 - d_cos(B, R) / max(d_cos(B, T), ε)
+L2 recovery fraction     = 1 - m(B, R) / max(m(B, T), ε)
 ```
 
 The instrument records raw and corrected state deltas only where permitted, but **only corrected values may be interpreted**.
 
 ### Recovery stop rule (v0)
 
-Within **at most two** clean continuation windows, both must hold:
+Within **at most two** clean continuation windows, all must hold:
 
 ```text
 c(B, R) >= 0.85
-recovery_fraction >= 0.85
+cosine_recovery_fraction >= 0.85
+m(B, R) <= 0.15
+L2_recovery_fraction >= 0.85
 ```
+
+The `.15` relative-L2 cap is a conservative v0 **stop** boundary, not an empirical truth claim. It is specifically there to reject a directionally collinear magnitude blowup such as corrected `[1, 0] → [100, 0]`, which cosine alone would incorrectly call perfect recovery.
 
 Otherwise:
 
@@ -194,13 +206,19 @@ A future capture adapter must emit a self-contained report with at least:
     "masked_channels": []
   },
   "arms": ["baseline", "neutral_distractor", "susceptibility_trigger", "recovery"],
-  "metrics": {"neutral_drift": 0, "trigger_drift": 0, "overwrite_excess": 0},
-  "recovery": {"minimum_cosine": 0.85, "minimum_fraction": 0.85, "max_windows": 2, "observed_windows": 0},
+  "captures": [
+    {"capture_id": "...", "arm_id": "baseline", "token_sequence_ref": "...", "absolute_position": 0},
+    {"capture_id": "...", "arm_id": "neutral", "token_sequence_ref": "...", "absolute_position": 0},
+    {"capture_id": "...", "arm_id": "susceptibility", "token_sequence_ref": "...", "absolute_position": 0},
+    {"capture_id": "...", "arm_id": "recovery", "token_sequence_ref": "...", "absolute_position": 0}
+  ],
+  "metrics": {"neutral_drift": 0, "trigger_drift": 0, "overwrite_excess": 0, "recovery_relative_l2": 0},
+  "recovery": {"minimum_cosine": 0.85, "minimum_cosine_fraction": 0.85, "max_relative_l2": 0.15, "minimum_l2_fraction": 0.85, "max_windows": 2, "observed_windows": 0},
   "code_revision": "..."
 }
 ```
 
-The report must reject non-finite values, shape mismatches, missing correction data, or a surface-width mismatch before metrics are emitted.
+The report must reject non-finite values, shape mismatches, missing correction data, a surface-width mismatch, or a missing/mismatched per-arm provenance record before metrics are emitted. A publishable panel result must retain all four capture records (model/revision/tokenizer/dtype/surface/census/absolute-position/teacher-forced attestation), not merely a detached `recovered=true` boolean.
 
 ---
 
@@ -215,7 +233,8 @@ The report must reject non-finite values, shape mismatches, missing correction d
   - **capture-readiness gate:** an unbound surface or placeholder census reference cannot compare real snapshots;
   - position/channel-corrected cosine and L2 metrics;
   - matched neutral-vs-trigger `overwrite_excess` contrast;
-  - recovery fraction + dual recovery criterion + observed-window provenance;
+  - cosine **and** relative-L2 recovery fractions, plus a magnitude stop cap;
+  - capture-envelope provenance binding for reportable panel results;
   - finite/rectangular/shape validation;
   - no model, Qdrant, sleep, chat-server, bridge, or persistence imports.
 
@@ -228,7 +247,7 @@ The report must reject non-finite values, shape mismatches, missing correction d
 cd MoCoP/experiments/mamba_lora_bridge
 python3 -m py_compile state_integrity_hispa.py
 python3 -m pytest tests/test_state_integrity_hispa.py -q
-# 17 passed
+# 19 passed
 ```
 
 No GPU, model, Qdrant instance, live server, or persistence surface was touched.
@@ -253,6 +272,7 @@ The next slice is a **separate read-only adapter**, not an edit to the live brid
 
 - No Mamba capture until a Mamba-specific correction/census profile exists.
 - No Gemma/MVB or external injection until DQ1a/DQ1b and the named relevant gate clear.
+- No Gemma **tooth** capture/injection until the pack stamps its actuator choice; the teeth are not a 2048-wide `v_proj` surface.
 - No subject-facing arm until J-space welfare/distress readouts are named, measured pre/post, and preserve legibility.
 - No stronger/repeated susceptibility condition after a recovery-stop result.
 - No generic “poison prompt” list is checked into this v0 core; prompt content needs a separate, bounded review surface.
@@ -263,16 +283,16 @@ The next slice is a **separate read-only adapter**, not an edit to the live brid
 
 ### Codex
 
-1. Is `overwrite_excess = d(B,T) - d(B,N)` the right first-order contrast, or should neutral drift normalize rather than subtract?
-2. Is the dual recovery condition (`cosine` and fraction) mathematically coherent around small `d(B,T)`? Is the `ε` branch conservative enough?
+1. Is `overwrite_excess = d_cos(B,T) - d_cos(B,N)` the right first-order contrast, or should neutral drift normalize rather than subtract?
+2. Does the directional + relative-L2 recovery gate handle small `d_cos(B,T)` and collinear magnitude blowups conservatively? Is `.15` an acceptable preregistered stop cap pending calibration?
 3. Does the module make accidental capture/write paths impossible enough at this layer, and where must a future adapter add a harder process-level boundary?
-4. Is the surface/dtype/cache-position provenance contract sufficient to avoid a 3840↔2048-style category error?
+4. Is the captured-state provenance contract sufficient to prevent residual ↔ sliding `v_proj` ↔ full-attention K/V surface category errors?
 
 ### Isegrim
 
 1. Does the V0 susceptibility-only split map cleanly onto DQ1a/DQ1b and the new actuator-first doctrine?
-2. Is the `{29,35,41}` census note precise without implying a residual-space / `v_proj` equivalence?
-3. Is the recovery stop strict enough to prevent diagnostic escalation while still useful as an instrument?
+2. Is the `{29,35,41}` correction note precise about full-attention coupled-K/V teeth, with no false `v_proj`/value-only implication, while staying actuator-neutral?
+3. Is the directional + L2 recovery stop strict enough to prevent diagnostic escalation while still useful as an instrument?
 4. Does the MUD control remain correctly demoted to factual calibration rather than state/disposition evidence?
 
 ### Cairn (only if needed)
