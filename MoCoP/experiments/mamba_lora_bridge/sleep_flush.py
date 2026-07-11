@@ -24,6 +24,7 @@ from datetime import datetime
 from pathlib import Path
 
 from autobiographical_memory import build_recall_text, enrich_memory_metadata, validate_provenance
+from qdrant_transport import build_qdrant_client, qdrant_transport_from_environment
 
 PRIVATE_QDRANT_COLLECTION_PREFIX = "mocop_private_"
 
@@ -74,17 +75,29 @@ def validate_record(line_num: int, record: dict) -> tuple:
     return True, content, metadata, reason
 
 
-def create_sink(host: str, port: int, collection: str, embedding_model: str):
-    """Create a QdrantGateSink-compatible writer. Imports lazily."""
-    from qdrant_client import QdrantClient
+def create_sink(
+    host: str,
+    port: int,
+    collection: str,
+    embedding_model: str,
+    *,
+    qdrant_url: str | None = None,
+    qdrant_ca_cert: str | None = None,
+):
+    """Create a verified-HTTPS Qdrant writer. Imports heavy dependencies lazily."""
+    import hashlib
+
+    transport = qdrant_transport_from_environment(
+        host=host,
+        port=port,
+        url=qdrant_url,
+        ca_cert=qdrant_ca_cert,
+    )
+
     from qdrant_client.models import Distance, PointStruct, VectorParams
     from sentence_transformers import SentenceTransformer
-    import hashlib
-    import os
 
-    # P0-1: API key authentication support
-    api_key = os.environ.get("QDRANT_API_KEY")
-    client = QdrantClient(host=host, port=port, timeout=10, api_key=api_key)
+    client = build_qdrant_client(transport, timeout=10)
     model = SentenceTransformer(embedding_model)
     embedding_dim = int(model.get_sentence_embedding_dimension())
     known_collections = {c.name for c in client.get_collections().collections}
@@ -156,8 +169,10 @@ def rotate_log(path: Path):
 def main():
     parser = argparse.ArgumentParser(description="Flush pending Qdrant writes.")
     parser.add_argument("--pending-path", required=True, help="Path to qdrant_gate_pending.jsonl")
-    parser.add_argument("--host", default="192.168.2.191", help="Qdrant host")
-    parser.add_argument("--port", type=int, default=6333, help="Qdrant port")
+    parser.add_argument("--host", default="192.168.2.191", help="Qdrant host (HTTPS fallback)")
+    parser.add_argument("--port", type=int, default=6333, help="Qdrant HTTPS port")
+    parser.add_argument("--qdrant-url", default="", help="Verified HTTPS Qdrant origin; overrides --host/--port")
+    parser.add_argument("--qdrant-ca-cert", default="", help="PEM root CA path; defaults to QDRANT_CA_CERT")
     parser.add_argument("--collection", default="exocortex", help="Qdrant collection name")
     parser.add_argument("--embedding-model", default="all-MiniLM-L6-v2")
     parser.add_argument("--dry-run", action="store_true", help="Validate and count, don't write")
@@ -200,7 +215,14 @@ def main():
             print(f"  line {line_num}: [{decision}] -> {target_collection} {preview}...")
         return 0
 
-    store = create_sink(args.host, args.port, args.collection, args.embedding_model)
+    store = create_sink(
+        args.host,
+        args.port,
+        args.collection,
+        args.embedding_model,
+        qdrant_url=args.qdrant_url,
+        qdrant_ca_cert=args.qdrant_ca_cert,
+    )
 
     written = 0
     failed = 0

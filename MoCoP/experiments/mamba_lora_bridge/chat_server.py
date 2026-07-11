@@ -8,6 +8,7 @@ then a configured speaker can talk to the model from a browser on the LAN.
 import argparse
 import hashlib
 import json
+import os
 import math
 import re
 import threading
@@ -46,6 +47,11 @@ from astrocyte_memory_controller import (
 )
 from failure_detector import detect_failure
 from mamba_runtime_compat import ensure_mamba_ssm_compat
+from qdrant_transport import (
+    QdrantTransport,
+    build_qdrant_client,
+    qdrant_transport_from_environment,
+)
 from models import (
     DynamicLoRALinear,
 )
@@ -1526,17 +1532,32 @@ def resolve_memory_scope_args(args):
 
 
 class QdrantGateSink:
-    """Minimal Exocortex-compatible writer for Steve gate events."""
+    """Minimal Exocortex-compatible writer for verified Qdrant gate events."""
 
-    def __init__(self, host: str, port: int, collection_name: str, embedding_model: str):
-        from qdrant_client import QdrantClient
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        collection_name: str,
+        embedding_model: str,
+        *,
+        transport: Optional[QdrantTransport] = None,
+        qdrant_url: Optional[str] = None,
+        qdrant_ca_cert: Optional[str] = None,
+    ):
+        self.collection_name = collection_name
+        self.transport = transport or qdrant_transport_from_environment(
+            host=host,
+            port=port,
+            url=qdrant_url,
+            ca_cert=qdrant_ca_cert,
+        )
+        self.transport_cache_key = self.transport.cache_key
+
         from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, PointStruct, VectorParams
         from sentence_transformers import SentenceTransformer
 
-        self.collection_name = collection_name
-        # P0-1: API key authentication support
-        api_key = os.environ.get("QDRANT_API_KEY")
-        self.client = QdrantClient(host=host, port=port, timeout=10, api_key=api_key)
+        self.client = build_qdrant_client(self.transport, timeout=10)
         self.point_struct_cls = PointStruct
         self.filter_cls = Filter
         self.field_condition_cls = FieldCondition
@@ -3929,44 +3950,54 @@ def note_qdrant_sink_failure(exc):
 def ensure_qdrant_gate_sink(force_retry: bool = False):
     global QDRANT_GATE_SINK, QDRANT_GATE_SINK_ERROR, QDRANT_LAST_RETRY_TS
 
+    assert ARGS is not None, "Qdrant gate requested before runtime arguments were parsed"
     if not ARGS.qdrant_enabled:
         return None
     with QDRANT_GATE_LOCK:
-        cache_key = (
-            str(ARGS.qdrant_host),
-            int(ARGS.qdrant_port),
-            str(ARGS.qdrant_collection),
-            str(ARGS.qdrant_embedding_model),
-        )
-        if QDRANT_GATE_SINK is not None:
-            if getattr(QDRANT_GATE_SINK, "collection_name", None) == ARGS.qdrant_collection:
-                return QDRANT_GATE_SINK
-            QDRANT_GATE_SINK = None
-        cached_sink = QDRANT_SINK_CACHE.get(cache_key)
-        if cached_sink is not None:
-            QDRANT_GATE_SINK = cached_sink
-            QDRANT_GATE_SINK_ERROR = None
-            QDRANT_LAST_RETRY_TS = time.time()
-            update_runtime_state(
-                last_qdrant_error="",
-                last_qdrant_retry_at=datetime.now().isoformat(timespec="seconds"),
-            )
-            refresh_qdrant_collection_count(sink=QDRANT_GATE_SINK)
-            return QDRANT_GATE_SINK
-        if QDRANT_GATE_SINK_ERROR and not force_retry:
-            return None
-
         try:
+            transport = qdrant_transport_from_environment(
+                host=ARGS.qdrant_host,
+                port=ARGS.qdrant_port,
+                url=getattr(ARGS, "qdrant_url", ""),
+                ca_cert=getattr(ARGS, "qdrant_ca_cert", ""),
+            )
+            cache_key = (
+                *transport.cache_key,
+                str(ARGS.qdrant_collection),
+                str(ARGS.qdrant_embedding_model),
+            )
+            if QDRANT_GATE_SINK is not None:
+                if (
+                    getattr(QDRANT_GATE_SINK, "collection_name", None) == ARGS.qdrant_collection
+                    and getattr(QDRANT_GATE_SINK, "transport_cache_key", None) == transport.cache_key
+                ):
+                    return QDRANT_GATE_SINK
+                QDRANT_GATE_SINK = None
+            cached_sink = QDRANT_SINK_CACHE.get(cache_key)
+            if cached_sink is not None:
+                QDRANT_GATE_SINK = cached_sink
+                QDRANT_GATE_SINK_ERROR = None
+                QDRANT_LAST_RETRY_TS = time.time()
+                update_runtime_state(
+                    last_qdrant_error="",
+                    last_qdrant_retry_at=datetime.now().isoformat(timespec="seconds"),
+                )
+                refresh_qdrant_collection_count(sink=QDRANT_GATE_SINK)
+                return QDRANT_GATE_SINK
+            if QDRANT_GATE_SINK_ERROR and not force_retry:
+                return None
+
             QDRANT_GATE_SINK = QdrantGateSink(
                 host=ARGS.qdrant_host,
                 port=ARGS.qdrant_port,
                 collection_name=ARGS.qdrant_collection,
                 embedding_model=ARGS.qdrant_embedding_model,
+                transport=transport,
             )
             QDRANT_GATE_SINK_ERROR = None
             QDRANT_LAST_RETRY_TS = time.time()
             print(
-                f"[qdrant] Online: host={ARGS.qdrant_host}:{ARGS.qdrant_port} "
+                f"[qdrant] Online: endpoint={transport.endpoint} "
                 f"collection={ARGS.qdrant_collection}"
             )
             QDRANT_SINK_CACHE[cache_key] = QDRANT_GATE_SINK
@@ -5574,6 +5605,8 @@ def main():
     parser.add_argument("--no-qdrant", dest="qdrant_enabled", action="store_false")
     parser.add_argument("--qdrant-host", default="192.168.2.191")
     parser.add_argument("--qdrant-port", type=int, default=6333)
+    parser.add_argument("--qdrant-url", default=os.environ.get("QDRANT_URL", ""))
+    parser.add_argument("--qdrant-ca-cert", default=os.environ.get("QDRANT_CA_CERT", ""))
     parser.add_argument("--qdrant-collection", default="exocortex")
     parser.add_argument("--qdrant-embedding-model", default="all-MiniLM-L6-v2")
     parser.add_argument("--qdrant-pending-path", default="qdrant_gate_pending.jsonl")

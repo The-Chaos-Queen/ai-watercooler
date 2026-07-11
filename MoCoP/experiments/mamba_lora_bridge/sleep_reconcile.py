@@ -906,8 +906,10 @@ def main():
         default="failure_log.jsonl",
         help="Optional failure packet log to fold into sleep residue generation",
     )
-    parser.add_argument("--host", default="192.168.2.191", help="Qdrant host")
-    parser.add_argument("--port", type=int, default=6333, help="Qdrant port")
+    parser.add_argument("--host", default="192.168.2.191", help="Qdrant host (HTTPS fallback)")
+    parser.add_argument("--port", type=int, default=6333, help="Qdrant HTTPS port")
+    parser.add_argument("--qdrant-url", default="", help="Verified HTTPS Qdrant origin; overrides --host/--port")
+    parser.add_argument("--qdrant-ca-cert", default="", help="PEM root CA path; defaults to QDRANT_CA_CERT")
     parser.add_argument("--collection", default="exocortex")
     parser.add_argument("--embedding-model", default="all-MiniLM-L6-v2")
     parser.add_argument(
@@ -1024,7 +1026,14 @@ def main():
     if not args.dry_run and not args.skip_qdrant:
         try:
             from sleep_flush import create_sink
-            sink_fn = create_sink(args.host, args.port, args.collection, args.embedding_model)
+            sink_fn = create_sink(
+                args.host,
+                args.port,
+                args.collection,
+                args.embedding_model,
+                qdrant_url=args.qdrant_url,
+                qdrant_ca_cert=args.qdrant_ca_cert,
+            )
         except Exception as exc:
             print(f"[warn] Could not create Qdrant sink: {exc}")
 

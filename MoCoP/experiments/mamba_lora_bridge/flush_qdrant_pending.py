@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 
 from autobiographical_memory import validate_provenance
+from qdrant_transport import build_qdrant_client, qdrant_transport_from_environment
 
 
 def append_jsonl(path: Path, row):
@@ -53,16 +54,28 @@ def rewrite_jsonl(path: Path, rows):
 
 
 class QdrantGateSink:
-    def __init__(self, host: str, port: int, collection_name: str, embedding_model: str):
-        from qdrant_client import QdrantClient
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        collection_name: str,
+        embedding_model: str,
+        *,
+        qdrant_url: str | None = None,
+        qdrant_ca_cert: str | None = None,
+    ):
+        self.collection_name = collection_name
+        self.transport = qdrant_transport_from_environment(
+            host=host,
+            port=port,
+            url=qdrant_url,
+            ca_cert=qdrant_ca_cert,
+        )
+
         from qdrant_client.models import PointStruct
         from sentence_transformers import SentenceTransformer
-        import os
 
-        self.collection_name = collection_name
-        # P0-1: API key authentication support
-        api_key = os.environ.get("QDRANT_API_KEY")
-        self.client = QdrantClient(host=host, port=port, timeout=15, api_key=api_key)
+        self.client = build_qdrant_client(self.transport, timeout=15)
         self.point_struct_cls = PointStruct
         self.model = SentenceTransformer(embedding_model)
 
@@ -114,6 +127,8 @@ def main():
     parser.add_argument("--archive-path", required=True)
     parser.add_argument("--qdrant-host", default="192.168.2.191")
     parser.add_argument("--qdrant-port", type=int, default=6333)
+    parser.add_argument("--qdrant-url", default="")
+    parser.add_argument("--qdrant-ca-cert", default="")
     parser.add_argument("--qdrant-collection", default="exocortex")
     parser.add_argument("--qdrant-embedding-model", default="all-MiniLM-L6-v2")
     parser.add_argument("--max-items", type=int, default=100)
@@ -128,6 +143,8 @@ def main():
         port=args.qdrant_port,
         collection_name=args.qdrant_collection,
         embedding_model=args.qdrant_embedding_model,
+        qdrant_url=args.qdrant_url,
+        qdrant_ca_cert=args.qdrant_ca_cert,
     )
 
     kept_rows = []

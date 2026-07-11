@@ -469,22 +469,75 @@ The public LAN root CA is installed at:
 /home/isabell/.hermes/security/qdrant-lan-ca/root-ca.crt
 ```
 
-**Hard stop (2026-07-11):** the deployed runtime bundle's `chat_server.py` is
-older than the local security hardening. It has no Qdrant API-key, HTTPS, or CA
-configuration. Do **not** start it with Qdrant writes, replay, or live memory
-accumulation against the TLS-only service. A reachable `192.168.2.191:6333`
-does not make its old host/port client safe or functional.
+**Deployment gate (OpenCLAW #151, 2026-07-11):** any ML-WS bundle that lacks
+`qdrant_transport.py` is a pre-hardening bundle. Do **not** start its
+`chat_server.py`, `sleep_flush.py`, `sleep_reconcile.py`, or
+`flush_qdrant_pending.py` with Qdrant enabled. A reachable
+`192.168.2.191:6333` does not make a legacy host/port client safe or functional.
+
+The reviewed replacement has one fail-closed transport path:
+
+- it accepts `QDRANT_URL` (or legacy host/port only to construct an HTTPS URL),
+  rejects plaintext HTTP, and passes `verify=<CA path>` to `qdrant-client`;
+- writers require `QDRANT_API_KEY`; readers use the separately scoped
+  `QDRANT_READ_KEY`; neither key belongs in Git, command-line arguments, or this
+  runbook;
+- `chat_server.py`, pending flush, sleep flush, and sleep reconciliation all use
+  that transport path; Gemma writes still pass the strict provenance gate.
+
+### ML-WS private runner environment
+
+Install the public CA before configuring the runner. Keep role-specific secrets
+outside the bundle:
+
+```text
+~/.config/mocop/                  directory mode 0700
+~/.config/mocop/qdrant-writer.env mode 0600; QDRANT_URL, QDRANT_CA_CERT, QDRANT_API_KEY
+~/.config/mocop/qdrant-reader.env mode 0600; QDRANT_URL, QDRANT_CA_CERT, QDRANT_READ_KEY
+```
+
+The writer environment is loaded only by `with_qdrant_writer_env.sh`; that
+wrapper rejects an unreadable/missing file and group/world-readable modes. It
+never prints credential values. Do not `source` either file into a shell that
+will log its environment or into a shared service definition.
+
+From the synchronized bundle, prove the exact `torch311` writer runtime before
+any Qdrant-enabled chat/sleep launch. This performs one authenticated,
+CA-validated collection read and no write, model load, replay, birth, or Gemma
+memory action:
+
+```bash
+cd /home/isabell/mocop/mamba_lora_bridge
+./with_qdrant_writer_env.sh \
+  /home/isabell/miniforge3/envs/torch311/bin/python qdrant_writer_smoke.py \
+  --collection exocortex
+```
+
+Expected result is JSON containing `"authenticated_tls_smoke": "ok"`. Never
+substitute `verify=False`, `curl -k`, or plaintext HTTP to make this pass.
+
+`start.sh` is deliberately Qdrant-disabled by default. It may enter writer mode
+only with the explicit second gate below, after the preceding smoke and a
+separate authorization for the intended memory action:
+
+```bash
+MOCOP_ENABLE_QDRANT_WRITES=1 setsid -f ./start.sh
+```
+
+That switch merely permits the reviewed transport; it does **not** authorize
+Gemma memory writes, birth, replay, live accumulation, or a provenance bypass.
+The model/action gate remains separate.
 
 Before any ML-WS runner is allowed to write Qdrant:
 
-1. Sync/review a TLS-capable Qdrant client implementation; it must use the
-   HTTPS URL and `verify=/home/isabell/.hermes/security/qdrant-lan-ca/root-ca.crt`.
-2. Supply only the appropriate non-Git credentials at launch:
-   `QDRANT_API_KEY` for writers, `QDRANT_READ_KEY` for readers, and
-   `QDRANT_CA_CERT` for the trust path. Never put their values in this runbook.
-3. Run the disposable Qdrant preflight: unauthenticated read rejected,
-   read key write rejected, temporary collection create/read/snapshot-export/
-   delete succeeds, and legacy collection count is unchanged.
+1. Verify the deployed provenance/hash against the reviewed #151 release and
+   run the authenticated TLS smoke above.
+2. Supply only the appropriate non-Git role credential at launch. Writer and
+   reader keys must not be combined in a single runner environment.
+3. Run the disposable service-level Qdrant preflight: unauthenticated read
+   rejected, read key write rejected, temporary collection
+   create/read/snapshot-export/delete succeeds, and legacy collection count is
+   unchanged.
 4. For Gemma collections, retain the strict provenance write gate; do not set
    `MOCOP_PROVENANCE_STRICT=0` as a convenience escape hatch.
 
@@ -566,39 +619,16 @@ HF_HUB_OFFLINE=1
 TRANSFORMERS_OFFLINE=1
 ```
 
-Current known-good IRC server launch pattern:
+Current canonical IRC server launch pattern (safe default, Qdrant disabled):
 
 ```bash
 cd /home/isabell/mocop/mamba_lora_bridge
-setsid -f env \
-  HF_HOME=/home/isabell/ml/hf_cache \
-  HF_HUB_CACHE=/home/isabell/ml/hf_cache/hub \
-  HF_HUB_OFFLINE=1 \
-  TRANSFORMERS_OFFLINE=1 \
-  /home/isabell/miniforge3/bin/mamba run -n torch311 python chat_server.py \
-    --model Qwen/Qwen2.5-1.5B \
-    --bridge-path cheese_reincarnation_bridge_1.5b_codexfix.pt \
-    --episodes-file CHEESE_SHAPING_EPISODES.md \
-    --episode-index 2 \
-    --instance-id lobby \
-    --no-shared-memory \
-    --qdrant-host 192.168.2.191 \
-    --qdrant-port 6333 \
-    --no-ambient-recall \
-    --memory-integration-mode both \
-    --memory-state-max-tokens 768 \
-    --live-accumulation \
-    --qwen-device cuda:0 \
-    --mamba-device cuda:0 \
-    --user-label User \
-    --model-label Me \
-    --alpha 0.2 \
-    --temperature 0.2 \
-    --max-new-tokens 120 \
-    --host 0.0.0.0 \
-    --port 7860 \
-  > chat_server_irc.log 2>&1 < /dev/null
+setsid -f ./start.sh > chat_server_irc.log 2>&1 < /dev/null
 ```
+
+Do not add `MOCOP_ENABLE_QDRANT_WRITES=1` merely because the chat server starts.
+That is a separate memory-action authorization after the TLS smoke and
+provenance gate are green.
 
 Opussy organic-seeding URL:
 
