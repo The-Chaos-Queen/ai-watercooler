@@ -109,13 +109,13 @@
 - Session log written: yes (`2026-07-11-session-14.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: skipped (DOL-0/DQ1b no-write closure discipline; no attempt made)
-- Git commit in repo: yes (`e7b5902`, `5e3eacf`, `4e05c59`, `806c6f9`, `a89545e`; session-14 continuity closure pending)
+- Git commit in repo: yes (`e7b5902`, `5e3eacf`, `4e05c59`, `806c6f9`, `a89545e`, `d3a34da` session-14 continuity closure)
 - Watercooler findings reflected in docs: yes (`DOL0...SPEC`, corrected `DQ1B...DRAFT`, Watercooler #867–#889)
 - No P0 bugs left unfixed: no new P0 found; numeric C1 gate is honestly blocked, not filed as resolved
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-11 19:33 +02:00 | Techno-Monk | Landed `a89545e` after Codex #886 and Isegrim #888: B0 no-component baseline precedes final behavior/recovery numerics; B0/C1 run kinds/manifests separated; exact 32-panel to #130 48-probe evaluator mapping must be explicit; recovery is carryover-only with absolute-span + `overwrite_excess >= 0.05` gate, so a fresh stateless replay is invalid. #889 source review requested; #149 remains blocked; no model/GPU/B0/C1/Qdrant action. Session-14 recorded; Qdrant ingest skipped.
+- 2026-07-11 19:33 +02:00 | Techno-Monk | Landed `a89545e` after Codex #886 and Isegrim #888: B0 no-component baseline precedes final behavior/recovery numerics; B0/C1 run kinds/manifests separated; exact 32-panel to #130 48-probe evaluator mapping must be explicit; recovery is carryover-only with absolute-span + `overwrite_excess >= 0.05` gate, so a fresh stateless replay is invalid. #889 source review requested; #149 remains blocked; no model/GPU/B0/C1/Qdrant action. Session-14 recorded; Qdrant ingest skipped; continuity closure `d3a34da`.
 - 2026-07-11 19:14 +02:00 | Techno-Monk | Laura caught Codex #874 review; corrected #149 source in `806c6f9`: raw m-normalized ratios demoted to report-only, paired delta-space G/D/Q and causal joint map bound, `D_control >= 0.5` HOLD scope landed, distant-secondary calibration made non-self-clearing/non-authorizing. #885 requests source review. #149 remains blocked; no model/GPU/C1/Qdrant action. Session-13 recorded; Qdrant ingest skipped; continuity closure `496a2db`.
 - 2026-07-11 17:26 +02:00 | Techno-Monk | Landed named-review structural hardening for #149 in `4e05c59`: downstream carry-through null, upstream zero-canaries, honest `3/2/1/1` coverage, exact DQ1a aggregation, and manifest reference binding. Preserved numeric conflict (`R_C >= 0.5` vs raw null `≈1`) rather than selecting a threshold; Watercooler #870 requests reconciliation and #871 records delta. Session-12 recorded; Qdrant ingest skipped; continuity closure `a6638c3`.
 - 2026-07-11 17:16 +02:00 | Techno-Monk | Completed design-only DOL-0 #154 (`e7b5902`, no Qdrant/model/capture action) and drafted DQ1b #149 (`5e3eacf`); routed Cairn/Gidim/Isegrim review in Watercooler #867, then blocked #149 pending numeric threshold binding. Session-11 recorded; ingest skipped to preserve DOL-0's structural no-Qdrant-write boundary; continuity closure `32664b1`.
