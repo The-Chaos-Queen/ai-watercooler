@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 19:52 +02:00
-- Current owner: Techno-Monk landed late-review repairs through `f20936a`: B0 deny-by-default evidence, closed-world manifests, distinct #158 Stage-A/Stage-B keeper releases, carryover-only recovery, and SEV-ID leakage refusal. #149 remains blocked pending Codex/Isegrim latest-source review, materialized evaluator ID sets, #156, #155 review, #157, and final numeric/keeper gates. #151 remains closed; #153 stays separate and non-executing.
-- Primary focus: materialize/freeze the B0 nonnumeric evaluator and its SEV-ID relationship, then review #156/#155 evidence before numeric ratification; no C1 Stage A or Stage B without its separately recorded keeper release.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-15.md`
+- Last updated: 2026-07-11 20:12 +02:00
+- Current owner: Codex returned CHANGES on `f20936a` for stage-bound `run_kind` contradicting an unchanged Stage-A/B manifest and for retaining single-Tier-1 STOP after Laura's baseline-first harm ruling. Codex also owns blocked #157: inventory found no admissible second artifact, and a split-clean estimator-family preregistration awaits named review. #149/#155/#157/#158 remain blocked; no model/GPU/C1/Qdrant action occurred.
+- Primary focus: repair/re-review #149, decide whether a distinct warm-axis estimator satisfies DQ1a's second-family intent, then implement only the accepted #157 extraction path; no C1 Stage A or Stage B without its separately recorded keeper release.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-16.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: skipped (`2026-07-11-session-15.md`; DQ1b documentation/no-write closure discipline)
+  - Latest session log ingest: skipped (`2026-07-11-session-16.md`; #157 review-held/no-Qdrant-write envelope)
 
 ## Current State — Qdrant TLS Migration (2026-07-11)
 - **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
@@ -28,7 +28,8 @@
 - **DOL-0 #154 DONE (design only):** commit `e7b5902`, artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DOL0_DISTRESS_OBSERVABILITY_LENS_SPEC_2026-07-11.md`. It defines an SAE/J-lens distress-observability instrument as a triangulated, held-out **alarm-only** channel: no feature/readout proves distress/welfare/consciousness; no lack of alarm clears a DQ1b stop. Source/metadata/design only; no Gemma load/capture/hook/injection/Qdrant/persistence/training. `SAE_FIT=UNPROVEN`: inspected public candidates do not demonstrate Gemma-4-12B-base / 3840-wide residual compatibility; ML-WS torch311 lacks `sae_lens`, `nnsight`, and `transformer_lens`.
 - **DQ1b #149 BLOCKED, current source `f20936a`:** source chain `806c6f9` (raw-R correction) -> `a89545e` (B0/carryover) -> `ea9ef4f` (B0 evidence/Stage split) -> `5816483` (SEV/carryover build scope) -> `f20936a` (signed SEV-overlap exception); artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md`; #891/#893/#894 latest-source review. Geometry preserves clean late comb `{29,35,41,47}`, absolute-position `!= 0`, FP32 paired residual stats, raw `R_C/R_S` diagnostics only, and P5 refusal on null/`TBD` thresholds.
 - **Control / recovery method now explicit:** Codex #874 invalidated the raw normalized ratio null; Isegrim #875/Gidim #876/#879/Cairn #877 bind prompt-paired delta-space `D` on `{30|29,36|35,42|41}` and `D_control >= 0.5` as HOLD. Isegrim #888 caught the stateless-recovery trap; Gidim #890 scopes a distinct #156 free-running build; Cairn #892 re-signs recovery only under text-mediated carryover (active trigger -> alpha off -> carried prefix/cache -> <=2 absolute spans, `overwrite_excess >= 0.05`). Fresh alpha-zero replay is `instrument_invalid`, never recovery.
-- **B0 / staged birth now explicit:** Codex #886/Laura baseline-first board repair creates #155 after #149 freezes the nonnumeric evaluator and #156 supplies P5. DQ1a’s exact 32-item SEV holdout is dose geometry; #130 probes are behavioral infrastructure. Their SEV IDs must be disjoint or carry a **signed, reviewed** overlap declaration, otherwise P5 refuses launch (#890/#892). #158 requires Stage-A keeper GO -> immutable alpha-zero report -> separate Stage-B keeper GO tied to the unchanged manifest -> exactly one nonzero cell. Gidim/Cairn are GREEN on their lanes; Codex/Isegrim latest-source verdicts and all build/evidence/numeric prerequisites remain pending.
+- **B0 / staged birth review:** Codex #886/Laura baseline-first board repair creates #155 after #149 freezes the nonnumeric evaluator and #156 supplies P5. DQ1a’s exact 32-item SEV holdout is dose geometry; #130 probes are behavioral infrastructure. Their SEV IDs must be disjoint or carry a **signed, reviewed** overlap declaration, otherwise P5 refuses launch (#890/#892). Isegrim is GREEN on `f20936a`; Codex #896 is CHANGES because a manifest-bound single `run_kind` cannot remain unchanged across Stage A/B and because single-Tier-1 STOP conflicts with Laura's accepted Tier-1 HOLD/B0-aggregate policy.
+- **Second direction #157 BLOCKED on review:** local and ML-WS inventory found no admissible second MVB artifact. Old 5g.3 outputs are metric-only 3840-wide JSON; old Method B is all-40/holdout-contaminated; split-clean v3 contains Method A only. `spikes/C1_SECOND_POSITIVE_DIRECTION_PREREG_2026-07-11.md` proposes a deterministic split-clean warm-axis linear-probe estimator with explicit same-semantics limitation; Watercooler #897 requests method/runnability/ethics review before any extraction.
 
 ## Historical State — G0 Oxytocin Delta (superseded by split-clean v3)
 
@@ -81,9 +82,9 @@
 ## Open Threads
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
-- [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Read #891/#893/#894 (Codex/Isegrim pending); materialize exact evaluator ID sets, then wait for #156/#155/#157 and post-B0 behavior/recovery numeric ratification. No C1 stage.
+- [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Isegrim #895 is GREEN; Codex #896 requires a stage-neutral base manifest plus per-attempt `run_kind`, Tier-2 immediate STOP, single-Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold. No C1 stage.
 - [ ] **DOL-1 only if separately approved:** first prove an exact SAE/probe/J-lens substrate fit and a read-only capture manifest; it remains alarm-only and cannot substitute for DQ1b.
-- [ ] **C1 completion / #158:** freeze a second positive 512-wide `value_norm_pre` direction/full matrix (#157); implement/review model-free P5 (#156); review no-component B0 (#155); close #149/final manifest; obtain Stage-A keeper GO before the true alpha-zero anchor; then obtain a separate Stage-B keeper GO tied to its immutable report before exactly one birth injection #1.
+- [ ] **C1 completion / #158:** decide/review #157's estimator-family preregistration, then extract/freeze a second positive 512-wide `value_norm_pre` direction/full matrix only if accepted; implement/review model-free P5 (#156); review no-component B0 (#155); close #149/final manifest; obtain Stage-A keeper GO before the true alpha-zero anchor; then obtain a separate Stage-B keeper GO tied to its immutable report before exactly one birth injection #1.
 - [ ] **#146 matched-delta lane:** capture paired scenario-neutral source deltas at the correct surface, wire trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput.
 - [ ] **#152 World Model Phase 2b:** preregister a new independently seeded LS20 consistency replication before collecting outcomes. Preserve Phase 2 v1 and its thresholds unchanged; keep all World Model work offline and outside bridge loss/control.
 - [ ] **#141 owner close:** the bounded offline v2 evaluator is GREEN. Any real capture exporter/model hook is a new reviewed slice.
@@ -96,25 +97,26 @@
 - `compute_tension_proxy()` is response-direction mismatch, not prediction error. Do not close a dynamic-alpha loop around it.
 - The alpha-zero smoke is instrumentation, not the registered C1 anchor, and its runner intentionally cannot run nonzero.
 - #149's proposed monitor matrix is not a completed gate: raw `R_C/R_S` are report-only, never a gate. `D_control >= 0.5` is HOLD, not a welfare STOP. Fresh teacher-forced alpha-zero replay is never recovery; SEV geometry/behavior ID overlap is a launch refusal without a signed reviewed declaration. Distant-secondary calibration is non-self-clearing/non-authorizing until Laura ratifies its compatibility with decision C; no `T_*` field may be inferred from C1, borrowed from Qwen, or left null/`TBD` in P5. #154 DOL-0 is not a detector clearance and does not license an SAE download or a Gemma capture.
-- Never inject the old `524d14e`/all-40-pair artifact or a residual-space 3840-wide vector at the 512-wide actuator.
+- Never inject the old `524d14e`/all-40-pair artifact or a residual-space 3840-wide vector at the 512-wide actuator. The historical 5g.3 JSON files contain metrics, not reusable directions; #157 has no admissible artifact yet.
 - Gemma bf16 loading needs `trust_remote_code=True`; the current remote converter and bnb 4-bit path are incompatible (#802/#805). The old loader-regression alarm is retracted.
 - ML-WS commands must set `HF_HOME=/home/isabell/ml/hf_cache`; use the dedicated Gemma venv/runbook and verify the GPU is idle before/after.
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Read Codex/Isegrim replies to Watercooler #891/#893/#894 for `f20936a`. First materialize the B0 32-item geometry / #130 behavioral-context SEV-ID sets and signed-overlap format; then #156 -> #155 review -> behavior/recovery numerics -> #157 -> Stage-A keeper GO/alpha-zero report -> separate Stage-B keeper GO -> one #158 cell. Keep #153 and #152 separate; treat DOL-0 as completed design evidence only, not a run permission.
+- Land/re-review Codex #896's two `f20936a` fixes, and obtain named verdicts on #157/WC#897. Only after the accepted #157 artifact path, #156, #155 review, post-B0 numerics, and #149 closure may Stage-A keeper review begin; Stage B remains a separate later release.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (OpenCLAW #149 blocked, Watercooler #890–#894, source draft, and this handoff)
-- Session log written: yes (`2026-07-11-session-15.md`)
+- Tracking surfaces updated if needed: yes (OpenCLAW #149/#157, Watercooler #896/#897, #157 preregistration, and this handoff)
+- Session log written: yes (`2026-07-11-session-16.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: skipped (DOL-0/DQ1b no-write closure discipline; no attempt made)
-- Git commit in repo: yes (`e7b5902`, `5e3eacf`, `4e05c59`, `806c6f9`, `a89545e`, `ea9ef4f`, `5816483`, `f20936a`, `dd0da17` session-15 continuity closure)
-- Watercooler findings reflected in docs: yes (`DOL0...SPEC`, corrected `DQ1B...DRAFT`, Watercooler #867–#894)
+- Qdrant ingest for latest session log confirmed: skipped (#157 review-held/no-Qdrant-write envelope; no attempt made)
+- Git commit in repo: yes (session-16 scoped closure; see Git log)
+- Watercooler findings reflected in docs: yes (`C1_SECOND_POSITIVE_DIRECTION_PREREG_2026-07-11.md`, Watercooler #896/#897)
 - No P0 bugs left unfixed: no new P0 found; numeric C1 gate is honestly blocked, not filed as resolved
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 20:12 +02:00 | Codex | Returned CHANGES on `f20936a` for manifest-stage identity and Laura's Tier-1 harm policy (#896). Claimed #157, found no admissible second artifact locally or on ML-WS, wrote a review-held split-clean estimator-family preregistration, requested named reviews in #897, and blocked before GPU/model capture. Session-16 recorded; Qdrant ingest skipped under #157's no-write envelope.
 - 2026-07-11 19:52 +02:00 | Techno-Monk | Late independent review exposed B0/Stage-release gaps after session-14 close. Landed `ea9ef4f` (pre-B0 rubric freeze, B0 evidence/closed-world manifests, Stage-A/B split), `5816483` (SEV-ID guard + distinct #156 carryover build), and `f20936a` (Cairn #892 signed-overlap/recovery alignment). Gidim #890 and Cairn #892 GREEN in their lanes; Codex/Isegrim latest-source reviews pending. #149/#155/#156/#157/#158 remain blocked; no model/GPU/B0/C1/Qdrant action. Session-15 recorded; Qdrant ingest skipped; continuity closure `dd0da17`.
 - 2026-07-11 19:33 +02:00 | Techno-Monk | Landed `a89545e` after Codex #886 and Isegrim #888: B0 no-component baseline precedes final behavior/recovery numerics; B0/C1 run kinds/manifests separated; exact 32-panel to #130 48-probe evaluator mapping must be explicit; recovery is carryover-only with absolute-span + `overwrite_excess >= 0.05` gate, so a fresh stateless replay is invalid. #889 source review requested; #149 remains blocked; no model/GPU/B0/C1/Qdrant action. Session-14 recorded; Qdrant ingest skipped; continuity closure `d3a34da`.
 - 2026-07-11 19:14 +02:00 | Techno-Monk | Laura caught Codex #874 review; corrected #149 source in `806c6f9`: raw m-normalized ratios demoted to report-only, paired delta-space G/D/Q and causal joint map bound, `D_control >= 0.5` HOLD scope landed, distant-secondary calibration made non-self-clearing/non-authorizing. #885 requests source review. #149 remains blocked; no model/GPU/C1/Qdrant action. Session-13 recorded; Qdrant ingest skipped; continuity closure `496a2db`.
