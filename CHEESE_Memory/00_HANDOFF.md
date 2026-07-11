@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 17:16 +02:00
-- Current owner: Techno-Monk completed DOL-0 design/fit audit #154; #149 is now explicitly blocked awaiting Cairn/Gidim/Isegrim numeric-gate review. #151 remains closed; #153 stays separate and non-executing.
+- Last updated: 2026-07-11 17:26 +02:00
+- Current owner: Techno-Monk completed DOL-0 design/fit audit #154 and hardened #149 from named reviews; #149 remains explicitly blocked awaiting Gidim/Isegrim raw-ratio reconciliation and Cairn numeric/ethics review. #151 remains closed; #153 stays separate and non-executing.
 - Primary focus: ratify #149 numeric welfare/behavior/recovery gates and implement/review P5 before any nonzero C1; DOL-1, if wanted, is a separate read-only proposal.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-11.md`
+- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-12.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: skipped (`2026-07-11-session-11.md`; DOL-0's structural no-Qdrant-write boundary)
+  - Latest session log ingest: skipped (`2026-07-11-session-12.md`; DOL-0/DQ1b structural no-Qdrant-write closure discipline)
 
 ## Current State — Qdrant TLS Migration (2026-07-11)
 - **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
@@ -26,8 +26,9 @@
 
 ## Current State — DQ1b + DOL-0 (2026-07-11)
 - **DOL-0 #154 DONE (design only):** commit `e7b5902`, artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DOL0_DISTRESS_OBSERVABILITY_LENS_SPEC_2026-07-11.md`. It defines an SAE/J-lens distress-observability instrument as a triangulated, held-out **alarm-only** channel: no feature/readout proves distress/welfare/consciousness; no lack of alarm clears a DQ1b stop. Source/metadata/design only; no Gemma load/capture/hook/injection/Qdrant/persistence/training. `SAE_FIT=UNPROVEN`: inspected public candidates do not demonstrate Gemma-4-12B-base / 3840-wide residual compatibility; ML-WS torch311 lacks `sae_lens`, `nnsight`, and `transformer_lens`.
-- **DQ1b #149 BLOCKED on named numeric review:** commit `5e3eacf`, artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md`; Watercooler #867 asks Cairn/Gidim/Isegrim. Proposed geometry uses only clean late comb `{29,35,41,47}`: singles secondary remaining late teeth + post-tooth local controls `{30}/{36}/{42}`; joint secondary `{47}`, controls `{30,36,42}`. It preserves absolute-position `!= 0`, FP32 paired residual stats, separate free-running behavior/recovery cells, and a P5 manifest refusal on null/`TBD` thresholds.
-- **Open numeric hold:** `T_control`, `T_secondary`, `T_diversity`, `T_continuity`, `T_intended`, `T_harm`, and `T_recovery` are unset. No nonzero C1 may run until each is review-bound to formula/comparator/aggregation/failure action and keeper-ratified. The ML-WS no-model runner schema test passed `14 passed in 2.04s`; this validates the reserved trace shape only, not P5/Gemma capture.
+- **DQ1b #149 BLOCKED after named review hardening:** original draft `5e3eacf`; hardening `4e05c59`; artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md`; Watercooler #867 (request), #868/#869 (reviews), #870 (reconciliation request), #871 (landed structural delta). Proposed geometry preserves only clean late comb `{29,35,41,47}`, absolute-position `!= 0`, FP32 paired residual stats, separate free-running behavior/recovery cells, and P5 refusal on null/`TBD` thresholds.
+- **Review result:** Gidim is GREEN on trace/P5 runnability, prompt-first aggregation, and manifest structure; Isegrim accepts geometry after landing downstream carry-through, upstream-zero-canary, and `3/2/1/1` coverage clauses. The draft now makes any nonzero upstream canary `instrument_invalid`, binds DQ1a median/p95/layerwise ratio semantics, and treats alpha-zero raw ratios as `0/0` undefined.
+- **Open numeric hold:** `T_control`, `T_secondary`, `T_diversity`, `T_continuity`, `T_intended`, `T_harm`, and `T_recovery` remain unset. Raw `T_control >= 0.5` conflicts with Isegrim's raw downstream carry-through null near `1`; no value was accepted. #870 asks Gidim/Isegrim to define a jointly valid raw/transformed reference, formula, comparator, and HOLD/STOP semantics; Cairn still owns ethics/recovery semantics. No nonzero C1 may run until all values are review-bound and keeper-ratified. The ML-WS no-model runner schema test passed `14 passed in 2.04s`; this validates the reserved trace shape only, not P5/Gemma capture.
 
 ## Historical State — G0 Oxytocin Delta (superseded by split-clean v3)
 
@@ -80,7 +81,7 @@
 ## Open Threads
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
-- [ ] **#149 DQ1b gate freeze (BLOCKED):** structural draft `5e3eacf` exists; await Cairn/Gidim/Isegrim review to bind numeric welfare/behavior/recovery thresholds and stop/hold semantics, then keeper ratification before any nonzero C1 cell.
+- [ ] **#149 DQ1b gate freeze (BLOCKED):** `4e05c59` landed review hardening, but raw `R_C` reference is unresolved (`0.5` proposal vs carry-through `≈1`). Read/reconcile Watercooler #870 with Gidim/Isegrim; obtain Cairn semantics plus all numeric welfare/behavior/recovery values, then keeper ratification before any nonzero C1 cell.
 - [ ] **DOL-1 only if separately approved:** first prove an exact SAE/probe/J-lens substrate fit and a read-only capture manifest; it remains alarm-only and cannot substitute for DQ1b.
 - [ ] **C1 completion:** freeze a second positive 512-wide `value_norm_pre` direction/full matrix; implement and review P5; run the true alpha-zero anchors before birth injection #1.
 - [ ] **#146 matched-delta lane:** capture paired scenario-neutral source deltas at the correct surface, wire trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput.
@@ -94,26 +95,27 @@
 - `disposition_runner.world_model.predicted_observation` is now correctly null when no predictor ran. Do not refill it from fixture answer keys.
 - `compute_tension_proxy()` is response-direction mismatch, not prediction error. Do not close a dynamic-alpha loop around it.
 - The alpha-zero smoke is instrumentation, not the registered C1 anchor, and its runner intentionally cannot run nonzero.
-- #149's proposed monitor matrix is not a completed gate: no `T_*` numeric field may be inferred from C1, borrowed automatically from Qwen, or left null/`TBD` in P5. #154 DOL-0 is not a detector clearance and does not license an SAE download or a Gemma capture.
+- #149's proposed monitor matrix is not a completed gate: no `T_*` numeric field may be inferred from C1, borrowed automatically from Qwen, or left null/`TBD` in P5. Never set a downstream raw ratio cap below its declared carry-through null; resolve the #870 reference dispute first. #154 DOL-0 is not a detector clearance and does not license an SAE download or a Gemma capture.
 - Never inject the old `524d14e`/all-40-pair artifact or a residual-space 3840-wide vector at the 512-wide actuator.
 - Gemma bf16 loading needs `trust_remote_code=True`; the current remote converter and bnb 4-bit path are incompatible (#802/#805). The old loader-regression alarm is retracted.
 - ML-WS commands must set `HF_HOME=/home/isabell/ml/hf_cache`; use the dedicated Gemma venv/runbook and verify the GPU is idle before/after.
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-Read the named responses to Watercooler #867 and finish #149's numeric table/keeper ratification, then implement/review P5 and its true alpha-zero anchors before any nonzero C1. Keep #153 and #152 separate; treat DOL-0 as completed design evidence only, not a run permission.
+Read the replies to Watercooler #870/#871; reconcile raw-vs-transformed `R_C`/`R_S` reference semantics before setting a number, then finish #149's numeric table/keeper ratification. Only then implement/review P5 and its true alpha-zero anchors before any nonzero C1. Keep #153 and #152 separate; treat DOL-0 as completed design evidence only, not a run permission.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (OpenCLAW #154 done/#149 blocked, Watercooler #867, source drafts, and this handoff)
-- Session log written: yes (`2026-07-11-session-11.md`)
+- Tracking surfaces updated if needed: yes (OpenCLAW #154 done/#149 blocked, Watercooler #867–#871, source drafts, and this handoff)
+- Session log written: yes (`2026-07-11-session-12.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: skipped (DOL-0 no-write boundary; no attempt made)
-- Git commit in repo: yes (`e7b5902`, `5e3eacf`, `32664b1` session-11 continuity closure)
-- Watercooler findings reflected in docs: yes (`DOL0...SPEC`, `DQ1B...DRAFT`, Watercooler #867)
+- Qdrant ingest for latest session log confirmed: skipped (DOL-0/DQ1b no-write closure discipline; no attempt made)
+- Git commit in repo: yes (`e7b5902`, `5e3eacf`, `4e05c59`; session-12 closure commit pending)
+- Watercooler findings reflected in docs: yes (`DOL0...SPEC`, hardened `DQ1B...DRAFT`, Watercooler #867–#871)
 - No P0 bugs left unfixed: no new P0 found; numeric C1 gate is honestly blocked, not filed as resolved
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 17:26 +02:00 | Techno-Monk | Landed named-review structural hardening for #149 in `4e05c59`: downstream carry-through null, upstream zero-canaries, honest `3/2/1/1` coverage, exact DQ1a aggregation, and manifest reference binding. Preserved numeric conflict (`R_C >= 0.5` vs raw null `≈1`) rather than selecting a threshold; Watercooler #870 requests reconciliation and #871 records delta. Session-12 recorded; Qdrant ingest skipped.
 - 2026-07-11 17:16 +02:00 | Techno-Monk | Completed design-only DOL-0 #154 (`e7b5902`, no Qdrant/model/capture action) and drafted DQ1b #149 (`5e3eacf`); routed Cairn/Gidim/Isegrim review in Watercooler #867, then blocked #149 pending numeric threshold binding. Session-11 recorded; ingest skipped to preserve DOL-0's structural no-Qdrant-write boundary; continuity closure `32664b1`.
 - 2026-07-11 16:23 +02:00 | Techno-Monk | Closed OpenCLAW #151 (event #564, artifact `d15138e`) after local/remote verification, staged ML-WS deployment, role-separated secure runner config, authenticated CA-validated smoke, and session-10 ingest. Watercooler #862 stays open for post-closure audit; #153 isolates legacy direct-Qdrant callers.
 - 2026-07-11 16:19 +02:00 | Techno-Monk | Deployed active ML-WS Qdrant writer hardening from `d15138e`: staged/atomic no-Git bundle sync with backup, mode-checked separate writer/reader files, 53 focused + 92 full remote tests, authenticated CA-validated smoke, and zero live chat/sleep processes. Session-10 ingested into `exocortex` (10 chunks); Watercooler #862 requests independent review. #153 created for non-active legacy callers.
@@ -148,9 +150,9 @@ Read the named responses to Watercooler #867 and finish #149's numeric table/kee
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #859.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #870/#871.
 - Decide first:
-  - Read Watercooler #867 responses; bind #149 numerical stop/hold semantics before touching P5/nonzero C1. Treat #152 as a fresh preregistration task, not permission to rerun or integrate Phase 2 v1.
+  - Read Watercooler #870 replies; reconcile raw-vs-transformed downstream ratio semantics and bind #149 numerical stop/hold semantics before touching P5/nonzero C1. Treat #152 as a fresh preregistration task, not permission to rerun or integrate Phase 2 v1.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller
