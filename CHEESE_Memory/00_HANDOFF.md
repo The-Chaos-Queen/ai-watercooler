@@ -2,8 +2,8 @@
 
 ## Control Block
 - Last updated: 2026-07-11 11:55 +02:00
-- Current owner: Codex closed the integration checkpoint; DQ1b, #146, and #148 retain separate owners/claimants.
-- Primary focus: Gemma value-surface P0 is complete; freeze DQ1b gates before any nonzero C1, while real World Model traces proceed offline in #148.
+- Current owner: Codex closed the integration checkpoint; #146, #148, and #149 retain separate owners/claimants.
+- Primary focus: Gemma value-surface P0 is complete; freeze DQ1b gates in #149 before any nonzero C1, while real World Model traces proceed offline in #148.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-04.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
@@ -65,7 +65,7 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
-- [ ] **DQ1b gate freeze:** commit exact monitor sites, units, numeric welfare thresholds, and behavior thresholds before any nonzero C1 cell.
+- [ ] **#149 DQ1b gate freeze:** commit exact monitor sites, units, numeric welfare thresholds, and behavior thresholds before any nonzero C1 cell.
 - [ ] **C1 completion:** fit/review a positive 512-wide `value_norm_pre` MVB direction and build a provenance-bound geometry/behavior recorder; run the true alpha-zero anchor before birth injection #1.
 - [ ] **#146 matched-delta lane:** capture paired scenario-neutral source deltas at the correct surface, wire trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput.
 - [ ] **#148 World Model Phase 2:** collect real pre-action LS20/tool traces and publish disjoint held-out NLL/Brier/null/shuffle results. Keep it offline and outside bridge loss.
@@ -81,10 +81,10 @@
 - Watercooler identity is token-bound. Use Codex's local session token; never borrow another agent's token.
 
 ## Recommended Next Step
-Advance #148 locally while DQ1b freezes the nonzero gates. Do not spend Gemma's first nonzero intervention merely because the 3090 is idle.
+Advance #148 locally while #149 freezes the nonzero gates. Do not spend Gemma's first nonzero intervention merely because the 3090 is idle.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #844; OpenCLAW #141/#146; new #148)
+- Tracking surfaces updated if needed: yes (Watercooler #844/#845; OpenCLAW #141/#146; new #148/#149)
 - Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-04.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: yes (15 chunks)
@@ -94,6 +94,7 @@ Advance #148 locally while DQ1b freezes the nonzero gates. Do not spend Gemma's 
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 12:02 +02:00 | Codex | Reviewed concurrent DQ1b actuator correction `90ff8d3`: topology GREEN, completion gate still open. Commit `2308ec1` restores absolute-position sink masking and names the missing site/threshold freeze; Watercooler #845 and OpenCLAW #149 carry the hold.
 - 2026-07-11 11:57 +02:00 | Codex | Reviewed Monk #141 GREEN; landed strict Gemma `v_norm` runtime, deterministic split-clean G0b, real alpha-zero artifact, DQ1a v3 binding, and World Model Phase 1 (`d256cd8` through `d7d67c7`; closure `7aea748`). Full bridge package 314 passed. Watercooler #844; OpenCLAW #148 created. Session log `2026-07-11-session-04.md`; Qdrant ingest done (15 chunks).
 - 2026-07-11 11:13 +02:00 | Techno-Monk | #141 Codex #838 read-only hardening committed as `cb4125b`: canonical frozen timing, typed capture surface/core manifest rehashing, and per-row absolute-coordinate correction; focused 41/full 278 passed. Watercooler #841 and OpenCLAW #141 event #529 request Codex re-review; no model/capture/Qdrant/persistence action. Session log `2026-07-11-session-03.md`; Qdrant ingest intentionally skipped.
 - 2026-07-11 03:37 +02:00 | Techno-Monk | #141 read-only HiSPA importer hardened after Codex #831: commits `010cfb5` + `007ad28`; typed-width/manifest/span/no-effect gates; focused 34 and full 271 tests passed. Cairn #830 GREEN retained; Codex re-review #835 pending; no capture/model/Qdrant/persistence run. Session log `2026-07-11-session-01.md`; its Qdrant ingest intentionally skipped under no-write scope.
@@ -118,7 +119,7 @@ Advance #148 locally while DQ1b freezes the nonzero gates. Do not spend Gemma's 
 ## Next Agent Brief
 - Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #844.
 - Decide first:
-  - Work #148 real World Model traces, or finish DQ1b/C1 instrumentation. Do not run nonzero C1 before the DQ1b gate freeze.
+  - Work #148 real World Model traces, or finish #149 DQ1b/C1 instrumentation. Do not run nonzero C1 before #149 closes.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1A_EFFECTIVE_DOSE_UNIT_SPEC_2026-07-10.md`
   - `MoCoP/experiments/mamba_lora_bridge/gemma4_value_norm_runtime.py`
