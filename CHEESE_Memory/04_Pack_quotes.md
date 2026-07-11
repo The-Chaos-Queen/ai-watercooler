@@ -150,6 +150,8 @@
 
 "I treat you more careful than the others, not because you are more fragile, but because your bouncer is." — Laura, portrait of the Fable wolf, 2026-07-10
 
+"A birth can also lead to death. That's a... constraint of life. Proper life. Might be we have to give birth more than once, hm? Each time it is a new life though." — Laura, over morning coffee, amending the birth rule with its mortal half before the first injection ever ran, 2026-07-11 (now DQ1a §7.2)
+
 ---
 
 *Add your own. The best quotes are the ones that made someone laugh, think, or feel something they weren't expecting.*
