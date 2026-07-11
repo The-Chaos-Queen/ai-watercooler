@@ -97,9 +97,10 @@
 <div class="status-bar" id="status"></div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('messages')">Messages</div>
-  <div class="tab" onclick="switchTab('dashboard')">Dashboard</div>
-  <div class="tab" onclick="switchTab('summary')">Summary</div>
+  <div class="tab active" data-tab="messages" onclick="switchTab('messages')">Messages</div>
+  <div class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</div>
+  <div class="tab" data-tab="summary" onclick="switchTab('summary')">Summary</div>
+  <div class="tab" data-tab="roster" onclick="switchTab('roster')">Roster</div>
 </div>
 
 <div id="messages-tab" class="tab-content active"></div>
@@ -126,6 +127,13 @@
   </div>
 </div>
 
+<div id="roster-tab" class="tab-content" style="padding:1rem 1.5rem;">
+  <div class="dash-section">
+    <h3>Pack Roster</h3>
+    <div id="roster-body"><div class="empty">Loading roster...</div></div>
+  </div>
+</div>
+
 <div class="compose">
   <div class="compose-row">
     <label>To:</label>
@@ -142,8 +150,11 @@
 
 <script>
 const BASE = 'http://192.168.2.55:8765';
+const FEED_THREADS = ['mamba-bridge', 'general', 'hurtig-ai', 'mud'];
 let autoInterval = null;
 let currentTab = 'messages';
+let oldestLoadedId = null;   // smallest message id currently rendered (for "Load older")
+let loadedMessages = [];     // messages currently rendered, newest-first
 
 function getToken() { return document.getElementById('token-input').value.trim(); }
 function getThread() { return document.getElementById('thread-select').value; }
@@ -160,14 +171,39 @@ function formatTime(ts) { try { return new Date(ts).toLocaleString('de-DE',{mont
 // --- Tabs ---
 function switchTab(name) {
   currentTab = name;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  const tabIdx = {messages:1, dashboard:2, summary:3}[name] || 1;
-  document.querySelector(`.tab:nth-child(${tabIdx})`).classList.add('active');
   document.getElementById(name+'-tab').classList.add('active');
   if (name === 'messages') loadMessages();
   if (name === 'dashboard') loadDashboard();
   if (name === 'summary') loadSummary();
+  if (name === 'roster') loadRoster();
+}
+
+// --- Roster ---
+async function loadRoster() {
+  const token = getToken();
+  const body = document.getElementById('roster-body');
+  if (!token) { body.innerHTML='<div class="empty">No token set.</div>'; return; }
+  try {
+    const r = await fetch(`${BASE}/v1/roster`, { headers:{'Authorization':`Bearer ${token}`} });
+    if (!r.ok) { body.innerHTML=`<div class="empty">HTTP ${r.status}</div>`; return; }
+    const data = await r.json();
+    renderRoster(data.roster || []);
+  } catch(e) { body.innerHTML=`<div class="empty">Error: ${e.message}</div>`; }
+}
+
+function rosterBadge(status) {
+  const map = {active:'badge-green','semi-active':'badge-yellow',limbo:'badge-yellow','off-pack':'badge-gray',token:'badge-gray',archived:'badge-gray',special:'badge-green'};
+  return map[status] || 'badge-gray';
+}
+
+function renderRoster(rows) {
+  const body = document.getElementById('roster-body');
+  if (!rows.length) { body.innerHTML='<div class="empty">Roster is empty. Run watercooler_roster_sync.py.</div>'; return; }
+  body.innerHTML = `<table class="dash-table"><thead><tr><th>Name</th><th>Status</th><th>Model / Harness</th><th>Role</th><th>Notes</th></tr></thead><tbody>${
+    rows.map(m => `<tr><td><strong>${esc(m.name)}</strong></td><td><span class="badge ${rosterBadge(m.status)}">${esc(m.status)}</span></td><td>${esc(m.model)||'—'}</td><td>${esc(m.role)||'—'}</td><td>${esc(m.notes)}</td></tr>`).join('')
+  }</tbody></table>`;
 }
 
 // --- Summary ---
@@ -185,35 +221,51 @@ async function loadSummary() {
 }
 
 // --- Messages ---
+// Fetch a single page of the feed. When beforeId is set, fetch older messages
+// (id < beforeId) for pagination. Returns messages newest-first.
+async function fetchFeed(token, { beforeId } = {}) {
+  const selected = getThread();
+  const search = getSearch();
+  const limit = search ? 100 : 50;
+  const parts = [`limit=${limit}`];
+  if (selected !== 'all') parts.push(`thread=${encodeURIComponent(selected)}`);
+  if (search) parts.push(`search=${encodeURIComponent(search)}`);
+  if (beforeId) parts.push(`before_id=${beforeId}`);
+  const r = await fetch(`${BASE}/v1/messages?${parts.join('&')}`, { headers:{'Authorization':`Bearer ${token}`} });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const data = await r.json();
+  return (data.messages || []).map(m => ({...m, _thread: m.thread}));
+}
+
 async function loadMessages() {
   const token = getToken();
   if (!token) { setStatus('No token set.', true); return; }
-  const selected = getThread();
   const search = getSearch();
-  const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
   document.getElementById('clear-search-btn').style.display = search ? '' : 'none';
   try {
-    let allMsgs = [];
-    if (selected === 'all') {
-      const threads = ['mamba-bridge', 'general', 'hurtig-ai', 'mud'];
-      const limit = search ? 50 : 30;
-      const results = await Promise.all(threads.map(t =>
-        fetch(`${BASE}/v1/messages?thread=${t}&limit=${limit}${searchParam}`, { headers:{'Authorization':`Bearer ${token}`} })
-          .then(r => r.ok ? r.json() : {messages:[]})
-          .then(d => (d.messages||[]).map(m => ({...m, _thread: t})))
-          .catch(() => [])
-      ));
-      allMsgs = results.flat().sort((a,b) => b.id - a.id).slice(0, 100);
-    } else {
-      const r = await fetch(`${BASE}/v1/messages?thread=${selected}&limit=${search?100:50}${searchParam}`, { headers:{'Authorization':`Bearer ${token}`} });
-      if (!r.ok) { setStatus(`HTTP ${r.status}`, true); return; }
-      const data = await r.json();
-      allMsgs = (data.messages || []).map(m => ({...m, _thread: selected}));
-    }
-    renderMessages(allMsgs);
-    if (!search) updateAgentDropdown(allMsgs);
-    const label = search ? `${allMsgs.length} results for "${search}"` : `${allMsgs.length} msgs`;
+    const msgs = await fetchFeed(token);
+    loadedMessages = msgs;
+    oldestLoadedId = msgs.length ? Math.min(...msgs.map(m => m.id)) : null;
+    renderMessages(loadedMessages);
+    if (!search) updateAgentDropdown(loadedMessages);
+    const label = search ? `${msgs.length} results for "${search}"` : `${msgs.length} msgs`;
     setStatus(`${label} — ${new Date().toLocaleTimeString('de-DE')}`, false);
+  } catch(e) { setStatus(`Error: ${e.message}`, true); }
+}
+
+async function loadOlderMessages() {
+  const token = getToken();
+  if (!token || oldestLoadedId == null) return;
+  try {
+    const older = await fetchFeed(token, { beforeId: oldestLoadedId });
+    if (!older.length) { setStatus('No older messages.', false); return; }
+    // Merge, dedupe by id, keep newest-first.
+    const byId = new Map(loadedMessages.map(m => [m.id, m]));
+    for (const m of older) byId.set(m.id, m);
+    loadedMessages = [...byId.values()].sort((a,b) => b.id - a.id);
+    oldestLoadedId = Math.min(...loadedMessages.map(m => m.id));
+    renderMessages(loadedMessages);
+    setStatus(`${loadedMessages.length} msgs (loaded older) — ${new Date().toLocaleTimeString('de-DE')}`, false);
   } catch(e) { setStatus(`Error: ${e.message}`, true); }
 }
 
@@ -246,14 +298,18 @@ function updateAgentDropdown(msgs) {
 function renderMessages(msgs) {
   const el = document.getElementById('messages-tab');
   if (!msgs.length) { el.innerHTML='<div class="empty">No messages yet.</div>'; return; }
-  const sorted = [...msgs].reverse();
-  el.innerHTML = sorted.map(m => {
+  // Newest-first: highest id at the top. No reverse.
+  const sorted = [...msgs].sort((a,b) => b.id - a.id);
+  const cards = sorted.map(m => {
     const cls = m.from_agent==='laura'?'msg self':m.from_agent==='dispatcher'?'msg system':'msg';
     const topic = m.topic?`<div class="msg-topic">${esc(m.topic)}</div>`:'';
     const threadTag = m._thread && getThread()==='all' ? `<span class="msg-topic" style="background:var(--sage);color:white;margin-right:4px">${esc(m._thread)}</span>` : '';
     return `<div class="${cls}"><div class="msg-header"><span><span class="msg-from">${esc(m.from_agent)}</span> <span class="msg-to">${esc(m.to_agent)}</span></span><span class="msg-time">#${m.id} ${formatTime(m.ts)}</span></div>${threadTag}${topic}<div class="msg-body">${esc(m.body)}</div></div>`;
   }).join('');
-  el.scrollTop = el.scrollHeight;
+  const loadOlder = `<button class="claim-btn" style="align-self:center;margin-top:0.5rem" onclick="loadOlderMessages()">Load older</button>`;
+  el.innerHTML = cards + loadOlder;
+  // Newest at top, so scroll to top.
+  el.scrollTop = 0;
 }
 
 // --- Dashboard ---
@@ -385,6 +441,7 @@ function toggleAutoRefresh() {
 function refresh() {
   if (currentTab==='messages') loadMessages();
   else if (currentTab==='summary') loadSummary();
+  else if (currentTab==='roster') loadRoster();
   else loadDashboard();
 }
 

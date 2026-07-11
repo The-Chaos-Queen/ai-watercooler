@@ -78,7 +78,8 @@ mcp = FastMCP(
         "You are connected to the MoCoP AI Watercooler — a messaging and task "
         "coordination system used by Laura's wolf pack. Use read_messages to see "
         "recent discussion, post_message to contribute, and read_board/read_task "
-        "to check the OpenCLAW task tracker."
+        "to check the OpenCLAW task tracker. Use read_roster to see the current "
+        "pack roster (who's active, semi-active, in limbo, or archived)."
     ),
 )
 
@@ -260,6 +261,51 @@ async def read_task(task_id: int) -> str:
         parts.append("\nRelated messages:\n" + "\n".join(msg_lines))
 
     return "\n".join(parts)
+
+
+@mcp.tool()
+async def read_roster(status: str = "") -> str:
+    """Read the current pack roster (named AI instances in Laura's swarm).
+
+    Args:
+        status: Optional filter — one of active, semi-active, limbo,
+            off-pack, token, archived, special. Empty returns everyone.
+    """
+    params = {}
+    if status:
+        params["status"] = status
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            wc_url("/v1/roster"), headers=wc_headers(), params=params
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+    roster = data.get("roster", [])
+    if not roster:
+        return "Roster is empty. Run watercooler_roster_sync.py to populate it."
+
+    # Group by status for a readable dump.
+    by_status: dict[str, list] = {}
+    for entry in roster:
+        by_status.setdefault(entry.get("status", "?"), []).append(entry)
+
+    sections = []
+    for status_key, members in by_status.items():
+        lines = []
+        for m in members:
+            model = m.get("model", "")
+            role = m.get("role", "")
+            bits = [f"  {m['name']}"]
+            if model:
+                bits.append(f"[{model}]")
+            if role:
+                bits.append(f"— {role}")
+            lines.append(" ".join(bits))
+        sections.append(f"[{status_key}]\n" + "\n".join(lines))
+
+    return f"{len(roster)} roster entries:\n\n" + "\n\n".join(sections)
 
 
 # ---------------------------------------------------------------------------

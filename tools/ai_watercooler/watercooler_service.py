@@ -23,6 +23,15 @@ TASK_STATUSES = ("queued", "claimed", "blocked", "done")
 COST_CLASSES = ("free", "local", "gpu", "rental")
 TRUST_CLASSES = ("safe", "needs-review", "human-only")
 SESSION_SCOPES = ("messages:read", "messages:write", "tasks:read", "tasks:write")
+ROSTER_STATUSES = (
+    "active",
+    "semi-active",
+    "limbo",
+    "off-pack",
+    "token",
+    "archived",
+    "special",
+)
 MAX_BODY_BYTES = 64 * 1024
 REQUEST_TIMEOUT_SECONDS = 15
 
@@ -111,6 +120,19 @@ CREATE TABLE IF NOT EXISTS summaries (
     updated_by TEXT NOT NULL,
     body TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS roster_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    model TEXT NOT NULL,
+    role TEXT NOT NULL,
+    status TEXT NOT NULL,
+    section TEXT NOT NULL,
+    notes TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    updated_ts TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_roster_status ON roster_entries(status, sort_order, name);
 
 CREATE TABLE IF NOT EXISTS auth_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -476,6 +498,19 @@ def agent_card_row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
     }
 
 
+def roster_row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
+    return {
+        "name": row["name"],
+        "model": row["model"],
+        "role": row["role"],
+        "status": row["status"],
+        "section": row["section"],
+        "notes": row["notes"],
+        "sort_order": row["sort_order"],
+        "updated_ts": row["updated_ts"],
+    }
+
+
 def fetch_task_row(conn: sqlite3.Connection, task_id: int) -> sqlite3.Row:
     row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
     if row is None:
@@ -750,6 +785,11 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                     return
                 self._handle_get_agents()
                 return
+            if parsed.path == "/v1/roster":
+                if self._require_session_auth("messages:read") is None:
+                    return
+                self._handle_get_roster(parsed.query)
+                return
             self._json_error(HTTPStatus.NOT_FOUND, "unknown endpoint")
         except LookupError as exc:
             self._json_error(HTTPStatus.NOT_FOUND, str(exc))
@@ -773,6 +813,11 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 if not self._require_admin_token():
                     return
                 self._handle_revoke_token()
+                return
+            if parsed.path == "/v1/admin/roster/sync":
+                if not self._require_admin_token():
+                    return
+                self._handle_sync_roster()
                 return
             if parsed.path == "/v1/post":
                 auth = self._require_session_auth("messages:write")
@@ -1014,6 +1059,7 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
         params = parse_qs(query, keep_blank_values=False)
         limit = clamp_int(params.get("limit", ["20"])[0], field_name="limit", min_value=1, max_value=200)
         since_id = clamp_int(params.get("since_id", ["0"])[0], field_name="since_id", min_value=0, max_value=10**9)
+        before_id = clamp_int(params.get("before_id", ["0"])[0], field_name="before_id", min_value=0, max_value=10**9)
         thread = params.get("thread", [""])[0].strip()
         participant = params.get("participant", [""])[0].strip()
         search = params.get("search", [""])[0].strip()
@@ -1023,6 +1069,9 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
             # the remaining equality filters on the base table columns.
             clauses = ["m.id > ?"]
             sql_params: List[Any] = [since_id]
+            if before_id:
+                clauses.append("m.id < ?")
+                sql_params.append(before_id)
             if thread:
                 clauses.append("m.thread = ?")
                 sql_params.append(thread)
@@ -1044,6 +1093,9 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
         else:
             clauses = ["id > ?"]
             sql_params = [since_id]
+            if before_id:
+                clauses.append("id < ?")
+                sql_params.append(before_id)
             if thread:
                 clauses.append("thread = ?")
                 sql_params.append(thread)
@@ -1898,6 +1950,99 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 "FROM agent_cards ORDER BY principal ASC"
             ).fetchall()
         self._json_response({"agents": [agent_card_row_to_dict(row) for row in rows], "count": len(rows)})
+
+    def _handle_get_roster(self, query: str) -> None:
+        params = parse_qs(query, keep_blank_values=False)
+        status = params.get("status", [""])[0].strip()
+        clauses: List[str] = []
+        sql_params: List[Any] = []
+        if status:
+            clauses.append("status = ?")
+            sql_params.append(status)
+        sql = (
+            "SELECT name, model, role, status, section, notes, sort_order, updated_ts "
+            "FROM roster_entries"
+        )
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY sort_order ASC, name ASC"
+        with connect_db(self.server_state["db_path"]) as conn:
+            rows = conn.execute(sql, sql_params).fetchall()
+        self._json_response(
+            {"roster": [roster_row_to_dict(row) for row in rows], "count": len(rows)}
+        )
+
+    def _handle_sync_roster(self) -> None:
+        payload = self._read_json_body()
+        if payload is None:
+            return
+        raw_entries = payload.get("entries")
+        if not isinstance(raw_entries, list):
+            self._json_error(HTTPStatus.BAD_REQUEST, "entries must be a JSON array")
+            return
+        if len(raw_entries) > 500:
+            self._json_error(HTTPStatus.BAD_REQUEST, "too many entries (>500)")
+            return
+
+        now = utc_now()
+        normalized: List[Dict[str, Any]] = []
+        seen_names: set[str] = set()
+        try:
+            for index, entry in enumerate(raw_entries):
+                if not isinstance(entry, dict):
+                    raise ValueError("each entry must be a JSON object")
+                name = clamp_text(entry.get("name"), field_name="name", max_len=120)
+                if name in seen_names:
+                    raise ValueError(f"duplicate roster name: {name}")
+                seen_names.add(name)
+                model = clamp_text(entry.get("model", ""), field_name="model", max_len=200, allow_empty=True)
+                role = clamp_text(entry.get("role", ""), field_name="role", max_len=400, allow_empty=True)
+                status = clamp_enum(
+                    entry.get("status"),
+                    field_name="status",
+                    allowed=ROSTER_STATUSES,
+                    default="active",
+                )
+                section = clamp_text(entry.get("section", ""), field_name="section", max_len=120, allow_empty=True)
+                notes = clamp_text(entry.get("notes", ""), field_name="notes", max_len=8000, allow_empty=True)
+                sort_order = clamp_int(
+                    entry.get("sort_order", index),
+                    field_name="sort_order",
+                    min_value=0,
+                    max_value=10**6,
+                    default=index,
+                )
+                normalized.append(
+                    {
+                        "name": name,
+                        "model": model,
+                        "role": role,
+                        "status": status,
+                        "section": section,
+                        "notes": notes,
+                        "sort_order": sort_order,
+                        "updated_ts": now,
+                    }
+                )
+        except ValueError as exc:
+            self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
+            return
+
+        with connect_db(self.server_state["db_path"]) as conn:
+            begin_immediate(conn)
+            conn.execute("DELETE FROM roster_entries")
+            conn.executemany(
+                """
+                INSERT INTO roster_entries
+                    (name, model, role, status, section, notes, sort_order, updated_ts)
+                VALUES
+                    (:name, :model, :role, :status, :section, :notes, :sort_order, :updated_ts)
+                """,
+                normalized,
+            )
+            conn.commit()
+
+        self._json_response({"ok": True, "synced": len(normalized), "updated_ts": now})
 
     def _handle_get_summary(self, query: str) -> None:
         params = parse_qs(query, keep_blank_values=False)
