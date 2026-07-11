@@ -109,13 +109,13 @@ Read the replies to Watercooler #870/#871; reconcile raw-vs-transformed `R_C`/`R
 - Session log written: yes (`2026-07-11-session-12.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: skipped (DOL-0/DQ1b no-write closure discipline; no attempt made)
-- Git commit in repo: yes (`e7b5902`, `5e3eacf`, `4e05c59`; session-12 closure commit pending)
+- Git commit in repo: yes (`e7b5902`, `5e3eacf`, `4e05c59`, `a6638c3` session-12 continuity closure)
 - Watercooler findings reflected in docs: yes (`DOL0...SPEC`, hardened `DQ1B...DRAFT`, Watercooler #867–#871)
 - No P0 bugs left unfixed: no new P0 found; numeric C1 gate is honestly blocked, not filed as resolved
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-11 17:26 +02:00 | Techno-Monk | Landed named-review structural hardening for #149 in `4e05c59`: downstream carry-through null, upstream zero-canaries, honest `3/2/1/1` coverage, exact DQ1a aggregation, and manifest reference binding. Preserved numeric conflict (`R_C >= 0.5` vs raw null `≈1`) rather than selecting a threshold; Watercooler #870 requests reconciliation and #871 records delta. Session-12 recorded; Qdrant ingest skipped.
+- 2026-07-11 17:26 +02:00 | Techno-Monk | Landed named-review structural hardening for #149 in `4e05c59`: downstream carry-through null, upstream zero-canaries, honest `3/2/1/1` coverage, exact DQ1a aggregation, and manifest reference binding. Preserved numeric conflict (`R_C >= 0.5` vs raw null `≈1`) rather than selecting a threshold; Watercooler #870 requests reconciliation and #871 records delta. Session-12 recorded; Qdrant ingest skipped; continuity closure `a6638c3`.
 - 2026-07-11 17:16 +02:00 | Techno-Monk | Completed design-only DOL-0 #154 (`e7b5902`, no Qdrant/model/capture action) and drafted DQ1b #149 (`5e3eacf`); routed Cairn/Gidim/Isegrim review in Watercooler #867, then blocked #149 pending numeric threshold binding. Session-11 recorded; ingest skipped to preserve DOL-0's structural no-Qdrant-write boundary; continuity closure `32664b1`.
 - 2026-07-11 16:23 +02:00 | Techno-Monk | Closed OpenCLAW #151 (event #564, artifact `d15138e`) after local/remote verification, staged ML-WS deployment, role-separated secure runner config, authenticated CA-validated smoke, and session-10 ingest. Watercooler #862 stays open for post-closure audit; #153 isolates legacy direct-Qdrant callers.
 - 2026-07-11 16:19 +02:00 | Techno-Monk | Deployed active ML-WS Qdrant writer hardening from `d15138e`: staged/atomic no-Git bundle sync with backup, mode-checked separate writer/reader files, 53 focused + 92 full remote tests, authenticated CA-validated smoke, and zero live chat/sleep processes. Session-10 ingested into `exocortex` (10 chunks); Watercooler #862 requests independent review. #153 created for non-active legacy callers.
