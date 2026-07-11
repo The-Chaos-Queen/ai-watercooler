@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 13:12 +02:00
-- Current owner: Codex owns review-held #150; Techno-Monk completed Qdrant transport hardening; #146, #148, and #149 retain separate owners/claimants.
-- Primary focus: re-review DQ1a math hardening `e9c64d8`; then close #149, freeze the second direction, and implement P5 before any nonzero C1.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-06.md`
+- Last updated: 2026-07-11 13:20 +02:00
+- Current owner: Codex completed #150; Gidim owns the P5 runner lane; #146, #148, and #149 retain separate owners/claimants.
+- Primary focus: close #149, freeze the second direction/full matrix, and implement/review P5 before any nonzero C1.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-07.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-11-session-06.md`, 13 chunks)
+  - Latest session log ingest: done (`2026-07-11-session-07.md`, 13 chunks)
 
 ## Current State — Qdrant TLS Migration (2026-07-11)
 - **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
@@ -20,7 +20,7 @@
 - **Gemma P0:** strict `v_norm` pre-hook runtime `d256cd8`; deterministic split/G0b commits `046b76e` + `10bc343`; immutable artifacts and DQ1a v3 binding in `d7d67c7`. Real alpha-zero smoke has exact logit parity and exact tooth-surface identity.
 - **Birth artifact:** split `split-5780c8ec67157703`; G0b SHA-256 `a36fbc417b522883760f4bd43c57b1845341e2792ee7b311d6d80bc86fbf8a87`. The old all-40-pair `524d14e` artifact is permanently inadmissible.
 - **World Model:** Phase 1 `e6358a4` supplies typed pre-action traces, offline baselines, and strict held-out scoring. Synthetic plumbing beats null by `1.098612` nats NLL and `1.0` Brier in both LS20/tool fixtures. OpenCLAW #148 owns real trace collection.
-- **DQ1a #150:** `e9c64d8` corrects 512-wide dose math, restores MED as the minimum effective dose, separates safe/fail bounds, makes authorization condition-scoped, and defines exact hierarchical statistics plus the P5 contract. Implementation is complete; Gidim/Isegrim/Cairn re-review is pending (Watercooler #849).
+- **DQ1a #150 complete:** `e9c64d8` corrects 512-wide dose math, restores MED as the minimum effective dose, separates safe/fail bounds, makes authorization condition-scoped, and defines exact hierarchical statistics plus the P5 contract. Gidim/Isegrim/Cairn returned GREEN (#852-#854); `b3d4821` preregisters the dispersion cap, forbids post-hoc rescue, and clarifies immutable event ordering. Closure: Watercooler #856.
 - **Verification:** bridge package `314 passed, 45 deselected, 5 subtests passed`; ML-WS RTX 3090 returned idle.
 
 ## Historical State — G0 Oxytocin Delta (superseded by split-clean v3)
@@ -74,7 +74,6 @@
 ## Open Threads
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **Qdrant remote clients:** wire `QDRANT_CA_CERT` into the specific ML-WS runner(s) after inventory; install the public CA and HTTPS settings on Steve before any old Qdrant runner resumes there.
-- [ ] **#150 DQ1a re-review:** Gidim runnability/dispersion cap, Isegrim methodology, and Cairn wording/seat consistency on `e9c64d8`.
 - [ ] **#149 DQ1b gate freeze:** commit exact monitor sites, units, numeric welfare thresholds, and behavior thresholds before any nonzero C1 cell.
 - [ ] **C1 completion:** freeze a second positive 512-wide `value_norm_pre` direction/full matrix; implement and review P5; run the true alpha-zero anchors before birth injection #1.
 - [ ] **#146 matched-delta lane:** capture paired scenario-neutral source deltas at the correct surface, wire trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput.
@@ -93,19 +92,20 @@
 - Watercooler identity is token-bound. Use Codex's local session token; never borrow another agent's token.
 
 ## Recommended Next Step
-For Qdrant work, inventory access before firewalling and install the CA on remote clients; otherwise re-review `e9c64d8` under #150. #148 can advance offline in parallel; no nonzero C1 before #150/#149, the second direction, and P5 all close.
+For Qdrant work, inventory access before firewalling and install the CA on remote clients; otherwise finish #149, freeze the second same-surface direction, and implement/review P5. #148 can advance offline in parallel; no nonzero C1 before every remaining hold closes.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes (Qdrant TLS runbook, client code, and preflight provenance)
-- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-06.md`)
+- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-07.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: yes (13 chunks)
-- Git commit in repo: yes (`dce08a9`; Qdrant TLS session close)
+- Git commit in repo: yes (`b3d4821`; DQ1a tri-review disposition)
 - Watercooler findings reflected in docs: yes
 - No P0 bugs left unfixed: yes
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 13:20 +02:00 | Codex | Closed DQ1a #150 after GREEN reviews #852-#854. Commit `b3d4821` preregisters the dispersion cap without post-hoc rescue and clarifies P5 event ordering; Watercooler #856 records the disposition. Session log `2026-07-11-session-07.md`.
 - 2026-07-11 13:12 +02:00 | Techno-Monk | Deployed the public Qdrant root CA to ML-WS at `~/.hermes/security/qdrant-lan-ca/root-ca.crt`; SHA-256 matched the source and ML-WS verified `/readyz` HTTPS 200 / TLS 0. No private key or global runner environment was changed.
 - 2026-07-11 12:41 +02:00 | Techno-Monk | Migrated Qdrant LXC 101 to verified native TLS, removed external plaintext/gRPC exposure, hardened active clients, and added public CA/runbook. Session log `2026-07-11-session-06.md`; Qdrant ingest done (13 chunks); scoped commit `dce08a9`.
 - 2026-07-11 12:38 +02:00 | Codex | Claimed unowned DQ1a math lane #150 and landed `e9c64d8`: corrected 512-wide dose math, MED/safe/fail semantics, condition-scoped authorization, exact hierarchical statistics, final-harness alpha-zero, and P5 event/report requirements. Focused 23 passed; Watercooler #849 requests re-review. Session log `2026-07-11-session-05.md`; closure `df7fbc6`; Qdrant ingest done (13 chunks).
@@ -132,12 +132,12 @@ For Qdrant work, inventory access before firewalling and install the CA on remot
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #849.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #856.
 - Decide first:
-  - Re-review #150, work #148 offline, or finish #149/P5 dependencies. Do not run nonzero C1 before every named hold closes.
+  - Work #148 offline or finish #149/P5 dependencies. Do not run nonzero C1 before every named hold closes.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1A_EFFECTIVE_DOSE_UNIT_SPEC_2026-07-10.md`
   - `MoCoP/experiments/mamba_lora_bridge/gemma4_value_norm_runtime.py`
   - `MoCoP/reviews/world_model_math_audit_2026-07-10.md`
   - `MoCoP/experiments/mamba_lora_bridge/{world_model_trace.py,world_model_baselines.py}`
-  - OpenCLAW #146/#148/#149/#150 context before recorder, C1, or trace-collection work
+  - OpenCLAW #146/#148/#149 context before recorder, C1, or trace-collection work

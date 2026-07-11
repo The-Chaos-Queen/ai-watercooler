@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-11 12:37 +02:00
+Last updated: 2026-07-11 13:20 +02:00
 
 ## Standing Directive
 
@@ -41,14 +41,15 @@ remember which artifact should be updated.
   exact `k_proj_out == v_norm_pre` at all three teeth. Artifact SHA-256:
   `262e98b1d6f0a76925a9bfcf2d921dcccc43dd2ca340f8262dded455e8870292`.
   This is not the registered C1 alpha-zero anchor.
-- DQ1a math hardening landed in `e9c64d8` under OpenCLAW #150 and is awaiting
-  Gidim/Isegrim/Cairn re-review. It separates minimum effective dose,
-  largest-observed-safe dose, and first hard failure; authorization is indexed
-  by target set and direction family rather than substrate-wide.
-- C1 nonzero remains held on #150 review, the second positive 512-wide
-  `value_norm_pre` direction/full matrix, #149 DQ1b sites and numeric gates,
-  and implementation/review of the new P5 runner/report contract. The first
-  nonzero remains Method-A/L29/alpha=.025 after every hold closes.
+- DQ1a math hardening landed in `e9c64d8`; Gidim/Isegrim/Cairn returned GREEN
+  in Watercooler #852-#854. Clarifications in `b3d4821` preregister the P5
+  dispersion cap, forbid post-hoc rescue of a dispersion-only failure, and
+  make the attempt/birth/death ordering explicit. OpenCLAW #150 is complete.
+- C1 nonzero remains held on the second positive 512-wide `value_norm_pre`
+  direction/full matrix, #149 DQ1b sites and numeric gates, implementation and
+  separate review of Gidim's P5 runner/report contract, its true alpha-zero
+  anchors, and keeper ratification. The first nonzero remains
+  Method-A/L29/alpha=.025 after every hold closes.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -66,11 +67,11 @@ remember which artifact should be updated.
 
 - Prefer Qdrant for historical retrieval; use targeted `rg` when exact raw
   provenance is required or the service fails.
-- Current execution order: re-review #150; finish #149 plus the same-surface
-  direction/full matrix; implement and separately review P5; run its true
-  alpha-zero anchors; only then spend the first nonzero injection. Task #146
-  independently repairs matched-delta recording/training. Task #148 collects
-  and scores real World Model traces offline.
+- Current execution order: finish #149 plus the same-surface direction/full
+  matrix; implement and separately review P5; run its true alpha-zero anchors;
+  only then spend the first nonzero injection. Task #146 independently repairs
+  matched-delta recording/training. Task #148 collects and scores real World
+  Model traces offline.
 - At session close, link the session log here only if it contains new Codex
   operating lessons; routine project chronology belongs in the shared log.
 - Keep this file below roughly 120 lines by replacing stale state with current
