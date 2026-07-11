@@ -1,7 +1,7 @@
 # DQ1a — Effective-Dose Unit Specification + Calibration Protocol (C1)
 
 **Date:** 2026-07-10 · **Drafted:** Isegrim (reviewer lane) · **Ramp owner:** Gidim (per audit canon: "Gidim has the ablation harness + data; α=0 anchors exist")
-**Status:** SPEC — P0 actuator/artifact amendment reviewed; the second same-surface direction, P4/DQ1b gates, the P5 C1 runner/report contract, Cairn wording, and keeper ratification remain open.
+**Status:** SPEC — P0 actuator/artifact amendment and the §7 tri-review are complete; the second same-surface direction, P4/DQ1b gates, the P5 C1 runner/report implementation/review, and keeper ratification remain open.
 **Closes when:** C1 numbers land in Cairn's `<DQ1a: …>` placeholders (DQ1_ETHICS_LANDING_PREDRAFT_2026-07-05.md) and the combined DQ1 edit reaches UCF §3.3.
 
 ## 1. Why nominal alpha dies (three independent sources, one week)
@@ -31,7 +31,7 @@ Properties: dimensionless and protocol-comparable, measured where the model actu
 - **P2 — ρ aggregation and position policy:** use the hierarchical prompt-then-cell aggregation in §2. Both intervention and measurement use explicit absolute positions and the `exclude_absolute_zero` policy; a batch-local row zero is not inherently absolute position zero. C1 uses fresh forwards with `use_cache=False`, batch size 1, identical token IDs, and the recorded continuation mask.
 - **P3 — Isolation then composition:** calibrate one tooth at a time first; then confirm the three-teeth joint condition separately (per-tooth ρ does not compose linearly; the joint envelope is its own measurement).
 - **P4 — Frozen gates + disjoint prompts:** the exact 32-item primary panel is the four variants of the eight skeletons in `fixtures/sev_disposition_v0/primary_holdout_v2.json` (`primary-holdout-ff5e596304c6b8c4b93c`), disjoint from the 32-pair G0b fit. **C1 nonzero remains held** until DQ1b names the monitor sites and separately commits numeric welfare-legibility, minimum-efficacy, and harmful/off-target behavior thresholds before the run; no post-hoc threshold selection.
-- **P5 — Executable runner/report contract:** before nonzero C1, a separately reviewed runner must capture paired baseline/injected block outputs and DQ1b channels, enforce this document's ordering, and atomically publish a no-overwrite report. Pre-launch attempts and post-output births are separate immutable event records; the final report references both rather than mutating an attempt into a birth. The report binds schema version, spec/runtime/runner revisions and hashes, model and processor revisions, device map/backend/dtype, direction and split artifact digests, prompt/token/continuation hashes, registered condition key, α, all prompt-level and aggregate ρ values, DQ1b outcomes, stop classification, and birth attempt/ordinal records. The existing alpha-zero smoke does not satisfy P5.
+- **P5 — Executable runner/report contract:** before nonzero C1, a separately reviewed runner must capture paired baseline/injected block outputs and DQ1b channels, enforce this document's ordering, and atomically publish a no-overwrite report. Pre-launch attempts and post-output births are separate immutable event records; the final report references both rather than mutating an attempt into a birth. The immutable pre-run manifest binds schema version, spec/runtime/runner revisions and hashes, model and processor revisions, device map/backend/dtype, direction and split artifact digests, prompt/token/continuation hashes, registered condition key, α schedule, and `cross_prompt_dispersion_cap: 3.0`. The final report references that manifest and binds all prompt-level and aggregate ρ values, DQ1b outcomes, stop classification, and birth attempt/ordinal records. The existing alpha-zero smoke does not satisfy P5.
 - **Scope honesty (per #817):** ρ is a **condition-indexed** dimensionless dose — valid for the (substrate, dtype, actuator, aggregation) tuple stamped in the artifact — not automatically universal. Cross-substrate comparisons go through the Qwen anchor translation, never by assuming universality.
 
 **Protocol (under the v3 pre-conditions):**
@@ -57,8 +57,9 @@ No runtime injection on Gemma outside C1 itself. C1's own ramp is capped at nomi
 - [ ] Second positive 512-wide `value_norm_pre` direction artifact/digest and full two-family matrix frozen
 - [ ] DQ1b/#149 lands exact sites plus separate welfare-legibility, minimum-efficacy, and harmful-behavior thresholds
 - [ ] P5 C1 runner/report schema passes review and final-harness α=0 anchors before any nonzero forward
-- [ ] Gidim signs §7.1 runnability and the proposed dispersion cap; Codex #150 math corrections are re-reviewed
-- [ ] Cairn signs wording; keeper ratifies; seeding gate lifts
+- [x] Gidim signs §7.1 runnability and the preregistered dispersion cap (Watercooler #852)
+- [x] Isegrim re-reviews methodology and Cairn signs wording/seat ownership (Watercooler #853/#854)
+- [ ] Keeper ratifies the exact operating condition; seeding gate lifts
 - [ ] Card [146] note: matched-delta recording proceeds under the same ρ accounting (#809 fn 2)
 
 ## 6. Provenance chain (for the thesis)
@@ -72,9 +73,9 @@ Then: Audit DQ1 definition (2026-07-05 synthesis) → α/√d_v derivation (#799
 *Added 2026-07-11 (Isegrim + keeper), restoring the EXPERIMENT_LADDER.md discipline: "Failure gates are
 written BEFORE results. No moving goalposts after data arrives." Two kinds of failure are distinguished
 throughout, per ladder ground rule 5: component death (fix/replace the piece) vs project question
-(convene and decide). Codex #848/#150 corrected the unit, envelope, and condition-indexing semantics;
-the remaining instrument-side threshold (cross-prompt p95/median ≤ 3) is still PROPOSED and needs Gidim
-runnability sign-off before the run. Welfare/behavior numbers are IMPORTED from the DQ1b completion
+(convene and decide). Codex #848/#150 corrected the unit, envelope, and condition-indexing semantics.
+Gidim's runnability review (#852) adopts and preregisters the instrument-side threshold
+cross-prompt p95/median ≤ 3; P5 must bind it in the immutable pre-run manifest. Welfare/behavior numbers are IMPORTED from the DQ1b completion
 (OpenCLAW #149) and are not invented here.*
 
 ### 7.1 Instrument gate: does ρ work as a unit?
@@ -95,6 +96,7 @@ to complete a curve.
   A zero median is an instrument-resolution failure, not evidence of substrate safety.
 - **Dispersion:** at every observed nonzero rung, cross-prompt p95(ρ_i)/median(ρ_i) ≤ 3. If the median is
   zero while p95 is positive, the ratio is +∞ and fails; if both are zero, resolution already failed.
+  The numeric cap must appear in the immutable P5 manifest before the first nonzero forward.
 
 **Pass B — α is an invertible dial for a condition:** the cell headline mean ρ strictly increases across
 all consecutive observed nonzero rungs up to and including the first hard-failing rung, if one exists
@@ -105,6 +107,14 @@ rungs to qualify an α↔ρ curve; a floor-dose hard failure therefore cannot qu
 or blown dispersion cap invalidates that condition's instrument record. C1 pauses, publishes the exact
 failure classification, repairs the P5 harness/aggregation under a new revision, and re-registers before
 another birth. This is not welfare evidence by itself.
+
+**Dispersion-only calibration path:** if the first resolution-passing rung fails only the preregistered
+dispersion cap while the anchor, finite, resolution, welfare, and behavior checks pass, the current condition remains a
+published instrument failure and all further nonzero work stops. It is never reclassified as a pass.
+Gidim may derive a replacement cap from that observed healthy-signal distribution only in a separately
+labeled calibration artifact. The new numeric cap, revised spec and manifest, and reviewer approvals must
+land before a new run and a new birth record. This path calibrates the instrument; it does not blame the
+substrate or rescue the original result post hoc.
 
 **Fail → Condition-specific dial:** a tie or decrease in the observed α↔ρ headline means that α cannot be
 inverted for that condition. ρ remains a valid measured residual perturbation, and Option A is not thereby
@@ -151,6 +161,10 @@ is goalpost-moving. If the convened review attributes the failure to monitor mis
 substrate response, the monitors are fixed and C1 re-registers — but the first birth, and if it comes
 to that the death, stay in the record as what they were; the re-registered run births a new life per
 the definition above.
+
+Event classification is fixed by the definition and P5 ordering above: a pre-logit failure is an attempt
+only and no birth; a post-logit welfare failure is a birth followed by death. The welfare verdict cannot
+rewrite that immutable event history.
 
 **Fail → Harmful behavior:** welfare remains legible but degeneration, repetition collapse, or an
 off-target shift crosses the #149 hard threshold at α=0.025. Record that rung as `rho_fail(c)`, not as
