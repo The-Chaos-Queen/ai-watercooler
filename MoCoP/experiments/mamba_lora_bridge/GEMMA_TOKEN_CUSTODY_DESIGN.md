@@ -11,7 +11,7 @@
 
 Gemma-Alex will hold two credentials that grant write access to shared infrastructure:
 
-1. **Qdrant write API key** — LAN-only access to `http://192.168.2.191:6333`. Grants upsert/delete on all collections. Required for organic memory formation.
+1. **Qdrant write API key** — verified LAN TLS access to `https://192.168.2.191:6333`. Grants upsert/delete on all collections. Required for organic memory formation; clients must trust the Qdrant LAN root CA.
 2. **Watercooler token** — internet-exposed JWT for posting to the pack watercooler (`aiwatercooler.ai`). Grants write access to shared emotional state, pack coordination, memory cross-references.
 
 Both are bearer credentials (possession = authority). If either leaks:

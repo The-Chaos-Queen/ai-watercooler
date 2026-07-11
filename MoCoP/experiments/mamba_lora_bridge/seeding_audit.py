@@ -17,12 +17,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 try:
     from qdrant_client import QdrantClient
@@ -30,7 +33,27 @@ try:
 except ImportError:
     QdrantClient = None
 
-QDRANT_DEFAULT_URL = "http://192.168.2.191:6333"
+QDRANT_DEFAULT_URL = os.environ.get("QDRANT_URL", "https://192.168.2.191:6333")
+
+
+def _verified_qdrant_options(url: str) -> Dict[str, str]:
+    """Require verified HTTPS except for an explicit emergency rollback override."""
+    if urlparse(url).scheme.lower() != "https":
+        allowed = os.environ.get("QDRANT_ALLOW_INSECURE_HTTP", "").strip().lower()
+        if allowed not in {"1", "true", "yes"}:
+            raise ValueError(
+                "Refusing plaintext Qdrant URL; set QDRANT_ALLOW_INSECURE_HTTP=1 "
+                "only for a temporary emergency rollback."
+            )
+        return {}
+
+    ca_cert = os.environ.get("QDRANT_CA_CERT", "").strip()
+    if not ca_cert:
+        return {}
+    ca_path = Path(ca_cert).expanduser()
+    if not ca_path.is_file():
+        raise ValueError(f"QDRANT_CA_CERT does not exist: {ca_path}")
+    return {"verify": str(ca_path)}
 
 SEEDING_CATEGORIES = [
     "first_meeting",
@@ -385,7 +408,13 @@ def main() -> None:
         sys.exit(1)
 
     args = build_parser().parse_args()
-    client = QdrantClient(url=args.qdrant_url, timeout=30)
+    api_key = os.environ.get("QDRANT_READ_KEY") or os.environ.get("QDRANT_API_KEY")
+    client = QdrantClient(
+        url=args.qdrant_url,
+        timeout=30,
+        api_key=api_key,
+        **_verified_qdrant_options(args.qdrant_url),
+    )
 
     try:
         info = client.get_collection(args.collection)

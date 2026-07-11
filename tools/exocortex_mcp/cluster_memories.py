@@ -41,9 +41,10 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Filter, FieldCondition, MatchValue, PointStruct, VectorParams, Distance,
 )
+from qdrant_security import default_qdrant_url, verified_qdrant_client_options
 from sklearn.cluster import HDBSCAN
 
-DEFAULT_QDRANT_URL = "http://192.168.2.191:6333"
+DEFAULT_QDRANT_URL = default_qdrant_url()
 DEFAULT_COLLECTION = "exocortex"
 
 # Source types that must NEVER be clustered (protected memory categories)
@@ -442,7 +443,12 @@ def main():
 
     # P0-1: API key authentication support
     api_key = os.environ.get("QDRANT_READ_KEY") or os.environ.get("QDRANT_API_KEY")
-    client = QdrantClient(url=args.qdrant_url, timeout=30, api_key=api_key)
+    client = QdrantClient(
+        url=args.qdrant_url,
+        timeout=30,
+        api_key=api_key,
+        **verified_qdrant_client_options(args.qdrant_url),
+    )
 
     # Build scope description
     scope_parts = []

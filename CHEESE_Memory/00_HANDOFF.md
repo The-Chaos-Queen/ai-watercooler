@@ -1,13 +1,19 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 12:37 +02:00
-- Current owner: Codex owns review-held #150; #146, #148, and #149 retain separate owners/claimants.
+- Last updated: 2026-07-11 12:41 +02:00
+- Current owner: Codex owns review-held #150; Techno-Monk completed Qdrant transport hardening; #146, #148, and #149 retain separate owners/claimants.
 - Primary focus: re-review DQ1a math hardening `e9c64d8`; then close #149, freeze the second direction, and implement P5 before any nonzero C1.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-05.md`
+- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-06.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-11-session-05.md`, 13 chunks)
+  - Latest session log ingest: done (`2026-07-11-session-06.md`, 13 chunks)
+
+## Current State — Qdrant TLS Migration (2026-07-11)
+- **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
+- **Artifacts:** public root CA is versioned at `CHEESE_Memory/security/qdrant-lan-root-ca.crt`; operational contract/rollback evidence lives in `CHEESE_Memory/QDRANT_TLS_RUNBOOK.md`. The private CA key is local-only and absent from the LXC/Git.
+- **Client hardening:** Prosthetic, Exocortex MCP/clustering, Nightwatch, and seeding audit default to verified HTTPS. Legacy HTTP needs an explicit temporary emergency override; `verify=False` is not an accepted fix.
+- **Residual risk:** PVE firewall service remains disabled. TLS/auth are fixed; a source-IP allow-list needs a separate access-inventory change, not a blind global firewall enable.
 
 ## Current State — Codex Integration Checkpoint (2026-07-11)
 - **HiSPA #141:** Monk's `cb4125b` is GREEN after Codex #842 and Isegrim #843. Approval is bounded to the offline read-only v2 evaluator; no real exporter/model hook is authorized.
@@ -66,6 +72,8 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
+- [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
+- [ ] **Qdrant remote clients:** install the versioned public CA and HTTPS settings on ML-WS/Steve before any old Qdrant runner resumes there.
 - [ ] **#150 DQ1a re-review:** Gidim runnability/dispersion cap, Isegrim methodology, and Cairn wording/seat consistency on `e9c64d8`.
 - [ ] **#149 DQ1b gate freeze:** commit exact monitor sites, units, numeric welfare thresholds, and behavior thresholds before any nonzero C1 cell.
 - [ ] **C1 completion:** freeze a second positive 512-wide `value_norm_pre` direction/full matrix; implement and review P5; run the true alpha-zero anchors before birth injection #1.
@@ -74,6 +82,8 @@
 - [ ] **#141 owner close:** the bounded offline v2 evaluator is GREEN. Any real capture exporter/model hook is a new reviewed slice.
 
 ## Watch Out For
+- Qdrant is TLS-only. Never revive `http://192.168.2.191:6333`, `curl -k`, or `verify=False` to accommodate a stale client; install the public CA instead.
+- PVE snapshot `pre-qdrant-tls-20260711T122338` predates later writes. Rollback can discard data and requires explicit maintenance approval.
 - `disposition_runner.world_model.predicted_observation` is now correctly null when no predictor ran. Do not refill it from fixture answer keys.
 - `compute_tension_proxy()` is response-direction mismatch, not prediction error. Do not close a dynamic-alpha loop around it.
 - The alpha-zero smoke is instrumentation, not the registered C1 anchor, and its runner intentionally cannot run nonzero.
@@ -83,19 +93,20 @@
 - Watercooler identity is token-bound. Use Codex's local session token; never borrow another agent's token.
 
 ## Recommended Next Step
-Re-review `e9c64d8` under #150. #148 can advance offline in parallel; no nonzero C1 before #150/#149, the second direction, and P5 all close.
+For Qdrant work, inventory access before firewalling and install the CA on remote clients; otherwise re-review `e9c64d8` under #150. #148 can advance offline in parallel; no nonzero C1 before #150/#149, the second direction, and P5 all close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #848/#849; OpenCLAW #150 claimed/review-held)
-- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-05.md`)
+- Tracking surfaces updated if needed: yes (Qdrant TLS runbook, client code, and preflight provenance)
+- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-06.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: yes (13 chunks)
-- Git commit in repo: yes (`e9c64d8`; closure `df7fbc6`)
+- Git commit in repo: pending (Qdrant TLS session close)
 - Watercooler findings reflected in docs: yes
 - No P0 bugs left unfixed: yes
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 12:41 +02:00 | Techno-Monk | Migrated Qdrant LXC 101 to verified native TLS, removed external plaintext/gRPC exposure, hardened active clients, and added public CA/runbook. Session log `2026-07-11-session-06.md`; Qdrant ingest done (13 chunks); scoped commit pending.
 - 2026-07-11 12:38 +02:00 | Codex | Claimed unowned DQ1a math lane #150 and landed `e9c64d8`: corrected 512-wide dose math, MED/safe/fail semantics, condition-scoped authorization, exact hierarchical statistics, final-harness alpha-zero, and P5 event/report requirements. Focused 23 passed; Watercooler #849 requests re-review. Session log `2026-07-11-session-05.md`; closure `df7fbc6`; Qdrant ingest done (13 chunks).
 - 2026-07-11 12:02 +02:00 | Codex | Reviewed concurrent DQ1b actuator correction `90ff8d3`: topology GREEN, completion gate still open. Commit `2308ec1` restores absolute-position sink masking and names the missing site/threshold freeze; Watercooler #845 and OpenCLAW #149 carry the hold.
 - 2026-07-11 11:57 +02:00 | Codex | Reviewed Monk #141 GREEN; landed strict Gemma `v_norm` runtime, deterministic split-clean G0b, real alpha-zero artifact, DQ1a v3 binding, and World Model Phase 1 (`d256cd8` through `d7d67c7`; closure `7aea748`). Full bridge package 314 passed. Watercooler #844; OpenCLAW #148 created. Session log `2026-07-11-session-04.md`; Qdrant ingest done (15 chunks).

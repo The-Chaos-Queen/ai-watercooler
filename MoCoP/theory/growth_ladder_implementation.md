@@ -74,7 +74,8 @@ assert ARGS.qdrant_collection != "exocortex", \
 python3 birth.py --instance-id baby_alpha --qdrant-host 192.168.2.191
 
 # Verify it's empty (only birth record)
-curl -s http://192.168.2.191:6333/collections/mocop_private_baby_alpha | jq .result.points_count
+curl --fail --cacert "$QDRANT_CA_CERT" -H "api-key: $QDRANT_READ_KEY" \
+  "https://192.168.2.191:6333/collections/mocop_private_baby_alpha" | jq .result.points_count
 # Expected: 1
 
 # Verify exocortex is NOT accessible

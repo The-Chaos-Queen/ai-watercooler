@@ -5,7 +5,7 @@ exocortex_mcp_server.py — MCP server exposing Qdrant-backed Exocortex memory t
 Lets any wolf search, browse, and inspect the shared Exocortex memory store
 via the Model Context Protocol.
 
-Auth: none (local-only, same trust model as direct Qdrant access).
+Auth: Qdrant read-only API key from the environment; TLS is required by default.
 
 Transport: stdio (for Claude Code `claude mcp add`).
 
@@ -14,7 +14,7 @@ Usage:
 
   # Or override defaults:
   python tools/exocortex_mcp/exocortex_mcp_server.py \
-    --qdrant-url http://192.168.2.191:6333 \
+    --qdrant-url https://192.168.2.191:6333 \
     --collection exocortex \
     --model all-MiniLM-L6-v2
 
@@ -34,6 +34,7 @@ from mcp.server.fastmcp import FastMCP
 from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue, Range
 from sentence_transformers import SentenceTransformer
+from qdrant_security import default_qdrant_url, verified_qdrant_client_options
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
 logger = logging.getLogger("exocortex-mcp")
@@ -383,7 +384,7 @@ def main():
     global QDRANT, EMBEDDER, COLLECTION
 
     parser = argparse.ArgumentParser(description="Exocortex MCP Server")
-    parser.add_argument("--qdrant-url", default="http://192.168.2.191:6333", help="Qdrant REST URL")
+    parser.add_argument("--qdrant-url", default=default_qdrant_url(), help="Qdrant REST URL (HTTPS by default)")
     parser.add_argument("--collection", default="exocortex", help="Qdrant collection name")
     parser.add_argument("--model", default="all-MiniLM-L6-v2", help="Sentence-transformers model for embeddings")
     args = parser.parse_args()
@@ -393,7 +394,12 @@ def main():
     # P0-1: API key authentication support (read-only key for MCP server)
     api_key = os.environ.get("QDRANT_READ_KEY") or os.environ.get("QDRANT_API_KEY")
     logger.info("Connecting to Qdrant at %s (collection: %s)", args.qdrant_url, COLLECTION)
-    QDRANT = QdrantClient(url=args.qdrant_url, timeout=10, api_key=api_key)
+    QDRANT = QdrantClient(
+        url=args.qdrant_url,
+        timeout=10,
+        api_key=api_key,
+        **verified_qdrant_client_options(args.qdrant_url),
+    )
 
     logger.info("Loading embedding model: %s", args.model)
     EMBEDDER = SentenceTransformer(args.model)

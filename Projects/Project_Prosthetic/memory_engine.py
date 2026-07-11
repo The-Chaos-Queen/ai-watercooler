@@ -31,12 +31,13 @@ from qdrant_client.models import (
 # Local embeddings
 from sentence_transformers import SentenceTransformer
 
-
 import os
 
+from qdrant_transport import transport_from_environment
+
 # --- Configuration ---
-QDRANT_HOST = "192.168.2.191"
-QDRANT_PORT = 6333
+QDRANT_HOST = os.environ.get("QDRANT_HOST", "192.168.2.191")
+QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
 COLLECTION_NAME = "exocortex"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"  # 384 dimensions, ~80MB, fast
 EMBEDDING_DIM = 384
@@ -69,11 +70,20 @@ class MemoryEngine:
 
     def __init__(self, host: str = QDRANT_HOST, port: int = QDRANT_PORT):
         load_hf_token()
-        print(f"[MEMORY] Connecting to Qdrant @ {host}:{port}...")
+        transport_environment = dict(os.environ)
+        transport_environment["QDRANT_HOST"] = host
+        transport_environment["QDRANT_PORT"] = str(port)
+        transport = transport_from_environment(transport_environment)
+        print(f"[MEMORY] Connecting to Qdrant @ {transport.endpoint}...")
         try:
-            import os
             api_key = os.environ.get("QDRANT_API_KEY")
-            self.client = QdrantClient(host=host, port=port, api_key=api_key, https=False, timeout=10)
+            self.client = QdrantClient(
+                host=transport.host,
+                port=transport.port,
+                api_key=api_key,
+                timeout=10,
+                **transport.client_kwargs(),
+            )
             
             print(f"[MEMORY] Loading embedding model '{EMBEDDING_MODEL}'...")
             self.model = SentenceTransformer(EMBEDDING_MODEL)
@@ -83,7 +93,7 @@ class MemoryEngine:
             print(f"[MEMORY] Online. Collection '{COLLECTION_NAME}' ready.")
         except Exception as e:
             print(f"\n[MEMORY] CRITICAL ERROR: Could not connect to Qdrant.")
-            print(f"[MEMORY] Host: {host} | Port: {port}")
+            print(f"[MEMORY] Endpoint: {transport.endpoint}")
             print(f"[MEMORY] Error: {e}")
             print(f"[MEMORY] Tip: Check if Qdrant is running on Proxmox or if the IP has changed.")
             raise e

@@ -34,6 +34,7 @@ import argparse
 import json
 import logging
 import os
+import ssl
 import sys
 import time
 import urllib.request
@@ -60,9 +61,15 @@ WC_THREAD = os.environ.get("NIGHTWATCH_THREAD", "mamba-bridge")
 STATE_FILE = Path(__file__).parent / ".nightwatch_state.json"
 LOG_FILE = Path(__file__).parent / "nightwatch.log"
 
+QDRANT_HEALTH_URL = os.environ.get("QDRANT_URL", "https://192.168.2.191:6333").rstrip("/") + "/healthz"
+
 HEALTH_TARGETS = {
     "watercooler": {"url": "http://192.168.2.55:8765/healthz", "optional": False},
-    "qdrant": {"url": "http://192.168.2.191:6333/healthz", "optional": False},
+    "qdrant": {
+        "url": QDRANT_HEALTH_URL,
+        "optional": False,
+        "ca_cert_env": "QDRANT_CA_CERT",
+    },
     "steve_chat": {"url": "http://192.168.2.49:7860/status", "optional": True},
 }
 # Optional targets only alert if they were healthy last cycle (avoids nightly
@@ -231,6 +238,28 @@ def classify_message(body: str) -> Dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
+def _health_ssl_context(cfg: Dict[str, Any]) -> Optional[ssl.SSLContext]:
+    """Build a pinned CA context for a TLS health target, if one is required."""
+    ca_cert_env = cfg.get("ca_cert_env")
+    if not ca_cert_env:
+        return None
+
+    configured_path = os.environ.get(ca_cert_env, "").strip()
+    if not configured_path:
+        raise RuntimeError(f"{ca_cert_env} is required for the Qdrant HTTPS health check")
+
+    ca_cert = Path(configured_path).expanduser()
+    if not ca_cert.is_file():
+        raise RuntimeError(f"{ca_cert_env} does not exist: {ca_cert}")
+    return ssl.create_default_context(cafile=str(ca_cert))
+
+
+def _probe_health_target(cfg: Dict[str, Any]) -> int:
+    req = urllib.request.Request(cfg["url"], method="GET")
+    with urllib.request.urlopen(req, timeout=5, context=_health_ssl_context(cfg)) as resp:
+        return resp.status
+
+
 def check_health(prev_failures: List[str]) -> List[Dict[str, Any]]:
     """Ping health endpoints, return list of alert-worthy failures.
 
@@ -242,13 +271,12 @@ def check_health(prev_failures: List[str]) -> List[Dict[str, Any]]:
         url = cfg["url"]
         optional = cfg.get("optional", False)
         try:
-            req = urllib.request.Request(url, method="GET")
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                if resp.status >= 400:
-                    failures.append({
-                        "service": name, "status": resp.status,
-                        "url": url, "optional": optional,
-                    })
+            status = _probe_health_target(cfg)
+            if status >= 400:
+                failures.append({
+                    "service": name, "status": status,
+                    "url": url, "optional": optional,
+                })
         except Exception as exc:
             failures.append({
                 "service": name, "error": str(exc)[:100],
@@ -433,10 +461,8 @@ def run_once(config: Dict[str, Any], state: Dict[str, Any], dry_run: bool = Fals
     for name, cfg in HEALTH_TARGETS.items():
         url = cfg["url"]
         try:
-            req = urllib.request.Request(url, method="GET")
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                if resp.status >= 400:
-                    all_down.append(name)
+            if _probe_health_target(cfg) >= 400:
+                all_down.append(name)
         except Exception:
             all_down.append(name)
 

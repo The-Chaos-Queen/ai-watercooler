@@ -136,7 +136,7 @@ def _make_id(self, identity_text: str) -> int:
 **Problem:** Qdrant might become unhealthy (not just this write but all operations). The weekly backup script creates snapshots that consume disk.
 
 **Mitigation:**
-1. Monitor: add Qdrant disk usage to the morning brief (`curl http://192.168.2.191:6333/collections/exocortex | jq .result.points_count`)
+1. Monitor: add Qdrant disk usage to the morning brief (`curl --fail --cacert "$QDRANT_CA_CERT" -H "api-key: $QDRANT_READ_KEY" https://192.168.2.191:6333/collections/exocortex | jq .result.points_count`)
 2. Retention policy: delete snapshots older than 30 days
 3. Alert threshold: if disk >80%, warn in morning brief
 

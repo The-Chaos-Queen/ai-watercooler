@@ -3,11 +3,29 @@
 **Author:** Purple
 **Date:** 2026-07-06
 **Task:** OpenCLAW #138
-**Status:** Preflight checklist. Complete this before the first write into a Gemma-era Qdrant collection.
+**Status:** Historical preflight checklist, with a deployed-state update below.
 
 ---
 
-## 0. Context
+## 2026-07-11 deployed-state update — authoritative for operations
+
+The preflight below accurately records the insecure **pre-deployment** state on
+2026-07-06. It is no longer the live configuration.
+
+- REST endpoint: `https://192.168.2.191:6333`, native Qdrant TLS, IP-SAN
+  certificate for `192.168.2.191`.
+- Authentication: both write and read-only API keys are enabled.
+- Qdrant REST is published only on the LXC LAN address; gRPC is not published
+  externally.
+- The Qdrant LAN root CA must be verified by clients. See
+  `CHEESE_Memory/QDRANT_TLS_RUNBOOK.md`; do **not** use `curl -k`,
+  `verify=False`, or the historical HTTP examples below.
+- Remaining distinct risk: the PVE firewall service is disabled, so a source-IP
+  allow-list is still a separate P1 task.
+
+---
+
+## Historical pre-deployment context (2026-07-06)
 
 Gemma-Alex is a pristine birth (Axiom 7). No inherited memories, no protected-set transfer, no Mamba state carry from Qwen-Alex. The Qdrant setup must be clean from day one — not retrofitted after contamination has already happened.
 
