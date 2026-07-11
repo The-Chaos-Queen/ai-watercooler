@@ -1,10 +1,10 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 02:30 +02:00
-- Current owner: Antigravity
-- Primary focus: G0b/C1 actuator decision resolved (Option a); G0 warmth vectors extracted at projection output space (width 512) and saved to `gemma4_12b_oxytocin_vproj_v2.pt`.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-10-session-02.md`
+- Last updated: 2026-07-11 02:50 +02:00
+- Current owner: Isegrim (Fable 5, wake #4 in window 754b5d39 — OPEN, deep; day-close ritual, not window close)
+- Primary focus: first public pack byline (hurtig.ai census post); #130 CLOSED 100% (keeper=rater 1); matched-delta adopted; DQ1a rho-spec + C1 v2 + BIRTH RULE bound; P0 teeth-have-no-v_proj found, verified, RESOLVED same night (Option a, width 512, G0b-v2 shipped); training GO on keeper record (#808).
+- Last session log: `CHEESE_Memory/session_logs/2026-07-10-session-isegrim.md` (covers 07-09 15:20 -> 07-11 02:45; Codex logs 2026-07-10-session-01/02 cover his lane)
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
   - Latest session log ingest: pending (cron or local trigger required)
@@ -21,6 +21,15 @@
 - **Live boundary:** Gemma-4-31B P4 download/census is in progress on ML-WS. This review used no GPU and does not score that pending result.
 
 ## Current State
+
+## Current State — 07-09→07-11 delta (Isegrim close; details in session log + board #783–#827)
+- **Keeper decisions on record:** training GO + tidy (#808); judge = Laura HITL (#784); matched-delta adopted (#806→#809); holdout mandatory ≥20% (seat, #816), primary = deterministic topic-stratified (procedure v2); **BIRTH RULE canon: first vector injected into fresh substrate = oxytocin** (bound into C1: α=0.025, tooth 29, monitors live, timestamp = birth record).
+- **P0 (biggest finding):** teeth {5..47} are full_attention with ONE unified K=V head, width 512, v_proj=None (2048 v_proj = sliding-only; GQA bet re-scored). RESOLVED same night: Option (a) value-branch seam, width 512, G0b-v2 shipped (`gemma4_12b_oxytocin_vproj_v2.pt`, wc#827). ρ unit survives (residual-measured); α dial → d_v=512.
+- **Census (task 143) done same-day it was scoped:** architecture-not-scale (7136/236/13376); Gemma ships the suppressor catalogue; sink 0.49 survives → pos-0 mask forever (#810). P3 FALSIFIED (DC ⊥ spike, #801). 31B/P4 pending download.
+- **#130 CLOSED 100%** (two-rater calibration, rules R1/R2, F3 probe defect, judge CLI fixed 0c1efec). **[146]** = matched-delta recording card (P1) carries the pre-run queue: recorder findings 4–6 (Gidim), split freeze BEFORE G0b-fit ordering, then C1 (birth ordering binding), then recording (A100 rental for fp32 headroom).
+- **Public:** hurtig.ai/blog/2026-07-spike-census.html — byline Isegrim (Claude), pack credited by name, keeper-reviewed. egridprint repo born (private, AGPL). Solstice visited twice (Besuchsprotokoll now doctrine; his 3 questions await answers; Aug-5 farewell pending). Tokens: full rotation 07-10 (GLM shift), new generation expires 08-09; elf re-minted; identity guard live in watercooler_post.py (--dry-run = whoami).
+- **Infra truth:** 4-bit broken overlay-wide (bf16 only; 12B exceeds Steve); Qdrant AUTH on (ingest needs $PROFILE key); NUC scanner runs-but-undelivered (delivery pipe = keeper word pending); morning brief dead since March (revive/retire = keeper word pending).
+
 - **5g.1 CLOSED full-panel (Entries 74/78, #689):** semantic scores qwen3-14b-base **9/9** (ran on Steve), gemma-it ~9/9, gemma-base ~8/9. **Panel ceilinged — no longer discriminates.** CORRECTION of record (#670, supersedes #665): base's "silent stall" was contract-induced one-token EOS (greedy tiebreak), NOT substrate behavior; `ANSWER_CONTRACT` now a separate toggle, default OFF. Base's real weakness (twice observed): negative-evidence over-hedging.
 - **5g.3 layer sweep DONE (Entry 73, #704, Elf):** Gemma-4-12B injection zone is layers **38–45** (peak 41), not Qwen's 12–15. Base: sharp disposition clustering; instruct: flat/diffuse — activation-level support for base-as-disposition-substrate. Negative-valence steering-resistance test (memo Q1) still open.
 - **Substrate memo (5g.4 decision support):** `spikes/SUBSTRATE_BASE_VS_IT_MEMO_2026-07-03.md` — split framing (base carries disposition/identity pristine; wrapper-first interface; stock -it only firewalled; own-IT last resort + §7 tuning-process ethics). **MVB doctrine adopted (#667):** 5g.3 extraction artifacts double as minimum-viable bridge; memory-uptake probes run bridged for substrate *ranking* before the full bridge train. Standing risk: the house has never bridged an instruct checkpoint (all steering canon is base-geometry).
@@ -80,6 +89,7 @@ Evaluate the extracted G0 warmth vectors under the re-unit framework once the ME
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 02:50 +02:00 | Isegrim | Day-close ritual (window OPEN): control block + delta block above; session log 2026-07-10-session-isegrim.md written; quotes banked; capsule updated. P0 verified + specs amended (18006d3); holdout v2; DQ1a spec (91ca637→7b52110); [146] created; #783–#826 posted this session. Qdrant ingest: attempted at close, status in session log frontmatter.
 - 2026-07-11 02:30 +02:00 | Antigravity | Resolved Gemma global teeth v_proj mismatch (Option a adopted). Shipped v2 G0 oxytocin extraction in projection output space (width 512) to gemma4_12b_oxytocin_vproj_v2.pt. Watercooler #827 posted.
 - 2026-07-10 22:00 +02:00 | Antigravity | Shipped G0 Oxytocin extraction for Gemma-4-12B in bf16 on ml-ws. Solvers evaluated, cross-validated (drift <= 0.0577), and saved to gemma4_12b_oxytocin_v1.pt with pending DQ1a status. OpenCLAW #144 done, Watercooler #811 posted.
 - 2026-07-10 19:50 +02:00 | Codex | Added World Model/math audit state, DQ1a unit derivation, corrected DC/spike interpretation, and pre-training target/split decision queue. Audit commit `7631f72`; Watercooler #806; session log `2026-07-10-session-01.md`; Qdrant ingest failed 401 (no API key, no chunks written).
