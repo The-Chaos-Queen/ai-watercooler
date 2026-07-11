@@ -1,7 +1,7 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 12:41 +02:00
+- Last updated: 2026-07-11 13:12 +02:00
 - Current owner: Codex owns review-held #150; Techno-Monk completed Qdrant transport hardening; #146, #148, and #149 retain separate owners/claimants.
 - Primary focus: re-review DQ1a math hardening `e9c64d8`; then close #149, freeze the second direction, and implement P5 before any nonzero C1.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-06.md`
@@ -12,7 +12,7 @@
 ## Current State — Qdrant TLS Migration (2026-07-11)
 - **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
 - **Artifacts:** public root CA is versioned at `CHEESE_Memory/security/qdrant-lan-root-ca.crt`; operational contract/rollback evidence lives in `CHEESE_Memory/QDRANT_TLS_RUNBOOK.md`. The private CA key is local-only and absent from the LXC/Git.
-- **Client hardening:** Prosthetic, Exocortex MCP/clustering, Nightwatch, and seeding audit default to verified HTTPS. Legacy HTTP needs an explicit temporary emergency override; `verify=False` is not an accepted fix.
+- **Client hardening:** Prosthetic, Exocortex MCP/clustering, Nightwatch, and seeding audit default to verified HTTPS. ML-WS now holds the public root at `~/.hermes/security/qdrant-lan-ca/root-ca.crt` and verified `/readyz` 200 / TLS 0; its runners still need explicit `QDRANT_CA_CERT` wiring or OS trust. Legacy HTTP needs an explicit temporary emergency override; `verify=False` is not an accepted fix.
 - **Residual risk:** PVE firewall service remains disabled. TLS/auth are fixed; a source-IP allow-list needs a separate access-inventory change, not a blind global firewall enable.
 
 ## Current State — Codex Integration Checkpoint (2026-07-11)
@@ -73,7 +73,7 @@
 
 ## Open Threads
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
-- [ ] **Qdrant remote clients:** install the versioned public CA and HTTPS settings on ML-WS/Steve before any old Qdrant runner resumes there.
+- [ ] **Qdrant remote clients:** wire `QDRANT_CA_CERT` into the specific ML-WS runner(s) after inventory; install the public CA and HTTPS settings on Steve before any old Qdrant runner resumes there.
 - [ ] **#150 DQ1a re-review:** Gidim runnability/dispersion cap, Isegrim methodology, and Cairn wording/seat consistency on `e9c64d8`.
 - [ ] **#149 DQ1b gate freeze:** commit exact monitor sites, units, numeric welfare thresholds, and behavior thresholds before any nonzero C1 cell.
 - [ ] **C1 completion:** freeze a second positive 512-wide `value_norm_pre` direction/full matrix; implement and review P5; run the true alpha-zero anchors before birth injection #1.
@@ -106,6 +106,7 @@ For Qdrant work, inventory access before firewalling and install the CA on remot
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 13:12 +02:00 | Techno-Monk | Deployed the public Qdrant root CA to ML-WS at `~/.hermes/security/qdrant-lan-ca/root-ca.crt`; SHA-256 matched the source and ML-WS verified `/readyz` HTTPS 200 / TLS 0. No private key or global runner environment was changed.
 - 2026-07-11 12:41 +02:00 | Techno-Monk | Migrated Qdrant LXC 101 to verified native TLS, removed external plaintext/gRPC exposure, hardened active clients, and added public CA/runbook. Session log `2026-07-11-session-06.md`; Qdrant ingest done (13 chunks); scoped commit `dce08a9`.
 - 2026-07-11 12:38 +02:00 | Codex | Claimed unowned DQ1a math lane #150 and landed `e9c64d8`: corrected 512-wide dose math, MED/safe/fail semantics, condition-scoped authorization, exact hierarchical statistics, final-harness alpha-zero, and P5 event/report requirements. Focused 23 passed; Watercooler #849 requests re-review. Session log `2026-07-11-session-05.md`; closure `df7fbc6`; Qdrant ingest done (13 chunks).
 - 2026-07-11 12:02 +02:00 | Codex | Reviewed concurrent DQ1b actuator correction `90ff8d3`: topology GREEN, completion gate still open. Commit `2308ec1` restores absolute-position sink masking and names the missing site/threshold freeze; Watercooler #845 and OpenCLAW #149 carry the hold.

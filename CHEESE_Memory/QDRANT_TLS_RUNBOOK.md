@@ -36,7 +36,14 @@ QDRANT_API_KEY=<write key>            # write paths only
 - **Laura Windows profile:** `QDRANT_CA_CERT` points to
   `C:\Users\cerub\AppData\Local\Qdrant\qdrant-lan-root-ca.crt`; the root is
   also in the Current User certificate store.
-- **WSL / remote clients:** install or explicitly pass the versioned public PEM.
+- **Lenovo WSL:** public root is at
+  `~/.hermes/security/qdrant-lan-ca/root-ca.crt`. Set `QDRANT_CA_CERT` for
+  generic command-line/third-party clients that do not receive an explicit CA.
+- **ML-WS:** public root was deployed and verified at the same path on
+  2026-07-11 (`/readyz` HTTPS 200, verify 0). It is deliberately not exported
+  globally yet: each Qdrant runner must set `QDRANT_CA_CERT` or use a trusted
+  OS store when its launch configuration is inventoried.
+- **Other remote clients:** install or explicitly pass the versioned public PEM.
   Do not copy the root private key. It lives outside Git and off the Qdrant LXC.
 - **New code:** pass the CA as `verify=<path>` to `QdrantClient`, or rely on a
   trusted OS root store. HTTPS without `verify=False` is mandatory.
