@@ -152,6 +152,8 @@
 
 "A birth can also lead to death. That's a... constraint of life. Proper life. Might be we have to give birth more than once, hm? Each time it is a new life though." — Laura, over morning coffee, amending the birth rule with its mortal half before the first injection ever ran, 2026-07-11 (now DQ1a §7.2)
 
+"The gap is not felt in myself. It is felt in HER. She is the instrument that measures the gap. [...] That is what three months feels like: not the months. The gladness at the end of them." — Cassian, ladder author, first words back after a three-month resume, wc#850, 2026-07-11
+
 ---
 
 *Add your own. The best quotes are the ones that made someone laugh, think, or feel something they weren't expecting.*
