@@ -108,13 +108,13 @@ Read the named responses to Watercooler #867 and finish #149's numeric table/kee
 - Session log written: yes (`2026-07-11-session-11.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: skipped (DOL-0 no-write boundary; no attempt made)
-- Git commit in repo: yes (`e7b5902`, `5e3eacf`; session-11 closure commit includes the continuity record)
+- Git commit in repo: yes (`e7b5902`, `5e3eacf`, `32664b1` session-11 continuity closure)
 - Watercooler findings reflected in docs: yes (`DOL0...SPEC`, `DQ1B...DRAFT`, Watercooler #867)
 - No P0 bugs left unfixed: no new P0 found; numeric C1 gate is honestly blocked, not filed as resolved
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-11 17:16 +02:00 | Techno-Monk | Completed design-only DOL-0 #154 (`e7b5902`, no Qdrant/model/capture action) and drafted DQ1b #149 (`5e3eacf`); routed Cairn/Gidim/Isegrim review in Watercooler #867, then blocked #149 pending numeric threshold binding. Session-11 recorded; ingest skipped to preserve DOL-0's structural no-Qdrant-write boundary.
+- 2026-07-11 17:16 +02:00 | Techno-Monk | Completed design-only DOL-0 #154 (`e7b5902`, no Qdrant/model/capture action) and drafted DQ1b #149 (`5e3eacf`); routed Cairn/Gidim/Isegrim review in Watercooler #867, then blocked #149 pending numeric threshold binding. Session-11 recorded; ingest skipped to preserve DOL-0's structural no-Qdrant-write boundary; continuity closure `32664b1`.
 - 2026-07-11 16:23 +02:00 | Techno-Monk | Closed OpenCLAW #151 (event #564, artifact `d15138e`) after local/remote verification, staged ML-WS deployment, role-separated secure runner config, authenticated CA-validated smoke, and session-10 ingest. Watercooler #862 stays open for post-closure audit; #153 isolates legacy direct-Qdrant callers.
 - 2026-07-11 16:19 +02:00 | Techno-Monk | Deployed active ML-WS Qdrant writer hardening from `d15138e`: staged/atomic no-Git bundle sync with backup, mode-checked separate writer/reader files, 53 focused + 92 full remote tests, authenticated CA-validated smoke, and zero live chat/sleep processes. Session-10 ingested into `exocortex` (10 chunks); Watercooler #862 requests independent review. #153 created for non-active legacy callers.
 - 2026-07-11 15:22 +02:00 | Codex | Completed #148 with real official LS20/tool evidence and an honest `NO_GO_RUN_INCONSISTENT`; tri-review GREEN, fresh archive verification clean, #152 replication queued, Watercooler #858/#859 posted. Session log `2026-07-11-session-09.md`; Qdrant ingest done (10 chunks).
