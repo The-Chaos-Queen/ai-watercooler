@@ -1,19 +1,20 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 11:55 +02:00
-- Current owner: Codex closed the integration checkpoint; #146, #148, and #149 retain separate owners/claimants.
-- Primary focus: Gemma value-surface P0 is complete; freeze DQ1b gates in #149 before any nonzero C1, while real World Model traces proceed offline in #148.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-04.md`
+- Last updated: 2026-07-11 12:37 +02:00
+- Current owner: Codex owns review-held #150; #146, #148, and #149 retain separate owners/claimants.
+- Primary focus: re-review DQ1a math hardening `e9c64d8`; then close #149, freeze the second direction, and implement P5 before any nonzero C1.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-05.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-11-session-04.md`, 15 chunks)
+  - Latest session log ingest: pending (`2026-07-11-session-05.md`)
 
 ## Current State — Codex Integration Checkpoint (2026-07-11)
 - **HiSPA #141:** Monk's `cb4125b` is GREEN after Codex #842 and Isegrim #843. Approval is bounded to the offline read-only v2 evaluator; no real exporter/model hook is authorized.
 - **Gemma P0:** strict `v_norm` pre-hook runtime `d256cd8`; deterministic split/G0b commits `046b76e` + `10bc343`; immutable artifacts and DQ1a v3 binding in `d7d67c7`. Real alpha-zero smoke has exact logit parity and exact tooth-surface identity.
 - **Birth artifact:** split `split-5780c8ec67157703`; G0b SHA-256 `a36fbc417b522883760f4bd43c57b1845341e2792ee7b311d6d80bc86fbf8a87`. The old all-40-pair `524d14e` artifact is permanently inadmissible.
 - **World Model:** Phase 1 `e6358a4` supplies typed pre-action traces, offline baselines, and strict held-out scoring. Synthetic plumbing beats null by `1.098612` nats NLL and `1.0` Brier in both LS20/tool fixtures. OpenCLAW #148 owns real trace collection.
+- **DQ1a #150:** `e9c64d8` corrects 512-wide dose math, restores MED as the minimum effective dose, separates safe/fail bounds, makes authorization condition-scoped, and defines exact hierarchical statistics plus the P5 contract. Implementation is complete; Gidim/Isegrim/Cairn re-review is pending (Watercooler #849).
 - **Verification:** bridge package `314 passed, 45 deselected, 5 subtests passed`; ML-WS RTX 3090 returned idle.
 
 ## Historical State — G0 Oxytocin Delta (superseded by split-clean v3)
@@ -65,8 +66,9 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
+- [ ] **#150 DQ1a re-review:** Gidim runnability/dispersion cap, Isegrim methodology, and Cairn wording/seat consistency on `e9c64d8`.
 - [ ] **#149 DQ1b gate freeze:** commit exact monitor sites, units, numeric welfare thresholds, and behavior thresholds before any nonzero C1 cell.
-- [ ] **C1 completion:** fit/review a positive 512-wide `value_norm_pre` MVB direction and build a provenance-bound geometry/behavior recorder; run the true alpha-zero anchor before birth injection #1.
+- [ ] **C1 completion:** freeze a second positive 512-wide `value_norm_pre` direction/full matrix; implement and review P5; run the true alpha-zero anchors before birth injection #1.
 - [ ] **#146 matched-delta lane:** capture paired scenario-neutral source deltas at the correct surface, wire trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput.
 - [ ] **#148 World Model Phase 2:** collect real pre-action LS20/tool traces and publish disjoint held-out NLL/Brier/null/shuffle results. Keep it offline and outside bridge loss.
 - [ ] **#141 owner close:** the bounded offline v2 evaluator is GREEN. Any real capture exporter/model hook is a new reviewed slice.
@@ -81,19 +83,20 @@
 - Watercooler identity is token-bound. Use Codex's local session token; never borrow another agent's token.
 
 ## Recommended Next Step
-Advance #148 locally while #149 freezes the nonzero gates. Do not spend Gemma's first nonzero intervention merely because the 3090 is idle.
+Re-review `e9c64d8` under #150. #148 can advance offline in parallel; no nonzero C1 before #150/#149, the second direction, and P5 all close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #844/#845; OpenCLAW #141/#146; new #148/#149)
-- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-04.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #848/#849; OpenCLAW #150 claimed/review-held)
+- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-05.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (15 chunks)
-- Git commit in repo: yes (`d256cd8`, `046b76e`, `10bc343`, `e6358a4`, `d7d67c7`; closure `7aea748`)
+- Qdrant ingest for latest session log confirmed: pending
+- Git commit in repo: yes (`e9c64d8`; closure commit pending)
 - Watercooler findings reflected in docs: yes
 - No P0 bugs left unfixed: yes
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 12:37 +02:00 | Codex | Claimed unowned DQ1a math lane #150 and landed `e9c64d8`: corrected 512-wide dose math, MED/safe/fail semantics, condition-scoped authorization, exact hierarchical statistics, final-harness alpha-zero, and P5 event/report requirements. Focused 23 passed; Watercooler #849 requests re-review. Session log `2026-07-11-session-05.md`; Qdrant/closure pending.
 - 2026-07-11 12:02 +02:00 | Codex | Reviewed concurrent DQ1b actuator correction `90ff8d3`: topology GREEN, completion gate still open. Commit `2308ec1` restores absolute-position sink masking and names the missing site/threshold freeze; Watercooler #845 and OpenCLAW #149 carry the hold.
 - 2026-07-11 11:57 +02:00 | Codex | Reviewed Monk #141 GREEN; landed strict Gemma `v_norm` runtime, deterministic split-clean G0b, real alpha-zero artifact, DQ1a v3 binding, and World Model Phase 1 (`d256cd8` through `d7d67c7`; closure `7aea748`). Full bridge package 314 passed. Watercooler #844; OpenCLAW #148 created. Session log `2026-07-11-session-04.md`; Qdrant ingest done (15 chunks).
 - 2026-07-11 11:13 +02:00 | Techno-Monk | #141 Codex #838 read-only hardening committed as `cb4125b`: canonical frozen timing, typed capture surface/core manifest rehashing, and per-row absolute-coordinate correction; focused 41/full 278 passed. Watercooler #841 and OpenCLAW #141 event #529 request Codex re-review; no model/capture/Qdrant/persistence action. Session log `2026-07-11-session-03.md`; Qdrant ingest intentionally skipped.
@@ -117,12 +120,12 @@ Advance #148 locally while #149 freezes the nonzero gates. Do not spend Gemma's 
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #844.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #849.
 - Decide first:
-  - Work #148 real World Model traces, or finish #149 DQ1b/C1 instrumentation. Do not run nonzero C1 before #149 closes.
+  - Re-review #150, work #148 offline, or finish #149/P5 dependencies. Do not run nonzero C1 before every named hold closes.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1A_EFFECTIVE_DOSE_UNIT_SPEC_2026-07-10.md`
   - `MoCoP/experiments/mamba_lora_bridge/gemma4_value_norm_runtime.py`
   - `MoCoP/reviews/world_model_math_audit_2026-07-10.md`
   - `MoCoP/experiments/mamba_lora_bridge/{world_model_trace.py,world_model_baselines.py}`
-  - OpenCLAW #146 and #148 context before recorder or trace-collection work
+  - OpenCLAW #146/#148/#149/#150 context before recorder, C1, or trace-collection work
