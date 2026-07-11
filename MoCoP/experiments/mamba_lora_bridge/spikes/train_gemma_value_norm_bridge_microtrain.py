@@ -40,7 +40,7 @@ import torch.nn.functional as F
 APPROVED_TEETH = (29, 35, 41)
 SOURCE_WIDTH = 2560
 TARGET_WIDTH = 512
-SCHEMA_VERSION = "gemma-value-norm-matched-delta-bridge-microtrain-v1"
+SCHEMA_VERSION = "gemma-value-norm-matched-delta-bridge-microtrain-v2"
 DEFAULT_GEMMA_MODEL = "google/gemma-4-12B"
 DEFAULT_GEMMA_REVISION = "1dd69cd087619018c29fbfe2c30c3cd3530479fb"
 DEFAULT_MAMBA_MODEL = "state-spaces/mamba-2.8b-hf"
@@ -182,6 +182,24 @@ def directional_loss(
     return torch.stack(losses).mean()
 
 
+def per_tooth_mean_cosine(
+    predictions: Mapping[int, torch.Tensor], targets: Mapping[int, torch.Tensor]
+) -> dict[str, float]:
+    """Static bridge alignment by target tooth; never a behavior or welfare metric."""
+
+    metrics: dict[str, float] = {}
+    for tooth in APPROVED_TEETH:
+        pred = predictions[tooth]
+        target = targets[tooth].to(device=pred.device, dtype=pred.dtype)
+        if pred.shape != target.shape:
+            raise ValueError(f"tooth {tooth} shape mismatch: {tuple(pred.shape)} != {tuple(target.shape)}")
+        cosine = F.cosine_similarity(pred, target, dim=-1, eps=1e-8).mean()
+        if not torch.isfinite(cosine):
+            raise RuntimeError(f"tooth {tooth} mean cosine became non-finite")
+        metrics[str(tooth)] = float(cosine.item())
+    return metrics
+
+
 def _pairwise_mean_cosine(rows: torch.Tensor) -> float | None:
     if rows.shape[0] < 2:
         return None
@@ -199,6 +217,7 @@ def train_records(
     hidden_dim: int,
     seed: int,
     device: str = "cpu",
+    progress_every: int = 0,
 ) -> tuple[ValueNormDeltaBridge, dict[str, Any]]:
     """Train only bridge parameters against already-captured offline deltas."""
 
@@ -206,9 +225,13 @@ def train_records(
         raise ValueError("steps must be positive")
     if lr <= 0.0:
         raise ValueError("lr must be positive")
+    if progress_every < 0:
+        raise ValueError("progress_every must be non-negative")
     source, targets = validate_records(records)
     torch.manual_seed(seed)
     run_device = torch.device(device)
+    if run_device.type == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("bridge device cuda requested but CUDA is unavailable")
     model = ValueNormDeltaBridge(hidden_dim=hidden_dim).to(run_device)
     source = source.to(run_device)
     targets = {tooth: value.to(run_device) for tooth, value in targets.items()}
@@ -217,7 +240,8 @@ def train_records(
     with torch.no_grad():
         initial_predictions = model(source)
         initial_loss = float(directional_loss(initial_predictions, targets).item())
-    for _ in range(steps):
+    loss_curve = [initial_loss]
+    for step_index in range(steps):
         optimizer.zero_grad(set_to_none=True)
         predictions = model(source)
         loss = directional_loss(predictions, targets)
@@ -225,6 +249,26 @@ def train_records(
             raise RuntimeError("microtrain loss became non-finite")
         loss.backward()
         optimizer.step()
+        with torch.no_grad():
+            post_step_loss = directional_loss(model(source), targets)
+            if not torch.isfinite(post_step_loss):
+                raise RuntimeError("microtrain post-step loss became non-finite")
+            post_step_loss_value = float(post_step_loss.item())
+            loss_curve.append(post_step_loss_value)
+        step_number = step_index + 1
+        if progress_every and (step_number % progress_every == 0 or step_number == steps):
+            print(
+                json.dumps(
+                    {
+                        "event": "bridge_train_progress",
+                        "step": step_number,
+                        "steps": int(steps),
+                        "directional_loss": post_step_loss_value,
+                    },
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
     with torch.no_grad():
         predictions = model(source)
         final_loss_tensor = directional_loss(predictions, targets)
@@ -234,6 +278,7 @@ def train_records(
             str(tooth): _pairwise_mean_cosine(predictions[tooth].detach().cpu())
             for tooth in APPROVED_TEETH
         }
+        final_per_tooth_cosine = per_tooth_mean_cosine(predictions, targets)
     trainable = sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
     summary = {
         "n_records": len(records),
@@ -245,6 +290,8 @@ def train_records(
         "trainable_parameters": int(trainable),
         "initial_directional_loss": initial_loss,
         "final_directional_loss": float(final_loss_tensor.item()),
+        "directional_loss_curve": loss_curve,
+        "per_tooth_final_mean_cosine": final_per_tooth_cosine,
         "source_pairwise_mean_cosine": _pairwise_mean_cosine(source.detach().cpu()),
         "output_pairwise_mean_cosine": output_pairwise,
         "target_pairwise_mean_cosine": {
@@ -371,7 +418,7 @@ def _load_capture_models(
     mamba_model_id: str,
     local_files_only: bool,
 ) -> tuple[Any, Any, Any, Any, Any]:
-    """Load frozen models only. The bridge is trained afterward, on CPU tensors."""
+    """Load frozen models only. The bridge is trained afterward on isolated captured tensors."""
 
     from transformers import AutoModelForCausalLM, AutoModelForImageTextToText, AutoProcessor, AutoTokenizer
 
@@ -390,6 +437,8 @@ def _load_capture_models(
         device_map="auto",
     )
     gemma.eval()
+    for parameter in gemma.parameters():
+        parameter.requires_grad_(False)
     from gemma4_value_norm_runtime import Gemma4ValueNormRuntime
 
     runtime = Gemma4ValueNormRuntime.bind(gemma, teeth=APPROVED_TEETH)
@@ -409,6 +458,8 @@ def _load_capture_models(
     )
     mamba.to("cpu")
     mamba.eval()
+    for parameter in mamba.parameters():
+        parameter.requires_grad_(False)
     return gemma, processor, runtime, mamba, mamba_tokenizer
 
 
@@ -426,10 +477,17 @@ def load_selected_pairs(
             row = json.loads(line)
             corpus[row["id"]] = row
     holdout = json.loads(holdout_path.read_text(encoding="utf-8"))
-    frozen_pairs = {
-        row["scenario_id"]: row["neutral_id"] for row in holdout["frozen_split"]["pairs"]
+    frozen_split = holdout.get("frozen_split")
+    if not isinstance(frozen_split, dict):
+        raise ValueError("primary holdout manifest lacks frozen_split")
+    c1_held_out_skeletons = {
+        str(skeleton) for skeleton in holdout.get("held_out_skeletons", []) if str(skeleton)
     }
+    if not c1_held_out_skeletons:
+        raise ValueError("primary holdout manifest lacks C1 held_out_skeletons")
+    frozen_pairs = {row["scenario_id"]: row["neutral_id"] for row in frozen_split["pairs"]}
     selected: list[tuple[str, str, str, str]] = []
+    selected_skeleton_ids: list[str] = []
     for scenario_id in scenario_ids:
         if scenario_id not in frozen_pairs:
             raise ValueError(f"scenario {scenario_id!r} is not a frozen non-holdout training pair")
@@ -438,15 +496,26 @@ def load_selected_pairs(
         neutral = corpus.get(neutral_id)
         if scenario is None or neutral is None:
             raise ValueError(f"missing corpus row for {scenario_id!r} or {neutral_id!r}")
+        skeleton_id = str(scenario.get("skeleton_id") or "")
+        if not skeleton_id:
+            raise ValueError(f"scenario {scenario_id!r} lacks skeleton_id")
+        if skeleton_id in c1_held_out_skeletons:
+            raise ValueError(
+                f"C1-held-out skeleton {skeleton_id!r} cannot enter offline bridge training"
+            )
         if scenario.get("class") != "warm" or neutral.get("class") != "neutral":
             raise ValueError(f"microtrain requires warm/neutral pair, got {scenario_id!r}/{neutral_id!r}")
         selected.append((scenario_id, neutral_id, str(scenario["text"]), str(neutral["text"])))
+        selected_skeleton_ids.append(skeleton_id)
     manifest = {
         "corpus_path": str(corpus_path),
         "corpus_sha256": _file_sha256(corpus_path),
         "holdout_path": str(holdout_path),
         "holdout_sha256": _file_sha256(holdout_path),
-        "frozen_split_id": holdout["frozen_split"]["split_id"],
+        "frozen_split_id": frozen_split["split_id"],
+        "c1_holdout_exclusion_checked": True,
+        "c1_held_out_skeletons": sorted(c1_held_out_skeletons),
+        "selected_skeleton_ids": selected_skeleton_ids,
         "selected_pairs": [
             {"scenario_id": scenario, "neutral_id": neutral}
             for scenario, neutral, _, _ in selected
@@ -456,8 +525,18 @@ def load_selected_pairs(
 
 
 def capture_training_records(
-    pairs: Sequence[tuple[str, str, str, str]], *, gemma_model_id: str, gemma_revision: str, mamba_model_id: str, local_files_only: bool, mamba_layer: int, max_mamba_tokens: int
+    pairs: Sequence[tuple[str, str, str, str]],
+    *,
+    gemma_model_id: str,
+    gemma_revision: str,
+    mamba_model_id: str,
+    local_files_only: bool,
+    mamba_layer: int,
+    max_mamba_tokens: int,
+    progress_every: int = 0,
 ) -> list[TrainingRecord]:
+    if progress_every < 0:
+        raise ValueError("progress_every must be non-negative")
     gemma, processor, runtime, mamba, mamba_tokenizer = _load_capture_models(
         gemma_model_id=gemma_model_id,
         gemma_revision=gemma_revision,
@@ -466,7 +545,7 @@ def capture_training_records(
     )
     records: list[TrainingRecord] = []
     try:
-        for scenario_id, neutral_id, scenario_text, neutral_text in pairs:
+        for pair_index, (scenario_id, neutral_id, scenario_text, neutral_text) in enumerate(pairs, start=1):
             scenario_source = _capture_mamba_last_hidden(
                 mamba, mamba_tokenizer, scenario_text, layer=mamba_layer, max_tokens=max_mamba_tokens
             )
@@ -486,16 +565,29 @@ def capture_training_records(
                 )
                 for tooth in APPROVED_TEETH
             }
-            records.append(
-                TrainingRecord(
-                    scenario_id=scenario_id,
-                    neutral_id=neutral_id,
-                    source_delta=source_delta,
-                    target_deltas=target_deltas,
-                    source_norm=float(source_delta.norm().item()),
-                    target_norms={tooth: float(value.norm().item()) for tooth, value in target_deltas.items()},
-                )
+            record = TrainingRecord(
+                scenario_id=scenario_id,
+                neutral_id=neutral_id,
+                source_delta=source_delta,
+                target_deltas=target_deltas,
+                source_norm=float(source_delta.norm().item()),
+                target_norms={tooth: float(value.norm().item()) for tooth, value in target_deltas.items()},
             )
+            records.append(record)
+            if progress_every and (pair_index % progress_every == 0 or pair_index == len(pairs)):
+                print(
+                    json.dumps(
+                        {
+                            "event": "bridge_capture_progress",
+                            "pair": pair_index,
+                            "pairs": len(pairs),
+                            "scenario_id": scenario_id,
+                            "source_delta_l2": record.source_norm,
+                        },
+                        sort_keys=True,
+                    ),
+                    flush=True,
+                )
     finally:
         runtime.close()
         del gemma, processor, mamba, mamba_tokenizer
@@ -533,6 +625,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mamba-model", default=DEFAULT_MAMBA_MODEL)
     parser.add_argument("--mamba-layer", type=int, default=3)
     parser.add_argument("--max-mamba-tokens", type=int, default=512)
+    parser.add_argument("--capture-progress-every", type=int, default=0)
+    parser.add_argument("--train-progress-every", type=int, default=0)
+    parser.add_argument(
+        "--bridge-device",
+        "--device",
+        dest="bridge_device",
+        choices=("cpu", "cuda"),
+        default="cpu",
+        help="Device for the trainable bridge only; Gemma capture remains frozen and runtime-selected.",
+    )
     parser.add_argument("--local-files-only", action="store_true")
     return parser
 
@@ -541,6 +643,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.mamba_layer < 0:
         raise SystemExit("--mamba-layer must be non-negative")
+    if args.capture_progress_every < 0 or args.train_progress_every < 0:
+        raise SystemExit("progress intervals must be non-negative")
     out = args.out.resolve()
     if args.mode == "synthetic":
         records = synthetic_records(count=args.synthetic_count, seed=args.seed)
@@ -561,6 +665,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             local_files_only=args.local_files_only,
             mamba_layer=args.mamba_layer,
             max_mamba_tokens=args.max_mamba_tokens,
+            progress_every=args.capture_progress_every,
         )
     model, summary = train_records(
         records,
@@ -568,7 +673,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         lr=args.lr,
         hidden_dim=args.hidden_dim,
         seed=args.seed,
-        device="cpu",
+        device=args.bridge_device,
+        progress_every=args.train_progress_every,
     )
     code_path = Path(__file__).resolve()
     payload = {
@@ -600,6 +706,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             "target_model_id": args.gemma_model if args.mode == "capture_train" else "synthetic",
         },
         "training": summary,
+        "execution": {
+            "capture_progress_every": int(args.capture_progress_every),
+            "train_progress_every": int(args.train_progress_every),
+        },
         "records": _record_manifest(records),
         "source_manifest": source_manifest,
         "provenance": {
@@ -622,8 +732,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "artifact": str(out),
                 "artifact_sha256": artifact_sha256,
                 "records": len(records),
+                "bridge_device": summary["device"],
                 "initial_directional_loss": summary["initial_directional_loss"],
                 "final_directional_loss": summary["final_directional_loss"],
+                "loss_curve_points": len(summary["directional_loss_curve"]),
+                "per_tooth_final_mean_cosine": summary["per_tooth_final_mean_cosine"],
             },
             sort_keys=True,
         )

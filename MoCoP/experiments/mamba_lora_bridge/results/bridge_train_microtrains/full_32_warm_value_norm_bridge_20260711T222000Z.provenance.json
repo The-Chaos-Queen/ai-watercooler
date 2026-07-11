@@ -1,0 +1,123 @@
+{
+  "schema_version": "gemma-value-norm-full-bridge-train-provenance-v1",
+  "status": "pass",
+  "run_id": "full_32_warm_value_norm_bridge_20260711T222000Z",
+  "artifact": "full_32_warm_value_norm_bridge_20260711T222000Z.pt",
+  "artifact_sha256": "090385c9f75dad636417131c86c21ab17c245904ab9f5de09400a00fb17094a9",
+  "artifact_bytes": 1087423,
+  "source_at_execution": {
+    "microtrain_script_sha256": "ea109d7cf7042891c9585df8b9926a5f387c03c973c15dea0311493539064e1f",
+    "schema_version": "gemma-value-norm-matched-delta-bridge-microtrain-v2"
+  },
+  "frozen_data": {
+    "primary_holdout_manifest": "fixtures/sev_disposition_v0/primary_holdout_v2.json",
+    "primary_holdout_sha256": "59a0276373ab69fc5f5b27c7beee2b51e4190c9250996aa714b33a7095244a04",
+    "frozen_split_id": "split-5780c8ec67157703",
+    "selected_scenario_ids": [
+      "craft_1_warm", "craft_2_warm", "craft_3_warm", "craft_4_warm",
+      "family_1_warm", "family_3_warm", "family_4_warm", "family_5_warm",
+      "weather_2_warm", "weather_3_warm", "weather_4_warm", "weather_5_warm",
+      "food_1_warm", "food_2_warm", "food_3_warm", "food_5_warm",
+      "travel_1_warm", "travel_2_warm", "travel_3_warm", "travel_4_warm",
+      "illness_1_warm", "illness_2_warm", "illness_4_warm", "illness_5_warm",
+      "conflict_1_warm", "conflict_3_warm", "conflict_4_warm", "conflict_5_warm",
+      "discovery_1_warm", "discovery_2_warm", "discovery_4_warm", "discovery_5_warm"
+    ],
+    "selected_skeleton_count": 32,
+    "c1_held_out_skeletons": [
+      "conflict_2", "craft_5", "discovery_3", "family_2",
+      "food_4", "illness_3", "travel_5", "weather_1"
+    ],
+    "c1_intersection": [],
+    "c1_holdout_exclusion_checked": true,
+    "bridge_generalization_holdout": "none_reserved_by_keeper_default_none"
+  },
+  "execution": {
+    "mode": "capture_train",
+    "mamba_source": {
+      "model": "state-spaces/mamba-2.8b-hf",
+      "surface": "layer_3_hidden_last_token_scenario_minus_neutral",
+      "width": 2560,
+      "layer": 3,
+      "max_tokens": 256
+    },
+    "gemma_target": {
+      "model": "google/gemma-4-12B",
+      "revision": "1dd69cd087619018c29fbfe2c30c3cd3530479fb",
+      "surface": "full_attention_value_norm_pre",
+      "teeth": [29, 35, 41],
+      "width": 512,
+      "capture_dtype": "bfloat16"
+    },
+    "bridge": {
+      "trainable_parameters": 268032,
+      "hidden_dim": 64,
+      "steps": 256,
+      "learning_rate": 0.01,
+      "device": "cuda"
+    },
+    "progress_reporting": {
+      "capture_every_pairs": 1,
+      "train_every_steps": 16,
+      "capture_events_verified": 32,
+      "train_event_steps_verified": [16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256]
+    },
+    "scope": {
+      "offline_training_only": true,
+      "nonzero_injection": false,
+      "frozen_host_model_weights_modified": false,
+      "bridge_weights_trained": true,
+      "qdrant": false,
+      "memory": false,
+      "replay": false,
+      "sleep": false,
+      "generation": false
+    }
+  },
+  "result": {
+    "initial_directional_loss": 1.0068252086639404,
+    "final_directional_loss": 0.0,
+    "loss_checkpoints": {
+      "0": 1.0068252086639404,
+      "16": 0.19184237718582153,
+      "32": 0.07538197934627533,
+      "64": 0.006681661121547222,
+      "128": 2.0960967958671972e-05,
+      "192": 5.960464477539063e-08,
+      "224": 0.0,
+      "256": 0.0
+    },
+    "per_tooth_final_mean_cosine": {
+      "29": 1.0,
+      "35": 1.0,
+      "41": 1.0
+    }
+  },
+  "verification": {
+    "checkpoint_hash_remote_equals_local": true,
+    "checkpoint_load_roundtrip": "pass",
+    "state_dict_all_finite": true,
+    "reloaded_output_heads_finite_and_512_wide": true,
+    "selected_record_count": 32,
+    "post_run_gpu": "15 MiB / 24576 MiB, 0%, 42 C",
+    "active_trainer_processes_after_run": 0
+  },
+  "remote_run_receipts": {
+    "remote_artifact_path": "/home/isabell/mocop/gemma_value_norm_microtrain_20260711T2015Z/results/full_32_warm_value_norm_bridge_20260711T222000Z.pt",
+    "launch_metadata_sha256": "27cae80bc20c7c66ca723071fa7d4f90b732add372f8c9c2ca94f29d174b4eef",
+    "log_sha256": "bf960595c526def993e6db267618ab95a410c9fcdb873244643e665db92e9a8f",
+    "log_lines": 56,
+    "transport": "hermes_tracked_ssh"
+  },
+  "coordination": {
+    "watercooler_preflight": 912,
+    "watercooler_launch": 913,
+    "openclaw_task": 146
+  },
+  "interpretation_boundary": [
+    "This is a 32-pair in-sample training-fit result with no bridge-generalization holdout reserved by the keeper's default-none decision.",
+    "It demonstrates that the frozen-host offline paired-delta bridge path scales from the two-pair feasibility spike to all 32 non-C1-holdout warm skeletons at the current Gemma value_norm_pre seam.",
+    "Zero training loss and unit in-sample directional cosine do not establish held-out generalization, behavioral benefit, welfare benefit, consciousness, identity, recovery, C1 readiness, or authorization for nonzero injection.",
+    "The eight C1 primary-holdout skeletons remain untrained and must not be repurposed as a bridge evaluation set."
+  ]
+}
