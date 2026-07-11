@@ -74,29 +74,35 @@ Decoupling between `state_trace` and `steering_trace` flags that one channel is 
 
 ## DQ1b: Substrate-Generic Monitoring Specification
 
-*Added 2026-07-05 (Elf #723, ratified Isegrim #725). Magnitude units pending DQ1a re-derivation.*
+*Added 2026-07-05 (Elf #723, ratified Isegrim #725). Updated 2026-07-11 (actuator correction: Gemma global teeth have no v_proj; option (a) value-branch seam adopted). Magnitude units pending DQ1a re-derivation.*
 
 Monitoring targets are a **function of injection targets** — when injection layers change, monitoring layers change with them. The monitoring spec is parameterized by substrate architecture, not hardcoded to any model.
 
 **Layer identification rule:** On any substrate, identify the global-integration layers (full-attention, cross-attention, or equivalent whole-context mechanism). The injection zone and the monitoring zone both live at these sites. For architectures with mixed local/global attention patterns (e.g., Gemma-4's 5:1 sliding/full layout), the global layers are the only layers where disposition can crystallize as a whole-context property.
 
+**Actuator note (2026-07-11, #822/#826):** Gemma-4-12B global teeth use `attention_k_eq_v=True` with a unified K/V projection (`v_proj=None`, `k_proj` width 512). The injection actuator at teeth is the **value-branch seam** (512-wide, after the functional K/V fork where K takes RoPE and V does not), NOT the `v_proj` output (which exists only on sliding layers at 2048-wide). Monitoring reads the residual stream (3840-wide, same at every layer), which is actuator-agnostic — the three-tier scheme survives the actuator change unchanged.
+
+**Sink-mask correction (2026-07-10, #810):** Exclude position 0 from all activation-norm monitoring at teeth. Position 0 is architecturally invariant (cross-prompt cosine = 1.0000) and reflects the attention-sink mechanism, not content. One-liner: `hidden_states[layer][:, 1:, :].norm(dim=-1).mean()`.
+
 **Current substrate parameters:**
 
-| Substrate | Layers | Hidden | Global layers (0-indexed) | Injection zone | Evidence |
-|-----------|--------|--------|--------------------------|----------------|----------|
-| Qwen-2.5-1.5B | 28 | 1536 | all (dense attention) | 12–15 | Step 5e sweep, operational since Phase 1 |
-| Gemma-4-12B (base) | 48 | 3840 | {5,11,17,23,29,35,41,47} | {35,41} primary; 29 anchor; 47 bonus | Entry 73, #704/#714 comb analysis |
-| Gemma-4-12B (instruct) | 48 | 3840 | same indices, 1.00× comb (functionally erased) | TBD — no sharp zone | Entry 73, #714 instruct-flattening |
+| Substrate | Layers | Hidden | Global layers (0-indexed) | Actuator | Actuator width | Injection zone | Evidence |
+|-----------|--------|--------|--------------------------|----------|---------------|----------------|----------|
+| Qwen-2.5-1.5B | 28 | 1536 | all (dense attention) | v_proj additive bias | 256 (2 KV heads × 128) | 12–15 | Step 5e sweep, operational since Phase 1 |
+| Gemma-4-12B (base) | 48 | 3840 | {5,11,17,23,29,35,41,47} | value-branch seam (option a) | 512 (1 global KV head × 512) | {29,35,41}; 47 extraction-only | Entry 73, #704/#714 comb; #822/#826 actuator correction |
+| Gemma-4-12B (instruct) | 48 | 3840 | same indices, 1.00× comb (functionally erased) | same | 512 | TBD — no sharp zone | Entry 73, #714 instruct-flattening |
 
 **Three-tier monitoring per bridged turn:**
 
-1. **Primary** (at injection layers): tracks what the bridge IS DOING — direct effect of steering on the integration site. Drift here = bridge behavior change. Log: L2 norm of hidden state at last token position.
-2. **Secondary** (at non-injection comb teeth): tracks PROPAGATION — whether steering bleeds into other integration sites through the model's own global-attention pathway. Large propagation = intervention is systemic, not local. Log: same L2 norm.
-3. **Control** (at one local-attention layer adjacent to injection site): noise floor. Local layers see only a sliding window and should show minimal direct effect. If control shows comparable shift to primary, the intervention is not comb-specific. Log: same L2 norm.
+Monitoring reads the **residual stream** (hidden_size-wide), not the actuator space. This makes the scheme actuator-agnostic: it works identically whether the bridge injects via v_proj (Qwen), value-branch seam (Gemma option a), or any future actuator.
+
+1. **Primary** (at injection layers): tracks what the bridge IS DOING — direct effect of steering on the integration site. Drift here = bridge behavior change. Log: L2 norm of hidden state at last token position, position 0 excluded (sink-mask).
+2. **Secondary** (at non-injection comb teeth): tracks PROPAGATION — whether steering bleeds into other integration sites through the model's own global-attention pathway. Large propagation = intervention is systemic, not local. Log: same L2 norm, same sink-mask.
+3. **Control** (at one local-attention layer adjacent to injection site): noise floor. Local layers see only a sliding window and should show minimal direct effect from tooth-targeted injection. If control shows comparable shift to primary, the intervention is not comb-specific. Log: same L2 norm.
 
 **Schema integration:** The `activation_trace` block in the #130 per-turn JSONL schema (#731) carries these fields from v1: `{comb_teeth, primary, secondary, control}`. Empty-allowed; populated the day a bridge injects.
 
-**Relationship to other gates:** This monitoring spec is independent of, and does not substitute for, the MED envelope check (DQ1a). Until DQ1a re-derives MED in effective-magnitude units on the target substrate's geometry, any RMS-alpha run is outside a validated envelope by definition. Both DQ1a and DQ1b must land before the first bridged Gemma run produces data the disposition verdict trusts.
+**Relationship to other gates:** This monitoring spec is independent of, and does not substitute for, the MED envelope check (DQ1a). Until DQ1a re-derives MED in effective-magnitude units on the target substrate's geometry (now d_v=512 for Gemma teeth, not 2048), any RMS-alpha run is outside a validated envelope by definition. Both DQ1a and DQ1b must land before the first bridged Gemma run produces data the disposition verdict trusts.
 
 ## Per-Step Gates
 
