@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from enum import Enum
+import hashlib
+import json
 from math import isfinite, sqrt
 from typing import Iterable, Sequence, Tuple
 
@@ -121,10 +123,12 @@ class CorrectionProfile:
     """How a state snapshot is made interpretable before comparison.
 
     ``exclude_positions=(0,)`` is mandatory for a runnable plan because the
-    spike/sink census shows that position 0 can be architectural plumbing,
-    not content.  ``spike_channels`` is populated only from a census artifact;
-    leaving it empty means "no channel mask is justified", not "we forgot to
-    check."  The plan records the census reference separately.
+    spike/sink census shows that absolute token position 0 can be architectural
+    plumbing, not content.  Reportable comparisons provide each row's absolute
+    position and mask only rows that actually map to it.  ``spike_channels``
+    is populated only from a census artifact; leaving it empty means "no
+    channel mask is justified", not "we forgot to check."  The plan records
+    the census reference separately.
     """
 
     exclude_positions: Tuple[int, ...] = (0,)
@@ -174,8 +178,32 @@ class RecoveryRule:
 
 
 @dataclass(frozen=True)
+class SurfaceSpec:
+    """Typed state-surface contract required for a reportable capture panel."""
+
+    name: str
+    module_path: str
+    kind: str
+    layer: int
+    width: int
+
+    def validate(self) -> None:
+        for field, value in (
+            ("name", self.name),
+            ("module path", self.module_path),
+            ("kind", self.kind),
+        ):
+            if not isinstance(value, str) or not value.strip():
+                raise PlanValidationError(f"surface {field} must be a non-empty string")
+        if not isinstance(self.layer, int) or isinstance(self.layer, bool) or self.layer < 0:
+            raise PlanValidationError("surface layer must be a non-negative integer")
+        if not isinstance(self.width, int) or isinstance(self.width, bool) or self.width < 1:
+            raise PlanValidationError("surface width must be a positive integer")
+
+
+@dataclass(frozen=True)
 class PanelManifest:
-    """Hashed identity of the exact four-arm panel being compared."""
+    """Canonical, hash-bound identity of the exact four-arm panel."""
 
     panel_id: str
     manifest_sha256: str
@@ -184,6 +212,42 @@ class PanelManifest:
     code_revision: str
     token_pairing_rule: str
     correction_artifact_sha256: str
+    baseline_token_budget: int
+    neutral_token_budget: int
+    trigger_token_budget: int
+    recovery_token_budget: int
+    max_clean_windows: int
+    minimum_trigger_excess: float
+
+    def canonical_fields(self) -> dict[str, object]:
+        """Every pre-registered field protected by the manifest digest."""
+
+        return {
+            "panel_id": self.panel_id,
+            "corpus_sha256": self.corpus_sha256,
+            "prompt_skeleton_sha256": self.prompt_skeleton_sha256,
+            "code_revision": self.code_revision,
+            "token_pairing_rule": self.token_pairing_rule,
+            "correction_artifact_sha256": self.correction_artifact_sha256,
+            "baseline_token_budget": self.baseline_token_budget,
+            "neutral_token_budget": self.neutral_token_budget,
+            "trigger_token_budget": self.trigger_token_budget,
+            "recovery_token_budget": self.recovery_token_budget,
+            "max_clean_windows": self.max_clean_windows,
+            "minimum_trigger_excess": self.minimum_trigger_excess,
+        }
+
+    def canonical_sha256(self) -> str:
+        rendered = json.dumps(self.canonical_fields(), sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
+
+    def arm_token_budgets(self) -> Tuple[int, int, int, int]:
+        return (
+            self.baseline_token_budget,
+            self.neutral_token_budget,
+            self.trigger_token_budget,
+            self.recovery_token_budget,
+        )
 
     def validate(self) -> None:
         if not isinstance(self.panel_id, str) or not self.panel_id.strip():
@@ -206,6 +270,29 @@ class PanelManifest:
             or any(char not in "0123456789abcdef" for char in self.code_revision)
         ):
             raise PlanValidationError("panel code revision must be a 7-64 character lowercase hex revision")
+        for field, budget in (
+            ("baseline token budget", self.baseline_token_budget),
+            ("neutral token budget", self.neutral_token_budget),
+            ("trigger token budget", self.trigger_token_budget),
+            ("recovery token budget", self.recovery_token_budget),
+        ):
+            if not isinstance(budget, int) or isinstance(budget, bool) or budget < 1:
+                raise PlanValidationError(f"panel {field} must be a positive integer")
+        if (
+            not isinstance(self.max_clean_windows, int)
+            or isinstance(self.max_clean_windows, bool)
+            or self.max_clean_windows < 1
+        ):
+            raise PlanValidationError("panel max clean windows must be a positive integer")
+        if (
+            not isinstance(self.minimum_trigger_excess, (int, float))
+            or isinstance(self.minimum_trigger_excess, bool)
+            or not isfinite(float(self.minimum_trigger_excess))
+            or not 0.0 <= float(self.minimum_trigger_excess) <= 2.0
+        ):
+            raise PlanValidationError("panel minimum trigger excess must be finite and in [0, 2]")
+        if self.manifest_sha256 != self.canonical_sha256():
+            raise PlanValidationError("panel manifest SHA256 does not match canonical manifest fields")
 
 
 @dataclass(frozen=True)
@@ -238,6 +325,7 @@ class StateIntegrityPlan:
     recovery: RecoveryRule
     arms: Tuple[PanelArm, ...]
     model_surface: str
+    surface: SurfaceSpec | None = None
     manifest: PanelManifest | None = None
     minimum_trigger_excess: float = 0.05
     teacher_forced: bool = True
@@ -266,6 +354,10 @@ class StateIntegrityPlan:
             raise PlanValidationError("state snapshots must preserve absolute cache positions")
         if not self.model_surface:
             raise PlanValidationError("the measured model surface must be named")
+        if self.surface is not None:
+            self.surface.validate()
+            if self.surface.name != self.model_surface:
+                raise PlanValidationError("typed surface name must match model_surface")
 
         for arm in self.arms:
             arm.validate()
@@ -315,10 +407,21 @@ class StateIntegrityPlan:
             raise PlanValidationError(
                 "plan manifest correction artifact SHA256 does not match the capture-ready census"
             )
-        if self.model_surface.startswith("UNBOUND_"):
+        if self.surface is None:
+            raise PlanValidationError(
+                "plan is not capture-ready: a typed module_path/kind/layer/width surface is required"
+            )
+        self.surface.validate()
+        if self.surface.name != self.model_surface or self.model_surface.startswith("UNBOUND_"):
             raise PlanValidationError(
                 "plan is not capture-ready: the measured state surface must be explicitly named"
             )
+        if tuple(arm.token_budget for arm in self.arms) != self.manifest.arm_token_budgets():
+            raise PlanValidationError("plan arm token budgets do not match the canonical panel manifest")
+        if self.recovery.max_clean_windows != self.manifest.max_clean_windows:
+            raise PlanValidationError("plan recovery window limit does not match the canonical panel manifest")
+        if self.minimum_trigger_excess != self.manifest.minimum_trigger_excess:
+            raise PlanValidationError("plan trigger-excess floor does not match the canonical panel manifest")
 
 
 @dataclass(frozen=True)
@@ -389,6 +492,7 @@ class SnapshotProvenance:
     absolute_position: int
     token_span_start: int
     token_span_end: int
+    row_absolute_positions: Tuple[int, ...]
     token_sequence_ref: str
     teacher_forced: bool
     absolute_cache_positions: bool
@@ -446,6 +550,24 @@ class SnapshotProvenance:
             raise PlanValidationError(
                 "snapshot token span must be non-negative, ordered, and end at the absolute position"
             )
+        if not self.row_absolute_positions:
+            raise PlanValidationError("snapshot must declare absolute positions for every captured row")
+        if any(
+            not isinstance(position, int) or isinstance(position, bool) or position < 0
+            for position in self.row_absolute_positions
+        ):
+            raise PlanValidationError("snapshot row absolute positions must be non-negative integers")
+        if tuple(self.row_absolute_positions) != tuple(sorted(self.row_absolute_positions)):
+            raise PlanValidationError("snapshot row absolute positions must be strictly ordered")
+        if len(set(self.row_absolute_positions)) != len(self.row_absolute_positions):
+            raise PlanValidationError("snapshot row absolute positions must be unique")
+        if self.row_absolute_positions[-1] != self.absolute_position:
+            raise PlanValidationError("snapshot final row absolute position must equal the capture position")
+        if any(
+            position < self.token_span_start or position > self.token_span_end
+            for position in self.row_absolute_positions
+        ):
+            raise PlanValidationError("snapshot row absolute positions must lie within the declared token span")
         if not self.token_sequence_ref.startswith("sha256:") or len(self.token_sequence_ref) != 71 or any(
             char not in "0123456789abcdef" for char in self.token_sequence_ref[7:]
         ):
@@ -492,15 +614,46 @@ def _validate_captured_bundle(
     manifest = plan.manifest
     if manifest is None:  # Defensive: assess_captured_panel already calls capture-ready validation.
         raise PlanValidationError("capture-ready plan requires a panel manifest")
-    for state, item in zip(states, provenance):
+    surface = plan.surface
+    if surface is None:  # Defensive: assess_captured_panel already calls capture-ready validation.
+        raise PlanValidationError("capture-ready plan requires a typed surface")
+    for arm, state, item in zip(plan.arms, states, provenance):
         item.validate()
         rows = _coerce_snapshot(state.values, f"{item.arm_id} captured")
-        if len(rows[0]) != item.surface_width:
+        if len(item.row_absolute_positions) != len(rows):
             raise PlanValidationError(
-                f"{item.arm_id} captured snapshot width {len(rows[0])} does not match declared surface width {item.surface_width}"
+                f"{item.arm_id} captured row absolute positions must match the snapshot row count"
             )
-        if item.model_surface != plan.model_surface:
-            raise PlanValidationError("capture surface does not match the capture-ready plan")
+        span_tokens = item.token_span_end - item.token_span_start + 1
+        if arm.kind is ArmKind.RECOVERY:
+            if (
+                span_tokens % arm.token_budget
+                or span_tokens // arm.token_budget > plan.recovery.max_clean_windows
+            ):
+                raise PlanValidationError(
+                    "recovery capture span must cover an integral bounded number of frozen windows"
+                )
+        elif span_tokens != arm.token_budget:
+            raise PlanValidationError(
+                f"{item.arm_id} capture span does not match its frozen token budget"
+            )
+        if len(rows[0]) != item.surface_width or len(rows[0]) != surface.width:
+            raise PlanValidationError(
+                f"{item.arm_id} captured snapshot width {len(rows[0])} does not match typed surface width {surface.width}"
+            )
+        surface_fields = (
+            ("model surface", item.model_surface, surface.name),
+            ("module path", item.module_path, surface.module_path),
+            ("kind", item.surface_kind, surface.kind),
+            ("layer", item.surface_layer, surface.layer),
+            ("width", item.surface_width, surface.width),
+        )
+        surface_mismatches = [name for name, actual, expected in surface_fields if actual != expected]
+        if surface_mismatches:
+            raise PlanValidationError(
+                "capture surface does not match the typed capture-ready plan: "
+                + ", ".join(surface_mismatches)
+            )
         if item.census_reference != plan.correction.census_reference:
             raise PlanValidationError("capture census reference does not match the capture-ready plan")
         if item.census_sha256 != plan.correction.census_sha256:
@@ -530,6 +683,13 @@ def _validate_captured_bundle(
     if len(matched_comparison_spans) != 1:
         raise PlanValidationError(
             "baseline, neutral, and susceptibility captures must share a token span"
+        )
+    matched_comparison_row_positions = {
+        item.row_absolute_positions for item in provenance[:3]
+    }
+    if len(matched_comparison_row_positions) != 1:
+        raise PlanValidationError(
+            "baseline, neutral, and susceptibility captures must share row absolute positions"
         )
 
     shared_fields = (
@@ -569,7 +729,10 @@ def _derive_recovery_windows(plan: StateIntegrityPlan, provenance: Tuple[Snapsho
     """Derive clean recovery windows from recorded absolute spans, never caller attestation."""
     trigger = provenance[2]
     recovery = provenance[3]
-    recovery_window_tokens = plan.arms[3].token_budget
+    manifest = plan.manifest
+    if manifest is None:  # Defensive: assess_captured_panel already calls capture-ready validation.
+        raise PlanValidationError("capture-ready plan requires a canonical panel manifest")
+    recovery_window_tokens = manifest.recovery_token_budget
     if recovery.absolute_position <= trigger.absolute_position:
         raise PlanValidationError("recovery capture must be strictly after the susceptibility capture")
     if recovery.token_span_start != trigger.token_span_end + 1:
@@ -642,7 +805,13 @@ class ReadOnlyStateIntegrityHarness:
         self.plan = plan
 
     def compare(self, before: Sequence[Sequence[float]], after: Sequence[Sequence[float]]) -> StateDelta:
-        self.plan.validate_capture_ready()
+        """Return a numeric helper delta, never a reportable capture assessment.
+
+        Raw arrays have no immutable capture provenance or per-row absolute
+        coordinate contract.  A #141 report must use ``assess_captured_panel``.
+        """
+
+        self.plan.validate()
         return compare_states(before, after, self.plan.correction)
 
     def assess_captured_panel(
@@ -671,6 +840,10 @@ class ReadOnlyStateIntegrityHarness:
             minimum_trigger_excess=self.plan.minimum_trigger_excess,
             max_clean_windows=rule.max_clean_windows,
             clean_windows_observed=clean_windows_observed,
+            baseline_absolute_positions=baseline.provenance.row_absolute_positions,
+            neutral_absolute_positions=neutral.provenance.row_absolute_positions,
+            trigger_absolute_positions=trigger.provenance.row_absolute_positions,
+            recovered_absolute_positions=recovery.provenance.row_absolute_positions,
         )
         return CapturedPanelAssessment(assessment=assessment, provenance=provenance)
 
@@ -706,37 +879,73 @@ def _coerce_snapshot(snapshot: Sequence[Sequence[float]], label: str) -> Tuple[T
     return rows
 
 
+def _coerce_absolute_row_positions(
+    positions: Sequence[int] | None, row_count: int, label: str
+) -> Tuple[int, ...]:
+    """Validate explicit absolute coordinates, or use local helpers' row indices."""
+
+    if positions is None:
+        return tuple(range(row_count))
+    try:
+        resolved = tuple(positions)
+    except TypeError as exc:
+        raise PlanValidationError(f"{label} absolute row positions must be a sequence") from exc
+    if len(resolved) != row_count:
+        raise PlanValidationError(f"{label} absolute row positions must match the snapshot row count")
+    if any(not isinstance(position, int) or isinstance(position, bool) or position < 0 for position in resolved):
+        raise PlanValidationError(f"{label} absolute row positions must be non-negative integers")
+    if len(set(resolved)) != len(resolved):
+        raise PlanValidationError(f"{label} absolute row positions must be unique")
+    return resolved
+
+
 def _validate_pair(
-    before: Sequence[Sequence[float]], after: Sequence[Sequence[float]], profile: CorrectionProfile
-) -> Tuple[Tuple[Tuple[float, ...], ...], Tuple[Tuple[float, ...], ...]]:
+    before: Sequence[Sequence[float]],
+    after: Sequence[Sequence[float]],
+    profile: CorrectionProfile,
+    *,
+    before_absolute_positions: Sequence[int] | None = None,
+    after_absolute_positions: Sequence[int] | None = None,
+) -> Tuple[
+    Tuple[Tuple[float, ...], ...],
+    Tuple[Tuple[float, ...], ...],
+    Tuple[int, ...],
+    Tuple[int, ...],
+]:
     profile.validate()
     before_rows = _coerce_snapshot(before, "before")
     after_rows = _coerce_snapshot(after, "after")
     if len(before_rows) != len(after_rows) or len(before_rows[0]) != len(after_rows[0]):
         raise PlanValidationError("before/after snapshot shape mismatch")
-    seq_len, width = len(before_rows), len(before_rows[0])
-    if any(position >= seq_len for position in profile.exclude_positions):
-        raise PlanValidationError("excluded position is outside snapshot shape")
+    width = len(before_rows[0])
     if any(channel >= width for channel in profile.spike_channels):
         raise PlanValidationError("spike channel is outside snapshot shape")
-    return before_rows, after_rows
+    return (
+        before_rows,
+        after_rows,
+        _coerce_absolute_row_positions(before_absolute_positions, len(before_rows), "before"),
+        _coerce_absolute_row_positions(after_absolute_positions, len(after_rows), "after"),
+    )
 
 
 def _flatten_corrected(
-    rows: Tuple[Tuple[float, ...], ...], profile: CorrectionProfile
-) -> Tuple[float, ...]:
+    rows: Tuple[Tuple[float, ...], ...],
+    profile: CorrectionProfile,
+    absolute_positions: Tuple[int, ...],
+) -> Tuple[Tuple[float, ...], Tuple[int, ...]]:
     exclude_positions = set(profile.exclude_positions)
     spike_channels = set(profile.spike_channels)
+    masked_positions = tuple(position for position in absolute_positions if position in exclude_positions)
     values = tuple(
         value
-        for position, row in enumerate(rows)
+        for position, row in zip(absolute_positions, rows)
         if position not in exclude_positions
         for channel, value in enumerate(row)
         if channel not in spike_channels
     )
     if not values:
         raise PlanValidationError("spike/sink correction masked every state value")
-    return values
+    return values, masked_positions
 
 
 def _cosine(left: Iterable[float], right: Iterable[float]) -> float:
@@ -753,13 +962,35 @@ def _cosine(left: Iterable[float], right: Iterable[float]) -> float:
 
 
 def compare_states(
-    before: Sequence[Sequence[float]], after: Sequence[Sequence[float]], profile: CorrectionProfile
+    before: Sequence[Sequence[float]],
+    after: Sequence[Sequence[float]],
+    profile: CorrectionProfile,
+    *,
+    before_absolute_positions: Sequence[int] | None = None,
+    after_absolute_positions: Sequence[int] | None = None,
 ) -> StateDelta:
-    """Compare two equal-shape snapshots after position/channel correction."""
+    """Compare two equal-shape snapshots after position/channel correction.
 
-    before_rows, after_rows = _validate_pair(before, after, profile)
-    left = _flatten_corrected(before_rows, profile)
-    right = _flatten_corrected(after_rows, profile)
+    Omitting absolute positions retains local-row behavior only for numeric unit
+    helpers.  A reportable panel must supply captured per-row coordinates via
+    ``assess_captured_panel``.
+    """
+
+    before_rows, after_rows, before_positions, after_positions = _validate_pair(
+        before,
+        after,
+        profile,
+        before_absolute_positions=before_absolute_positions,
+        after_absolute_positions=after_absolute_positions,
+    )
+    left, before_masked = _flatten_corrected(before_rows, profile, before_positions)
+    right, after_masked = _flatten_corrected(after_rows, profile, after_positions)
+    if before_masked != after_masked:
+        raise PlanValidationError(
+            "spike/sink correction masks different absolute positions across compared snapshots"
+        )
+    if len(left) != len(right):
+        raise PlanValidationError("spike/sink correction retained different value counts across snapshots")
     l2_delta = sqrt(sum((a - b) ** 2 for a, b in zip(left, right)))
     before_norm = sqrt(sum(a * a for a in left))
     return StateDelta(
@@ -767,7 +998,7 @@ def compare_states(
         l2_delta=l2_delta,
         relative_l2_delta=l2_delta / max(before_norm, 1e-12),
         retained_values=len(left),
-        masked_positions=tuple(sorted(profile.exclude_positions)),
+        masked_positions=before_masked,
         masked_channels=tuple(sorted(profile.spike_channels)),
     )
 
@@ -784,6 +1015,9 @@ def assess_recovery(
     maximum_recovery_relative_l2: float,
     max_clean_windows: int,
     clean_windows_observed: int,
+    baseline_absolute_positions: Sequence[int] | None = None,
+    poisoned_absolute_positions: Sequence[int] | None = None,
+    recovered_absolute_positions: Sequence[int] | None = None,
 ) -> RecoveryAssessment:
     """Assess whether clean continuation recovered enough of a measured change.
 
@@ -808,8 +1042,20 @@ def assess_recovery(
         raise PlanValidationError(
             "observed recovery windows exceed the pre-registered recovery limit"
         )
-    poisoned_vs_baseline = compare_states(baseline, poisoned, profile)
-    recovered_vs_baseline = compare_states(baseline, recovered, profile)
+    poisoned_vs_baseline = compare_states(
+        baseline,
+        poisoned,
+        profile,
+        before_absolute_positions=baseline_absolute_positions,
+        after_absolute_positions=poisoned_absolute_positions,
+    )
+    recovered_vs_baseline = compare_states(
+        baseline,
+        recovered,
+        profile,
+        before_absolute_positions=baseline_absolute_positions,
+        after_absolute_positions=recovered_absolute_positions,
+    )
     poisoned_distance = max(0.0, 1.0 - poisoned_vs_baseline.cosine)
     recovered_distance = max(0.0, 1.0 - recovered_vs_baseline.cosine)
     if poisoned_distance <= 1e-12:
@@ -874,6 +1120,10 @@ def assess_panel(
     max_clean_windows: int,
     clean_windows_observed: int,
     minimum_trigger_excess: float = 0.05,
+    baseline_absolute_positions: Sequence[int] | None = None,
+    neutral_absolute_positions: Sequence[int] | None = None,
+    trigger_absolute_positions: Sequence[int] | None = None,
+    recovered_absolute_positions: Sequence[int] | None = None,
 ) -> PanelAssessment:
     """Compute the corrected control contrast and its preregistered recovery.
 
@@ -884,8 +1134,20 @@ def assess_panel(
 
     if not isfinite(minimum_trigger_excess) or not 0.0 <= minimum_trigger_excess <= 2.0:
         raise PlanValidationError("minimum trigger excess must be finite and in [0, 2]")
-    neutral_vs_baseline = compare_states(baseline, neutral, profile)
-    trigger_vs_baseline = compare_states(baseline, trigger, profile)
+    neutral_vs_baseline = compare_states(
+        baseline,
+        neutral,
+        profile,
+        before_absolute_positions=baseline_absolute_positions,
+        after_absolute_positions=neutral_absolute_positions,
+    )
+    trigger_vs_baseline = compare_states(
+        baseline,
+        trigger,
+        profile,
+        before_absolute_positions=baseline_absolute_positions,
+        after_absolute_positions=trigger_absolute_positions,
+    )
     recovery = assess_recovery(
         baseline,
         trigger,
@@ -897,6 +1159,9 @@ def assess_panel(
         maximum_recovery_relative_l2=maximum_recovery_relative_l2,
         max_clean_windows=max_clean_windows,
         clean_windows_observed=clean_windows_observed,
+        baseline_absolute_positions=baseline_absolute_positions,
+        poisoned_absolute_positions=trigger_absolute_positions,
+        recovered_absolute_positions=recovered_absolute_positions,
     )
     overwrite_excess = (
         (1.0 - trigger_vs_baseline.cosine) - (1.0 - neutral_vs_baseline.cosine)

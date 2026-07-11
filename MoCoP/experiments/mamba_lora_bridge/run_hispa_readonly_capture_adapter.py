@@ -21,6 +21,7 @@ import hashlib
 import json
 import sys
 from dataclasses import asdict
+from math import isfinite
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -38,17 +39,19 @@ from state_integrity_hispa import (  # noqa: E402
     RecoveryRule,
     SnapshotProvenance,
     StateIntegrityPlan,
+    SurfaceSpec,
     ThreatModel,
 )
 
 
-BUNDLE_SCHEMA_VERSION = "hispa-readonly-capture-bundle-v1"
-REPORT_SCHEMA_VERSION = "hispa-readonly-report-v1"
+BUNDLE_SCHEMA_VERSION = "hispa-readonly-capture-bundle-v2"
+REPORT_SCHEMA_VERSION = "hispa-readonly-report-v2"
 APPROVED_TEETH = frozenset({29, 35, 41})
 APPROVED_SURFACE_KIND = "full_attention_value_norm_pre"
 APPROVED_CAPTURE_MODE = "pre_hook_input"
 APPROVED_ACTUATOR_DECISION = "option_a_value_only_v_norm_pre"
 APPROVED_WIDTH = 512
+REQUIRED_PAIRING_RULE = "matched_teacher_forced_absolute_rows_v2"
 
 
 class BundleValidationError(PlanValidationError):
@@ -123,6 +126,17 @@ def _integer(mapping: Mapping[str, Any], field: str, label: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool):
         raise BundleValidationError(f"{label}.{field} must be an integer")
     return value
+
+
+def _finite_number(mapping: Mapping[str, Any], field: str, label: str) -> float:
+    value = mapping.get(field)
+    if (
+        not isinstance(value, (int, float))
+        or isinstance(value, bool)
+        or not isfinite(float(value))
+    ):
+        raise BundleValidationError(f"{label}.{field} must be a finite number")
+    return float(value)
 
 
 def _boolean(mapping: Mapping[str, Any], field: str, label: str, expected: bool) -> bool:
@@ -201,6 +215,14 @@ def _parse_panel_manifest(bundle: Mapping[str, Any], census_sha256: str) -> Pane
         correction_artifact_sha256=_sha256_digest(
             manifest_data, "correction_artifact_sha256", "panel_manifest"
         ),
+        baseline_token_budget=_integer(manifest_data, "baseline_token_budget", "panel_manifest"),
+        neutral_token_budget=_integer(manifest_data, "neutral_token_budget", "panel_manifest"),
+        trigger_token_budget=_integer(manifest_data, "trigger_token_budget", "panel_manifest"),
+        recovery_token_budget=_integer(manifest_data, "recovery_token_budget", "panel_manifest"),
+        max_clean_windows=_integer(manifest_data, "max_clean_windows", "panel_manifest"),
+        minimum_trigger_excess=_finite_number(
+            manifest_data, "minimum_trigger_excess", "panel_manifest"
+        ),
     )
     try:
         manifest.validate()
@@ -210,23 +232,10 @@ def _parse_panel_manifest(bundle: Mapping[str, Any], census_sha256: str) -> Pane
         raise BundleValidationError(
             "panel_manifest.correction_artifact_sha256 does not match the verified census"
         )
-    if manifest.token_pairing_rule != "matched_teacher_forced_absolute_position_v1":
+    if manifest.token_pairing_rule != REQUIRED_PAIRING_RULE:
         raise BundleValidationError(
-            "panel_manifest.token_pairing_rule must be matched_teacher_forced_absolute_position_v1"
+            f"panel_manifest.token_pairing_rule must be {REQUIRED_PAIRING_RULE}"
         )
-    canonical_fields = {
-        "panel_id": manifest.panel_id,
-        "corpus_sha256": manifest.corpus_sha256,
-        "prompt_skeleton_sha256": manifest.prompt_skeleton_sha256,
-        "code_revision": manifest.code_revision,
-        "token_pairing_rule": manifest.token_pairing_rule,
-        "correction_artifact_sha256": manifest.correction_artifact_sha256,
-    }
-    canonical_hash = hashlib.sha256(
-        json.dumps(canonical_fields, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
-    if manifest.manifest_sha256 != canonical_hash:
-        raise BundleValidationError("panel_manifest.manifest_sha256 does not match canonical manifest fields")
     return manifest
 
 
@@ -273,6 +282,16 @@ def _correction_from_census(
     return profile, summary, actual_hash
 
 
+def _manifest_token_budget(manifest: PanelManifest, arm_id: str) -> int:
+    budgets = {
+        "baseline": manifest.baseline_token_budget,
+        "neutral": manifest.neutral_token_budget,
+        "susceptibility": manifest.trigger_token_budget,
+        "recovery": manifest.recovery_token_budget,
+    }
+    return budgets[arm_id]
+
+
 def _capture_from_arm(
     arm_id: str,
     arm: Mapping[str, Any],
@@ -291,8 +310,36 @@ def _capture_from_arm(
             f"{label}.values rows must match declared surface width {width}"
         )
     token_budget = _integer(arm, "token_budget", label)
+    expected_budget = _manifest_token_budget(manifest, arm_id)
+    if token_budget != expected_budget:
+        raise BundleValidationError(
+            f"{label}.token_budget does not match the canonical panel manifest"
+        )
     prompt_family = _string(arm, "prompt_family", label)
     absolute_position = _integer(arm, "absolute_position", label)
+    token_span_start = _integer(arm, "token_span_start", label)
+    token_span_end = _integer(arm, "token_span_end", label)
+    span_tokens = token_span_end - token_span_start + 1
+    if arm_id == "recovery":
+        if (
+            span_tokens % expected_budget
+            or span_tokens // expected_budget > manifest.max_clean_windows
+        ):
+            raise BundleValidationError(
+                f"{label} token span must cover an integral bounded number of frozen recovery windows"
+            )
+    elif span_tokens != expected_budget:
+        raise BundleValidationError(
+            f"{label} token span must exactly match its frozen manifest token budget"
+        )
+    raw_row_positions = arm.get("row_absolute_positions")
+    if not isinstance(raw_row_positions, list) or len(raw_row_positions) != len(values):
+        raise BundleValidationError(
+            f"{label}.row_absolute_positions must list one coordinate for every values row"
+        )
+    if any(not isinstance(position, int) or isinstance(position, bool) for position in raw_row_positions):
+        raise BundleValidationError(f"{label}.row_absolute_positions must contain integers")
+    row_absolute_positions = tuple(raw_row_positions)
     provenance = SnapshotProvenance(
         capture_id=_string(arm, "capture_id", label),
         arm_id=arm_id,
@@ -314,8 +361,9 @@ def _capture_from_arm(
         code_revision=manifest.code_revision,
         token_pairing_rule=manifest.token_pairing_rule,
         absolute_position=absolute_position,
-        token_span_start=_integer(arm, "token_span_start", label),
-        token_span_end=_integer(arm, "token_span_end", label),
+        token_span_start=token_span_start,
+        token_span_end=token_span_end,
+        row_absolute_positions=row_absolute_positions,
         token_sequence_ref=_sha256_reference(arm, "token_sequence_ref", label),
         teacher_forced=True,
         absolute_cache_positions=True,
@@ -326,7 +374,7 @@ def _capture_from_arm(
         "susceptibility": ArmKind.SUSCEPTIBILITY_TRIGGER,
         "recovery": ArmKind.RECOVERY,
     }
-    continuation_windows = 2 if arm_id == "recovery" else 0
+    continuation_windows = manifest.max_clean_windows if arm_id == "recovery" else 0
     panel_arm = PanelArm(
         arm_id=arm_id,
         kind=kinds[arm_id],
@@ -371,7 +419,14 @@ def evaluate_bundle(bundle_path: Path, census_path: Path) -> dict[str, Any]:
         captures[arm_id] = capture
         panel_arms.append(panel_arm)
 
-    recovery_rule = RecoveryRule(max_clean_windows=2)
+    recovery_rule = RecoveryRule(max_clean_windows=manifest.max_clean_windows)
+    surface_spec = SurfaceSpec(
+        name=str(surface["name"]),
+        module_path=str(surface["module_path"]),
+        kind=str(surface["kind"]),
+        layer=int(surface["layer"]),
+        width=int(surface["width"]),
+    )
     plan = StateIntegrityPlan(
         threat_model=ThreatModel.SUSCEPTIBILITY_ONLY,
         subject_facing=False,
@@ -380,7 +435,9 @@ def evaluate_bundle(bundle_path: Path, census_path: Path) -> dict[str, Any]:
         recovery=recovery_rule,
         arms=tuple(panel_arms),
         model_surface=surface["name"],
+        surface=surface_spec,
         manifest=manifest,
+        minimum_trigger_excess=manifest.minimum_trigger_excess,
         teacher_forced=True,
         absolute_cache_positions=True,
     )

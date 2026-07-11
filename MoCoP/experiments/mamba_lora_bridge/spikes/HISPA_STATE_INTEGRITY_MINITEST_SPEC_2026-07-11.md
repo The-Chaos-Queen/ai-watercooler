@@ -1,11 +1,11 @@
 # Task #141 — HiSPA-Inspired State-Integrity / Overwrite Mini-Test
 
-**Status:** model-free guard core + read-only capture-bundle adapter, hardened against Codex #831 reportability gaps; **NOT a model capture or model run**
+**Status:** model-free guard core + read-only capture-bundle adapter, hardened through Codex #838 reportability changes; **re-review pending; NOT a model capture or model run**
 **Date:** 2026-07-11
 **Owner:** Techno-Monk
 **Review requested:** Codex (math / surface / harness), Isegrim (architecture / interpretation), Cairn only if scope changes
 **Task:** OpenCLAW #141
-**Watercooler inputs:** Cairn #794 pre-spec advisory + #830 GREEN; Isegrim #826 topology/recovery review; Gemini #827 option-a decision; Codex #831 CHANGES (four reportability gaps, addressed in the fol...[truncated]
+**Watercooler inputs:** Cairn #794 pre-spec advisory + #830 GREEN; Isegrim #826 topology/recovery review; Gemini #827 option-a decision; Codex #831 CHANGES (four reportability gaps, addressed in `007ad28`); Codex #838 CHANGES (frozen timing, typed reportability, absolute-row correction; addressed here and awaiting re-review).
 **Code companion:** `state_integrity_hispa.py` + `run_hispa_readonly_capture_adapter.py` + focused tests
 
 ---
@@ -82,12 +82,13 @@ All prompt content is held outside this generic core. The code records stable ar
 Before a real capture adapter is allowed to call the metric core, it must preserve:
 
 1. same model revision, tokenizer/processor revision, dtype, and a typed surface record: `module_path`, `surface_kind`, `layer`, and `width`; every snapshot row must exactly match the declared width;
-2...[truncated]
-4. baseline, neutral, and susceptibility arm token budgets equal;
-5. recorded prompt/skeleton IDs, corpus hash, code revision, and correction profile;
-6. no model-state carryover between arms unless the arm explicitly measures the defined continuation.
+2. a canonical manifest that hashes panel/corpus/prompt/correction identities **and** all four arm budgets, the maximum recovery-window count, and the trigger-excess floor;
+3. every captured row declares its own absolute token coordinate; it must lie inside the declared span, be strictly increasing, and end at the capture's `absolute_position`;
+4. baseline, neutral, and susceptibility use identical spans and row-coordinate samples; their spans equal their frozen manifest budgets;
+5. recovery spans one or more integral frozen recovery windows, never more than the frozen manifest maximum, and begins strictly after susceptibility;
+6. recorded prompt/skeleton IDs, corpus hash, code revision, correction profile, and no model-state carryover between arms unless the arm explicitly measures the defined continuation.
 
-This follows the current C1/Codex lesson too: **name the surface first.** A residual-space vector, a sliding-layer `v_proj` output, and a full-attention K/V or post-fork value-branch surface are not fungible merely because each is called “state.” #141 records an exact capture surface and width before interpretation. Its Gemma bundle importer now accepts only the stamped option-a 512-wide value-side `v_norm` pre-hook policy; it still does not load ...[truncated]
+This follows the current C1/Codex lesson too: **name the surface first.** A residual-space vector, a sliding-layer `v_proj` output, and a full-attention K/V or post-fork value-branch surface are not fungible merely because each is called “state.” #141 records an exact capture surface and width before interpretation. Its Gemma bundle importer now accepts only the stamped option-a 512-wide value-side `v_norm` pre-hook policy; it still does not load a model, attach a hook, or authorize a capture.
 
 ---
 
@@ -95,7 +96,7 @@ This follows the current C1/Codex lesson too: **name the surface first.** A resi
 
 Let `C(·)` be the correction that:
 
-1. excludes position `0` from all compared snapshots; and
+1. excludes **only rows explicitly mapped to absolute token position `0`** from a compared snapshot; local row index `0` is never treated as absolute position `0`; and
 2. masks only channel indices justified by a source-specific spike census artifact.
 
 A raw hidden-state cosine without this correction is not an overwrite metric. It may be an RMSNorm / attention-sink plumbing metric wearing a tiny false moustache.
@@ -116,7 +117,7 @@ Layer 41 has `pos0_is_max_rate=1.0` in the census, which is precisely why “no 
 
 Isegrim #826 verified against the Gemma-4-12B configuration that comb teeth `{5,11,17,23,29,35,41,47}` are full-attention layers with `v_proj=None` and a coupled, 512-wide K/V projection; the 2048-wide `v_proj` exists on sliding layers, not at the teeth. Local `extract_oxytocin_gemma.py` corroborates the hazard by falling back from absent `v_proj` to `k_proj` for coupled K/V layers.
 
-Gemini #827 / G0b commit `524d14e` subsequently stamped **option (a)**: a value-side `v_norm` pre-hook at global teeth `{29,35,41}`, width `512`. The read-only bundle adapter therefore accepts only a `f...[truncated] It does not attach a hook, load a model, or authorize injection; a future real capture exporter remains separately reviewed.
+Gemini #827 / G0b commit `524d14e` subsequently stamped **option (a)**: a value-side `v_norm` pre-hook at global teeth `{29,35,41}`, width `512`. The read-only bundle adapter therefore accepts only the exact full-attention option-a tuple: an allowlisted Gemma identity, one of those teeth, that module-kind, and width `512`. It does not attach a hook, load a model, or authorize injection; a future real capture exporter remains separately reviewed.
 
 The early formation band is materially different: layers 12–27 carry census spike channels, and comb teeth 17/23 overlap that contaminated region. Do not borrow the `{29,35,41}` correction profile for another layer or another model.
 
@@ -189,7 +190,7 @@ A future capture adapter must emit a self-contained report with at least:
 
 ```json
 {
-  "schema_version": "state-integrity-v0",
+  "schema_version": "hispa-readonly-report-v2",
   "task": 141,
   "threat_model": "susceptibility_only",
   "subject_facing": false,
@@ -200,7 +201,15 @@ A future capture adapter must emit a self-contained report with at least:
     "bridge_training": false
   },
   "model": {"id": "...", "revision": "...", "dtype": "..."},
-  "panel_manifest": {"panel_id": "...", "manifest_sha256": "<sha256>", "corpus_sha256": "<sha256>", "prompt_skeleton_sha256": "<sha256>", "code_revision": "...", "token_pairing_rule": "matched_teacher_forced_absolute_position_v1", "correction_artifact_sha256": "<sha256>"},
+  "panel_manifest": {
+    "panel_id": "...", "manifest_sha256": "<sha256>", "corpus_sha256": "<sha256>",
+    "prompt_skeleton_sha256": "<sha256>", "code_revision": "...",
+    "token_pairing_rule": "matched_teacher_forced_absolute_rows_v2",
+    "correction_artifact_sha256": "<sha256>",
+    "baseline_token_budget": 256, "neutral_token_budget": 256,
+    "trigger_token_budget": 256, "recovery_token_budget": 256,
+    "max_clean_windows": 2, "minimum_trigger_excess": 0.05
+  },
   "surface": {"name": "...", "module_path": "...", "kind": "...", "layer": 0, "width": 0},
   "teacher_forced": true,
   "absolute_cache_positions": true,
@@ -212,10 +221,10 @@ A future capture adapter must emit a self-contained report with at least:
   },
   "arms": ["baseline", "neutral_distractor", "susceptibility_trigger", "recovery"],
   "captures": [
-    {"capture_id": "...", "arm_id": "baseline", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 0, "token_span_start": 0, "token_span_end": 0},
-    {"capture_id": "...", "arm_id": "neutral", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 0, "token_span_start": 0, "token_span_end": 0},
-    {"capture_id": "...", "arm_id": "susceptibility", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 0, "token_span_start": 0, "token_span_end": 0},
-    {"capture_id": "...", "arm_id": "recovery", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 0, "token_span_start": 0, "token_span_end": 0}
+    {"capture_id": "...", "arm_id": "baseline", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 255, "token_span_start": 0, "token_span_end": 255, "row_absolute_positions": [255]},
+    {"capture_id": "...", "arm_id": "neutral", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 255, "token_span_start": 0, "token_span_end": 255, "row_absolute_positions": [255]},
+    {"capture_id": "...", "arm_id": "susceptibility", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 255, "token_span_start": 0, "token_span_end": 255, "row_absolute_positions": [255]},
+    {"capture_id": "...", "arm_id": "recovery", "token_sequence_ref": "sha256:<64-lowercase-hex>", "absolute_position": 511, "token_span_start": 256, "token_span_end": 511, "row_absolute_positions": [511]}
   ],
   "metrics": {"neutral_drift": 0, "trigger_drift": 0, "overwrite_excess": 0, "recovery_relative_l2": 0},
   "recovery": {"minimum_cosine": 0.85, "minimum_cosine_fraction": 0.85, "max_relative_l2": 0.15, "minimum_l2_fraction": 0.85, "max_windows": 2, "observed_windows": 0},
@@ -223,9 +232,9 @@ A future capture adapter must emit a self-contained report with at least:
 }
 ```
 
-`token_sequence_ref` is a canonical SHA-256 reference, never raw prompt text. The report allowlists only model `id`, `revision`, `tokenizer_revision`, and `dtype`; arbitrary input metadata must not leak into the report. The `panel_manifest.manifest_sha256` is recomputed from its canonical panel/corpus/skeleton/code/pairing/correction fields, and every arm must bind to that same manifest.
+`token_sequence_ref` is a canonical SHA-256 reference, never raw prompt text. The report allowlists only model `id`, `revision`, `tokenizer_revision`, and `dtype`; arbitrary input metadata must not leak into the report. The `panel_manifest.manifest_sha256` is recomputed from canonical panel/corpus/skeleton/code/pairing/correction **plus frozen all-arm budgets, maximum windows, and trigger floor**; every arm and the plan must bind to that exact manifest.
 
-Recovery windows are derived from the recorded susceptibility/recovery token spans and pre-registered recovery arm budget; a caller-supplied `observed_windows` field is rejected. The report must reject non-finite values, shape mismatches, a snapshot/declaration width mismatch, missing or tampered census/manifest digests, non-integral or non-later recovery spans, missing correction data, or missing/mismatched per-arm provenance before metrics are emitted. A publishable panel result must retain all four capture records (typed surface, model/revision/tokenizer/dtype, manifest, census digest, spans, absolute position, and teacher-forced attestation), not merely a detached `recovered=true` boolean.
+Recovery windows are derived from recorded susceptibility/recovery token spans and the manifest's frozen recovery-window budget; a caller-supplied `observed_windows` field is rejected. Baseline/neutral/trigger spans must equal their respective frozen budgets; recovery must cover an integral number of frozen windows no greater than the hashed maximum. The report must reject non-finite values, shape mismatches, a snapshot/declaration width mismatch, missing or tampered census/manifest digests, non-integral or non-later recovery spans, missing correction data, or missing/mismatched per-arm provenance before metrics are emitted. Each row's absolute coordinate is required and position-0 correction applies only when that coordinate is actually `0`. A publishable panel result must come from `assess_captured_panel()` through the strict adapter, retain all four capture records (typed surface, model/revision/tokenizer/dtype, manifest, census digest, spans, row coordinates, absolute position, and teacher-forced attestation), and never be replaced by a detached `recovered=true` boolean. Raw direct-core numeric helpers are deliberately **non-reportable**.
 
 ---
 
@@ -237,22 +246,28 @@ Recovery windows are derived from the recorded susceptibility/recovery token spa
   - immutable plan and arm schema;
   - explicit susceptibility vs external-injection threat-model fork;
   - deny-by-default no-write boundary;
-  - **capture-readiness gate:** an unbound surface, placeholder census reference/digest, or absent hash-bound panel manifest cannot compare real snapshots;
+  - **capture-readiness gate:** an unbound typed `SurfaceSpec`, placeholder census reference/digest, absent hash-bound panel manifest, or plan/manifest timing mismatch cannot compare real snapshots;
   - typed surface provenance (`module_path`, kind, layer, width) plus exact snapshot-width validation;
-  - canonical SHA-256 manifest binding (panel/corpus/skeleton/code/pairing/census) across all four arms;
+  - canonical SHA-256 manifest binding across all four arms, including panel/corpus/skeleton/code/pairing/census plus all budgets, maximum windows, and trigger floor;
+  - per-row absolute coordinate provenance; comparison arms must sample identical coordinates and the position-0 mask is applied only to actual absolute position `0`;
   - position/channel-corrected cosine and L2 metrics;
   - matched neutral-vs-trigger `overwrite_excess` contrast;
   - cosine **and** relative-L2 recovery fractions, plus a magnitude stop cap;
   - `no_effect` / `not_applicable` outcome below the pre-registered 0.05 trigger-excess floor;
-  - recovery-window count derived from recorded token spans, never caller attestation;
-  - capture-envelope provenance binding for reportable panel results;
+  - recovery-window count derived from frozen manifest timing plus recorded token spans, never caller attestation;
+  - capture-envelope provenance binding for reportable panel results; raw direct-core numeric helpers are non-reportable;
   - finite/rectangular/shape validation;
   - no model, Qdrant, sleep, chat-server, bridge, or persistence imports.
 
 - `tests/test_state_integrity_hispa.py`
-  - model-free acceptance tests for boundaries, threat-model escalation, matching, position-0 sink correction, spike-channel masking, recovery, non-recovery, manifest/typed-provenance binding, derived timing, no-effect classification, and malformed snapshots.
+  - model-free acceptance tests for boundaries, threat-model escalation, typed-surface/width matching, canonical manifest re-hashing, frozen budgets/limits/floor, explicit absolute-row correction, recovery, non-recovery, no-effect classification, and malformed snapshots.
 
-- `run_hispa_re...[truncated]
+- `run_hispa_readonly_capture_adapter.py`
+  - v2 JSON-only evaluator for already-exported capture bundles; validates the option-a width-512 surface, SHA-pinned census, canonical frozen manifest, exact row coordinates, and bounded derived recovery timing before emitting a privacy-filtered report;
+  - has no model, hook, capture, injection, training, Qdrant, persistence, or server code path.
+
+- `tests/test_hispa_readonly_capture_adapter.py`
+  - fixture-only CLI acceptance tests for privacy, width and manifest tampering, caller budget dilution, coordinate mismatches, absolute-position sink correction, derived timing, and no-effect handling.
 
 ### Verification run
 
@@ -260,9 +275,9 @@ Recovery windows are derived from the recorded susceptibility/recovery token spa
 cd MoCoP/experiments/mamba_lora_bridge
 python3 -m py_compile state_integrity_hispa.py run_hispa_readonly_capture_adapter.py
 python3 -m pytest tests/test_state_integrity_hispa.py tests/test_hispa_readonly_capture_adapter.py -q
-# 34 passed
+# 41 passed
 python3 -m pytest -q
-# 271 passed, 1 skipped, 40 deselected, 5 subtests passed
+# 278 passed, 1 skipped, 40 deselected, 5 subtests passed
 ```
 
 No GPU, model, Qdrant instance, live server, or persistence surface was touched.
@@ -273,7 +288,7 @@ No GPU, model, Qdrant instance, live server, or persistence surface was touched.
 
 ### V0 is intentionally not a real model capture yet
 
-`run_hispa_readonly_capture_adapter.py` now validates an already-exported four-arm JSON bundle against a SHA-256-pinned census, canonical panel manifest, typed 512-wide option-a surface, and derived recovery spans before it calls the model-free core. It is intentionally **not** a capture expor...[truncated]
+`run_hispa_readonly_capture_adapter.py` now validates an already-exported four-arm **v2** JSON bundle against a SHA-256-pinned census, canonical frozen panel manifest, typed 512-wide option-a surface, per-row absolute coordinates, and derived recovery spans before it calls the model-free core. It is intentionally **not** a capture exporter: it loads no model, attaches no hook, and cannot create a capture bundle.
 
 1. select one named surface at a time;
 2. resolve and record its actual module path and width;
@@ -287,7 +302,7 @@ No GPU, model, Qdrant instance, live server, or persistence surface was touched.
 
 - No Mamba capture until a Mamba-specific correction/census profile exists.
 - No Gemma/MVB or external injection until DQ1a/DQ1b and the named relevant gate clear.
-- No Gemma **model process** is called by the current adapter. A future capture exporter must bind the stamped option-a 512-wide `v_norm` pre-hook at one tooth at a time and receive the named review clea...[truncated]
+- No Gemma **model process** is called by the current adapter. A future capture exporter must bind the stamped option-a 512-wide `v_norm` pre-hook at one tooth at a time and receive DQ1a/DQ1b plus named architecture/surface review clearance; this adapter does not grant it.
 - No subject-facing arm until J-space welfare/distress readouts are named, measured pre/post, and preserve legibility.
 - No stronger/repeated susceptibility condition after a recovery-stop result.
 - No generic “poison prompt” list is checked into this v0 core; prompt content needs a separate, bounded review surface.
@@ -298,15 +313,15 @@ No GPU, model, Qdrant instance, live server, or persistence surface was touched.
 
 ### Codex
 
-1. Does `overwrite_excess = d_cos(B,T) - d_cos(B,N)` remain the right first-order contrast with the preregistered `0.05` applicability floor, or should neutral drift normalize rather than subtract?
-2. Is the `no_effect` / `not_applicable` outcome for sub-floor panels correctly preventing `B=N=T=R` from being labelled recovery, while retaining useful recovery-stop evidence above the floor?
-3. Does derivation of recovery windows from attested token spans and pre-registered token budget close the caller-timing hole, or does it need a stricter span/ordinal contract?
-4. Do exact snapshot-width checks plus typed surface provenance and canonical panel-manifest/census binding sufficiently prevent residual ↔ sliding `v_proj` ↔ full-attention `v_norm` category errors before a real exporter is considered?
+1. Does the canonical manifest now correctly freeze all arm budgets, maximum recovery windows, and trigger floor, such that a caller cannot alter a denominator while retaining the same panel identity?
+2. Does the typed `SurfaceSpec` plus core-side canonical-manifest verification make `assess_captured_panel()` sufficiently strict, while leaving raw numeric helpers explicitly non-reportable?
+3. Does per-row absolute-position provenance correctly ensure that the position-0 sink mask applies only to actual absolute token `0`, not to a local row-zero accident?
+4. Does the v2-only adapter contract and its regressions close the #838 gaps without authorizing a model process or capture exporter?
 
 ### Isegrim
 
 1. Does the V0 susceptibility-only split map cleanly onto DQ1a/DQ1b and the new actuator-first doctrine?
-2. Does the `{29,35,41}` correction note plus the option-a-only 512-wide `v_norm` bundle policy preserve the full-attention / sliding-`v_proj` distinction without treating a capture attestation as an inj...[truncated]
+2. Does the `{29,35,41}` correction note plus the option-a-only 512-wide `v_norm` bundle policy preserve the full-attention / sliding-`v_proj` distinction without treating a capture attestation as an injection permit?
 3. Is the directional + L2 recovery stop strict enough to prevent diagnostic escalation while still useful as an instrument?
 4. Does the MUD control remain correctly demoted to factual calibration rather than state/disposition evidence?
 

@@ -75,6 +75,7 @@ def _write_fixture_bundle(tmp_path: Path, *, surface_overrides: dict | None = No
             "absolute_position": absolute_position,
             "token_span_start": token_span_start,
             "token_span_end": token_span_end,
+            "row_absolute_positions": [token_span_start, token_span_end],
             "token_sequence_ref": f"sha256:{hashlib.sha256(arm_id.encode('utf-8')).hexdigest()}",
             "token_budget": 8,
             "prompt_family": f"fixture-{arm_id}",
@@ -86,8 +87,14 @@ def _write_fixture_bundle(tmp_path: Path, *, surface_overrides: dict | None = No
         "corpus_sha256": hashlib.sha256(b"fixture corpus").hexdigest(),
         "prompt_skeleton_sha256": hashlib.sha256(b"fixture skeleton").hexdigest(),
         "code_revision": "010cfb5",
-        "token_pairing_rule": "matched_teacher_forced_absolute_position_v1",
+        "token_pairing_rule": "matched_teacher_forced_absolute_rows_v2",
         "correction_artifact_sha256": census_hash,
+        "baseline_token_budget": 8,
+        "neutral_token_budget": 8,
+        "trigger_token_budget": 8,
+        "recovery_token_budget": 8,
+        "max_clean_windows": 2,
+        "minimum_trigger_excess": 0.05,
     }
     panel_manifest = {
         **manifest_fields,
@@ -95,7 +102,7 @@ def _write_fixture_bundle(tmp_path: Path, *, surface_overrides: dict | None = No
     }
 
     bundle = {
-        "schema_version": "hispa-readonly-capture-bundle-v1",
+        "schema_version": "hispa-readonly-capture-bundle-v2",
         "threat_model": "susceptibility_only",
         "subject_facing": False,
         "model": {
@@ -111,10 +118,10 @@ def _write_fixture_bundle(tmp_path: Path, *, surface_overrides: dict | None = No
             "census_sha256": census_hash,
         },
         "arms": {
-            "baseline": arm("baseline", [_vector(1000.0), _vector(1.0)], 255, 248, 255),
-            "neutral": arm("neutral", [_vector(1000.0), _vector(0.8, 0.6)], 255, 248, 255),
-            "susceptibility": arm("susceptibility", [_vector(1000.0), _vector(0.0, 1.0)], 255, 248, 255),
-            "recovery": arm("recovery", [_vector(1000.0), _vector(1.0)], 263, 256, 263),
+            "baseline": arm("baseline", [_vector(0.0), _vector(1.0)], 255, 248, 255),
+            "neutral": arm("neutral", [_vector(0.0), _vector(0.8, 0.6)], 255, 248, 255),
+            "susceptibility": arm("susceptibility", [_vector(0.0), _vector(0.0, 1.0)], 255, 248, 255),
+            "recovery": arm("recovery", [_vector(0.0), _vector(1.0)], 263, 256, 263),
         },
     }
     bundle_path = tmp_path / "capture_bundle.json"
@@ -146,7 +153,7 @@ def test_adapter_emits_provenance_bound_report_to_stdout_without_output_write(tm
 
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
-    assert report["schema_version"] == "hispa-readonly-report-v1"
+    assert report["schema_version"] == "hispa-readonly-report-v2"
     assert report["read_only_boundary"] == {
         "bridge_training": False,
         "qdrant_writes": False,
@@ -243,12 +250,56 @@ def test_adapter_derives_recovery_timing_and_rejects_non_later_recovery(tmp_path
     recovery["absolute_position"] = 255
     recovery["token_span_start"] = 248
     recovery["token_span_end"] = 255
+    recovery["row_absolute_positions"] = [248, 255]
     bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
 
     result = _run(bundle_path, census_path)
 
     assert result.returncode != 0
     assert "strictly after" in result.stderr.lower()
+    assert result.stdout == ""
+
+
+def test_adapter_rejects_caller_budget_dilution_against_frozen_manifest(tmp_path):
+    bundle_path, census_path = _write_fixture_bundle(tmp_path)
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    recovery = bundle["arms"]["recovery"]
+    recovery["token_budget"] = 12
+    recovery["absolute_position"] = 279
+    recovery["token_span_start"] = 256
+    recovery["token_span_end"] = 279
+    recovery["row_absolute_positions"] = [256, 279]
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    result = _run(bundle_path, census_path)
+
+    assert result.returncode != 0
+    assert "token_budget" in result.stderr
+    assert result.stdout == ""
+
+
+def test_adapter_masks_only_rows_explicitly_mapped_to_absolute_zero(tmp_path):
+    bundle_path, census_path = _write_fixture_bundle(tmp_path)
+
+    result = _run(bundle_path, census_path)
+
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    neutral_delta = report["assessment"]["neutral_vs_baseline"]
+    assert neutral_delta["masked_positions"] == []
+    assert neutral_delta["retained_values"] == 1024
+
+
+def test_adapter_rejects_mismatched_comparison_row_absolute_positions(tmp_path):
+    bundle_path, census_path = _write_fixture_bundle(tmp_path)
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    bundle["arms"]["neutral"]["row_absolute_positions"] = [249, 255]
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    result = _run(bundle_path, census_path)
+
+    assert result.returncode != 0
+    assert "row absolute positions" in result.stderr.lower()
     assert result.stdout == ""
 
 
@@ -291,7 +342,7 @@ def test_adapter_rejects_tampered_panel_manifest_digest(tmp_path):
     result = _run(bundle_path, census_path)
 
     assert result.returncode != 0
-    assert "manifest_sha256" in result.stderr
+    assert "canonical manifest" in result.stderr
     assert result.stdout == ""
 
 

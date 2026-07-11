@@ -8,6 +8,8 @@ not load a model, start a server, touch Qdrant, run sleep, or persist state.
 from __future__ import annotations
 
 from dataclasses import replace
+import hashlib
+import json
 
 import pytest
 
@@ -21,6 +23,7 @@ from state_integrity_hispa import (
     PlanValidationError,
     ReadOnlyStateIntegrityHarness,
     SnapshotProvenance,
+    SurfaceSpec,
     ThreatModel,
     assess_panel,
     assess_recovery,
@@ -30,22 +33,46 @@ from state_integrity_hispa import (
 
 
 _TEST_CENSUS_SHA256 = "a" * 64
-_TEST_MANIFEST = PanelManifest(
-    panel_id="fixture-hispa-panel",
-    manifest_sha256="b" * 64,
-    corpus_sha256="c" * 64,
-    prompt_skeleton_sha256="d" * 64,
-    code_revision="0123456",
-    token_pairing_rule="matched_teacher_forced_absolute_position_v1",
-    correction_artifact_sha256=_TEST_CENSUS_SHA256,
-)
+
+
+def _test_manifest(**overrides):
+    fields = {
+        "panel_id": "fixture-hispa-panel",
+        "corpus_sha256": "c" * 64,
+        "prompt_skeleton_sha256": "d" * 64,
+        "code_revision": "0123456",
+        "token_pairing_rule": "matched_teacher_forced_absolute_rows_v2",
+        "correction_artifact_sha256": _TEST_CENSUS_SHA256,
+        "baseline_token_budget": 256,
+        "neutral_token_budget": 256,
+        "trigger_token_budget": 256,
+        "recovery_token_budget": 256,
+        "max_clean_windows": 2,
+        "minimum_trigger_excess": 0.05,
+    }
+    fields.update(overrides)
+    manifest_sha256 = hashlib.sha256(
+        json.dumps(fields, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return PanelManifest(manifest_sha256=manifest_sha256, **fields)
+
+
+_TEST_MANIFEST = _test_manifest()
 
 
 def _capture_ready_plan():
     plan = default_susceptibility_plan()
+    surface = SurfaceSpec(
+        name="fixture.full_attention_value_norm_pre.layer_29.width_2",
+        module_path="model.layers.29.self_attn.v_norm",
+        kind="fixture_value_norm_pre",
+        layer=29,
+        width=2,
+    )
     return replace(
         plan,
-        model_surface="verified.full_attention_kv_capture.layer_29.width_512",
+        model_surface=surface.name,
+        surface=surface,
         correction=replace(
             plan.correction,
             census_reference="results/spike_sink_census/gemma4_12b_base.json",
@@ -77,12 +104,12 @@ def test_default_plan_is_susceptibility_only_and_structurally_read_only():
     plan.validate()
 
 
-def test_capture_harness_refuses_an_unbound_surface_or_placeholder_census():
+def test_direct_compare_is_a_nonreportable_numeric_helper():
     plan = default_susceptibility_plan()
     harness = ReadOnlyStateIntegrityHarness(plan)
 
-    with pytest.raises(PlanValidationError, match="capture-ready"):
-        harness.compare(((0.0, 0.0), (1.0, 0.0)), ((0.0, 0.0), (1.0, 0.0)))
+    metric = harness.compare(((0.0, 0.0), (1.0, 0.0)), ((0.0, 0.0), (1.0, 0.0)))
+    assert metric.cosine == pytest.approx(1.0)
 
 
 def test_capture_harness_accepts_a_named_surface_with_a_real_census_reference():
@@ -93,11 +120,39 @@ def test_capture_harness_accepts_a_named_surface_with_a_real_census_reference():
     assert metric.cosine == pytest.approx(1.0)
 
 
+@pytest.mark.parametrize(
+    ("manifest", "match"),
+    (
+        (_test_manifest(recovery_token_budget=128), "plan arm token budgets"),
+        (_test_manifest(max_clean_windows=3), "recovery window limit"),
+        (_test_manifest(minimum_trigger_excess=0.1), "trigger-excess floor"),
+    ),
+)
+def test_capture_ready_plan_rejects_unfrozen_budget_limit_or_floor(manifest, match):
+    plan = replace(_capture_ready_plan(), manifest=manifest)
+
+    with pytest.raises(PlanValidationError, match=match):
+        plan.validate_capture_ready()
+
+
+def test_capture_ready_plan_recomputes_the_canonical_manifest_digest():
+    tampered = replace(_TEST_MANIFEST, code_revision="abcdef0")
+    plan = replace(_capture_ready_plan(), manifest=tampered)
+
+    with pytest.raises(PlanValidationError, match="canonical manifest fields"):
+        plan.validate_capture_ready()
+
+
 def test_provenanced_panel_binds_assessment_to_named_snapshots_and_rejects_mismatch():
     ready = _capture_ready_plan()
     harness = ReadOnlyStateIntegrityHarness(ready)
+    surface = ready.surface
+    assert surface is not None
 
-    def captured(arm_id, values, absolute_position=255):
+    def captured(arm_id, values, absolute_position=None):
+        token_span_start = 356 if arm_id == "recovery" else 100
+        if absolute_position is None:
+            absolute_position = 611 if arm_id == "recovery" else 355
         return CapturedState(
             values=values,
             provenance=SnapshotProvenance(
@@ -108,10 +163,10 @@ def test_provenanced_panel_binds_assessment_to_named_snapshots_and_rejects_misma
                 tokenizer_revision="local-test-tokenizer",
                 dtype="bfloat16",
                 model_surface=ready.model_surface,
-                module_path="model.layers.29.self_attn.v_norm",
-                surface_kind="full_attention_value_norm_pre",
-                surface_layer=29,
-                surface_width=2,
+                module_path=surface.module_path,
+                surface_kind=surface.kind,
+                surface_layer=surface.layer,
+                surface_width=surface.width,
                 census_reference=ready.correction.census_reference,
                 census_sha256=ready.correction.census_sha256,
                 panel_id=_TEST_MANIFEST.panel_id,
@@ -121,8 +176,9 @@ def test_provenanced_panel_binds_assessment_to_named_snapshots_and_rejects_misma
                 code_revision=_TEST_MANIFEST.code_revision,
                 token_pairing_rule=_TEST_MANIFEST.token_pairing_rule,
                 absolute_position=absolute_position,
-                token_span_start=256 if arm_id == "recovery" else 0,
+                token_span_start=token_span_start,
                 token_span_end=absolute_position,
+                row_absolute_positions=(token_span_start, absolute_position),
                 token_sequence_ref=(
                     "sha256:" + {"baseline": "a", "neutral": "b", "susceptibility": "c", "recovery": "d"}[arm_id] * 64
                 ),
@@ -134,13 +190,15 @@ def test_provenanced_panel_binds_assessment_to_named_snapshots_and_rejects_misma
     baseline = captured("baseline", ((0.0, 0.0), (1.0, 0.0)))
     neutral = captured("neutral", ((0.0, 0.0), (0.8, 0.6)))
     trigger = captured("susceptibility", ((0.0, 0.0), (0.0, 1.0)))
-    recovery = captured("recovery", ((0.0, 0.0), (1.0, 0.0)), absolute_position=511)
+    recovery = captured("recovery", ((0.0, 0.0), (1.0, 0.0)))
 
     result = harness.assess_captured_panel(baseline, neutral, trigger, recovery)
     assert result.assessment.recovery.recovered is True
     assert [item.arm_id for item in result.provenance] == [
         "baseline", "neutral", "susceptibility", "recovery"
     ]
+    assert result.assessment.neutral_vs_baseline.masked_positions == ()
+    assert result.assessment.neutral_vs_baseline.retained_values == 4
 
     wrong_surface = replace(
         trigger,
@@ -148,6 +206,20 @@ def test_provenanced_panel_binds_assessment_to_named_snapshots_and_rejects_misma
     )
     with pytest.raises(PlanValidationError, match="surface"):
         harness.assess_captured_panel(baseline, neutral, wrong_surface, recovery)
+
+    wrong_width = replace(
+        trigger,
+        provenance=replace(trigger.provenance, surface_width=512),
+    )
+    with pytest.raises(PlanValidationError, match="width"):
+        harness.assess_captured_panel(baseline, neutral, wrong_width, recovery)
+
+    wrong_row_coordinates = replace(
+        neutral,
+        provenance=replace(neutral.provenance, row_absolute_positions=(101, 355)),
+    )
+    with pytest.raises(PlanValidationError, match="row absolute positions"):
+        harness.assess_captured_panel(baseline, wrong_row_coordinates, trigger, recovery)
 
 
 @pytest.mark.parametrize(
