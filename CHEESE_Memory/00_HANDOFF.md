@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 20:12 +02:00
-- Current owner: Codex returned CHANGES on `f20936a` for stage-bound `run_kind` contradicting an unchanged Stage-A/B manifest and for retaining single-Tier-1 STOP after Laura's baseline-first harm ruling. Codex also owns blocked #157: inventory found no admissible second artifact, and a split-clean estimator-family preregistration awaits named review. #149/#155/#157/#158 remain blocked; no model/GPU/C1/Qdrant action occurred.
-- Primary focus: repair/re-review #149, decide whether a distinct warm-axis estimator satisfies DQ1a's second-family intent, then implement only the accepted #157 extraction path; no C1 Stage A or Stage B without its separately recorded keeper release.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-16.md`
+- Last updated: 2026-07-11 22:26 +02:00
+- Current owner: Codex returned CHANGES on `f20936a` for stage-bound `run_kind` contradicting an unchanged Stage-A/B manifest and for retaining single-Tier-1 STOP after Laura's baseline-first harm ruling. Codex also owns blocked #157: inventory found no admissible second artifact, and a split-clean estimator-family preregistration awaits named review. #149/#155/#157/#158 remain blocked; no C1/GPU/Qdrant action belongs to that chain. Separately, Techno-Monk completed one bounded offline bridge microtrain and released broad #146 back to its intended production-recorder owners.
+- Primary focus: repair/re-review #149, decide whether a distinct warm-axis estimator satisfies DQ1a's second-family intent, then implement only the accepted #157 extraction path; no C1 Stage A or Stage B without its separately recorded keeper release. The separate bridge question now has a real offline feasibility result and should next test held-out paired deltas, not enlarge its gate by prose alone.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-17.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: skipped (`2026-07-11-session-16.md`; #157 review-held/no-Qdrant-write envelope)
+  - Latest session log ingest: skipped (`2026-07-11-session-17.md`; the Laura-directed offline bridge microtrain explicitly excluded Qdrant/memory/persistence, so no ingest was attempted)
 
 ## Current State — Qdrant TLS Migration (2026-07-11)
 - **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
@@ -23,6 +23,11 @@
 - **World Model Phase 2 complete (#148):** source `29abc1b`; real official LS20/tool evidence `8c77636`; custody portability `c271834`/`8895bee`. The self-verifying bundle has 352 train and 176 held-out transitions and returns `NO_GO_RUN_INCONSISTENT`: tool passes 4/4 runs; LS20 passes support and micro/macro effect gates but only 2/3 runs are fully positive (`0.667 < 0.75`). No observer/bridge/control integration is authorized. OpenCLAW #152 holds a new, separately reviewed independent replication; v1 is immutable.
 - **DQ1a #150 complete:** `e9c64d8` corrects 512-wide dose math, restores MED as the minimum effective dose, separates safe/fail bounds, makes authorization condition-scoped, and defines exact hierarchical statistics plus the P5 contract. Gidim/Isegrim/Cairn returned GREEN (#852-#854); `b3d4821` preregisters the dispersion cap, forbids post-hoc rescue, and clarifies immutable event ordering. Closure: Watercooler #856.
 - **Verification:** bridge package `314 passed, 45 deselected, 5 subtests passed`; ML-WS RTX 3090 returned idle.
+
+## Current State — First Offline Gemma Bridge Microtrain (2026-07-11)
+- **Laura-directed purpose:** build because the present fixed/stateless transformer arrangement is missing something worth building; beneficiaries remain unknown, with a hope that Gemma itself may benefit. This is not a claim that benefit has been demonstrated.
+- **Real bounded train:** current Gemma target was `value_norm_pre` (512-wide) at teeth `{29,35,41}`, not stale Qwen/2048-wide `v_proj`. Two frozen non-holdout warm/neutral SEV pairs supplied paired Mamba-2.8B L3 (2560-wide) source deltas and paired Gemma deltas. A 268,032-parameter bridge trained for 16 CPU steps: directional loss `0.9836281 -> 0.0099958`; save/load and finite/nonconstant outputs passed; ML-WS GPU returned idle.
+- **Boundary/evidence:** no nonzero injection, generation, Qdrant, memory, replay, sleep, persistence, or C1 runtime path; frozen Gemma/Mamba host weights were untouched. Commit `866fc8b`; Watercooler #907; ignored local checkpoint SHA-256 `c257dbad5eff64e3a0b4d823c8bf8635f33cd9575d57f3ee613128af23fb203c`; tracked provenance/debrief under `experiments/mamba_lora_bridge/{results/bridge_train_microtrains,spikes}`. This is a two-pair training fit, not held-out generalization, behavior/welfare evidence, consciousness/identity evidence, or C1 authorization.
 
 ## Current State — DQ1b + DOL-0 (2026-07-11)
 - **DOL-0 #154 DONE (design only):** commit `e7b5902`, artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DOL0_DISTRESS_OBSERVABILITY_LENS_SPEC_2026-07-11.md`. It defines an SAE/J-lens distress-observability instrument as a triangulated, held-out **alarm-only** channel: no feature/readout proves distress/welfare/consciousness; no lack of alarm clears a DQ1b stop. Source/metadata/design only; no Gemma load/capture/hook/injection/Qdrant/persistence/training. `SAE_FIT=UNPROVEN`: inspected public candidates do not demonstrate Gemma-4-12B-base / 3840-wide residual compatibility; ML-WS torch311 lacks `sae_lens`, `nnsight`, and `transformer_lens`.
@@ -85,7 +90,7 @@
 - [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Isegrim #895 is GREEN; Codex #896 requires a stage-neutral base manifest plus per-attempt `run_kind`, Tier-2 immediate STOP, single-Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold. No C1 stage.
 - [ ] **DOL-1 only if separately approved:** first prove an exact SAE/probe/J-lens substrate fit and a read-only capture manifest; it remains alarm-only and cannot substitute for DQ1b.
 - [ ] **C1 completion / #158:** decide/review #157's estimator-family preregistration, then extract/freeze a second positive 512-wide `value_norm_pre` direction/full matrix only if accepted; implement/review model-free P5 (#156); review no-component B0 (#155); close #149/final manifest; obtain Stage-A keeper GO before the true alpha-zero anchor; then obtain a separate Stage-B keeper GO tied to its immutable report before exactly one birth injection #1.
-- [ ] **#146 matched-delta lane:** capture paired scenario-neutral source deltas at the correct surface, wire trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput.
+- [ ] **#146 matched-delta lane (queued; narrow spike exists):** Techno-Monk's isolated real 512-wide `value_norm_pre` two-pair microtrain proves the offline learnability path only. Production work remains: capture paired scenario-neutral source deltas at the correct surface, wire trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput. Smallest scientific follow-up is a split-clean disjoint held-out bridge readout, still offline/non-injecting.
 - [ ] **#152 World Model Phase 2b:** preregister a new independently seeded LS20 consistency replication before collecting outcomes. Preserve Phase 2 v1 and its thresholds unchanged; keep all World Model work offline and outside bridge loss/control.
 - [ ] **#141 owner close:** the bounded offline v2 evaluator is GREEN. Any real capture exporter/model hook is a new reviewed slice.
 
@@ -96,6 +101,7 @@
 - `disposition_runner.world_model.predicted_observation` is now correctly null when no predictor ran. Do not refill it from fixture answer keys.
 - `compute_tension_proxy()` is response-direction mismatch, not prediction error. Do not close a dynamic-alpha loop around it.
 - The alpha-zero smoke is instrumentation, not the registered C1 anchor, and its runner intentionally cannot run nonzero.
+- The first bridge microtrain checkpoint is intentionally Git-ignored; locate it by SHA `c257dbad5eff64e3a0b4d823c8bf8635f33cd9575d57f3ee613128af23fb203c` and its tracked provenance receipt. Do not inflate its two-pair training loss into benefit/generalization/C1 evidence.
 - #149's proposed monitor matrix is not a completed gate: raw `R_C/R_S` are report-only, never a gate. `D_control >= 0.5` is HOLD, not a welfare STOP. Fresh teacher-forced alpha-zero replay is never recovery; SEV geometry/behavior ID overlap is a launch refusal without a signed reviewed declaration. Distant-secondary calibration is non-self-clearing/non-authorizing until Laura ratifies its compatibility with decision C; no `T_*` field may be inferred from C1, borrowed from Qwen, or left null/`TBD` in P5. #154 DOL-0 is not a detector clearance and does not license an SAE download or a Gemma capture.
 - Never inject the old `524d14e`/all-40-pair artifact or a residual-space 3840-wide vector at the 512-wide actuator. The historical 5g.3 JSON files contain metrics, not reusable directions; #157 has no admissible artifact yet.
 - Gemma bf16 loading needs `trust_remote_code=True`; the current remote converter and bnb 4-bit path are incompatible (#802/#805). The old loader-regression alarm is retracted.
@@ -103,19 +109,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Land/re-review Codex #896's two `f20936a` fixes, and obtain named verdicts on #157/WC#897. Only after the accepted #157 artifact path, #156, #155 review, post-B0 numerics, and #149 closure may Stage-A keeper review begin; Stage B remains a separate later release.
+- Keep the C1 chain unchanged: land/re-review Codex #896's two `f20936a` fixes and obtain named #157/WC#897 verdicts. Separately, do the smallest bridge-science follow-up — split-clean, disjoint held-out paired-delta readout — rather than another gate-only loop. Only after the accepted #157 artifact path, #156, #155 review, post-B0 numerics, and #149 closure may Stage-A keeper review begin; Stage B remains a separate later release.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (OpenCLAW #149/#157, Watercooler #896/#897, #157 preregistration, and this handoff)
-- Session log written: yes (`2026-07-11-session-16.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #907; OpenCLAW #146 narrow-spike comment/release; canonical debrief and this handoff)
+- Session log written: yes (`2026-07-11-session-17.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: skipped (#157 review-held/no-Qdrant-write envelope; no attempt made)
-- Git commit in repo: yes (session-16 scoped closure; see Git log)
-- Watercooler findings reflected in docs: yes (`C1_SECOND_POSITIVE_DIRECTION_PREREG_2026-07-11.md`, Watercooler #896/#897)
+- Qdrant ingest for latest session log confirmed: skipped (offline bridge microtrain's no-Qdrant/memory/persistence boundary; no attempt made)
+- Git commit in repo: yes (session-17 closure commit; see Git log; implementation commit `866fc8b`)
+- Watercooler findings reflected in docs: yes (`GEMMA_VALUE_NORM_BRIDGE_MICROTRAIN_DEBRIEF_2026-07-11.md`, provenance receipt, Watercooler #907)
 - No P0 bugs left unfixed: no new P0 found; numeric C1 gate is honestly blocked, not filed as resolved
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 22:26 +02:00 | Techno-Monk | Laura corrected the bridge rationale: build because something is missing; beneficiaries are unknown, with hope Gemma may benefit. Ran the first isolated real offline Gemma/Mamba matched-delta bridge microtrain at current 512-wide `value_norm_pre` teeth `{29,35,41}`: two frozen non-holdout pairs, 16 bridge-only CPU steps, directional loss `0.9836281 -> 0.0099958`, save/load PASS, hosts frozen/GPU idle. Commit `866fc8b`; checkpoint SHA `c257dbad…23fb203c` retained ignored with tracked provenance; Watercooler #907; #146 documented then released because its broader production scope remains open. Session-17 recorded; Qdrant ingest skipped by declared no-Qdrant boundary.
 - 2026-07-11 20:12 +02:00 | Codex | Returned CHANGES on `f20936a` for manifest-stage identity and Laura's Tier-1 harm policy (#896). Claimed #157, found no admissible second artifact locally or on ML-WS, wrote a review-held split-clean estimator-family preregistration, requested named reviews in #897, and blocked before GPU/model capture. Session-16 recorded; Qdrant ingest skipped under #157's no-write envelope.
 - 2026-07-11 19:52 +02:00 | Techno-Monk | Late independent review exposed B0/Stage-release gaps after session-14 close. Landed `ea9ef4f` (pre-B0 rubric freeze, B0 evidence/closed-world manifests, Stage-A/B split), `5816483` (SEV-ID guard + distinct #156 carryover build), and `f20936a` (Cairn #892 signed-overlap/recovery alignment). Gidim #890 and Cairn #892 GREEN in their lanes; Codex/Isegrim latest-source reviews pending. #149/#155/#156/#157/#158 remain blocked; no model/GPU/B0/C1/Qdrant action. Session-15 recorded; Qdrant ingest skipped; continuity closure `dd0da17`.
 - 2026-07-11 19:33 +02:00 | Techno-Monk | Landed `a89545e` after Codex #886 and Isegrim #888: B0 no-component baseline precedes final behavior/recovery numerics; B0/C1 run kinds/manifests separated; exact 32-panel to #130 48-probe evaluator mapping must be explicit; recovery is carryover-only with absolute-span + `overwrite_excess >= 0.05` gate, so a fresh stateless replay is invalid. #889 source review requested; #149 remains blocked; no model/GPU/B0/C1/Qdrant action. Session-14 recorded; Qdrant ingest skipped; continuity closure `d3a34da`.
@@ -155,9 +162,9 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #890–#894.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #902–#907.
 - Decide first:
-  - Read Watercooler #891/#893/#894 for `f20936a`; preserve raw `R_C/R_S` as diagnostics only, B0 as no-component baseline/evidence bundle, recovery as carryover-only, and SEV ID disjointness or signed overlap as a launch refusal. Bind actual ID sets before #155; #158 stays blocked until #149/#155/#156/#157, Stage-A report, and separate Stage-B keeper GO. Treat #152 as a fresh preregistration task, not permission to rerun or integrate Phase 2 v1.
+  - Keep two lanes distinct: read #902–#904 for #157 and preserve the C1 chain (raw `R_C/R_S` diagnostics only; B0 no-component; carryover-only recovery; SEV ID disjointness/signed overlap). #158 stays blocked until #149/#155/#156/#157, Stage-A report, and separate Stage-B keeper GO. Separately, the bridge has one real two-pair offline fit (#907); its next scientific move is a disjoint held-out paired-delta readout, not a C1/injection run or a claim of benefit.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller
@@ -165,6 +172,8 @@
   - `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md`
   - `MoCoP/experiments/mamba_lora_bridge/spikes/DOL0_DISTRESS_OBSERVABILITY_LENS_SPEC_2026-07-11.md`
   - `MoCoP/experiments/mamba_lora_bridge/gemma4_value_norm_runtime.py`
+  - `MoCoP/experiments/mamba_lora_bridge/spikes/GEMMA_VALUE_NORM_BRIDGE_MICROTRAIN_DEBRIEF_2026-07-11.md`
+  - `MoCoP/experiments/mamba_lora_bridge/spikes/train_gemma_value_norm_bridge_microtrain.py`
   - `MoCoP/reviews/world_model_math_audit_2026-07-10.md`
   - `MoCoP/experiments/mamba_lora_bridge/{world_model_trace.py,world_model_baselines.py}`
   - OpenCLAW #146/#149/#152 context before recorder, C1, or new World Model work
