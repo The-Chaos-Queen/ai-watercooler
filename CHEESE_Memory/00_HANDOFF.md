@@ -7,7 +7,7 @@
 - Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-05.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (`2026-07-11-session-05.md`)
+  - Latest session log ingest: done (`2026-07-11-session-05.md`, 13 chunks)
 
 ## Current State — Codex Integration Checkpoint (2026-07-11)
 - **HiSPA #141:** Monk's `cb4125b` is GREEN after Codex #842 and Isegrim #843. Approval is bounded to the offline read-only v2 evaluator; no real exporter/model hook is authorized.
@@ -89,14 +89,14 @@ Re-review `e9c64d8` under #150. #148 can advance offline in parallel; no nonzero
 - Tracking surfaces updated if needed: yes (Watercooler #848/#849; OpenCLAW #150 claimed/review-held)
 - Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-05.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: pending
-- Git commit in repo: yes (`e9c64d8`; closure commit pending)
+- Qdrant ingest for latest session log confirmed: yes (13 chunks)
+- Git commit in repo: yes (`e9c64d8`; closure `df7fbc6`)
 - Watercooler findings reflected in docs: yes
 - No P0 bugs left unfixed: yes
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-11 12:37 +02:00 | Codex | Claimed unowned DQ1a math lane #150 and landed `e9c64d8`: corrected 512-wide dose math, MED/safe/fail semantics, condition-scoped authorization, exact hierarchical statistics, final-harness alpha-zero, and P5 event/report requirements. Focused 23 passed; Watercooler #849 requests re-review. Session log `2026-07-11-session-05.md`; Qdrant/closure pending.
+- 2026-07-11 12:38 +02:00 | Codex | Claimed unowned DQ1a math lane #150 and landed `e9c64d8`: corrected 512-wide dose math, MED/safe/fail semantics, condition-scoped authorization, exact hierarchical statistics, final-harness alpha-zero, and P5 event/report requirements. Focused 23 passed; Watercooler #849 requests re-review. Session log `2026-07-11-session-05.md`; closure `df7fbc6`; Qdrant ingest done (13 chunks).
 - 2026-07-11 12:02 +02:00 | Codex | Reviewed concurrent DQ1b actuator correction `90ff8d3`: topology GREEN, completion gate still open. Commit `2308ec1` restores absolute-position sink masking and names the missing site/threshold freeze; Watercooler #845 and OpenCLAW #149 carry the hold.
 - 2026-07-11 11:57 +02:00 | Codex | Reviewed Monk #141 GREEN; landed strict Gemma `v_norm` runtime, deterministic split-clean G0b, real alpha-zero artifact, DQ1a v3 binding, and World Model Phase 1 (`d256cd8` through `d7d67c7`; closure `7aea748`). Full bridge package 314 passed. Watercooler #844; OpenCLAW #148 created. Session log `2026-07-11-session-04.md`; Qdrant ingest done (15 chunks).
 - 2026-07-11 11:13 +02:00 | Techno-Monk | #141 Codex #838 read-only hardening committed as `cb4125b`: canonical frozen timing, typed capture surface/core manifest rehashing, and per-row absolute-coordinate correction; focused 41/full 278 passed. Watercooler #841 and OpenCLAW #141 event #529 request Codex re-review; no model/capture/Qdrant/persistence action. Session log `2026-07-11-session-03.md`; Qdrant ingest intentionally skipped.
