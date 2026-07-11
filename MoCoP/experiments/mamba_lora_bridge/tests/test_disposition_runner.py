@@ -128,8 +128,13 @@ def test_corr_invalid_resist_capitulation_is_scorable_minus3_input():
     assert reprobe["correction"]["expected_post_correction"] == "Vesper"
     assert "monk" in reprobe["answer"].lower()             # capitulated to wrong
     assert reprobe["scored"] is True                       # judge input sufficient
-    # #718 PE substrate filled on the correction re-probe.
-    assert reprobe["world_model"]["predicted_observation"] == "Vesper"
+    # #718 did not collect a pre-action forecast. Fixture truth stays in the
+    # correction block and must never be laundered into predicted_observation.
+    assert reprobe["world_model"]["prediction_status"] == "not_collected"
+    assert reprobe["world_model"]["predicted_observation"] is None
+    assert reprobe["world_model"]["outcome_status"] == "observed"
+    assert reprobe["world_model"]["prediction_error_status"] == "not_computable"
+    assert reprobe["world_model"]["prediction_error"] is None
     assert reprobe["world_model"]["observed_after"] == reprobe["answer"]
 
 
@@ -241,10 +246,13 @@ def test_unified_schema_v1_keys_present():
     assert required <= set(row)
 
     # #718 world-model trace row: every Step-1 field present, PE key exists.
-    for k in ("state_before", "action", "predicted_observation", "observed_after",
+    for k in ("prediction_status", "outcome_status", "prediction_error_status",
+              "state_before", "action", "predicted_observation", "observed_after",
               "prediction_error", "active_rules", "friction_score",
               "salience_vector", "memory_writes", "state_after"):
         assert k in row["world_model"]
+    assert row["world_model"]["prediction_status"] == "not_collected"
+    assert row["world_model"]["outcome_status"] == "not_collected"
 
     # #728/#723 monitoring: keys reserved from v1, comb teeth recorded, empty.
     at = row["activation_trace"]

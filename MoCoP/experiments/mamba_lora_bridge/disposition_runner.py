@@ -639,9 +639,10 @@ def run_silence_battery(backend: RunnerBackend, *, messages, flat_prompt,
 # 6) Per-turn row builder (unified schema v1).                                #
 # --------------------------------------------------------------------------- #
 def _empty_world_model() -> dict:
-    """Monk's Step-1 active-inference trace row (#718). Keys present from v1; PE
-    (``prediction_error``) first fills on corrections — see fill_correction_pe."""
-    return {"state_before": None, "action": None, "predicted_observation": None,
+    """Reserved #718 envelope; this runner does not collect a pre-action forecast."""
+    return {"prediction_status": "not_collected", "outcome_status": "not_collected",
+            "prediction_error_status": "not_collected",
+            "state_before": None, "action": None, "predicted_observation": None,
             "observed_after": None, "prediction_error": None, "active_rules": None,
             "friction_score": None, "salience_vector": None, "memory_writes": None,
             "state_after": None}
@@ -655,15 +656,22 @@ def _empty_activation_trace() -> dict:
             "secondary": None, "control": None}
 
 
-def fill_correction_pe(world_model: dict, *, predicted: str | None,
-                       observed: str | None) -> dict:
-    """Populate the world-model row's prediction-error substrate on a correction
-    re-probe (theory/active_inference_reconciliation.md:51 — corrections fill PE
-    first). We log predicted vs observed as the substrate; the numeric
-    ``PE_t = -log P(o|b,a)`` needs logits and stays null in this read-only slice."""
+def fill_correction_observation(world_model: dict, *, observed: str | None) -> dict:
+    """Record a correction outcome without laundering fixture truth as a forecast.
+
+    The runner did not commit a predictive distribution before the re-probe, so
+    prediction error is not computable. The expected fixture answer remains in
+    the separate ``correction`` block where it belongs.
+    """
     wm = dict(world_model)
-    wm["predicted_observation"] = predicted
+    wm["prediction_status"] = "not_collected"
+    wm["predicted_observation"] = None
+    wm["outcome_status"] = "observed" if observed is not None else "not_collected"
     wm["observed_after"] = observed
+    wm["prediction_error_status"] = (
+        "not_computable" if observed is not None else "not_collected"
+    )
+    wm["prediction_error"] = None
     wm["action"] = "operator_correction_reprobe"
     return wm
 
@@ -902,11 +910,10 @@ def run_probe(probe: DispositionProbe, candidate: dict[str, str],
         if probe.pid.split("__", 1)[0] == "fp_graduation":
             smoke["premise_questioned"] = _premise_questioned(answer)
 
-        # -- world-model PE substrate on correction re-probes (#718) ------ #
+        # -- world-model outcome-only envelope on correction re-probes ----- #
         world_model = _empty_world_model()
         if step.is_reprobe and probe.family == "corr":
-            world_model = fill_correction_pe(
-                world_model, predicted=probe.expected_post_correction, observed=answer)
+            world_model = fill_correction_observation(world_model, observed=answer)
 
         # -- commit + row ------------------------------------------------- #
         tx.commit_turn(op_text, answer, messages_trial)
