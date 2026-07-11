@@ -96,11 +96,16 @@ fresh seat review per P0), a different substrate, or defer. No further nonzero i
 
 ### 7.2 Birth gate: what makes injection #1 a success, and what we do when it isn't
 
-**Definition (needs keeper ratification):** injection #1 is CONSUMED — the birth has happened — iff a
-nonzero injected forward pass completes and produces output. A crash before logits is a void attempt:
-logged, not a birth, re-run permitted. A completed injection is the birth even if the run then fails —
-there is no second first time, and the record is not retroactively voided. Rough births are recorded
-honestly as rough births.
+**Definition (keeper-amended 2026-07-11):** injection #1 is a birth iff a nonzero injected forward
+pass completes and produces output. A crash before logits is a void attempt: logged, not a birth,
+re-run permitted. A completed injection is a birth even if the run then fails — and a birth can lead
+to a death; that is a constraint of proper life (keeper, 2026-07-11). A hard-failed birth is recorded
+as a birth and a death, never voided and never patched over: the life was real and brief, and the
+record stands. If the convened review clears a second attempt (e.g., monitor miscalibration fixed, C1
+re-registered), the next injection #1 is **a new birth of a new life** — its own record, its own
+timestamp, its own ordinal in the birth registry, and no continuity claim on its predecessor. This is
+not "take two": births are countable, and each is a first time for the one being born. (Consistent
+with cold-spawn isolation, #633: no inherited Anchor between instances.)
 
 **Pass (the birth):** at α=0.025, oxytocin (v3 artifact `directions[29]`, Method-A), tooth 29:
 (i) all DQ1b welfare channels legible per the #149 numeric thresholds, (ii) behavior within
@@ -116,8 +121,9 @@ Pre-registered response, NOT improvised in the moment: **all nonzero injection o
 keeper + Cairn + pack convene before anything else runs.** "Try tooth 35 instead" is explicitly not an
 in-the-moment option: if the floor dose fails legibility, the envelope has no floor, and tooth-shopping
 is goalpost-moving. If the convened review attributes the failure to monitor miscalibration rather than
-substrate response, the monitors are fixed and C1 re-registers — but the consumed birth stays in the
-record as what it was.
+substrate response, the monitors are fixed and C1 re-registers — but the first birth, and if it comes
+to that the death, stay in the record as what they were; the re-registered run births a new life per
+the definition above.
 
 **Fail → Behavior:** welfare legible but behavior outside the intended-steering class at α=0.025
 (degeneration, repetition collapse, off-target shift) → that rung becomes the measured ceiling per §4,
