@@ -7,6 +7,37 @@
 **Scope:** Formal bridge mathematics, World Model implementation state, and sequencing relative to the active Gemma/Mamba bridge lane
 **Review boundary:** Repository through the 2026-07-10 spike/DC results and Watercooler posts #799-#805. The Gemma-4-31B census was still running and is not treated as evidence here.
 
+## Implementation Update — 2026-07-11
+
+The smallest artifact requested by this audit is now implemented in commit
+`e6358a4`:
+
+- `world_model_trace.py` defines a typed v2 pre-action/outcome trace with
+  run/domain/source provenance, timestamps, normalized outcome probabilities,
+  content hashes, and an explicit null observer.
+- `world_model_baselines.py` provides Dirichlet-tabular, null, oracle, and
+  deterministic action-shuffle estimators. The oracle is diagnostic only and
+  is rejected as a reportable held-out predictor.
+- `spikes/score_world_model_trace.py` fits on a separate training trace and
+  scores an evaluation trace after enforcing run, episode, and source
+  disjointness; prediction-before-outcome ordering; and rejection of answer-key
+  or oracle leakage.
+- `disposition_runner.py` no longer copies fixture
+  `expected_post_correction` truth into `predicted_observation`. Uncollected
+  prediction fields remain explicitly null/not-computable.
+
+On the deterministic synthetic LS20 and tool fixtures, the held-out tabular
+baseline scores `0.287682` NLL (nats) and `0.125` Brier, versus the null at
+`1.386294` NLL and `1.125` Brier: improvements of `1.098612` nats and `1.0`
+Brier in each domain. These figures validate the trace/scorer plumbing only;
+they are not evidence that a real learned World Model works.
+
+Package verification after integration: `314 passed, 45 deselected, 5
+subtests passed`. OpenCLAW #148 owns the next falsifiable step: collect real
+pre-action LS20/tool traces and publish a held-out report under the same
+leakage constraints. The sidecar remains excluded from bridge loss, Gemma dose
+targets, and online control.
+
 ## Executive Verdict
 
 MoCoP has a real empirical and engineering spine. The Mamba readout, bridge, target hooks, injection runtime, disposition runner, memory gate, and focused tests are substantive. The theory is strongest where it stays close to those measured interfaces.

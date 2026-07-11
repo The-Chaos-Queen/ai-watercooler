@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-11 04:02 +02:00
+Last updated: 2026-07-11 11:53 +02:00
 
 ## Standing Directive
 
@@ -29,26 +29,31 @@ remember which artifact should be updated.
 
 ## Active Technical Context
 
-- Gemma-4 global attention teeth use the value branch after the functional K/V
-  fork. The selected intervention is a `v_norm` forward pre-hook at width 512,
-  not a nonexistent `v_proj` actuator.
-- Option A is mechanically valid: the raw 512-wide `k_proj` output becomes the
-  value tensor before `v_norm`, while the key copy alone receives `k_norm` and
-  RoPE. Injection must return a new tensor from the `v_norm` pre-hook; never
-  mutate or patch `k_proj`.
-- C1 remains held (Watercooler #839). The `524d14e` G0b file is a useful pilot,
-  not a birth artifact: it fit all 40 pairs before the split-before-fit rule,
-  carries ambiguous `vproj` provenance, and the DQ1a spec still names the old
-  3840-wide v1 file. Freeze the exact eight-skeleton manifest, refit a
-  provenance-complete `value_norm_pre` artifact, amend DQ1a, build the runtime,
-  and run alpha-zero parity before the first nonzero L29/Method-A/alpha=.025.
-- HiSPA commit `007ad28` passed 34 focused tests but remains CHANGES after review
-  #838: recovery budgets are unhashed caller inputs; the direct core still has
-  an arbitrary plan surface; and local row zero is not bound to absolute token
-  position zero. No capture/exporter is authorized.
-- The next World Model slice is an offline typed pre-action transition trace,
-  a tabular LS20/tool baseline, and an action-shuffle null. Keep it out of the
-  bridge loss and all Gemma target/dose paths.
+- Gemma-4 full-attention teeth use a coupled 512-wide K/V projection and fork
+  before `v_norm`/`k_norm`. The strict runtime in `d256cd8` intervenes only with
+  an out-of-place `v_norm` pre-hook at teeth 29/35/41. Never patch `k_proj`.
+- The deterministic primary split is frozen as
+  `split-5780c8ec67157703`. The admissible G0b artifact is the split-clean,
+  weights-only-safe v3 file bound in `d7d67c7`, SHA-256
+  `a36fbc417b522883760f4bd43c57b1845341e2792ee7b311d6d80bc86fbf8a87`.
+  The all-40-pair `524d14e` artifact is permanently inadmissible.
+- Real ML-WS alpha-zero instrumentation passed with bit-identical logits and
+  exact `k_proj_out == v_norm_pre` at all three teeth. Artifact SHA-256:
+  `262e98b1d6f0a76925a9bfcf2d921dcccc43dd2ca340f8262dded455e8870292`.
+  This is not the registered C1 alpha-zero anchor.
+- C1 nonzero remains held only on committed DQ1b monitor sites/numeric gates;
+  full C1 also needs a second positive 512-wide `value_norm_pre` MVB direction.
+  The first nonzero remains Method-A/L29/alpha=.025 with monitors and timestamp.
+- Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
+  its terminology/threshold shape (#843). This approves the offline read-only
+  evaluator only; a capture exporter/model hook remains a separately reviewed
+  slice.
+- World Model Phase 1 landed in `e6358a4`: typed pre-action trace v2,
+  null/tabular/oracle/shuffle baselines, strict held-out leakage checks, and
+  corrected null semantics in the disposition runner. OpenCLAW #148 is the
+  next real-trace LS20/tool collection lane. Keep it outside bridge loss and
+  Gemma dose paths.
+- Integrated package verification: 314 passed, 45 deselected, 5 subtests.
 - These points are dated context, not permanent canon. Re-read current MoCoP
   docs and Git history before acting on them.
 
@@ -56,9 +61,11 @@ remember which artifact should be updated.
 
 - Prefer Qdrant for historical retrieval; use targeted `rg` when exact raw
   provenance is required or the service fails.
-- Keep the current execution order explicit: freeze split/spec gates; refit G0b
-  and implement the `v_norm` runtime in parallel with task #146; only then run
-  alpha-zero C1 and spend the first nonzero injection.
+- Current execution order: DQ1b monitor/gate freeze plus a same-surface MVB
+  direction; build/review the C1 geometry/behavior recorder; run its true
+  alpha-zero anchor; only then spend the first nonzero injection. Task #146
+  independently repairs matched-delta recording/training. Task #148 collects
+  and scores real World Model traces offline.
 - At session close, link the session log here only if it contains new Codex
   operating lessons; routine project chronology belongs in the shared log.
 - Keep this file below roughly 120 lines by replacing stale state with current

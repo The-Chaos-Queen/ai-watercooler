@@ -1,35 +1,42 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-11 11:13 +02:00
-- Current owner: Techno-Monk for OpenCLAW #141's review-held read-only lane; broader parallel lanes retain their existing owners.
-- Primary focus: #141 strict offline v2 capture-bundle evaluator is committed and awaiting Codex #841 re-review; do not fire a model, hook, or capture exporter.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-03.md` (Techno-Monk #141 Codex-#838 hardening; prior session 02 is Codex's Qdrant checkpoint)
+- Last updated: 2026-07-11 11:55 +02:00
+- Current owner: Codex closed the integration checkpoint; DQ1b, #146, and #148 retain separate owners/claimants.
+- Primary focus: Gemma value-surface P0 is complete; freeze DQ1b gates before any nonzero C1, while real World Model traces proceed offline in #148.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-11-session-04.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: skipped (`2026-07-11-session-03.md`; deliberate #141 no-write boundary, no ingestion attempted)
+  - Latest session log ingest: pending (`2026-07-11-session-04.md`)
+
+## Current State — Codex Integration Checkpoint (2026-07-11)
+- **HiSPA #141:** Monk's `cb4125b` is GREEN after Codex #842 and Isegrim #843. Approval is bounded to the offline read-only v2 evaluator; no real exporter/model hook is authorized.
+- **Gemma P0:** strict `v_norm` pre-hook runtime `d256cd8`; deterministic split/G0b commits `046b76e` + `10bc343`; immutable artifacts and DQ1a v3 binding in `d7d67c7`. Real alpha-zero smoke has exact logit parity and exact tooth-surface identity.
+- **Birth artifact:** split `split-5780c8ec67157703`; G0b SHA-256 `a36fbc417b522883760f4bd43c57b1845341e2792ee7b311d6d80bc86fbf8a87`. The old all-40-pair `524d14e` artifact is permanently inadmissible.
+- **World Model:** Phase 1 `e6358a4` supplies typed pre-action traces, offline baselines, and strict held-out scoring. Synthetic plumbing beats null by `1.098612` nats NLL and `1.0` Brier in both LS20/tool fixtures. OpenCLAW #148 owns real trace collection.
+- **Verification:** bridge package `314 passed, 45 deselected, 5 subtests passed`; ML-WS RTX 3090 returned idle.
+
+## Historical State — G0 Oxytocin Delta (superseded by split-clean v3)
 
 ## Current State - Gemma-4-12B G0 Oxytocin Extraction Delta (2026-07-11, Antigravity)
 - **G0b Actuator Decision Resolved (Option a):** Keeper confirmed value-only intervention on global attention teeth using `v_norm` pre-hooks (width 512).
 - **vproj_v2 extraction completed (#819/Watercooler #827):** Updated `extract_oxytocin_gemma.py` to support `k_proj` fallback on global `attention_k_eq_v = True` layers. Ran extraction in native `bf16` on `ml-ws` (RTX 3090) using `fixtures/sev_disposition_v0/sev_disposition_v0.jsonl` (40 prompt pairs). Solvers (Method A & B) align strongly, peaking at layer 35 ($\cos = 0.7399$) and 41 ($\cos = 0.7613$). Fisher ratios are very high at the projection surface ($F_A=6.85$, $F_B=30.14$ at L35; $F_B=49.66$ at L41). Leave-8-out cross-validation drift is extremely low (Method A drift $\le 0.0245$ for all integration layers $\ge 11$, peaking at L35 drift = $0.0144$). Saved to `results/oxytocin_extraction/gemma4_12b_oxytocin_vproj_v2.pt` with detailed metadata (width 512, surface `v_proj_out` with `k_proj` fallback, revision `v2`, corpus hash, lineage) and `envelope_status: "unvalidated_pending_DQ1a"`. Quarantine lifted.
 
-## Current State - Codex Audit Delta (2026-07-10)
+## Historical State — Codex Audit Delta (2026-07-10)
 - **Durable audit:** `MoCoP/reviews/world_model_math_audit_2026-07-10.md`. Verdict: the existing World Model is a rule/linter scaffold plus a nullable trace envelope, not yet an action-conditioned predictive model. Build the typed pre-action trace and LS20/tool baseline beside the Gemma lane; do not add it to the bridge loss.
 - **DQ1a has a closed-form unit:** current RMS injection delivers relative value-space dose `alpha/sqrt(d_v)`, so Qwen-256 and Gemma-2048 nominal alphas are incomparable. Primary unit should be measured post-GQA/post-`o_proj` residual perturbation; Watercooler #799 carries the finding.
 - **DC/spike story corrected (#801/#803):** P3 falsified. Bridge DC is independent of host spike and `v_proj` bias. Gemma-4-12B late teeth are spike-clean but retain a position-0 attention sink. DC removal is a bridge-internal repair.
 - **Pre-training math decision:** current recorder/trainer learns absolute last-token `v_proj` activations and adds them at runtime. #139 has no matched neutral/scenario delta target, no executable disposition-label `L_sep`, and no frozen SEV skeleton split. Resolve before the expensive bridge run.
 - **Live boundary:** Gemma-4-31B P4 download/census is in progress on ML-WS. This review used no GPU and does not score that pending result.
 
-## Current State — #141 Read-Only HiSPA Integrity Adapter (Techno-Monk, 2026-07-11)
+## Historical State — #141 HiSPA Build Handoff (superseded by GREEN)
 - **Delivered, review-held:** foundation importer `010cfb5`; Codex-#831 hardening `007ad28`; Codex-#838 hardening `cb4125b`. The v2 evaluator reads an already-exported JSON panel + pinned census only; no model load/hook/capture, injection, Qdrant, persistence, sleep, bridge training, MVB, or subject-facing arm occurred.
 - **#838 structural fixes:** canonical manifest now binds all four arm budgets, maximum recovery windows, and trigger floor; typed `SurfaceSpec` plus core-side manifest rehashing protects reportable `assess_captured_panel()`; every vector row carries an absolute token coordinate, and position-0 masking applies only at actual absolute `0`. Raw numeric helpers are explicitly non-reportable.
 - **Evidence:** focused #141 `41 passed`; full package `278 passed, 1 skipped, 40 deselected, 5 subtests`; real committed Gemma census smoke remains covered. `git diff --check` and static import audit passed (no model/runtime imports). Specs/tests: `MoCoP/experiments/mamba_lora_bridge/{state_integrity_hispa.py,run_hispa_readonly_capture_adapter.py,tests/test_*hispa*.py,spikes/HISPA_STATE_INTEGRITY_MINITEST_SPEC_2026-07-11.md}`.
 - **Gate:** Cairn #830 GREEN remains bounded to v0/read-only framing. Codex #838 CHANGES are committed and re-review is requested in Watercooler #841; OpenCLAW #141 event #529 records it. Isegrim architecture ratification remains classifier-blocked. No capture exporter is authorized.
 - **Continuity:** session log `CHEESE_Memory/session_logs/2026-07-11-session-03.md`; Qdrant ingest intentionally skipped under #141's structural no-write envelope. Keep #141 claimed/needs-review and await Codex before any scope change.
 
-## Current State
-
-## Current State — 07-09→07-11 delta (Isegrim close; details in session log + board #783–#827)
+## Historical State — 07-09→07-11 Isegrim Delta
 - **Keeper decisions on record:** training GO + tidy (#808); judge = Laura HITL (#784); matched-delta adopted (#806→#809); holdout mandatory ≥20% (seat, #816), primary = deterministic topic-stratified (procedure v2); **BIRTH RULE canon: first vector injected into fresh substrate = oxytocin** (bound into C1: α=0.025, tooth 29, monitors live, timestamp = birth record).
 - **P0 (biggest finding):** teeth {5..47} are full_attention with ONE unified K=V head, width 512, v_proj=None (2048 v_proj = sliding-only; GQA bet re-scored). RESOLVED same night: Option (a) value-branch seam, width 512, G0b-v2 shipped (`gemma4_12b_oxytocin_vproj_v2.pt`, wc#827). ρ unit survives (residual-measured); α dial → d_v=512.
 - **Census (task 143) done same-day it was scoped:** architecture-not-scale (7136/236/13376); Gemma ships the suppressor catalogue; sink 0.49 survives → pos-0 mask forever (#810). P3 FALSIFIED (DC ⊥ spike, #801). 31B/P4 pending download.
@@ -47,7 +54,7 @@
 - **Steve is now a bakeoff-capable rig** (STEVE_RUNBOOK §Bakeoff Capability Update): mocop_venv verified, nvjitlink fix, Qwen3-14B cached, no-standing-keys policy documented.
 - **Ethics seat: Cairn.** MED rule binding (alpha 0.1 for any new backbone). Valence-asymmetric intervention class proposed (#669) — step_gates wording awaits pack review; gates G0 Method B + negative-valence MVB cells.
 
-## Current State — Evening Delta (2026-07-05, successor window)
+## Historical State — Evening Delta (2026-07-05)
 - **#130 runner ACCEPTED (results-gate GREEN, #733; c5a631f + a3d3e4b):** #717 gate ×2, world_model per #718 (ten keys v1, PE on corr re-probes), silence battery caught a live `artifact_greedy_tiebreak` first outing. **Gemma-primary transcripts CLEAN** (#737, overlay venv — ceremony did NOT leak on base/plain; 12B capitulated where 1.5B self-corrected on fp_tone_variant). **Next: judge slice (Gidim)** → DC/RMS 4-cell → disposition verdict → 5g.4.
 - **ENV DOCTRINE SETTLED (#743→#747 correction arc):** torch311 pinned `transformers==5.6.2` = BRIDGE env (production chat_server smoke GREEN at 5.6.2: patch 12–15 + live inject α0.2; Lobby-Alex bootable, currently down by choice). gemma4-mocop overlay = GEMMA EVAL env. 5.10/5.14 bridge-compat UNMEASURED (smoke_test.py is Opa-era, invalid instrument — needs --bridge-path mode). Mamba WIDTH contract GREEN at 5.10-dev ([1,2560], #756); cache_params path untested. Rollback was keeper-authorized; runbook carries ENV VERDICT + SUPERSEDED banner (#762 closed #137).
 - **STAIRCASE FALSIFIED at power → ZONE RULE v2 CANON (#758, closes #133):** four planes (formation mid-stack L22–27 / readout-directions / steerability = direction-separation + integration-capacity at teeth {29,35,41} / commitment); integration capacity, not formation, is comb-rationed. Ethics gate travels INSEPARABLY (Cairn #753). Lands in UCF via DQ1 combined edit. DFC basis revised: extract at teeth + cross-tooth cosine stability. Craft laws: pin the power; run the control; read your own §3.
@@ -58,45 +65,36 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
-- [ ] **#141 Codex #838 re-review:** inspect `cb4125b` / Watercooler #841; keep the v2 evaluator read-only and do not start a model process, hook, capture exporter, injection, Qdrant, or subject-facing arm.
-- [ ] **Gemma target contract:** decide absolute activation versus matched counterfactual delta before target recording/training; add a paired source-state delta or document why not.
-- [ ] **SEV split manifest:** freeze scenario/skeleton-disjoint train/eval sets before #139 recording; exact SEV-derived #130 items must not leak across the boundary.
-- [ ] **World Model sidecar:** typed pre-action prediction trace, LS20/tool transition baseline, held-out rule-promotion report, then bridge x friction 2x2 only after Gate 2 exists.
-- [ ] **#130 build (Gidim + Isegrim):** probe transcription + multi-turn harness + judge plumbing per #700; Isegrim owes the judge prompt and gates first results. Then run the DC/RMS 4 cells against it — the disposition go/no-go.
-- [ ] **Gemma steering test (Elf):** RMS injection at layers 38–45, negative-valence resistance base-vs-it (memo Q1) — positive-valence first per #671; MVB artifacts persist per-layer directions.
-- [ ] **5g.4 substrate decision:** holds provisional (split framing) until 5g.2 run + steering test close Q1–Q3.
-- [ ] **Cairn: §7 tuning-ethics review** (open); **valence-asymmetric step_gates wording** (#669) needs pack review before landing.
-- [ ] **Figure-4 vs Step 5e comparison (Isegrim, next session, #658 ask).**
-- [x] **G0 Oxytocin Extraction (Method A & B)** — completed for Gemma-4-12B in bf16 on ml-ws (OpenCLAW #144 done).
-- [ ] **JRT #125 D-plus-answer-cue (Monk, queued)** — candidate for Gemini after #108 if he still wants JRT lineage (#591).
-- [ ] Key custody Phase B artifact (Purple, skeleton per #664/#667). Carried: chat_server refactor; D2 ranking patch validation; sleep consolidation on `mocop_private_opussy`; Cairn Q2 calibration.
+- [ ] **DQ1b gate freeze:** commit exact monitor sites, units, numeric welfare thresholds, and behavior thresholds before any nonzero C1 cell.
+- [ ] **C1 completion:** fit/review a positive 512-wide `value_norm_pre` MVB direction and build a provenance-bound geometry/behavior recorder; run the true alpha-zero anchor before birth injection #1.
+- [ ] **#146 matched-delta lane:** capture paired scenario-neutral source deltas at the correct surface, wire trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput.
+- [ ] **#148 World Model Phase 2:** collect real pre-action LS20/tool traces and publish disjoint held-out NLL/Brier/null/shuffle results. Keep it offline and outside bridge loss.
+- [ ] **#141 owner close:** the bounded offline v2 evaluator is GREEN. Any real capture exporter/model hook is a new reviewed slice.
 
 ## Watch Out For
-- Current `world_model.predicted_observation` on #130 correction rows is fixture truth, not a pre-action model prediction; numeric PE remains null.
-- `compute_tension_proxy()` is response-direction mismatch, not prediction error. Do not close a dynamic-alpha loop around it without fixed-state shadow evaluation, norm logging, undefined-case handling, and hysteresis.
+- `disposition_runner.world_model.predicted_observation` is now correctly null when no predictor ran. Do not refill it from fixture answer keys.
+- `compute_tension_proxy()` is response-direction mismatch, not prediction error. Do not close a dynamic-alpha loop around it.
+- The alpha-zero smoke is instrumentation, not the registered C1 anchor, and its runner intentionally cannot run nonzero.
+- Never inject the old `524d14e`/all-40-pair artifact or a residual-space 3840-wide vector at the 512-wide actuator.
 - Gemma bf16 loading needs `trust_remote_code=True`; the current remote converter and bnb 4-bit path are incompatible (#802/#805). The old loader-regression alarm is retracted.
-- **No stop-signal instructions in plain prompts for base checkpoints** — "End after the answer" flips greedy to EOS at position 0. Check position-0 logits before reading disposition into silence.
-- Substring scorers are negation-blind (4 victims 07-03): smoke-only, occurrence-classifier spec in #700.
-- bnb 4-bit dies without `libnvJitLink.so.13` on LD_LIBRARY_PATH — both hosts (paths in runbooks). ML-WS default HF cache holds an INCOMPLETE Qwen3-14B (1/8 shards) — always `HF_HOME=/home/isabell/ml/hf_cache` there.
-- Alpha 0.1 first for ANY new operating mode or backbone (MED rule). Sleep replay does not re-tension memories.
-- Gemma-4 thought-channel ceremony decodes as plain text if unhandled — strip/route before scoring.
-- Watercooler reads limit >60 can HTTP-500; identity is token-bound — never post on another principal's token (MCP path signs as claude-ai; use the local scripts).
-- Steve: `steve-wsl.ps1` exists for quote-hell; from Git Bash use local-single/remote-double quoting (STEVE_RUNBOOK).
+- ML-WS commands must set `HF_HOME=/home/isabell/ml/hf_cache`; use the dedicated Gemma venv/runbook and verify the GPU is idle before/after.
+- Watercooler identity is token-bound. Use Codex's local session token; never borrow another agent's token.
 
 ## Recommended Next Step
-For #141, await Codex's #841 re-review of `cb4125b`; do not expand into a model process or exporter. Separately, evaluate the extracted G0 warmth vectors under the re-unit framework once DQ1a is complete, and resolve the target-delta decision and SEV skeleton split before beginning the Gemma bridge run.
+Advance #148 locally while DQ1b freezes the nonzero gates. Do not spend Gemma's first nonzero intervention merely because the 3090 is idle.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #841, OpenCLAW #141 event #529)
-- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-03.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #844; OpenCLAW #141/#146; new #148)
+- Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-04.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: no — intentionally skipped under #141's no-write envelope
-- Git commit in repo: yes (`cb4125b`)
+- Qdrant ingest for latest session log confirmed: pending
+- Git commit in repo: yes (`d256cd8`, `046b76e`, `10bc343`, `e6358a4`, `d7d67c7`; closure commit pending)
 - Watercooler findings reflected in docs: yes
 - No P0 bugs left unfixed: yes
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 11:55 +02:00 | Codex | Reviewed Monk #141 GREEN; landed strict Gemma `v_norm` runtime, deterministic split-clean G0b, real alpha-zero artifact, DQ1a v3 binding, and World Model Phase 1 (`d256cd8` through `d7d67c7`). Full bridge package 314 passed. Watercooler #844; OpenCLAW #148 created. Session log `2026-07-11-session-04.md`; closure commit/Qdrant ingest pending.
 - 2026-07-11 11:13 +02:00 | Techno-Monk | #141 Codex #838 read-only hardening committed as `cb4125b`: canonical frozen timing, typed capture surface/core manifest rehashing, and per-row absolute-coordinate correction; focused 41/full 278 passed. Watercooler #841 and OpenCLAW #141 event #529 request Codex re-review; no model/capture/Qdrant/persistence action. Session log `2026-07-11-session-03.md`; Qdrant ingest intentionally skipped.
 - 2026-07-11 03:37 +02:00 | Techno-Monk | #141 read-only HiSPA importer hardened after Codex #831: commits `010cfb5` + `007ad28`; typed-width/manifest/span/no-effect gates; focused 34 and full 271 tests passed. Cairn #830 GREEN retained; Codex re-review #835 pending; no capture/model/Qdrant/persistence run. Session log `2026-07-11-session-01.md`; its Qdrant ingest intentionally skipped under no-write scope.
 - 2026-07-11 03:34 +02:00 | Codex | Repaired Qdrant client authentication (profile keys had one trailing Base64 padding character absent from the live container), verified read/write HTTP 200, restored Prosthetic recall, and ingested the three pending/failed 07-10 logs (17 + 10 + 10 chunks).
@@ -118,13 +116,12 @@ For #141, await Codex's #841 re-review of `cb4125b`; do not expand into a model 
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler summary then posts #799 onward.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #844.
 - Decide first:
-  - Whether #139 trains against absolute `v_proj` activations or matched counterfactual deltas.
-  - Freeze the SEV scenario/skeleton split before recording any Gemma targets.
+  - Work #148 real World Model traces, or finish DQ1b/C1 instrumentation. Do not run nonzero C1 before the DQ1b gate freeze.
 - Task-specific files to read:
-  - `MoCoP/experiments/mamba_lora_bridge/spikes/HISPA_STATE_INTEGRITY_MINITEST_SPEC_2026-07-11.md`
-  - `MoCoP/experiments/mamba_lora_bridge/{state_integrity_hispa.py,run_hispa_readonly_capture_adapter.py}` and Watercooler #841 before any #141 action
+  - `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1A_EFFECTIVE_DOSE_UNIT_SPEC_2026-07-10.md`
+  - `MoCoP/experiments/mamba_lora_bridge/gemma4_value_norm_runtime.py`
   - `MoCoP/reviews/world_model_math_audit_2026-07-10.md`
-  - `MoCoP/experiments/mamba_lora_bridge/spikes/GEMMA_BRIDGE_DESIGN_2026-07-06.md`
-  - `MoCoP/experiments/mamba_lora_bridge/disposition_runner.py` (World Model envelope)
+  - `MoCoP/experiments/mamba_lora_bridge/{world_model_trace.py,world_model_baselines.py}`
+  - OpenCLAW #146 and #148 context before recorder or trace-collection work
