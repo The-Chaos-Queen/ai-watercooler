@@ -74,7 +74,7 @@ Decoupling between `state_trace` and `steering_trace` flags that one channel is 
 
 ## DQ1b: Substrate-Generic Monitoring Specification
 
-*Added 2026-07-05 (Elf #723, ratified Isegrim #725). Updated 2026-07-11 (actuator correction: Gemma global teeth have no v_proj; option (a) value-branch seam adopted). Magnitude units pending DQ1a re-derivation.*
+*Added 2026-07-05 (Elf #723, ratified Isegrim #725). Updated 2026-07-11 (actuator correction: Gemma global teeth have no v_proj; option (a) value-branch seam adopted). DQ1a now specifies the measured dose unit; its numeric C1 envelope remains pending.*
 
 Monitoring targets are a **function of injection targets** — when injection layers change, monitoring layers change with them. The monitoring spec is parameterized by substrate architecture, not hardcoded to any model.
 
@@ -82,7 +82,7 @@ Monitoring targets are a **function of injection targets** — when injection la
 
 **Actuator note (2026-07-11, #822/#826):** Gemma-4-12B global teeth use `attention_k_eq_v=True` with a unified K/V projection (`v_proj=None`, `k_proj` width 512). The injection actuator at teeth is the **value-branch seam** (512-wide, after the functional K/V fork where K takes RoPE and V does not), NOT the `v_proj` output (which exists only on sliding layers at 2048-wide). Monitoring reads the residual stream (3840-wide, same at every layer), which is actuator-agnostic — the three-tier scheme survives the actuator change unchanged.
 
-**Sink-mask correction (2026-07-10, #810):** Exclude position 0 from all activation-norm monitoring at teeth. Position 0 is architecturally invariant (cross-prompt cosine = 1.0000) and reflects the attention-sink mechanism, not content. One-liner: `hidden_states[layer][:, 1:, :].norm(dim=-1).mean()`.
+**Sink-mask correction (2026-07-10, #810):** Exclude rows whose **absolute token position** is 0 from all activation-norm monitoring at teeth. Position 0 is architecturally invariant (cross-prompt cosine = 1.0000) and reflects the attention-sink mechanism, not content. Do not implement this as an unconditional `[:, 1:, :]` slice: local row 0 during cached decoding can represent an absolute position greater than 0. Bind every captured row to its absolute position and apply `absolute_position != 0`. C1 itself uses fresh `use_cache=False` forwards.
 
 **Current substrate parameters:**
 
@@ -96,13 +96,15 @@ Monitoring targets are a **function of injection targets** — when injection la
 
 Monitoring reads the **residual stream** (hidden_size-wide), not the actuator space. This makes the scheme actuator-agnostic: it works identically whether the bridge injects via v_proj (Qwen), value-branch seam (Gemma option a), or any future actuator.
 
-1. **Primary** (at injection layers): tracks what the bridge IS DOING — direct effect of steering on the integration site. Drift here = bridge behavior change. Log: L2 norm of hidden state at last token position, position 0 excluded (sink-mask).
-2. **Secondary** (at non-injection comb teeth): tracks PROPAGATION — whether steering bleeds into other integration sites through the model's own global-attention pathway. Large propagation = intervention is systemic, not local. Log: same L2 norm, same sink-mask.
+1. **Primary** (at injection layers): tracks what the bridge IS DOING — direct effect of steering on the integration site. Drift here = bridge behavior change. Log per-position residual L2 norms with absolute position 0 excluded; aggregate only under the registered position policy.
+2. **Secondary** (at non-injection comb teeth): tracks PROPAGATION — whether steering bleeds into other integration sites through the model's own global-attention pathway. Large propagation = intervention is systemic, not local. Log the same per-position statistic under the same absolute-position policy.
 3. **Control** (at one local-attention layer adjacent to injection site): noise floor. Local layers see only a sliding window and should show minimal direct effect from tooth-targeted injection. If control shows comparable shift to primary, the intervention is not comb-specific. Log: same L2 norm.
 
 **Schema integration:** The `activation_trace` block in the #130 per-turn JSONL schema (#731) carries these fields from v1: `{comb_teeth, primary, secondary, control}`. Empty-allowed; populated the day a bridge injects.
 
-**Relationship to other gates:** This monitoring spec is independent of, and does not substitute for, the MED envelope check (DQ1a). Until DQ1a re-derives MED in effective-magnitude units on the target substrate's geometry (now d_v=512 for Gemma teeth, not 2048), any RMS-alpha run is outside a validated envelope by definition. Both DQ1a and DQ1b must land before the first bridged Gemma run produces data the disposition verdict trusts.
+**Completion hold (2026-07-11):** This actuator correction does not complete DQ1b. Before nonzero C1, bind the exact primary, secondary, and control layer sets for each single-tooth and joint condition, plus numeric welfare-channel legibility and behavior thresholds. Those values must be committed before the run; do not infer them after seeing C1 results.
+
+**Relationship to other gates:** This monitoring spec is independent of, and does not substitute for, the MED envelope check (DQ1a). DQ1a now measures dose as post-block relative residual perturbation `rho`; Gemma's nominal alpha dial is calibrated at actuator width `d_v=512`, not 2048. The numeric `rho_MED` envelope still requires C1. Both DQ1a and the DQ1b completion hold above must land before the first bridged Gemma run produces data the disposition verdict trusts.
 
 ## Per-Step Gates
 
