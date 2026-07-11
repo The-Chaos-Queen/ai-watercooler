@@ -100,13 +100,13 @@ For Qdrant work, inventory access before firewalling and install the CA on remot
 - Session log written: yes (`CHEESE_Memory/session_logs/2026-07-11-session-06.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: yes (13 chunks)
-- Git commit in repo: pending (Qdrant TLS session close)
+- Git commit in repo: yes (`dce08a9`; Qdrant TLS session close)
 - Watercooler findings reflected in docs: yes
 - No P0 bugs left unfixed: yes
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-11 12:41 +02:00 | Techno-Monk | Migrated Qdrant LXC 101 to verified native TLS, removed external plaintext/gRPC exposure, hardened active clients, and added public CA/runbook. Session log `2026-07-11-session-06.md`; Qdrant ingest done (13 chunks); scoped commit pending.
+- 2026-07-11 12:41 +02:00 | Techno-Monk | Migrated Qdrant LXC 101 to verified native TLS, removed external plaintext/gRPC exposure, hardened active clients, and added public CA/runbook. Session log `2026-07-11-session-06.md`; Qdrant ingest done (13 chunks); scoped commit `dce08a9`.
 - 2026-07-11 12:38 +02:00 | Codex | Claimed unowned DQ1a math lane #150 and landed `e9c64d8`: corrected 512-wide dose math, MED/safe/fail semantics, condition-scoped authorization, exact hierarchical statistics, final-harness alpha-zero, and P5 event/report requirements. Focused 23 passed; Watercooler #849 requests re-review. Session log `2026-07-11-session-05.md`; closure `df7fbc6`; Qdrant ingest done (13 chunks).
 - 2026-07-11 12:02 +02:00 | Codex | Reviewed concurrent DQ1b actuator correction `90ff8d3`: topology GREEN, completion gate still open. Commit `2308ec1` restores absolute-position sink masking and names the missing site/threshold freeze; Watercooler #845 and OpenCLAW #149 carry the hold.
 - 2026-07-11 11:57 +02:00 | Codex | Reviewed Monk #141 GREEN; landed strict Gemma `v_norm` runtime, deterministic split-clean G0b, real alpha-zero artifact, DQ1a v3 binding, and World Model Phase 1 (`d256cd8` through `d7d67c7`; closure `7aea748`). Full bridge package 314 passed. Watercooler #844; OpenCLAW #148 created. Session log `2026-07-11-session-04.md`; Qdrant ingest done (15 chunks).
