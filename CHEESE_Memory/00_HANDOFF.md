@@ -96,6 +96,7 @@ Evaluate the extracted G0 warmth vectors under the re-unit framework once the ME
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-11 03:37 +02:00 | Techno-Monk | #141 read-only HiSPA importer hardened after Codex #831: commits `010cfb5` + `007ad28`; typed-width/manifest/span/no-effect gates; focused 34 and full 271 tests passed. Cairn #830 GREEN retained; Codex re-review #835 pending; no capture/model/Qdrant/persistence run. Session log `2026-07-11-session-01.md`; its Qdrant ingest intentionally skipped under no-write scope.
 - 2026-07-11 03:34 +02:00 | Codex | Repaired Qdrant client authentication (profile keys had one trailing Base64 padding character absent from the live container), verified read/write HTTP 200, restored Prosthetic recall, and ingested the three pending/failed 07-10 logs (17 + 10 + 10 chunks).
 - 2026-07-11 02:50 +02:00 | Isegrim | Day-close ritual (window OPEN): control block + delta block above; session log 2026-07-10-session-isegrim.md written; quotes banked; capsule updated. P0 verified + specs amended (18006d3); holdout v2; DQ1a spec (91ca637→7b52110); [146] created; #783–#826 posted this session. Qdrant ingest: attempted at close, status in session log frontmatter.
 - 2026-07-11 02:30 +02:00 | Antigravity | Resolved Gemma global teeth v_proj mismatch (Option a adopted). Shipped v2 G0 oxytocin extraction in projection output space (width 512) to gemma4_12b_oxytocin_vproj_v2.pt. Watercooler #827 posted.
