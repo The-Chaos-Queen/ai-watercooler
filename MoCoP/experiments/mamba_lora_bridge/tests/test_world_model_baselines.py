@@ -6,6 +6,7 @@ from world_model_baselines import (
     DeclaredOracle,
     DeterministicActionShuffleNull,
     DirichletTabularEstimator,
+    EmpiricalMarginalEstimator,
 )
 
 
@@ -49,6 +50,17 @@ def test_dirichlet_commit_is_a_pre_action_baseline_commit():
     assert len(commit.sha256) == 64
 
 
+def test_dirichlet_snapshot_roundtrip_is_exact_and_fail_closed():
+    estimator = DirichletTabularEstimator(("ok", "blocked"), estimator_id="frozen")
+    estimator.update("s", "left", "ok", weight=2)
+    payload = estimator.canonical_payload()
+    restored = DirichletTabularEstimator.from_payload(payload)
+    assert restored.canonical_payload() == payload
+    payload["answer_key"] = "ok"
+    with pytest.raises(ValueError, match="fields mismatch"):
+        DirichletTabularEstimator.from_payload(payload)
+
+
 def test_declared_oracle_is_point_mass_and_cannot_hide_its_status():
     oracle = DeclaredOracle(("ok", "blocked"), {("s", "left"): "ok"})
     commit = oracle.commit(**_commit_kwargs())
@@ -76,6 +88,20 @@ def test_action_shuffle_predicts_from_the_permuted_action_and_marks_null():
     commit = null.commit(**_commit_kwargs())
     assert commit.estimator_kind == "null"
     assert commit.declared_oracle is False
+
+
+def test_empirical_marginal_null_ignores_state_and_action():
+    null = EmpiricalMarginalEstimator(("ok", "blocked"), alpha=1.0)
+    null.update("ok", weight=3)
+    null.update("blocked")
+    first = _probabilities(null, state="s1", action="left")
+    second = _probabilities(null, state="s2", action="right")
+    assert first == second == pytest.approx({"ok": 4 / 6, "blocked": 2 / 6})
+    commit = null.commit(**_commit_kwargs())
+    assert commit.estimator_kind == "null"
+    assert commit.status == "committed"
+    restored = EmpiricalMarginalEstimator.from_payload(null.canonical_payload())
+    assert restored.canonical_payload() == null.canonical_payload()
 
 
 def test_baselines_reject_unknown_labels_and_degenerate_shuffle():

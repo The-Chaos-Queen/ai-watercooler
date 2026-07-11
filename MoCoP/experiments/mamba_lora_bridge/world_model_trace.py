@@ -22,6 +22,48 @@ ESTIMATOR_KINDS = frozenset({"model", "baseline", "null", "oracle"})
 SOURCE_OBSERVATION_KINDS = frozenset(
     {"environment", "operator", "synthetic_fixture", "tool_result"}
 )
+PROBABILITY_PAYLOAD_FIELDS = frozenset({"observation", "probability"})
+SOURCE_PAYLOAD_FIELDS = frozenset({"kind", "id", "sha256", "sequence"})
+COMMIT_PAYLOAD_FIELDS = frozenset(
+    {
+        "schema_version",
+        "record_type",
+        "trace_id",
+        "run_id",
+        "domain",
+        "episode_id",
+        "step_index",
+        "event_index",
+        "committed_at_ns",
+        "state_ref",
+        "action",
+        "status",
+        "estimator_id",
+        "estimator_kind",
+        "declared_oracle",
+        "reason",
+        "probabilities",
+    }
+)
+OUTCOME_PAYLOAD_FIELDS = frozenset(
+    {
+        "schema_version",
+        "record_type",
+        "trace_id",
+        "run_id",
+        "domain",
+        "episode_id",
+        "step_index",
+        "event_index",
+        "observed_at_ns",
+        "action",
+        "commit_sha256",
+        "status",
+        "observation",
+        "source_observation",
+        "reason",
+    }
+)
 
 
 def canonical_json_bytes(value: Any) -> bytes:
@@ -59,6 +101,14 @@ def _require_sha256(value: str, field: str) -> str:
     if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
         raise ValueError(f"{field} must be a 64-character lowercase SHA-256 digest")
     return value
+
+
+def _require_exact_keys(payload: dict[str, Any], expected: frozenset[str], field: str) -> None:
+    actual = set(payload)
+    if actual != expected:
+        missing = sorted(expected - actual)
+        unknown = sorted(actual - expected)
+        raise ValueError(f"{field} fields mismatch: missing={missing}, unknown={unknown}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -297,6 +347,7 @@ def pre_action_commit_from_payload(payload: Any) -> PreActionCommit:
     """Parse and validate one canonical pre-action JSON object."""
     if not isinstance(payload, dict):
         raise ValueError("pre-action commit payload must be an object")
+    _require_exact_keys(payload, COMMIT_PAYLOAD_FIELDS, "pre-action commit")
     if payload.get("schema_version") != TRACE_SCHEMA_VERSION:
         raise ValueError(f"pre-action commit schema_version must be {TRACE_SCHEMA_VERSION!r}")
     if payload.get("record_type") != "pre_action_commit":
@@ -305,13 +356,15 @@ def pre_action_commit_from_payload(payload: Any) -> PreActionCommit:
     if not isinstance(raw_probabilities, list):
         raise ValueError("probabilities must be a list")
     try:
-        probabilities = tuple(
-            ObservationProbability(item["observation"], item["probability"])
-            for item in raw_probabilities
-            if isinstance(item, dict)
-        )
-        if len(probabilities) != len(raw_probabilities):
-            raise ValueError("each probability must be an object")
+        probabilities_list = []
+        for item in raw_probabilities:
+            if not isinstance(item, dict):
+                raise ValueError("each probability must be an object")
+            _require_exact_keys(item, PROBABILITY_PAYLOAD_FIELDS, "probability")
+            probabilities_list.append(
+                ObservationProbability(item["observation"], item["probability"])
+            )
+        probabilities = tuple(probabilities_list)
         return PreActionCommit(
             trace_id=payload["trace_id"],
             run_id=payload["run_id"],
@@ -337,6 +390,7 @@ def outcome_record_from_payload(payload: Any) -> OutcomeRecord:
     """Parse and validate one canonical outcome JSON object."""
     if not isinstance(payload, dict):
         raise ValueError("outcome payload must be an object")
+    _require_exact_keys(payload, OUTCOME_PAYLOAD_FIELDS, "outcome")
     if payload.get("schema_version") != TRACE_SCHEMA_VERSION:
         raise ValueError(f"outcome schema_version must be {TRACE_SCHEMA_VERSION!r}")
     if payload.get("record_type") != "outcome":
@@ -344,6 +398,8 @@ def outcome_record_from_payload(payload: Any) -> OutcomeRecord:
     raw_source = payload.get("source_observation")
     if raw_source is not None and not isinstance(raw_source, dict):
         raise ValueError("source_observation must be an object or null")
+    if raw_source is not None:
+        _require_exact_keys(raw_source, SOURCE_PAYLOAD_FIELDS, "source_observation")
     try:
         source = (
             ObservationSourceRef(

@@ -108,6 +108,9 @@ def test_tabular_baseline_beats_deterministic_action_shuffle(tmp_path):
     delta = result["delta_null_minus_tabular"]
     assert delta["categorical_nll"] > 0.0
     assert delta["multiclass_brier"] > 0.0
+    marginal_delta = result["delta_marginal_minus_tabular"]
+    assert marginal_delta["categorical_nll"] > 0.0
+    assert marginal_delta["multiclass_brier"] > 0.0
 
 
 @pytest.mark.parametrize("domain", ["ls20", "tool"])
@@ -130,6 +133,21 @@ def test_train_eval_trace_overlap_is_rejected(tmp_path):
     eval_rows[0] = json.dumps(train_first)
     eval_path.write_text("\n".join(eval_rows) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="trace_id overlap"):
+        scorer.score_files(train_path, eval_path)
+
+
+def test_train_eval_run_overlap_is_rejected(tmp_path):
+    train_path, eval_path = _toy_files(tmp_path)
+    train_first = json.loads(train_path.read_text(encoding="utf-8").splitlines()[0])
+    eval_rows = [json.loads(row) for row in eval_path.read_text(encoding="utf-8").splitlines()]
+    eval_rows[0]["commit"]["run_id"] = train_first["commit"]["run_id"]
+    eval_rows[0]["outcome"]["run_id"] = train_first["commit"]["run_id"]
+    restored = scorer.pre_action_commit_from_payload(eval_rows[0]["commit"])
+    eval_rows[0]["outcome"]["commit_sha256"] = restored.sha256
+    eval_path.write_text(
+        "\n".join(json.dumps(row) for row in eval_rows) + "\n", encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="run_id overlap"):
         scorer.score_files(train_path, eval_path)
 
 
@@ -169,6 +187,116 @@ def test_train_eval_episode_or_source_overlap_is_rejected(tmp_path, overlap_kind
     )
     with pytest.raises(ValueError, match=match):
         scorer.score_files(train_path, eval_path)
+
+
+def test_source_id_cannot_change_hash(tmp_path):
+    train_path, eval_path = _toy_files(tmp_path)
+    train_first = json.loads(train_path.read_text(encoding="utf-8").splitlines()[0])
+    eval_rows = [json.loads(row) for row in eval_path.read_text(encoding="utf-8").splitlines()]
+    eval_rows[0]["outcome"]["source_observation"]["id"] = train_first["outcome"][
+        "source_observation"
+    ]["id"]
+    eval_path.write_text(
+        "\n".join(json.dumps(row) for row in eval_rows) + "\n", encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="conflicting hashes"):
+        scorer.score_files(train_path, eval_path)
+
+
+def test_eval_predictions_must_match_frozen_train_estimator():
+    train_raw = [
+        _pair("train-a-1", split="train", domain="ls20", state_ref="s", action="a", observation="x"),
+        _pair("train-a-2", split="train", domain="ls20", state_ref="s", action="a", observation="x"),
+        _pair("train-b-1", split="train", domain="ls20", state_ref="s", action="b", observation="y"),
+        _pair("train-b-2", split="train", domain="ls20", state_ref="s", action="b", observation="y"),
+    ]
+    estimator = scorer.DirichletTabularEstimator(("x", "y"), estimator_id="frozen")
+    for commit, outcome in train_raw:
+        estimator.update(commit.state_ref, commit.action, outcome.observation)
+
+    eval_raw = [
+        _pair("eval-a", split="eval", domain="ls20", state_ref="s", action="a", observation="x"),
+        _pair("eval-b", split="eval", domain="ls20", state_ref="s", action="b", observation="y"),
+    ]
+    eval_pairs = []
+    for old_commit, old_outcome in eval_raw:
+        commit = estimator.commit(
+            trace_id=old_commit.trace_id,
+            run_id=old_commit.run_id,
+            domain=old_commit.domain,
+            episode_id=old_commit.episode_id,
+            step_index=old_commit.step_index,
+            event_index=old_commit.event_index,
+            committed_at_ns=old_commit.committed_at_ns,
+            state_ref=old_commit.state_ref,
+            action=old_commit.action,
+        )
+        outcome = OutcomeRecord(
+            trace_id=old_outcome.trace_id,
+            run_id=old_outcome.run_id,
+            domain=old_outcome.domain,
+            episode_id=old_outcome.episode_id,
+            step_index=old_outcome.step_index,
+            event_index=old_outcome.event_index,
+            observed_at_ns=old_outcome.observed_at_ns,
+            action=old_outcome.action,
+            commit_sha256=commit.sha256,
+            status="observed",
+            observation=old_outcome.observation,
+            source_observation=old_outcome.source_observation,
+        )
+        eval_pairs.append(scorer.TracePair(commit, outcome))
+    train_pairs = [scorer.TracePair(commit, outcome) for commit, outcome in train_raw]
+    result = scorer.score_trace_pairs(
+        train_pairs,
+        eval_pairs,
+        observation_spaces={"ls20": ("x", "y")},
+        action_spaces={"ls20": ("a", "b")},
+        require_eval_commits=True,
+        estimator_ids={"ls20": "frozen"},
+    )
+    assert result["eval_prediction_source"] == "durably_committed_train_frozen_baseline"
+    assert result["domains"]["ls20"]["n_eval_runs"] == 1
+    assert result["runs"]["synthetic-ls20-eval"]["n_eval"] == 2
+
+    bad_commit = PreActionCommit(
+        trace_id=eval_pairs[0].commit.trace_id,
+        run_id=eval_pairs[0].commit.run_id,
+        domain="ls20",
+        episode_id=eval_pairs[0].commit.episode_id,
+        step_index=0,
+        event_index=0,
+        committed_at_ns=100,
+        state_ref="s",
+        action="a",
+        status="committed",
+        estimator_id="frozen",
+        estimator_kind="baseline",
+        probabilities=(ObservationProbability("x", 0.5), ObservationProbability("y", 0.5)),
+    )
+    bad_outcome = OutcomeRecord(
+        trace_id=eval_pairs[0].outcome.trace_id,
+        run_id=eval_pairs[0].outcome.run_id,
+        domain="ls20",
+        episode_id=eval_pairs[0].outcome.episode_id,
+        step_index=0,
+        event_index=2,
+        observed_at_ns=200,
+        action="a",
+        commit_sha256=bad_commit.sha256,
+        status="observed",
+        observation="x",
+        source_observation=eval_pairs[0].outcome.source_observation,
+    )
+    with pytest.raises(ValueError, match="probabilities do not match"):
+        scorer.score_trace_pairs(
+            train_pairs,
+            [scorer.TracePair(bad_commit, bad_outcome), eval_pairs[1]],
+            observation_spaces={"ls20": ("x", "y")},
+            action_spaces={"ls20": ("a", "b")},
+            require_eval_commits=True,
+            estimator_ids={"ls20": "frozen"},
+        )
 
 
 def test_declared_oracle_commit_is_rejected_as_answer_key_leakage(tmp_path):

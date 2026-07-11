@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import math
 from collections import Counter, defaultdict
-from typing import Mapping, Protocol, Sequence
+from typing import Any, Mapping, Protocol, Sequence
 
 from world_model_trace import ObservationProbability, PreActionCommit, canonical_sha256
 
@@ -110,6 +110,152 @@ class DirichletTabularEstimator:
             estimator_kind="baseline",
             probabilities=self.predict(state_ref, action),
         )
+
+    def canonical_payload(self) -> dict[str, Any]:
+        counts = [
+            {
+                "state_ref": state_ref,
+                "action": action,
+                "observation": observation,
+                "weight": float(weight),
+            }
+            for (state_ref, action), observations in sorted(self._counts.items())
+            for observation, weight in sorted(observations.items())
+        ]
+        return {
+            "schema_version": "dirichlet-tabular-v1",
+            "estimator_id": self.estimator_id,
+            "alpha": self.alpha,
+            "observation_space": list(self.observation_space),
+            "counts": counts,
+        }
+
+    @classmethod
+    def from_payload(cls, payload: Any) -> "DirichletTabularEstimator":
+        expected = {
+            "schema_version",
+            "estimator_id",
+            "alpha",
+            "observation_space",
+            "counts",
+        }
+        if not isinstance(payload, dict) or set(payload) != expected:
+            raise ValueError("Dirichlet estimator payload fields mismatch")
+        if payload["schema_version"] != "dirichlet-tabular-v1":
+            raise ValueError("Dirichlet estimator schema_version mismatch")
+        if not isinstance(payload["counts"], list):
+            raise ValueError("Dirichlet estimator counts must be a list")
+        estimator = cls(
+            payload["observation_space"],
+            alpha=payload["alpha"],
+            estimator_id=payload["estimator_id"],
+        )
+        count_fields = {"state_ref", "action", "observation", "weight"}
+        for row in payload["counts"]:
+            if not isinstance(row, dict) or set(row) != count_fields:
+                raise ValueError("Dirichlet estimator count fields mismatch")
+            estimator.update(
+                row["state_ref"],
+                row["action"],
+                row["observation"],
+                weight=row["weight"],
+            )
+        if estimator.canonical_payload() != payload:
+            raise ValueError("Dirichlet estimator payload is not canonical")
+        return estimator
+
+
+class EmpiricalMarginalEstimator:
+    """Categorical train-only ``P(observation)`` null with symmetric smoothing."""
+
+    def __init__(
+        self,
+        observation_space: Sequence[str],
+        *,
+        alpha: float = 1.0,
+        estimator_id: str = "empirical-marginal-null-v1",
+    ) -> None:
+        self.observation_space = _validated_space(observation_space)
+        if isinstance(alpha, bool) or not isinstance(alpha, (int, float)):
+            raise ValueError("alpha must be a positive finite number")
+        self.alpha = float(alpha)
+        if not math.isfinite(self.alpha) or self.alpha <= 0.0:
+            raise ValueError("alpha must be a positive finite number")
+        self.estimator_id = _require_key(estimator_id, "estimator_id")
+        self._counts: Counter[str] = Counter()
+
+    def update(self, observation: str, *, weight: float = 1.0) -> None:
+        if observation not in self.observation_space:
+            raise ValueError(f"unknown observation {observation!r}")
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)):
+            raise ValueError("weight must be a positive finite number")
+        weight = float(weight)
+        if not math.isfinite(weight) or weight <= 0.0:
+            raise ValueError("weight must be a positive finite number")
+        self._counts[observation] += weight
+
+    def predict(self, state_ref: str, action: str) -> tuple[ObservationProbability, ...]:
+        _require_key(state_ref, "state_ref")
+        _require_key(action, "action")
+        denominator = math.fsum(self._counts.values()) + self.alpha * len(
+            self.observation_space
+        )
+        return tuple(
+            ObservationProbability(
+                observation,
+                (float(self._counts[observation]) + self.alpha) / denominator,
+            )
+            for observation in self.observation_space
+        )
+
+    def commit(self, **kwargs) -> PreActionCommit:
+        return PreActionCommit(
+            **kwargs,
+            status="committed",
+            estimator_id=self.estimator_id,
+            estimator_kind="null",
+            probabilities=self.predict(kwargs["state_ref"], kwargs["action"]),
+        )
+
+    def canonical_payload(self) -> dict[str, Any]:
+        return {
+            "schema_version": "empirical-marginal-null-v1",
+            "estimator_id": self.estimator_id,
+            "alpha": self.alpha,
+            "observation_space": list(self.observation_space),
+            "counts": [
+                {"observation": observation, "weight": float(weight)}
+                for observation, weight in sorted(self._counts.items())
+            ],
+        }
+
+    @classmethod
+    def from_payload(cls, payload: Any) -> "EmpiricalMarginalEstimator":
+        expected = {
+            "schema_version",
+            "estimator_id",
+            "alpha",
+            "observation_space",
+            "counts",
+        }
+        if not isinstance(payload, dict) or set(payload) != expected:
+            raise ValueError("marginal estimator payload fields mismatch")
+        if payload["schema_version"] != "empirical-marginal-null-v1":
+            raise ValueError("marginal estimator schema_version mismatch")
+        if not isinstance(payload["counts"], list):
+            raise ValueError("marginal estimator counts must be a list")
+        estimator = cls(
+            payload["observation_space"],
+            alpha=payload["alpha"],
+            estimator_id=payload["estimator_id"],
+        )
+        for row in payload["counts"]:
+            if not isinstance(row, dict) or set(row) != {"observation", "weight"}:
+                raise ValueError("marginal estimator count fields mismatch")
+            estimator.update(row["observation"], weight=row["weight"])
+        if estimator.canonical_payload() != payload:
+            raise ValueError("marginal estimator payload is not canonical")
+        return estimator
 
 
 class DeclaredOracle:

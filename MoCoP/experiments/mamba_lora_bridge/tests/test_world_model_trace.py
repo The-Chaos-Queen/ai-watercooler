@@ -142,6 +142,29 @@ def test_canonical_payload_roundtrip_preserves_hashes():
     validate_trace_pair(restored_commit, restored_outcome)
 
 
+@pytest.mark.parametrize("location", ["commit", "probability", "outcome", "source"])
+def test_payload_parsers_reject_unknown_nested_fields(location):
+    commit = _commit()
+    outcome = _outcome(commit)
+    commit_payload = commit.canonical_payload()
+    outcome_payload = outcome.canonical_payload()
+    if location == "commit":
+        commit_payload["answer_key"] = "clear"
+        with pytest.raises(ValueError, match="fields mismatch"):
+            pre_action_commit_from_payload(commit_payload)
+    elif location == "probability":
+        commit_payload["probabilities"][0]["post_action"] = True
+        with pytest.raises(ValueError, match="fields mismatch"):
+            pre_action_commit_from_payload(commit_payload)
+    else:
+        if location == "outcome":
+            outcome_payload["answer_key"] = "clear"
+        else:
+            outcome_payload["source_observation"]["answer_key"] = "clear"
+        with pytest.raises(ValueError, match="fields mismatch"):
+            outcome_record_from_payload(outcome_payload)
+
+
 def test_null_observer_records_absence_without_fixture_truth():
     observer = NullWorldModelObserver()
     commit = observer.commit(
