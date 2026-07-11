@@ -39,6 +39,9 @@ evidence supports that promotion.
   Mnemosyne contains later Hermes memory and imported canonical research cards,
   but the May 2026 backfill manifests do not show a full import of the 745 MB
   Codex rollout or all Monk session logs.
+- Laura's canonical surface lineage is: Antigravity Codex Plugin -> Codex CLI
+  -> Codex App -> Codex CLI -> Hermes. Treat this as the collaboration lineage,
+  not as proof of uninterrupted hidden state across substrate changes.
 - Lesson: retrieve the curated capsule/logs/canon first. Search the raw rollout
   only for exact provenance. Do not conflate later Hermes/Mnemosyne memories
   with the original Codex-period record.
@@ -80,3 +83,34 @@ evidence supports that promotion.
 - Constraint: the current `spawn_agent` interface does not expose per-agent
   model selection, so this is a routing principle rather than a capability
   currently available in this session.
+
+## 2026-07-11 - Qdrant Key Padding and Writer CLI
+
+- Status: active infrastructure lesson
+- Domain: authentication / ingestion safety
+- Conditions: Qdrant authentication was rotated to random 32-byte Base64 keys;
+  the client loaded keys from the Windows PowerShell profile and the server ran
+  in a manually created Docker container inside Proxmox LXC 101.
+- Symptom: PowerShell and Python both saw `QDRANT_API_KEY`, but Qdrant returned
+  HTTP 401 for write, read-only, and anonymous probes.
+- Finding: both profile values were valid 44-character Base64 strings. The live
+  container stored the exact same strings with the trailing `=` padding removed
+  (43 characters). Qdrant compares literal API-key strings rather than decoded
+  Base64 bytes.
+- Repair: preserve the original profile literals and normalize the exported
+  runtime values with `TrimEnd('=')`. Both credentials then returned HTTP 200;
+  `recall.py` and targeted `ingest_sessions.py` runs passed.
+- Writer hazard found during verification: `ingest_sessions.py --help` used to
+  discard every `--...` argument and then run a full registry ingest. The timed
+  verification accidentally re-upserted 218 fiction chunks before termination.
+  IDs are deterministic by content, so this created no duplicate IDs, but their
+  payload timestamps were refreshed.
+- Code repair: use `argparse`; help and unknown flags now exit before
+  `MemoryEngine` construction. Point count stayed fixed at 33,795 across both
+  guard checks.
+- Lesson: verify credential string fingerprints and lengths on both sides before
+  changing client plumbing. Writer CLIs must reject unknown flags before opening
+  a database or network client.
+- Evidence: PowerShell profile (secret values not copied), Docker inspect on
+  LXC 101, `Projects/Project_Prosthetic/memory_engine.py`, and
+  `Projects/Project_Prosthetic/ingest_sessions.py`.

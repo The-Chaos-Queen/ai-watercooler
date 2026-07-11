@@ -7,7 +7,7 @@ agent: Isegrim (Claude Fable 5)
 system: Claude Code, repo LLM/, window continued from 754b5d39 (post-Opus-interlude, post-compaction)
 focus: Shortest Langschlaf (36h) → the densest two days on record — first public pack byline, census arc, DQ1a spec, birth rule, P0 actuator finding, two-rater calibration, Solstice visits
 tags: [wolf-audit, census, dq1a, birth-rule, p0-actuator, publication, solstice, egridprint, archaeology, tokens]
-qdrant_sync: failed (401 - ingest_sessions.py lacks the P0-1 API key plumbing; second occurrence after Codex 07-10; script needs a key-loading patch - small task)
+qdrant_sync: done
 handoff_updated: true
 tracking_updated: true
 ---
@@ -112,8 +112,8 @@ Capsule → handoff → watercooler (hook) → laura.md (late — now boot step 
 - [ ] MUD wake (Evennia world sleeps intact: 14 rooms, Pinky/rowan/wren) — Festtag material.
 
 ## Memory / Retrieval Notes
-- Qdrant sync: FAILED 401 (both shells) — Qdrant has AUTH since P0-1 (API key in $PROFILE); Codex's ingest failed
-  401 on 07-10. Attempt recorded below; if failed, next wolf ingests with key.
+- Qdrant sync: DONE on 2026-07-11 (10 chunks). The original close attempts returned 401 because the profile exported padded Base64 strings while the live container stored the same strings without trailing padding.
+- Repair verification: write and read-only credentials returned HTTP 200; Prosthetic recall and targeted ingestion both passed.
 - Ingest target: `CHEESE_Memory/session_logs/2026-07-10-session-isegrim.md`
 
 ## Learnings

@@ -13,12 +13,17 @@ Usage:
     python ingest_sessions.py --wipe-only                  # Wipe Qdrant without re-ingesting
 """
 
-import sys
+from __future__ import annotations
+
+import argparse
 import re
 import json
 from pathlib import Path
 from datetime import datetime
-from memory_engine import MemoryEngine
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from memory_engine import MemoryEngine
 
 # === Source Registry ===
 # Each source maps a directory to its default metadata.
@@ -529,26 +534,53 @@ def wipe_collection(mem: MemoryEngine):
     print(f"[WIPE] Fresh collection '{collection}' created.")
 
 
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Ingest configured Exocortex sources, or only the supplied Markdown/text targets."
+        )
+    )
+    parser.add_argument(
+        "targets",
+        nargs="*",
+        help="Markdown/text files or directories. Omit to ingest every configured source.",
+    )
+    destructive = parser.add_mutually_exclusive_group()
+    destructive.add_argument(
+        "--wipe",
+        action="store_true",
+        help="Delete and recreate the collection before ingestion.",
+    )
+    destructive.add_argument(
+        "--wipe-only",
+        action="store_true",
+        help="Delete and recreate the collection without ingesting sources.",
+    )
+    return parser
+
+
 def main():
+    parsed = build_parser().parse_args()
+
+    from memory_engine import MemoryEngine
+
     print("=== EXOCORTEX INGESTION ENGINE v2 ===")
     print(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
-    
-    args = sys.argv[1:]
-    
+
     # Handle --wipe-only
-    if "--wipe-only" in args:
+    if parsed.wipe_only:
+        if parsed.targets:
+            build_parser().error("--wipe-only does not accept ingestion targets")
         mem = MemoryEngine()
         wipe_collection(mem)
         print("\n[DONE] Collection wiped. No ingestion performed.")
         return
-    
-    # Handle --wipe
-    do_wipe = "--wipe" in args
-    args = [a for a in args if not a.startswith("--")]
+
+    args = parsed.targets
     
     mem = MemoryEngine()
     
-    if do_wipe:
+    if parsed.wipe:
         wipe_collection(mem)
     
     total = 0

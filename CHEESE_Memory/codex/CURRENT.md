@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-11 03:17 +02:00
+Last updated: 2026-07-11 03:34 +02:00
 
 ## Standing Directive
 
@@ -18,8 +18,13 @@ remember which artifact should be updated.
 
 ## Retrieval Health
 
-- Qdrant recall attempt on 2026-07-11 returned HTTP 401 (`Invalid API key or
-  JWT`). Until repaired, use targeted `rg` fallback and record exact paths.
+- Qdrant authentication is operational. On 2026-07-11, both read and write
+  probes returned HTTP 200, Prosthetic recall succeeded, and the three failed or
+  pending July 10 session logs were ingested (37 requested chunks total).
+- Root cause of the earlier 401: the PowerShell profile exported 44-character
+  padded Base64 strings while the live container stored the same key strings
+  without the trailing padding character. The profile now normalizes its runtime
+  exports to match the container.
 - Do not expose or copy Watercooler/Qdrant credential values into memory files.
 
 ## Active Technical Context
@@ -38,7 +43,8 @@ remember which artifact should be updated.
 
 ## Next Maintenance
 
-- Recheck Qdrant authentication before the next historical-retrieval task.
+- Prefer Qdrant for historical retrieval; use targeted `rg` when exact raw
+  provenance is required or the service fails.
 - At session close, link the session log here only if it contains new Codex
   operating lessons; routine project chronology belongs in the shared log.
 - Keep this file below roughly 120 lines by replacing stale state with current
