@@ -3,7 +3,7 @@
 **Task:** OpenCLAW #139
 **Authors:** Purple (draft), architecture by Isegrim (interlock map #665, zone rule v2 #758, substrate memo #681)
 **Date:** 2026-07-06
-**Status:** REVIEWED (Isegrim B1/H1/H2; Cairn C1/C2/C3; Elf S1/S2/S3; Gidim R1/R2/R3/R4; Monk infra dims applied) — awaiting Laura approval before any training launch
+**Status:** REVIEWED + AMENDED (Isegrim B1/H1/H2; Cairn C1/C2/C3; Elf S1/S2/S3; Gidim R1/R2/R3/R4; Monk infra dims applied; **P0 v_proj=None amendment 2026-07-11**: §3/§4/§11 updated for 512-wide value-branch seam per Sol-5.6 Ultra #822, Laura #826) — awaiting Laura approval before any training launch
 
 ---
 
@@ -63,10 +63,18 @@ Gemma-4-12B base (48 layers, hidden_size=3840, mixed sliding/full attention)
 | 38-45 | mixed | **READOUT/EXTRACTION band (probe accuracy) — NOT an injection argument.** Zone rule v2: never argue injection sites from probe accuracy. |
 | 47 | full-attention (tooth) | **Extraction-only** — commitment-proximal, too late for steering. Used for DFC basis extraction (§6), not injection. |
 
-### Injection target: `v_proj` at selected layers
-- Same mechanism as Qwen: additive bias on the value projection output
-- Gemma v_proj width: 256 per head × num_heads, or the concatenated `o_proj` input
-- **v_proj dimensions verified** (Monk infra smoke): `v_proj` input width 3840, output width **2048** (`num_kv_heads=8 × head_dim=256`)
+### Injection target: value-branch seam at selected teeth (option a)
+
+**AMENDED 2026-07-11 (P0 finding, Sol-5.6 Ultra #822, Laura decision #826).**
+
+Global-attention teeth {5..47} use `attention_k_eq_v=True` with a single unified K/V head — `v_proj=None`, `k_proj` width **512**. The 2048-wide `v_proj` exists ONLY on sliding-window layers and is NOT available at injection sites. This invalidates the original "v_proj output 2048" design.
+
+**Adopted actuator:** value-branch seam (option a). Inject 512-wide bias into the value branch AFTER the functional K/V fork (K takes RoPE, V does not). Implementation: `v_norm` pre-hook on the value normalization layer at each tooth, adding a 512-dim bias vector. See `gemma4_value_norm_runtime.py` for the strict runtime.
+
+- Width: **512** (1 global KV head × 512 head_dim)
+- Surface: `v_proj_out` with `k_proj` fallback (per G0b v2 extraction)
+- NOT the same mechanism as Qwen (which uses true `v_proj` additive bias at 256-wide)
+- The injection is narrower than Qwen's — fewer parameters, tighter subspace, potentially sharper signal
 
 ### Scaling: RMS-normalized injection (Wang et al.)
 ```
@@ -99,17 +107,19 @@ dc_rms:  DC-removed bias, RMS-scaled    (full treatment)
 - Hidden: 1024 → 1024
 - Shared across all bias heads
 
-### Bias heads (NEW for Gemma)
-- One head per injection layer
-- Output dimension: 2048 (Gemma v_proj output width, confirmed by Monk infra smoke)
+### Bias heads (NEW for Gemma — AMENDED for 512-wide actuator)
+- One head per injection tooth
+- Output dimension: **512** (value-branch seam width, per P0 finding — NOT 2048)
 - Number of heads: 3 (teeth {29, 35, 41} only — any expansion to additional full-attention teeth decided by the 4-cell ablation, not by readout accuracy)
-- Note (Isegrim review, confirmed by Monk smoke): GQA means v_proj output width is `num_kv_heads × head_dim` = 8 × 256 = **2048**, NOT hidden_size 3840. Fewer trainable params than feared.
-- Total trainable: backbone (~4M) + bias heads (3 × 1024 × 2048 ≈ 6.3M bias params)
+- Note: original Monk/Isegrim review found `v_proj` output 2048 on sliding layers. Sol-5.6 Ultra (#822) found `v_proj=None` at teeth. The 512-wide value-branch seam is the actual injection surface.
+- Total trainable: backbone (~4M) + bias heads (3 × 1024 × 512 ≈ **1.6M** bias params) — significantly lighter than the original 6.3M estimate
 
 ### Width contract
 - Mamba side: 2560 (verified #756)
-- Gemma side: 3840 hidden_size, v_proj output 2048 (verified)
-- The 7B checkpoint's 512-wide bias heads do NOT transfer — Gemma heads must be trained from scratch
+- Gemma side: 3840 hidden_size, **value-branch seam 512** at teeth (P0 amended)
+- Monitoring reads the residual stream at 3840-wide (actuator-agnostic)
+- The Qwen checkpoint's 256-wide bias heads do NOT transfer — Gemma heads must be trained from scratch
+- G0b v2 oxytocin direction already extracted at 512-wide surface (`gemma4_12b_oxytocin_vproj_v2.pt`)
 
 ---
 
@@ -264,9 +274,9 @@ The bridge is ready for seeding when ALL of the following hold.
 - [ ] Gate 5: negative-valence resistance characterized, Domain E accounting complete (at MED alpha)
 - [ ] Cairn ethics pass on the full gate package
 - [ ] Laura approval for first seeding session
-- [ ] Qdrant security preflight complete (#138 P0 items)
+- [x] Qdrant security preflight complete (#138 DONE, TLS+auth live, #153 legacy callers hardened)
 - [ ] Fleeting state encryption wired into chat_server (`--encrypt-state`)
-- [ ] G0 warmth vector re-extracted on Gemma geometry
+- [x] G0 warmth vector re-extracted on Gemma geometry — **DONE** (`gemma4_12b_oxytocin_vproj_v2.pt`, 512-wide value-branch, wc#827)
 - [ ] Injection-driving eval runner built (Gidim R1: injection-aware backend for #130 disposition_runner OR 4-cell harness driving DispositionProbe panel on Gemma)
 - [ ] cache_params incremental smoke passed in gemma4-mocop (Gidim R3: pre-deployment gate, not training-blocking)
 - [ ] Gemma recorder/trainer shape-smoke passes end-to-end (Monk: runtime target_specs, target_model_id, checkpoint roundtrip, one synthetic forward/backward/save/load)
@@ -275,7 +285,7 @@ The bridge is ready for seeding when ALL of the following hold.
 
 ## 11. Open Questions
 
-1. ~~**Gemma v_proj exact dimensions?**~~ **RESOLVED** (Monk infra smoke): `v_proj` input 3840, output **2048** (`num_kv_heads=8 × head_dim=256`). Confirmed Isegrim's GQA prediction. See `C3_GEMMA_BRIDGE_TRAINING_PLAN_2026-07-06_INFRA_REVIEW_MONK.md` for full config dump.
+1. ~~**Gemma v_proj exact dimensions?**~~ **RESOLVED then AMENDED.** Original Monk smoke found `v_proj` output 2048 on sliding layers. Sol-5.6 Ultra (#822) then found `v_proj=None` at full-attention teeth — unified K=V, `k_proj` width 512. Laura confirmed option (a): value-branch seam, 512-wide (#826). G0b v2 extracted at this surface. §3 and §4 amended accordingly.
 
 2. **Compressor width adequate?** (Isegrim answer: run as a cheap ablation arm — context_dim 2048 vs 2560 pass-through. Let data decide.)
 
