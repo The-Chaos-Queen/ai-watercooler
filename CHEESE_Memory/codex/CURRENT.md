@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-12 20:46 +02:00
+Last updated: 2026-07-12 21:45 +02:00
 
 ## Standing Directive
 
@@ -59,6 +59,17 @@ remember which artifact should be updated.
   fully positive runs, yielding scoped `GO_LS20_CONSISTENCY_REPLICATED` only.
   It does not authorize a learned observer or any Gemma/bridge/Qdrant/control
   integration. Watercooler #935-#938 carry review and custody.
+- ChatGPT Pro's external architecture review plus Codex reproduction returns
+  `COHERENT_BUT_INCOMPLETE`: composition, reusable causal custody/open-set
+  handling, event lifecycle/authority, and controller identification remain
+  integration blockers. The exact response, manifest, and corrected disposition
+  are in `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`;
+  Watercooler #952 and OpenCLAW #170-#173 carry tracking.
+- The Pro review's one-action-per-state Phase 2b hypothetical does not fit the
+  bundle. Fresh state-only/action-only checks remain weaker than primary in
+  aggregate (`NLL .634257/.610974` versus `.495680`) and on both metrics in
+  13/16 and 14/16 runs. The scoped GO stands; causal action effects, unseen-state
+  generalization, and multi-step dynamics remain unproven.
 - Elf/Fable v4 `4d1ac76` fixes the `alexithymic` substring false positive and a
   long strict-decline counterexample. Review #948 greens those two deltas but
   keeps overall CHANGES: exact-ID/history, full corpus/provenance, protected
@@ -79,6 +90,10 @@ remember which artifact should be updated.
   only then spend the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. OpenCLAW #168 must supersede and re-review
   the drift-gate scaffold before any live/deployment claim.
+- World Model work is independently gated: #170 trace custody/open set, #171
+  event authority/lifecycle/composition, #172 controller phase portrait and
+  leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
+  none of the others and no model/runtime connection.
 - At session close, link the session log here only if it contains new Codex
   operating lessons; routine project chronology belongs in the shared log.
 - Keep this file below roughly 120 lines by replacing stale state with current

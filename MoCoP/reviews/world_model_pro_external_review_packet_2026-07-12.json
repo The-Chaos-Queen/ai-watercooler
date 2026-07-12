@@ -1,0 +1,65 @@
+{
+  "schema_version": "world-model-external-review-packet-v1",
+  "review_date": "2026-07-12",
+  "review_surface": "ChatGPT Pro selector in authenticated browser",
+  "backend_build_identity": "not_exposed_by_ui",
+  "reported_work_duration": "14m36s",
+  "conversation_url": "https://chatgpt.com/c/6a53e689-bda4-83eb-8ffa-6938c8d23034",
+  "repository_head_at_packet_capture": "e066b5837fd9cec11f296b33bab4189cc01572c0",
+  "claimed_kernel_lineage": "4e8adbf7a19b4a9efac190e265578d30c4a7bc8f",
+  "claimed_phase2b_lineage": "1d08f5333ca215a3cb5500fd20b2eb2d17c4fd85",
+  "response": {
+    "path": "reviews/world_model_pro_external_review_raw_2026-07-12.md",
+    "sha256": "c89f45e030d58e1ccd1ce000ec945e58ea61bf70b578bf6326e04b3baa6f44f2"
+  },
+  "attachments": [
+    {
+      "path": "reviews/world_model_math_audit_2026-07-10.md",
+      "sha256": "4b28e0b9309780921070b0d22048136a265cb9d1f5615ef5d256775366848252",
+      "git_blob": "d77da4d7b8e1783791301b7e4705e63de1c639db",
+      "last_change_commit": "8c77636396dba4928f19eb6435edc28379c4e444"
+    },
+    {
+      "path": "experiments/mamba_lora_bridge/spikes/APPRAISAL_MODULATORY_CONTROLLER_CONTRACT_2026-07-12.md",
+      "sha256": "7413ccdc2a8e2ea054ff8fb5c417b2464a2168fbf9486e9671067ef9e4464583",
+      "git_blob": "b6f7cd38896cd454e542a156caf2f6b7922bfee9",
+      "last_change_commit": "4e8adbf7a19b4a9efac190e265578d30c4a7bc8f"
+    },
+    {
+      "path": "experiments/mamba_lora_bridge/world_model_events.py",
+      "sha256": "3257c3045a5a07460d84b60e7bcf4d8bee3b11b377a0ebb0f6282cefbdd85e16",
+      "git_blob": "532931731db07870d78d74b858a6dd367fc4ce99",
+      "last_change_commit": "4e8adbf7a19b4a9efac190e265578d30c4a7bc8f"
+    },
+    {
+      "path": "experiments/mamba_lora_bridge/modulatory_controller.py",
+      "sha256": "8dc2bed29db1a1d157dd432b3b70c9c41c583b85ef6b968a823c6a730b2c45dc",
+      "git_blob": "a49bec6a6c69d0890a3e06f9d9fa4b63b83c42b2",
+      "last_change_commit": "4e8adbf7a19b4a9efac190e265578d30c4a7bc8f"
+    },
+    {
+      "path": "experiments/mamba_lora_bridge/world_model_trace.py",
+      "sha256": "c87d94bac4df8b211d9a067e8c68ba34aabcb60f8d190a873e832d36dbdeed5d",
+      "git_blob": "19da97902c3544757989ef4f6fbdb1ff1968c1de",
+      "last_change_commit": "29abc1bee07d91bbe2cb2b32ea08d315613deed7"
+    },
+    {
+      "path": "experiments/mamba_lora_bridge/world_model_baselines.py",
+      "sha256": "6b44390f6a7353d1e1c5a342b894f7c98935a4324dcf81e614eecb7adca0b2aa",
+      "git_blob": "bc33c6da6847667fb062956bac2588e4131dcee2",
+      "last_change_commit": "29abc1bee07d91bbe2cb2b32ea08d315613deed7"
+    },
+    {
+      "path": "experiments/mamba_lora_bridge/friction_world_model.py",
+      "sha256": "65e0243d7a6222eb0ae2f0fa26ccc63abfd972c504c5c92897e4d45a881dd4ad",
+      "git_blob": "58e4565f8116aa9da4f243b4c2cdeb9778793e12",
+      "last_change_commit": "89b54606a1761283515860a2677dee31fa5516bc"
+    },
+    {
+      "path": "experiments/mamba_lora_bridge/results/world_model_phase2/phase2b_ls20_real_v1/REPORT.md",
+      "sha256": "8eacfa1170be335826a3882fcda104b550af034720499480324c307945e561b8",
+      "git_blob": "a8d1b620c44f1945e20c1a02cb66868615120f8f",
+      "last_change_commit": "1d08f5333ca215a3cb5500fd20b2eb2d17c4fd85"
+    }
+  ]
+}

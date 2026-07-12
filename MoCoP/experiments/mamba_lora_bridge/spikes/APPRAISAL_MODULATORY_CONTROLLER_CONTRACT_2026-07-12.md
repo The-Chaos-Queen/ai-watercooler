@@ -1,7 +1,7 @@
 # Appraisal-to-Modulatory Controller Contract
 
 **Date:** 2026-07-12
-**Status:** Implemented model-free reference kernel; no runtime integration
+**Status:** Implemented model-free reference kernel; external-review HOLD; no runtime integration
 **Owner:** Codex, OpenCLAW #163
 **Authority:** Laura decisions relayed in Watercooler #918
 
@@ -52,7 +52,9 @@ Allowed v1 event kinds:
 
 Semantic references have closed kinds (`person`, `rule`, `goal`, `topic`, `episode`,
 `relationship`, `object`) and remain attached to the event/audit side. Event batches
-receive a deterministic order and reject duplicate IDs or turn/event positions.
+receive a deterministic order and reject duplicate IDs or turn/event positions within
+one call. The v1 record has no session/domain batch envelope or cross-call replay
+cursor; those remain blocked on OpenCLAW #171.
 
 Event emission is turn-local. Ongoing situations must be re-emitted on every turn in
 which they remain appraisal-relevant, or their effect decays by design through kappa
@@ -113,12 +115,14 @@ load terms from `ControllerConfig`. All default rates are provisional engineerin
 values selected to make the qualitative state-machine contract testable. They are not
 biological measurements, learned parameters, or an authorized live dose schedule.
 
-Key modeled behavior:
+Key provisional behavior:
 
-- threat raises vigilance;
+- sufficiently large weighted threat can raise vigilance outside the default
+  neutral-state deadband;
 - threat plus available control preserves/raises agency;
 - uncontrolled repeated threat depletes reserve and accumulates slow load;
-- neutral/cleared threat lets vigilance and load recover;
+- absence of threat contribution can let vigilance and load recover; v1 does not
+  distinguish an explicit `threat_cleared` event from no threat event after clipping;
 - affiliation evidence raises affiliation without carrying relationship identity;
 - a self-attributed norm violation plus controllability can raise bounded
   repair-oriented affiliation/agency;
@@ -132,6 +136,13 @@ Changing that crossover is a controller-policy change and requires an explicit r
 
 The controller does not choose actions and does not establish that vigilance plus
 agency causes careful behavior. That causal link needs a later behavioral evaluation.
+
+The default neutral state also has an exact prediction-error dead zone: with zero
+predicted harm, even `prediction_error=1` does not raise vigilance on the first step.
+Under a fixed moderate threat, the current recurrence can converge to distinct stable
+states from different initial reserve/load conditions. Neither behavior is yet frozen
+as intentional policy. OpenCLAW #172 owns the sensitivity, fixed-point, recovery,
+saturation, and split/merge challenge before any persistence or modulation claim.
 
 ## Lifecycle
 
@@ -163,6 +174,22 @@ semantics, rate/precision policy, adversarial numeric-channel tests, and empiric
 entity/topic/episode leakage evaluation. MUSIC-3 remains responsible for its own
 audio-side leakage gate.
 
+## Post-Implementation External Review
+
+The 2026-07-12 ChatGPT Pro architecture review and independent Codex reproduction are
+recorded in `reviews/world_model_pro_external_review_2026-07-12.md`. The verdict is
+`COHERENT_BUT_INCOMPLETE`, with the following executable holds:
+
+- OpenCLAW #170: causal trace custody and open-set outcome retention;
+- OpenCLAW #171: event lifecycle, producer authority, and composition contract;
+- OpenCLAW #172: appraisal metamorphics and controller phase portrait;
+- OpenCLAW #173: stronger matched-null and rollout LS20 evidence tier.
+
+The review does not revoke the model-free implementation or the scoped Phase 2b
+result. It does block treating the sidecars as one composed World Model and blocks all
+model, persistence, memory, alpha, and action integration until the relevant gates
+pass independently.
+
 ## Tests
 
 The focused suite covers:
@@ -184,3 +211,5 @@ The focused suite covers:
 - No bridge basis, Gemma direction, alpha, or activation injection.
 - No live behavior, Qdrant, memory write, audio, model load, or GPU use.
 - No durable controller-state persistence.
+- No claim that q, kappa, or c/L are sufficient statistics for action choice or any
+  other downstream decision.

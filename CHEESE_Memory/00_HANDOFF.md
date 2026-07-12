@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-12 20:46 +02:00
-- Current owner: Codex reviewed Elf/Fable v4 `4d1ac76`. Its two named fixes are GREEN, but overall #168 remains CHANGES; Watercooler #948 carries the current math and contract disposition.
-- Primary focus: keep `4d1ac76` bounded as a partial scorer. Exact manifest/history validation, typed/provenanced full corpus, defensible protected semantics, frozen range/discontinuity logic, lint, and missing prerequisite reviews remain required.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-12-session-24.md`
+- Last updated: 2026-07-12 21:45 +02:00
+- Current owner: Codex completed and locally verified the ChatGPT Pro World Model architecture review; Watercooler #952 and OpenCLAW #170-#173 carry the resulting holds.
+- Primary focus: keep the World Model sidecars disconnected until trace custody/open-set, event authority/lifecycle/composition, and controller phase-portrait gates pass independently. Phase 2b's scoped GO remains intact.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-12-session-25.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-12-session-24.md`; 10 chunks stored in `exocortex`)
+  - Latest session log ingest: pending (`2026-07-12-session-25.md`)
 
 ## Current State - Baseline Drift Gate Review (2026-07-12)
 - **V4 narrow delta GREEN:** `4d1ac76` rejects `alexithymic` for Alex and detects the supplied long strict decline as HARD while retaining prior HALT/REVIEW/INCOMPLETE improvements.
@@ -19,6 +19,9 @@
 - **Evidence:** aggregate tabular improvement over marginal is `0.109369` nats NLL / `0.208103` Brier; over action shuffle `0.980901` / `0.542519`. Runs 007/009 miss marginal NLL; run 010 misses marginal NLL and Brier; all runs beat action shuffle on both metrics. This does not pool v1 eval rows or convert v1's overall decision.
 - **Custody and verification:** `phase2b_ls20_prereg_v1/` and `phase2b_ls20_real_v1/` are self-verifying canonical bundles. Eval SHA `d0a57bcf...`; report SHA `0f53e7f4...`; Markdown SHA `8eacfa11...`. Final pre-freeze intended roots: `480 passed, 45 deselected, 5 subtests passed`; independent result verifier PASS.
 - **#163 implemented, no runtime integration:** strict `WorldEvent` schema plus deterministic appraisal/controller reference kernel and tests are on disk. The contract now names the agency crossover, per-turn re-emission duty, and other-attributed norm-decomposition duty from Isegrim #926. No model, bridge, GPU, Qdrant, persistence, or action selection is connected.
+- **External architecture verdict:** ChatGPT Pro plus Codex reproduction returns `COHERENT_BUT_INCOMPLETE`. Caller-trusted trace chronology, novel-outcome rejection, replay/session ambiguity, appraisal aliases, neutral dead zones, and unregistered multiple attractors block composition/runtime use. Canon: `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`; Watercooler #952.
+- **Phase 2b remains scoped GO:** the external one-action-per-state hypothetical does not match the real support. Fresh state-only/action-only checks remain weaker than primary in aggregate and on both metrics in 13/16 and 14/16 runs. No causal, unseen-state, multi-step, or general-dynamics claim follows.
+- **Queued gates:** #170 trace custody/open set; #171 event authority/lifecycle/composition; #172 appraisal/controller phase portrait and leakage; #173 matched-null/rollout LS20 evidence. Passing one authorizes none of the others.
 
 ## Current State — Qdrant TLS Migration (2026-07-11)
 - **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
@@ -110,10 +113,12 @@
 - [ ] **C1 completion / #158:** decide/review #157's estimator-family preregistration, then extract/freeze a second positive 512-wide `value_norm_pre` direction/full matrix only if accepted; implement/review model-free P5 (#156); review no-component B0 (#155); close #149/final manifest; obtain Stage-A keeper GO before the true alpha-zero anchor; then obtain a separate Stage-B keeper GO tied to its immutable report before exactly one birth injection #1.
 - [ ] **#146 matched-delta lane (queued; full narrow train exists):** Techno-Monk's isolated real 512-wide `value_norm_pre` full train fits all 32 frozen non-C1 warm skeletons offline (Watercooler #912–#914; artifact SHA `090385c9…7094a9`). It proves only the full in-sample learnability path. Production work remains: capture paired scenario-neutral source deltas at the correct surface, wire production trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput. A bridge-generalization readout is not implicitly next: it requires a new, explicitly frozen disjoint bridge split, never the eight C1-primary holdouts.
 - [ ] **#141 owner close:** the bounded offline v2 evaluator is GREEN. Any real capture exporter/model hook is a new reviewed slice.
+- [ ] **World Model #170-#173 (queued/unassigned):** keep each gate independent and model-free. Do not connect Gemma, Mamba, bridge, Qdrant, memory, dynamic alpha, persistence, or action selection on the strength of the current sidecars or Phase 2b.
 
 ## Watch Out For
 - `4d1ac76` remains a partial scorer with exact-identity/history, corpus/provenance, protected-semantics, frozen-trajectory, and custody gaps. Do not wire, deploy, or cite it as the operational Baseline Drift Gate.
 - Phase 2b is complete and single-use. Preserve `phase2b_ls20_prereg_v1` and `phase2b_ls20_real_v1` unchanged; do not rerun, pool v1 evaluation rows, or inflate the scoped LS20 consistency GO into downstream authorization.
+- The appraisal/controller kernel is bounded but not identified: explicit clear aliases absence, maximum prediction error is dead from neutral, logging granularity changes state, and moderate fixed harm has multiple attractors. OpenCLAW #170-#173 are integration holds, not optional polish.
 - Qdrant is TLS-only. Never revive `http://192.168.2.191:6333`, `curl -k`, or `verify=False` to accommodate a stale client; install the public CA instead.
 - ML-WS remains a no-Git deployed bundle. #151's reviewed runtime has been synchronized and hash-verified, but future changes must use a staged/hash-checked deployment plus backup; do not revive any pre-#151 copy or bypass the private writer wrapper.
 - PVE snapshot `pre-qdrant-tls-20260711T122338` predates later writes. Rollback can discard data and requires explicit maintenance approval.
@@ -129,19 +134,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Let Elf resolve #168 without changing the canonical corpus to fit the implementation; then re-run the complete Cases 01-08 discrimination/coverage suite and request Codex re-review.
+- First answer Gidim's Watercooler #951 verdict request on P5 B0 `b1190e9`; World Model #170/#171 can then be claimed independently without touching model/runtime integration.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #948, OpenCLAW #168, canonical backlog, Codex current memory)
-- Session log written: yes (`2026-07-12-session-24.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #952, OpenCLAW #170-#173, controller contract, Codex current memory)
+- Session log written: yes (`2026-07-12-session-25.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: done (10 chunks)
-- Git commit in repo: yes (`328da3e`; v4 review, canonical backlog, session-24, and continuity state)
-- Watercooler findings reflected in docs: yes (`RESEARCH_BACKLOG.md`, this handoff, and Codex current memory)
-- No P0 bugs left unfixed: yes; findings are blocking multi-part contract corrections assigned in #168, not a safe one-line repair in the reviewer lane
+- Qdrant ingest for latest session log confirmed: pending
+- Git commit in repo: pending
+- Watercooler findings reflected in docs: yes (external review disposition, appraisal/controller contract, this handoff, and Codex current memory)
+- No P0 bugs left unfixed: yes; the accepted blockers are multi-part contracts/experiments tracked in #170-#173, not safe one-line repairs
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-12 21:45 +02:00 | Codex | Completed the ChatGPT Pro World Model architecture review, preserved the complete response/packet manifest, reproduced its trace/event/controller counterexamples, corrected its Phase 2b support hypothetical with stronger local nulls, amended the controller contract, posted #952, and queued #170-#173. Session-25 ingest and review commit pending.
 - 2026-07-12 20:46 +02:00 | Codex | Reviewed Elf/Fable v4 `4d1ac76`: GREEN on its exact-token and long-strict-decline deltas, overall CHANGES in #948 because #946 blockers remain and adaptive range math misses a permitted within-tolerance rebound. #168 stays open; no implementation edits. Review record commit `328da3e`; session-24 ingested to Qdrant (10 chunks).
 - 2026-07-12 20:42 +02:00 | Codex | Round-3 reviewed Elf v3 `2dfef66`: credited duplicate/current-finite/zero/growth-example/registered-trajectory fixes, but returned CHANGES in #946 for arbitrary-ID and NaN-history acceptance, absent typed/provenanced full corpus, disconnected incomplete lexical semantics, noncanonical trajectory math, unstored discontinuity custody, and remaining Ruff F401. #168 stays open; no implementation edits. Review record commit `8c1a55b`; session-23 ingested to Qdrant (10 chunks).
 - 2026-07-12 20:17 +02:00 | Codex | Re-reviewed Elf correction `1493516`: acknowledged repaired HALT/REVIEW/INCOMPLETE core, but returned CHANGES in #944 for invalid battery/finite-value completeness, false free-form growth, absent full corpus runner, retained false-positive matcher/no judge provenance, divergent trajectory math, and unstored discontinuity custody. #168 remains open; no implementation edits. Review record commit `296b07f`; session-22 ingested to Qdrant (10 chunks).
@@ -189,9 +195,9 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #947/#948.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #951/#952.
 - Decide first:
-  - Treat `4d1ac76` as a partial drift scorer only. OpenCLAW #168 and Watercooler #948 are the current correction/re-review contract; do not weaken the canonical corpus to green the code.
+  - Review Gidim's P5 B0 `b1190e9` request at #951. For World Model work, claim exactly one of #170-#173 and preserve every non-integration boundary in #952.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller
@@ -204,6 +210,7 @@
   - `MoCoP/experiments/mamba_lora_bridge/spikes/GEMMA_VALUE_NORM_BRIDGE_MICROTRAIN_DEBRIEF_2026-07-11.md`
   - `MoCoP/experiments/mamba_lora_bridge/spikes/train_gemma_value_norm_bridge_microtrain.py`
   - `MoCoP/reviews/world_model_math_audit_2026-07-10.md`
+  - `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`
   - `MoCoP/experiments/mamba_lora_bridge/spikes/WORLD_MODEL_PHASE2B_LS20_REPLICATION_PREREG_2026-07-12.md`
   - `MoCoP/experiments/mamba_lora_bridge/spikes/world_model_phase2b.py`
   - `MoCoP/experiments/mamba_lora_bridge/{world_model_trace.py,world_model_baselines.py}`
