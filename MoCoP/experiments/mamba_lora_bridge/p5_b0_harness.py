@@ -91,7 +91,10 @@ class B0ManifestError(ValueError):
 def _is_unset(value: Any) -> bool:
     if not isinstance(value, str):
         return True
-    if value.strip().lower() in _UNSET_STRINGS:
+    val_lower = value.strip().lower()
+    if val_lower in _UNSET_STRINGS:
+        return True
+    if "[tbd:" in val_lower or val_lower.startswith("tbd:"):
         return True
     return False
 
@@ -175,8 +178,8 @@ def _check_evidence_sink(sink: Any, refusals: list[str]) -> None:
         refusals.append("evidence_sink.path is unset (protected evidence sink absent)")
     if sink.get("mode") != "append_only":
         refusals.append("evidence_sink.mode must be 'append_only'")
-    if sink.get("present") is not True:
-        refusals.append("evidence_sink.present must be True (sink must exist before launch)")
+    if sink.get("present") is not False:
+        refusals.append("evidence_sink.present must be False (sink must not exist before launch)")
 
 
 def validate_b0_manifest(manifest: Mapping[str, Any]) -> list[str]:
@@ -214,8 +217,39 @@ class B0LaunchDecision:
     manifest_digest: str | None = None
 
 
+def assert_strict_json(obj: Any, *, _path: str = "$") -> None:
+    """Refuse anything that is not finite, canonical, round-trippable JSON.
+
+    a-Codex/#960 MED-5: dropping ``default=str`` from one ``json.dump`` is not enough
+    — non-finite floats (``NaN``/``inf``) and arbitrary objects must be rejected BEFORE
+    custody transfer, not silently coerced or caught only after the forwards. Allowed
+    leaf types: ``str``, ``bool``, ``int``, finite ``float``, ``None``. Containers:
+    ``dict`` with ``str`` keys, ``list``/``tuple``. Raises ``EvidenceBundleError`` on the
+    first violation, naming the offending path.
+    """
+    if isinstance(obj, bool) or obj is None or isinstance(obj, (str, int)):
+        return
+    if isinstance(obj, float):
+        if not math.isfinite(obj):
+            raise EvidenceBundleError(f"non-finite float at {_path}: {obj!r}")
+        return
+    if isinstance(obj, Mapping):
+        for key, value in obj.items():
+            if not isinstance(key, str):
+                raise EvidenceBundleError(f"non-string mapping key at {_path}: {key!r}")
+            assert_strict_json(value, _path=f"{_path}.{key}")
+        return
+    if isinstance(obj, (list, tuple)):
+        for i, value in enumerate(obj):
+            assert_strict_json(value, _path=f"{_path}[{i}]")
+        return
+    raise EvidenceBundleError(f"non-JSON value at {_path}: {type(obj).__name__}")
+
+
 def canonical_digest(obj: Any) -> str:
-    payload = json.dumps(obj, sort_keys=True, separators=(",", ":"), default=str,
+    # No ``default=str`` fallback and ``allow_nan=False``: a value that is not strict
+    # JSON must RAISE, never be coerced into a process-specific string or a literal NaN.
+    payload = json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False,
                          ensure_ascii=True).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
@@ -262,15 +296,22 @@ class B0EvidenceBundle:
             raise EvidenceBundleError("probe_id must be a non-empty string")
         if probe_id in self._ids:
             raise EvidenceBundleError(f"refusing to overwrite existing record {probe_id!r}")
-        self._ids.add(probe_id)
-        self._records.append({
+        if not isinstance(raw_generation, str):
+            raise EvidenceBundleError("raw_generation must be a string")
+        record = {
             "probe_id": probe_id,
             "raw_generation": raw_generation,
             "scorer_input": copy.deepcopy(scorer_input),
             "scorer_output": copy.deepcopy(scorer_output),
             "provenance": copy.deepcopy(dict(provenance)) if provenance else {},
             "ordinal": len(self._records),
-        })
+        }
+        # Reject non-finite/non-JSON scorer evidence AT custody time (#960 MED-5): a bad
+        # scorer output must fail the forward and leave journal evidence, never publish
+        # a literal NaN or a coerced object into the sealed report.
+        assert_strict_json(record)
+        self._ids.add(probe_id)
+        self._records.append(record)
 
     @property
     def sealed(self) -> bool:
@@ -289,6 +330,7 @@ class B0EvidenceBundle:
             "record_count": len(self._records),
             "records": list(self._records),
         }
+        assert_strict_json(report)  # defense in depth before custody transfer
         report["report_digest"] = canonical_digest(
             {k: v for k, v in report.items() if k != "report_digest"}
         )

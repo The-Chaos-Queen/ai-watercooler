@@ -8,7 +8,7 @@ import copy
 import pytest
 
 from p5_b0_harness import (
-    B0_RUN_KIND,
+
     COMPONENT_ROUTES,
     B0EvidenceBundle,
     EvidenceBundleError,
@@ -32,7 +32,7 @@ def _good():
         "runtime": {"hash": "rt-hash-1"},
         "components": {r: "disabled" for r in COMPONENT_ROUTES},
         "sev_ids": {"geometry_holdout": ["a1", "a2"], "behavioral_probe": ["b1", "b2"]},
-        "evidence_sink": {"path": "/evidence/b0", "mode": "append_only", "present": True},
+        "evidence_sink": {"path": "/evidence/b0", "mode": "append_only", "present": False},
     }
 
 
@@ -125,6 +125,16 @@ def test_unpinned_panel_hash_is_refused(unset):
     assert any("panel.hash" in r for r in d.refusals)
 
 
+def test_placeholder_strings_are_refused():
+    m = _good()
+    m["panel"]["hash"] = "[TBD: panel hash]"
+    assert authorize_b0_launch(m).ok is False
+    
+    m2 = _good()
+    m2["decoding"]["hash"] = "tbd: hash goes here"
+    assert authorize_b0_launch(m2).ok is False
+
+
 def test_unpinned_model_revision_is_refused():
     m = _good()
     m["model"]["revision"] = "TBD"
@@ -158,9 +168,9 @@ def test_disjoint_sev_needs_no_attestation():
 # --------------------------------------------------------------------------- #
 # Evidence sink.                                                               #
 # --------------------------------------------------------------------------- #
-def test_absent_evidence_sink_is_refused():
+def test_present_evidence_sink_is_refused():
     m = _good()
-    m["evidence_sink"]["present"] = False
+    m["evidence_sink"]["present"] = True
     assert authorize_b0_launch(m).ok is False
 
 
