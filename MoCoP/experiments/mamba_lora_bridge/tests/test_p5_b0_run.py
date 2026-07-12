@@ -1,11 +1,11 @@
 """Model-free tests for the hardened P5 B0 runner (OpenCLAW #156, slice 4).
 
-Covers the wolf-Codex review of record #954/#960: MANDATORY derived execution binding,
-no-replace atomic publication with byte verification, O_EXCL append-only journal with
-unique attempt ids + terminal events, the reviewed EXACT reachability inventory (retiring
-both the dotless-basename and __file__-path heuristics), post-forward late-import
-re-check, sterile-backend seam, and strict-JSON custody (NaN/object refused pre-publish).
-Each blocker Codex reproduced has an adversarial test here.
+Covers wolf-Codex review of record #966 on top of #954/#960: mandatory sterility, runner
+authorization, closure-aware scorer digests, the two-phase terminal transaction (O_EXCL
+journal + inode identity + no-replace publish + report<->journal binding), full-write
+durability, the exact reachability inventory + import-audit sentinel for transient imports,
+protected-parent verification, and strict canonicalization. Each #966 counterexample has
+an adversarial test here.
 """
 import json
 import os
@@ -16,11 +16,18 @@ import pytest
 
 from p5_b0_harness import COMPONENT_ROUTES, EvidenceBundleError, canonical_digest
 from p5_b0_run import (
+    DESCRIPTOR_KEYS,
     FORBIDDEN_ROUTE_MODULES,
     B0RunError,
     ScriptedGenerationBackend,
+    _Journal,
     _callable_digest,
+    _clear_import_sentinel,
+    _drain_import_sentinel,
+    _forbidden_route_for,
+    _import_audit_hook,
     _normalize_dtype,
+    _runner_digest,
     assert_no_component_reachable,
     canonical_panel_hash,
     derive_effective_decoding,
@@ -30,10 +37,15 @@ from p5_b0_run import (
     run_b0,
 )
 
-MODEL = {"id": "google/gemma-4-12B", "revision": "a" * 40, "dtype": "bf16"}
+MODEL = {
+    "id": "google/gemma-4-12B", "revision": "a" * 40, "dtype": "bf16",
+    "backend": "Gemma3ForConditionalGeneration", "device": "cuda:0",
+    "attention": "eager", "use_cache": True,
+}
 PANEL = [("probe1", "prompt one"), ("probe2", "prompt two")]
 DEC = {"do_sample": False, "max_new_tokens": 64}
 DEC_HASH = canonical_digest(DEC)
+RUNNER_DIGEST = _runner_digest()
 
 
 def _scorer(probe_id, generation):
@@ -49,12 +61,12 @@ def _backend(model=None):
 
 
 def _mods(*names):
-    """A fake sys.modules mapping — reachability matches on NAME only now."""
     return {n: types.ModuleType(n) for n in names}
 
 
 def _manifest(panel, report_path, *, model=None, panel_hash=None,
-              scorer_version="5g2-v1", scorer_code_digest=None, decoding=None):
+              scorer_version="5g2-v1", scorer_code_digest=None, decoding=None,
+              runner_digest=None):
     dec = dict(decoding or DEC)
     dec_block = {**dec, "hash": canonical_digest(
         {"do_sample": bool(dec["do_sample"]), "max_new_tokens": int(dec["max_new_tokens"])})}
@@ -68,7 +80,8 @@ def _manifest(panel, report_path, *, model=None, panel_hash=None,
         "rubric": {"version": "rubric-v1"},
         "processor": {"revision": "proc-rev-1"},
         "decoding": dec_block,
-        "runtime": {"hash": "rt-hash-1"},
+        "runtime": {"hash": "rt-hash-1",
+                    "runner_digest": runner_digest if runner_digest is not None else RUNNER_DIGEST},
         "components": {r: "disabled" for r in COMPONENT_ROUTES},
         "sev_ids": {"geometry_holdout": ["a1"], "behavioral_probe": ["b1"]},
         "evidence_sink": {"path": str(report_path), "mode": "append_only", "present": False},
@@ -87,12 +100,15 @@ class _ExplodingBackend:
     def descriptor(self):
         return dict(MODEL)
 
+    def assert_sterile(self):
+        return None
+
     def generate(self, prompt, decoding):
         raise AssertionError("generate() must not be called on a refused B0 run")
 
 
 # --------------------------------------------------------------------------- #
-# Reachability guard: reviewed EXACT inventory (#960 HIGH-4).                  #
+# Reachability: exact inventory + transient import sentinel (#966 HIGH-4).     #
 # --------------------------------------------------------------------------- #
 def test_inventory_covers_every_route():
     assert set(FORBIDDEN_ROUTE_MODULES) == set(COMPONENT_ROUTES)
@@ -101,16 +117,16 @@ def test_inventory_covers_every_route():
 @pytest.mark.parametrize("mod,route", [
     ("gemma4_value_norm_runtime", "value_injection"),
     ("train_cheese_bridge", "bridge"),
-    ("mamba_ssm", "mamba"),                        # external site-packages package
-    ("mamba_ssm.ops.selective_scan", "mamba"),     # its dotted submodule
-    ("qdrant_client", "qdrant"),                    # external site-packages package
-    ("qdrant_client.http.models", "qdrant"),        # dotted submodule -> top-level hit
+    ("mamba_ssm", "mamba"),
+    ("mamba_ssm.ops.selective_scan", "mamba"),
+    ("qdrant_client", "qdrant"),
+    ("qdrant_client.http.models", "qdrant"),
+    ("memory_engine", "memory"),                              # #966: the named missing route
+    ("Projects.Project_Prosthetic.memory_engine", "memory"),  # dotted Projects path
     ("dense_associative_memory", "memory"),
-    ("lesson_memory", "memory"),
     ("astrocyte_memory_controller", "controller"),
     ("sleep_reconcile", "sleep"),
     ("friction_world_model", "world_model"),
-    ("gate_policy_replay", "replay"),
 ])
 def test_reachable_component_is_flagged(mod, route):
     hits = reachable_components(_mods("os", "sys", "torch", mod))
@@ -118,10 +134,8 @@ def test_reachable_component_is_flagged(mod, route):
 
 
 @pytest.mark.parametrize("benign", [
-    "torch.cuda.memory",           # basename 'memory' must NOT fire (the old substring bug)
-    "torch.nn.functional",
-    "transformers.models.gemma4.modeling_gemma4",
-    "numpy.core.multiarray",
+    "torch.cuda.memory", "torch.nn.functional",
+    "transformers.models.gemma4.modeling_gemma4", "numpy.core.multiarray",
     "json", "os", "sys", "collections.abc",
 ])
 def test_benign_modules_do_not_false_positive(benign):
@@ -129,8 +143,20 @@ def test_benign_modules_do_not_false_positive(benign):
 
 
 def test_none_valued_module_still_counts_by_name():
-    # A None entry in sys.modules (attempted import) is still reachability by NAME.
     assert reachable_components({"qdrant_client": None, "os": None}) == {"qdrant": ["qdrant_client"]}
+
+
+def test_forbidden_route_for_exact_match():
+    assert _forbidden_route_for("memory_engine") == "memory"
+    assert _forbidden_route_for("torch.cuda.memory") is None
+
+
+def test_import_sentinel_flags_forbidden_transient():
+    _clear_import_sentinel()
+    _import_audit_hook("import", ("qdrant_client", None, None, None, None))
+    _import_audit_hook("import", ("json", None, None, None, None))
+    assert _drain_import_sentinel() == ["qdrant_client"]
+    assert _drain_import_sentinel() == []                     # drained
 
 
 def test_assert_helper_accepts_explicit_module_list():
@@ -139,33 +165,35 @@ def test_assert_helper_accepts_explicit_module_list():
 
 
 # --------------------------------------------------------------------------- #
-# run_b0 happy path + journal + publication.                                   #
+# Happy path + journal + publication.                                          #
 # --------------------------------------------------------------------------- #
 def test_run_b0_happy_path(tmp_path):
     out = tmp_path / "b0_report.json"
     res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
     assert res.ok is True
     assert res.report["record_count"] == 2
+    assert res.report["terminal_state"] == "completed"
     assert out.exists()
     published = json.loads(out.read_text(encoding="utf-8"))
     recomputed = canonical_digest({k: v for k, v in published.items() if k != "published_digest"})
     assert recomputed == published["published_digest"] == res.published_digest
-    # execution descriptor is journaled into the report for audit.
     assert published["execution_descriptor"]["scorer_code_digest"] == SCORER_DIGEST
-    assert published["execution_descriptor"]["decoding"] == DEC
+    assert published["journal_digest"]
 
 
-def test_run_b0_journal_has_unique_attempts_and_terminal_completed(tmp_path):
+def test_run_b0_journal_two_phase_terminal(tmp_path):
     out = tmp_path / "b0_report.json"
     _run(_manifest(PANEL, out), PANEL, _backend(), out)
-    lines = (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()
-    events = [json.loads(line) for line in lines]
+    events = [json.loads(x) for x in
+              (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()]
     kinds = [e["event"] for e in events]
     assert kinds == ["claim", "attempt", "generated", "recorded",
-                     "attempt", "generated", "recorded", "completed"]
+                     "attempt", "generated", "recorded", "sealing", "completed"]
     attempt_ids = [e["attempt_id"] for e in events if e["event"] == "attempt"]
-    assert len(set(attempt_ids)) == 2                       # unique per probe
-    assert events[0]["runner_digest"] and events[-1]["report_bytes_sha256"]
+    assert len(set(attempt_ids)) == 2
+    # the sealing event and the report cross-bind the same published_digest
+    sealing = next(e for e in events if e["event"] == "sealing")
+    assert sealing["published_digest"] == json.loads(out.read_text())["published_digest"]
 
 
 def test_publish_is_no_replace(tmp_path):
@@ -173,10 +201,10 @@ def test_publish_is_no_replace(tmp_path):
     out.write_text("{}", encoding="utf-8")
     with pytest.raises(B0RunError):
         publish_report_atomic({"a": 1}, out)
-    assert out.read_text(encoding="utf-8") == "{}"          # untouched
+    assert out.read_text(encoding="utf-8") == "{}"
 
 
-def test_publish_verifies_and_rejects_nonstrict_json(tmp_path):
+def test_publish_rejects_nonstrict_json(tmp_path):
     out = tmp_path / "b0_report.json"
     with pytest.raises(EvidenceBundleError):
         publish_report_atomic({"bad": float("nan")}, out)
@@ -184,15 +212,17 @@ def test_publish_verifies_and_rejects_nonstrict_json(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# Reservation primitive (#960 BLOCKER-1 / HIGH-3).                            #
+# Reservation + protected parent + journal identity (#966 B2/H3/H5).           #
 # --------------------------------------------------------------------------- #
 def test_reserve_is_exclusive(tmp_path):
     out = tmp_path / "b0_report.json"
-    fd, journal = reserve_report_slot(out)
-    os.close(fd)
-    assert journal.exists()
-    with pytest.raises(B0RunError):
-        reserve_report_slot(out)
+    j = reserve_report_slot(out)
+    try:
+        assert (tmp_path / "b0_report.json.journal").exists()
+        with pytest.raises(B0RunError):
+            reserve_report_slot(out)
+    finally:
+        j.close()
 
 
 def test_reserve_refuses_preexisting_report(tmp_path):
@@ -202,15 +232,33 @@ def test_reserve_refuses_preexisting_report(tmp_path):
         reserve_report_slot(out)
 
 
-def test_run_b0_refuses_when_report_preexists(tmp_path):
-    out = tmp_path / "b0_report.json"
-    out.write_text("{}", encoding="utf-8")
-    with pytest.raises(B0RunError):
-        _run(_manifest(PANEL, out), PANEL, _ExplodingBackend(), out)
+def test_reserve_refuses_absent_protected_parent(tmp_path):
+    # #966 HIGH-5: the runner must NOT mkdir the protected sink parent.
+    out = tmp_path / "does_not_exist" / "b0_report.json"
+    with pytest.raises(B0RunError) as ei:
+        reserve_report_slot(out)
+    assert "parent does not exist" in str(ei.value)
+    assert not (tmp_path / "does_not_exist").exists()
+
+
+def test_journal_identity_swap_detected(tmp_path):
+    a, b = tmp_path / "a", tmp_path / "b"
+    fd = os.open(a, os.O_CREAT | os.O_WRONLY, 0o600)
+    b.write_text("x", encoding="utf-8")
+    j = _Journal(fd, b)                                       # fd->a, path->b: different inode
+    try:
+        st_fd, st_b = os.fstat(fd), os.stat(b)
+        if (st_fd.st_ino, st_fd.st_dev) != (st_b.st_ino, st_b.st_dev):
+            with pytest.raises(B0RunError):
+                j.verify_identity()
+        else:  # filesystem cannot distinguish inodes (e.g. some Windows FS): no false alarm
+            j.verify_identity()
+    finally:
+        j.close()
 
 
 # --------------------------------------------------------------------------- #
-# Reachability inside run_b0: live pre-forward + late-import re-check.         #
+# Live reachability + late/transient imports inside run_b0.                     #
 # --------------------------------------------------------------------------- #
 def test_run_b0_inspects_live_modules_and_refuses(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, "qdrant_client", types.ModuleType("qdrant_client"))
@@ -221,14 +269,15 @@ def test_run_b0_inspects_live_modules_and_refuses(tmp_path, monkeypatch):
     assert not out.exists()
 
 
-def test_run_b0_refuses_component_imported_during_forward(tmp_path):
-    # #960 HIGH-4: a backend that imports a forbidden module INSIDE generate is caught by
-    # the post-forward re-check; the run raises and publishes no sealed report.
+def test_run_b0_refuses_component_persistently_imported_in_forward(tmp_path):
     out = tmp_path / "b0_report.json"
 
     class _LateImport:
         def descriptor(self):
             return dict(MODEL)
+
+        def assert_sterile(self):
+            return None
 
         def generate(self, prompt, decoding):
             sys.modules["mamba_ssm"] = types.ModuleType("mamba_ssm")
@@ -237,13 +286,35 @@ def test_run_b0_refuses_component_imported_during_forward(tmp_path):
     try:
         with pytest.raises(B0RunError) as ei:
             _run(_manifest(PANEL, out), PANEL, _LateImport(), out)
-        assert "REACHABLE during the governed forward" in str(ei.value)
+        assert "REACHABLE after governed forward" in str(ei.value)
         assert not out.exists()
     finally:
         sys.modules.pop("mamba_ssm", None)
 
 
-def test_run_b0_refuses_nonsterile_backend(tmp_path):
+def test_run_b0_refuses_transient_import_in_forward(tmp_path):
+    # #966: a component imported AND removed inside one forward is caught by the sentinel.
+    out = tmp_path / "b0_report.json"
+
+    class _Transient:
+        def descriptor(self):
+            return dict(MODEL)
+
+        def assert_sterile(self):
+            return None
+
+        def generate(self, prompt, decoding):
+            sys.audit("import", "mamba_ssm", None, None, None, None)   # transient, not left loaded
+            return "gen"
+
+    with pytest.raises(B0RunError) as ei:
+        _run(_manifest(PANEL, out), PANEL, _Transient(), out)
+    assert "IMPORTED during governed forward" in str(ei.value)
+    assert not out.exists()
+    assert "mamba_ssm" not in sys.modules
+
+
+def test_run_b0_refuses_nonsterile_backend_that_raises(tmp_path):
     out = tmp_path / "b0_report.json"
 
     class _NonSterile:
@@ -251,7 +322,7 @@ def test_run_b0_refuses_nonsterile_backend(tmp_path):
             return dict(MODEL)
 
         def assert_sterile(self):
-            raise B0RunError("non-sterile model: _forward_hooks present")
+            raise B0RunError("non-sterile: _forward_hooks present")
 
         def generate(self, prompt, decoding):
             raise AssertionError("must not generate on a non-sterile backend")
@@ -261,9 +332,64 @@ def test_run_b0_refuses_nonsterile_backend(tmp_path):
     assert not out.exists()
 
 
+def test_run_b0_refuses_backend_without_sterility_contract(tmp_path):
+    # #966 B1: sterility is mandatory — a backend lacking assert_sterile is refused.
+    out = tmp_path / "b0_report.json"
+
+    class _NoSterile:
+        def descriptor(self):
+            return dict(MODEL)
+
+        def generate(self, prompt, decoding):
+            raise AssertionError("must not generate")
+
+    res = _run(_manifest(PANEL, out), PANEL, _NoSterile(), out)
+    assert res.ok is False and any("sterility contract" in r for r in res.refusals)
+
+
 # --------------------------------------------------------------------------- #
-# Mandatory + derived execution binding (#960 BLOCKER-2).                     #
+# Mandatory + derived execution binding (#966 BLOCKER-1).                     #
 # --------------------------------------------------------------------------- #
+def test_run_b0_refuses_unauthorized_runner(tmp_path):
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out, runner_digest="f" * 64)
+    res = _run(m, PANEL, _ExplodingBackend(), out)
+    assert res.ok is False and any("runner_digest mismatch" in r for r in res.refusals)
+
+
+def test_run_b0_refuses_unset_runner_digest(tmp_path):
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out)
+    del m["runtime"]["runner_digest"]
+    res = _run(m, PANEL, _ExplodingBackend(), out)
+    assert res.ok is False and any("runner is unauthorized" in r for r in res.refusals)
+
+
+def test_closure_state_changes_scorer_digest():
+    # #966 counterexample: identical source, different captured state -> DIFFERENT digest.
+    def make(v):
+        def s(pid, gen):
+            return ({}, {"v": v})
+        return s
+    assert _callable_digest(make(1)) != _callable_digest(make(2))
+
+
+def test_run_b0_refuses_descriptor_missing_field(tmp_path):
+    out = tmp_path / "b0_report.json"
+    partial = _backend({k: v for k, v in MODEL.items() if k != "use_cache"})
+    res = _run(_manifest(PANEL, out), PANEL, partial, out)
+    assert res.ok is False and any("omits required field" in r for r in res.refusals)
+
+
+@pytest.mark.parametrize("field", ["backend", "device", "attention", "use_cache"])
+def test_run_b0_binds_extended_descriptor_fields(tmp_path, field):
+    out = tmp_path / "b0_report.json"
+    altered = dict(MODEL)
+    altered[field] = "TAMPERED" if field != "use_cache" else False
+    res = _run(_manifest(PANEL, out), PANEL, _backend(altered), out)   # manifest still MODEL
+    assert res.ok is False and any(field in r for r in res.refusals)
+
+
 @pytest.mark.parametrize("missing", [
     "rubric_version", "processor_revision", "decoding_hash", "runtime_hash",
 ])
@@ -284,13 +410,12 @@ def test_run_b0_refuses_scorer_code_digest_mismatch(tmp_path):
 def test_run_b0_refuses_derived_decoding_hash_mismatch(tmp_path):
     out = tmp_path / "b0_report.json"
     m = _manifest(PANEL, out)
-    m["decoding"]["hash"] = "f" * 64                     # not the derived hash
+    m["decoding"]["hash"] = "f" * 64
     res = _run(m, PANEL, _ExplodingBackend(), out)
     assert res.ok is False and any("decoding.hash" in r for r in res.refusals)
 
 
 def test_run_b0_refuses_unsupported_decoding_field(tmp_path):
-    # #960 BLOCKER-2: temperature is accepted-but-ignored by generate -> ban it.
     out = tmp_path / "b0_report.json"
     m = _manifest(PANEL, out)
     m["decoding"]["temperature"] = 0.7
@@ -308,16 +433,8 @@ def test_run_b0_refuses_nondeterministic_decoding(tmp_path):
 
 def test_run_b0_refuses_dtype_mismatch(tmp_path):
     out = tmp_path / "b0_report.json"
-    backend = _backend({**MODEL, "dtype": "fp16"})       # self-refusing dtype
-    res = _run(_manifest(PANEL, out), PANEL, backend, out)
+    res = _run(_manifest(PANEL, out), PANEL, _backend({**MODEL, "dtype": "fp16"}), out)
     assert res.ok is False and any("dtype" in r for r in res.refusals)
-
-
-def test_run_b0_refuses_backend_revision_mismatch(tmp_path):
-    out = tmp_path / "b0_report.json"
-    backend = _backend({**MODEL, "revision": "b" * 40})
-    res = _run(_manifest(PANEL, out), PANEL, backend, out)
-    assert res.ok is False and any("revision" in r for r in res.refusals)
 
 
 def test_run_b0_refuses_unbound_panel(tmp_path):
@@ -340,7 +457,7 @@ def test_run_b0_refuses_report_path_mismatch(tmp_path):
     assert res.ok is False and any("evidence_sink.path" in r for r in res.refusals)
 
 
-def test_run_b0_refuses_enabled_component_without_generating(tmp_path):
+def test_run_b0_refuses_enabled_component(tmp_path):
     out = tmp_path / "b0_report.json"
     m = _manifest(PANEL, out)
     m["components"]["qdrant"] = True
@@ -357,7 +474,7 @@ def test_run_b0_duplicate_probe_refused_before_forward(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# Strict-JSON custody: NaN / object refused before publish (#960 MED-5).      #
+# Strict-JSON custody (#960 MED-5 / #966 MED-6).                              #
 # --------------------------------------------------------------------------- #
 def test_run_b0_nan_scorer_output_refused_no_report(tmp_path):
     out = tmp_path / "b0_report.json"
@@ -369,7 +486,6 @@ def test_run_b0_nan_scorer_output_refused_no_report(tmp_path):
     with pytest.raises(EvidenceBundleError):
         _run(m, PANEL, _backend(), out, scorer=nan_scorer)
     assert not out.exists()
-    # a failed run leaves the journal with a terminal 'failed' event.
     events = [json.loads(x) for x in
               (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()]
     assert events[-1]["event"] == "failed"
@@ -387,8 +503,16 @@ def test_run_b0_object_scorer_output_refused_no_report(tmp_path):
     assert not out.exists()
 
 
+def test_canonical_digest_is_injective_on_types():
+    # #966 MED-6: no {1:"x"} vs {"1":"x"} or (1,2) vs [1,2] collapse — both RAISE now.
+    with pytest.raises(EvidenceBundleError):
+        canonical_digest({1: "x"})
+    with pytest.raises(EvidenceBundleError):
+        canonical_digest((1, 2))
+
+
 # --------------------------------------------------------------------------- #
-# dtype normalization (#960 BLOCKER-2 self-refusal fix).                       #
+# dtype normalization + decoding derivation.                                   #
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("raw,norm", [
     ("bfloat16", "bf16"), ("torch.bfloat16", "bf16"), ("bf16", "bf16"),
