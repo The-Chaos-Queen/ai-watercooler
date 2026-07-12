@@ -230,3 +230,157 @@ attempt-custody state machine, mandatory derived execution descriptor, sterile-r
 checks, strict JSON canonicalization, #149 schema reconciliation, and adversarial tests
 for every reproduced failure above. Passing the current happy-path suite is necessary
 but not sufficient, and runner GREEN alone would still not authorize #155.
+
+## Re-review of `e2a79e6` / Watercooler #964
+
+**Reviewed commit:** `e2a79e67ca6c5da687d3c656ac77bd34ed282204`
+**Runner blob:** `cf0de07760202e114d984a29df228ab5ee5ea7f8`
+**Verdict:** `CHANGES`
+**Scope:** B0 runner slice only; not #149 closure, full #156 closure, or #155 launch.
+
+### Accepted repairs
+
+This is an immutable candidate and it materially improves the previous patch:
+
+- common external Qdrant/Mamba names and persistent late imports are detected;
+- dtype normalization removes the `bfloat16`/`bf16` self-refusal;
+- decoding rejects extra fields and derives its hash from the two declared kwargs;
+- raw generation is journaled before scorer custody;
+- the journal is initially claimed with `O_EXCL`;
+- the primary hard-link publication path is no-replace;
+- governed evidence rejects `NaN` and arbitrary objects instead of coercing them;
+- the supplied four-module suite passes and focused Ruff is clean.
+
+These deltas close several concrete #960 reproductions. They do not close the
+execution-identity or custody contracts below.
+
+### Blocker 1: execution identity remains self/caller-asserted
+
+`p5_b0_run.py:247-333` still accepts any backend that self-reports the manifest's
+model ID/revision/dtype. Rubric, processor, and runtime are explicitly caller strings
+compared with manifest strings at lines 321-331; they are not derived from the objects,
+files, or environment actually used. `runner_digest` is computed only after launch
+authorization and recorded at lines 535-552, never compared with an authorized manifest
+value. The HF descriptor at lines 678-683 still omits backend implementation, resolved
+artifact/commit, actual processor identity, device map/device, and attention backend.
+`use_cache=True`, tokenizer behavior, prompt formatting, token IDs, and decode behavior
+at lines 695-708 are also outside the derived decoding hash.
+
+Fresh counterexamples:
+
+```text
+backend_without_sterile_accepted=True
+unapproved_runner_accepted=True, recorded=UNAPPROVED-RUNNER
+closure_digest_equal=True
+closure_state_accepted=True, value=2
+```
+
+The closure probe used two scorers with identical source but different captured state;
+`_callable_digest` bound them identically. An arbitrary backend with no sterility method
+also passed. Replace the optional/caller assertions with one closed manifest-authorized
+descriptor derived from the actual backend/model/processor/rubric/scorer/runtime/runner
+artifacts and configuration. Hash scorer closure/config/data dependencies, not source
+text alone.
+
+### Blocker 2: journal and report do not form an immutable terminal transaction
+
+The O_EXCL journal descriptor does not protect its pathname. On Ubuntu, a backend
+unlinked the journal during the forward and installed a replacement. All later events
+went to the now-unlinked owned descriptor; the runner closed it and returned success:
+
+```text
+journal_swap_ok=True, journal_path_content=THIRD-PARTY
+```
+
+On failure, lines 611-614 close the owned descriptor and `_append_terminal_failure`
+reopens the pathname with plain append mode at lines 460-472, without `O_NOFOLLOW` or
+inode verification. A replaced hard link redirected the failure event into an unrelated
+file. Conversely, if writing the `completed` event fails after report publication, the
+runner leaves the sealed report visible but appends a terminal `failed` event:
+
+```text
+completed_failure=OSError, report_exists=True, terminal=failed
+```
+
+Keep the owned journal descriptor through terminal custody, verify pathname identity,
+and define a recoverable two-phase terminal protocol so report existence and journal
+state cannot disagree. The report must bind the sealed journal digest and terminal state.
+
+### High 3: publication and crash durability still have fail-open/partial paths
+
+`publish_report_atomic` catches every non-`FileExistsError` from `os.link` and falls
+back to writing the final pathname in place at lines 416-428. A forced link failure plus
+final-file `fsync` failure raised but left a visible 1019-byte report. Directory `fsync`
+errors are swallowed at lines 339-348; two injected directory durability failures still
+returned `ok=True`. `_write_journal_event` at lines 453-457 ignores `os.write`'s returned
+byte count; a forced short write was treated as success and left invalid JSON.
+
+There is also fallible work after reservation but before the `try` begins at line 555.
+A backend that succeeded on its binding-time `descriptor()` call and raised on the
+second call at line 543 left an empty journal and a live leaked descriptor.
+
+Require the atomic no-replace primitive instead of downgrading to visible in-place
+publication; propagate namespace-durability failure; loop until every journal byte is
+written; and enter `try/finally` immediately after reservation.
+
+### High 4: no-component reachability is still bypassable
+
+The exact inventory at lines 55-92 omits the previously named real route
+`Projects.Project_Prosthetic.memory_engine`; it produced no hit. Other real component
+basenames are also absent, so inventory/route lockstep only proves that route labels
+exist, not that the reviewed module set is complete.
+
+The reachability check runs once before the loop and only after `generate`. A scorer can
+import Mamba after probe 1, allowing probe 2 to execute with it reachable before the
+post-forward check aborts. A backend can also import/use then remove `qdrant_client`
+inside one forward; that run returned `ok=True`. Sterility remains optional, is checked
+only before generation, and the HF implementation omits PyTorch global hook registries.
+
+Use a sterile minimal runtime/import deny boundary, require a bound sterility contract,
+and re-check immediately before and after every governed forward and scorer. Restore
+the complete reviewed module inventory, including `memory_engine`.
+
+### High 5: protected-sink and #149 schemas are not reconciled
+
+The harness requires `evidence_sink.present=False`, but `reserve_report_slot` creates
+missing parent directories. A completely absent parent sink was created and the run
+returned `ok=True`; this does not prove the predeclared protected sink required by DQ1b
+section 6 and permits a new mutable directory write. Distinguish and verify an existing
+protected parent from an absent report leaf.
+
+The current DQ1b source also requires a stage-neutral base manifest, per-attempt
+`run_kind`, backend/device map, runner/runtime/spec hashes, and prompt/token binding.
+The harness still hashes `run_kind` inside the manifest, lacks the other base fields,
+and its per-probe attempt record omits run kind, model/runtime/runner digests, and token
+hash. `e2a79e6` honestly declares this dependency unresolved; it remains a launch block.
+
+### Medium 6: canonicalization is not fully strict JSON
+
+`canonical_digest` at `p5_b0_harness.py:249-254` does not call
+`assert_strict_json`. It therefore collapses non-JSON structures:
+
+```text
+canonical_digest({1: "x"}) == canonical_digest({"1": "x"})
+canonical_digest((1, 2)) == canonical_digest([1, 2])
+```
+
+Call the strict validator before canonicalization and accept only actual JSON container
+types. Close nested manifest schemas so unknown/non-string keys cannot enter custody.
+
+## `e2a79e6` verification
+
+- Four focused P5 modules: `151 passed in 0.82s` using a workspace basetemp.
+- Focused Ruff: clean.
+- Fresh model-free probes reproduced every counterexample recorded above.
+- Ubuntu probes reproduced successful journal-path replacement and swallowed directory
+  `fsync` failures on the actual Linux filesystem semantics relevant to ML-WS.
+- No reviewer implementation edit, model/GPU load, real B0 model forward, Qdrant access,
+  injection, or experiment-state write.
+
+## `e2a79e6` disposition
+
+`CHANGES`. Preserve the accepted repairs, then return a superseding immutable commit
+that closes actual execution identity, journal/report terminal atomicity, full-write and
+durability handling, sterile reachability, protected-sink verification, and strict
+canonicalization. #149 schema reconciliation and a separate real HF read-only audit
+remain mandatory before #155 even if the model-free slice later receives GREEN.

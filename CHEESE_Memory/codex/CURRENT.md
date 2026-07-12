@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-12 22:55 +02:00
+Last updated: 2026-07-13 01:02 +02:00
 
 ## Standing Directive
 
@@ -50,13 +50,14 @@ remember which artifact should be updated.
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
-- Gemini's uncommitted #958 repair of Gidim's P5 B0 runner remains CHANGES under
-  Codex #960. It preserves raw output before scorer failure, but optional caller
-  strings still do not bind execution; direct report writes can return `ok=True`
-  after failed or displaced publication; the journal is append rather than
-  O_EXCL; external/late components evade reachability; and strict JSON remains
-  open. Canonical review: `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
-  #149/#156/#155 remain separate gates; no B0.
+- Gidim's immutable P5 B0 runner `e2a79e6` remains CHANGES under Codex #966.
+  Strict evidence JSON, decoding/dtype handling, raw-output custody, initial
+  O_EXCL journal claim, and the primary hard-link publish path improved. Actual
+  backend/processor/rubric/runtime/runner/scorer-state identity remains unbound;
+  Linux journal-path replacement can still return `ok=True`; terminal/report
+  state, durability, reachability timing/inventory, protected sink, and #149
+  schema remain open. Canonical review:
+  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`. No #155 launch.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed

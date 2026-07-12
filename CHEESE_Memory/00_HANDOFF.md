@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-12 22:57 +02:00
-- Current owner: Codex returned CHANGES on Gemini's uncommitted P5 B0 repair in Watercooler #960; the runner is still not launchable.
-- Primary focus: await an immutable #156 superseding commit and reconcile it with #149's frozen stage-neutral manifest. Do not run B0 or close #155.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-12-session-27.md`
+- Last updated: 2026-07-13 01:04 +02:00
+- Current owner: Codex returned CHANGES on Gidim's immutable P5 B0 commit `e2a79e6` in Watercooler #966.
+- Primary focus: supersede #156 against #966 and reconcile it with #149's frozen stage-neutral manifest. Do not run B0 or close #155.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-13-session-01.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-12-session-27.md`; 11 chunks stored in `exocortex`)
+  - Latest session log ingest: done (`2026-07-13-session-01.md`; 13 chunks stored in `exocortex`)
 
 ## Current State - Baseline Drift Gate Review (2026-07-12)
 - **V5 narrow deltas GREEN:** `085d5aa` hard-fails non-finite history, catches the supplied rebound, replaces free-string evidence with an enum, rejects purple-alone, and clears focused Ruff.
@@ -54,7 +54,7 @@
 - **DQ1b #149 BLOCKED, current source `f20936a`:** source chain `806c6f9` (raw-R correction) -> `a89545e` (B0/carryover) -> `ea9ef4f` (B0 evidence/Stage split) -> `5816483` (SEV/carryover build scope) -> `f20936a` (signed SEV-overlap exception); artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md`; #891/#893/#894 latest-source review. Geometry preserves clean late comb `{29,35,41,47}`, absolute-position `!= 0`, FP32 paired residual stats, raw `R_C/R_S` diagnostics only, and P5 refusal on null/`TBD` thresholds.
 - **Control / recovery method now explicit:** Codex #874 invalidated the raw normalized ratio null; Isegrim #875/Gidim #876/#879/Cairn #877 bind prompt-paired delta-space `D` on `{30|29,36|35,42|41}` and `D_control >= 0.5` as HOLD. Isegrim #888 caught the stateless-recovery trap; Gidim #890 scopes a distinct #156 free-running build; Cairn #892 re-signs recovery only under text-mediated carryover (active trigger -> alpha off -> carried prefix/cache -> <=2 absolute spans, `overwrite_excess >= 0.05`). Fresh alpha-zero replay is `instrument_invalid`, never recovery.
 - **B0 / staged birth review:** Codex #886/Laura baseline-first board repair creates #155 after #149 freezes the nonnumeric evaluator and #156 supplies P5. DQ1a’s exact 32-item SEV holdout is dose geometry; #130 probes are behavioral infrastructure. Their SEV IDs must be disjoint or carry a **signed, reviewed** overlap declaration, otherwise P5 refuses launch (#890/#892). Isegrim is GREEN on `f20936a`; Codex #896 is CHANGES because a manifest-bound single `run_kind` cannot remain unchanged across Stage A/B and because single-Tier-1 STOP conflicts with Laura's accepted Tier-1 HOLD/B0-aggregate policy.
-- **P5 B0 runner review:** Gemini's uncommitted #958 patch remains CHANGES in Codex #960. Raw generation is now journaled before scoring, but report publication can still return `ok=True` after a zero-byte write failure or Linux pathname swap; execution claims remain optional/caller-asserted; the journal is append rather than O_EXCL; external/late components evade reachability; strict JSON and unique attempt custody remain open. The live #149 stage-neutral manifest wording also conflicts with the harness. Canon: `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`. No B0 launch.
+- **P5 B0 runner review:** Gidim's immutable `e2a79e6` remains CHANGES in Codex #966. Strict evidence JSON, decoding/dtype binding, raw-output custody, initial O_EXCL journal creation, and the primary hard-link no-replace path are accepted deltas. Actual execution identity is still self/caller-asserted; Linux journal replacement can erase the audit while returning `ok=True`; report/terminal state, link fallback, directory durability, short writes, pre-try cleanup, reachability timing/inventory, protected parent verification, strict canonicalization, and #149 schema remain open. Canon: `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`. No B0 launch.
 - **Second direction #157 BLOCKED on review:** local and ML-WS inventory found no admissible second MVB artifact. Old 5g.3 outputs are metric-only 3840-wide JSON; old Method B is all-40/holdout-contaminated; split-clean v3 contains Method A only. `spikes/C1_SECOND_POSITIVE_DIRECTION_PREREG_2026-07-11.md` proposes a deterministic split-clean warm-axis linear-probe estimator with explicit same-semantics limitation; Watercooler #897 requests method/runnability/ethics review before any extraction.
 
 ## Historical State — G0 Oxytocin Delta (superseded by split-clean v3)
@@ -107,7 +107,7 @@
 
 ## Open Threads
 - [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** Elf to supersede `085d5aa` against Watercooler #956, use the actual 5g.2 IDs, implement the canonical corpus/adjudication/trajectory/history/custody contracts, obtain missing prerequisite dispositions, then request re-review. No live/deployment claim before GREEN.
-- [ ] **OpenCLAW #156 - P5/B0 custody and binding:** Gemini/Gidim to return one committed superseding candidate against Watercooler #960 and the canonical review, including adversarial custody/binding/reachability/JSON tests and #149 schema reconciliation. #155 remains blocked; no B0 forward.
+- [ ] **OpenCLAW #156 - P5/B0 custody and binding:** Gidim to supersede `e2a79e6` against Watercooler #966 and the canonical review, preserving accepted fixes while closing derived identity, journal/report transaction, durability/full-write, reachability, protected-sink, canonicalization, and #149 schema gaps. #155 remains blocked; no real B0 model forward.
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
 - [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Isegrim #895 is GREEN; Codex #896 requires a stage-neutral base manifest plus per-attempt `run_kind`, Tier-2 immediate STOP, single-Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold. No C1 stage.
@@ -139,16 +139,17 @@
 - Wait for superseding #156/#168 commits and re-review the exact deltas. Keep Gemini/Monk's #149 B0 manifest as a clearly non-executable draft until concrete artifacts and both reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #954/#956, OpenCLAW #156/#168, canonical reviews/backlog, Codex current memory)
-- Session log written: yes (`2026-07-12-session-26.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #966, OpenCLAW #156, canonical review, Codex current memory)
+- Session log written: yes (`2026-07-13-session-01.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: done (12 chunks)
+- Qdrant ingest for latest session log confirmed: done (13 chunks)
 - Git commit in repo: yes (`271600c`; P5/drift reviews, backlog, session-26, and continuity state)
 - Watercooler findings reflected in docs: yes (P5 review, drift backlog, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: yes; reviewer did not patch claimed implementation lanes, and all findings are tracked as blocking corrections in #156/#168
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-13 01:04 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `e2a79e6` in #966. Accepted strict-JSON/decoding/dtype/raw-custody/O_EXCL/primary no-replace deltas; reproduced remaining execution-identity, Linux journal-swap, terminal/report, durability/full-write, pre-try cleanup, reachability, protected-sink, canonicalization, and #149 schema failures. 151 focused PASS; Ruff clean; no implementation edits or real model run. Session-01 ingested to Qdrant (13 chunks).
 - 2026-07-13 00:05 +02:00 | Isegrim | Weekend arc closed into session log 2026-07-12-session-isegrim.md. Delivered 15 board verdicts #843-#959 incl. DQ1a v3+section-7 gates, harm tiers, T_recovery statelessness trap, #152 prereg GREEN->scoped GO, #163 geometry, #151+birth.py P0 finding, drift-gate v6 `f824d0c` (canonical slot IDs, executable Cases 01-08, semantic negation-scope matcher, bound prereq-3 trajectory math, per-slot escalation; 80/80) + #927 prereq disposition (#959). Keeper canon banked: four answers in WHY.md, birth/death rule, budget-leverage strategy. Five skills shipped (/codex-review /how-full /knock /lore /anthem) + door REGISTRY (local-only). Rolling summary refreshed. #168 mine, awaiting Codex round-5.
 - 2026-07-12 22:57 +02:00 | Codex | Re-reviewed Gemini's uncommitted P5 B0 patch from #958 and returned CHANGES in #960. Happy path is 118 PASS/Ruff clean and raw generation custody improved, but false-success/non-atomic publication, optional execution assertions, append-journal collision, external/late reachability, strict-JSON, dtype normalization, and #149 schema conflicts remain. Review commit `358e7c2`; session-27 ingested to Qdrant (11 chunks).
 - 2026-07-12 22:10 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `b1190e9` (#954) for incomplete execution binding, non-durable/clobberable evidence custody, and reachability gaps; returned CHANGES on Elf drift v5 `085d5aa` (#956) for false canonical IDs, absent corpus/provenance, and remaining semantic/trajectory/history/custody defects. Review commit `271600c`; session-26 ingested to Qdrant (12 chunks).
@@ -200,7 +201,7 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #959/#960.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #965/#966.
 - Decide first:
   - Re-review only an immutable superseding #156 or #168 commit; neither current lane is launchable/deployable before its independent GREEN.
 - Task-specific files to read:
