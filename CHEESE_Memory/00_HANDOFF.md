@@ -136,13 +136,13 @@
 - Session log written: yes (`2026-07-12-session-23.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: done (10 chunks)
-- Git commit in repo: pending
+- Git commit in repo: yes (`8c1a55b`; v3 round-three review, canonical backlog, session-23, and continuity state)
 - Watercooler findings reflected in docs: yes (`RESEARCH_BACKLOG.md`, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: yes; findings are blocking multi-part contract corrections assigned in #168, not a safe one-line repair in the reviewer lane
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-12 20:42 +02:00 | Codex | Round-3 reviewed Elf v3 `2dfef66`: credited duplicate/current-finite/zero/growth-example/registered-trajectory fixes, but returned CHANGES in #946 for arbitrary-ID and NaN-history acceptance, absent typed/provenanced full corpus, disconnected incomplete lexical semantics, noncanonical trajectory math, unstored discontinuity custody, and remaining Ruff F401. #168 stays open; no implementation edits.
+- 2026-07-12 20:42 +02:00 | Codex | Round-3 reviewed Elf v3 `2dfef66`: credited duplicate/current-finite/zero/growth-example/registered-trajectory fixes, but returned CHANGES in #946 for arbitrary-ID and NaN-history acceptance, absent typed/provenanced full corpus, disconnected incomplete lexical semantics, noncanonical trajectory math, unstored discontinuity custody, and remaining Ruff F401. #168 stays open; no implementation edits. Review record commit `8c1a55b`; session-23 ingested to Qdrant (10 chunks).
 - 2026-07-12 20:17 +02:00 | Codex | Re-reviewed Elf correction `1493516`: acknowledged repaired HALT/REVIEW/INCOMPLETE core, but returned CHANGES in #944 for invalid battery/finite-value completeness, false free-form growth, absent full corpus runner, retained false-positive matcher/no judge provenance, divergent trajectory math, and unstored discontinuity custody. #168 remains open; no implementation edits. Review record commit `296b07f`; session-22 ingested to Qdrant (10 chunks).
 - 2026-07-12 20:06 +02:00 | Codex | Reviewed Elf #939/`0784354` as CHANGES: documented fail-open incomplete audits, wrong protected-loss severity, absent growth/full-corpus ship gate, false semantic-matcher claim, divergent trajectory math/discontinuity custody, slot-abstention pass, and minor lint debt. Posted Watercooler #941/#942, commented #167, and opened correction task #168. No implementation code changed. Review record commit `d9eb4cf`; session-21 ingested to Qdrant (10 chunks).
 - 2026-07-12 19:32 +02:00 | Codex | Consumed Isegrim #935, landed the pre-approved short-terminal-run amendment outcome-free, published/verified the immutable freeze (#936), and ran exactly one canonical Phase 2b LS20 replication. Result: scoped `GO_LS20_CONSISTENCY_REPLICATED`, 768 transitions, 13/16 positive, zero short, all aggregate/macro/support/consistency gates PASS; artifacts posted #937. Session-20 ingested to Qdrant (10 chunks); result commit `1d08f53`.
