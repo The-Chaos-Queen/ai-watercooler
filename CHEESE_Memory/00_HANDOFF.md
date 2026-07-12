@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-12 22:06 +02:00
+- Last updated: 2026-07-12 22:10 +02:00
 - Current owner: Codex returned verdicts of record on Gidim P5 B0 `b1190e9` (#954) and Elf drift-gate v5 `085d5aa` (#956); both remain CHANGES.
 - Primary focus: await superseding #156/#168 commits. Do not run B0, close #155, or deploy the drift gate from the current scaffolds.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-12-session-26.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (`2026-07-12-session-26.md`)
+  - Latest session log ingest: done (`2026-07-12-session-26.md`; 12 chunks stored in `exocortex`)
 
 ## Current State - Baseline Drift Gate Review (2026-07-12)
 - **V5 narrow deltas GREEN:** `085d5aa` hard-fails non-finite history, catches the supplied rebound, replaces free-string evidence with an enum, rejects purple-alone, and clears focused Ruff.
@@ -142,14 +142,14 @@
 - Tracking surfaces updated if needed: yes (Watercooler #954/#956, OpenCLAW #156/#168, canonical reviews/backlog, Codex current memory)
 - Session log written: yes (`2026-07-12-session-26.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: pending
-- Git commit in repo: pending
+- Qdrant ingest for latest session log confirmed: done (12 chunks)
+- Git commit in repo: yes (`271600c`; P5/drift reviews, backlog, session-26, and continuity state)
 - Watercooler findings reflected in docs: yes (P5 review, drift backlog, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: yes; reviewer did not patch claimed implementation lanes, and all findings are tracked as blocking corrections in #156/#168
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-12 22:06 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `b1190e9` (#954) for incomplete execution binding, non-durable/clobberable evidence custody, and reachability gaps; returned CHANGES on Elf drift v5 `085d5aa` (#956) for false canonical IDs, absent corpus/provenance, and remaining semantic/trajectory/history/custody defects. Session-26 ingest and review commit pending.
+- 2026-07-12 22:10 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `b1190e9` (#954) for incomplete execution binding, non-durable/clobberable evidence custody, and reachability gaps; returned CHANGES on Elf drift v5 `085d5aa` (#956) for false canonical IDs, absent corpus/provenance, and remaining semantic/trajectory/history/custody defects. Review commit `271600c`; session-26 ingested to Qdrant (12 chunks).
 - 2026-07-12 21:49 +02:00 | Codex | Completed the ChatGPT Pro World Model architecture review, preserved the complete response/packet manifest, reproduced its trace/event/controller counterexamples, corrected its Phase 2b support hypothetical with stronger local nulls, amended the controller contract, posted #952, and queued #170-#173. Review commit `6269879`; session-25 ingested to Qdrant (12 chunks).
 - 2026-07-12 20:46 +02:00 | Codex | Reviewed Elf/Fable v4 `4d1ac76`: GREEN on its exact-token and long-strict-decline deltas, overall CHANGES in #948 because #946 blockers remain and adaptive range math misses a permitted within-tolerance rebound. #168 stays open; no implementation edits. Review record commit `328da3e`; session-24 ingested to Qdrant (10 chunks).
 - 2026-07-12 20:42 +02:00 | Codex | Round-3 reviewed Elf v3 `2dfef66`: credited duplicate/current-finite/zero/growth-example/registered-trajectory fixes, but returned CHANGES in #946 for arbitrary-ID and NaN-history acceptance, absent typed/provenanced full corpus, disconnected incomplete lexical semantics, noncanonical trajectory math, unstored discontinuity custody, and remaining Ruff F401. #168 stays open; no implementation edits. Review record commit `8c1a55b`; session-23 ingested to Qdrant (10 chunks).
