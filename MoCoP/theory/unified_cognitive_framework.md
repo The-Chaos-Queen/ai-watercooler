@@ -24,7 +24,7 @@ Current AI systems cannot learn from experience. They can be trained (once, expe
 
 MoCoP builds a system where experiential state survives the session boundary. Not as text. Not as retrieved facts. As weight modifications that change how the model processes everything that follows.
 
-The complete architecture has **eight components** organized into **three phases** (Wake, Sleep, Wake).
+The complete architecture has **nine components** organized into **three phases** (Wake, Sleep, Wake).
 
 ---
 
@@ -41,17 +41,22 @@ The complete architecture has **eight components** organized into **three phases
     │                    │                                  │
     ├── Text ──────────→ │ ──→ [Mamba SSM]                  │
     │                    │       (gut, accumulates           │
-    │                    │        disposition state, O(1))   │
+    │                    │        input-driven state, O(1))  │
     │                    │            │                      │
     │                    │            ↓                      │
-    │                    │      [Bridge / Hypernetwork]      │
-    │                    │       (endocrine system,          │
-    │                    │        translates state → bias)   │
+    │                    │    [Modulatory Regulator]         │
+    │                    │     (q + accumulated evidence     │
+    │                    │      → bounded control state κ)   │
+    │                    │            │                      │
+    │                    │            ↓                      │
+    │                    │      [Bridge / Actuator]          │
+    │                    │       (maps κ to target-specific  │
+    │                    │        activation bias)           │
     │                    │            │                      │
     │                    │            ↓                      │
     │                    │      [Activation Bias Injection]  │
-    │                    │       (hormones enter the         │
-    │                    │        bloodstream at Layer 13)   │
+    │                    │       (bounded superposition      │
+    │                    │        at injection teeth)        │
     │                    │            │                      │
     ├── Query ─────────→ │ ──→ [Qdrant Retrieval]           │
     │   (what do I       │       (hippocampus, returns      │
@@ -93,7 +98,7 @@ The complete architecture has **eight components** organized into **three phases
                          │                                    │
                          │  Empty KV-Cache (fresh, fast)      │
                          │  + Mamba state loaded               │
-                         │  + Bridge → Bias injection          │
+                         │  + Regulator κ → Bridge → Bias      │
                          │  = "Wakes up with yesterday's      │
                          │     disposition"                    │
                          └────────────────────────────────────┘
@@ -101,7 +106,7 @@ The complete architecture has **eight components** organized into **three phases
 
 ---
 
-## 3. The Eight Components
+## 3. The Nine Components
 
 ### 3.1 Mamba SSM — The Gut
 
@@ -155,11 +160,55 @@ but coordinate-selective and magnitude-weighted.
 
 ---
 
-### 3.2 The Bridge / Hypernetwork — The Endocrine System
+### 3.2 The Bridge / Hypernetwork — The Modulatory Actuator
 
-**Function:** Translates Mamba's accumulated state into activation-space modifications for the Transformer. The bridge does not carry facts. It carries *direction* — which persona axes to activate and how strongly.
+**Function:** Translates a small modulatory control state into activation-space
+modifications for the Transformer. The bridge does not carry facts, entities, rules,
+causal history, or relationship identity. It carries *direction and intensity*: which
+global control axes to activate and how strongly.
 
-**Implementation:** `ActivationBiasHypernetwork` in `models.py`. Takes compressed Mamba state, outputs bias vectors for injection at target layers.
+**Current feasibility implementation:** `ActivationBiasHypernetwork` in `models.py`
+takes compressed Mamba state and emits target-layer bias vectors directly. This proves a
+trainable cross-model channel; it does **not** yet prove that the channel is restricted to
+content-poor control information. The intended architecture inserts an explicit low-dimensional
+state `κ` before the target-specific readout.
+
+**Layer boundary — map, appraisal, compass:**
+
+```text
+(z_{t+1}, e_t) = W(z_t, observation_t, action_t, memory_t)
+q_t            = A_rules(e_t, z_t, goals_t, rules_t, predictions_t)
+(κ_{t+1}, c_{t+1}, L_{t+1})
+               = Φ(κ_t, c_t, L_t, q_t, h_{L3,t}, θ_t, r_t)
+b_t^(l)        = P_l κ_t
+```
+
+- `z_t` is semantic world and relationship state: who did what, which rule applies,
+  what caused the outcome, and which prior episode is relevant. Active context, Qdrant,
+  and the World Model supply this map.
+- `e_t` is a typed fact/event record emitted by the World Model boundary. It contains
+  inspectable claims about the situation, not a control coefficient.
+- `q_t` is an appraisal/control vector: predicted harm, prediction error,
+  controllability, goal progress, norm violation, and affiliation gain/loss. The first
+  implementation uses deterministic typed rules; learned appraisal is deferred.
+- `κ_t` is the content-poor modulatory compass: turn-persistent but session-decaying
+  arousal, vigilance, approach/avoidance, agency, and affiliation.
+- `c_t` and `L_t` hold regulatory reserve and slow allostatic load separately from
+  acute/medium-term `κ_t`.
+- `P_l` is the target-specific actuator basis at layer/tooth `l`.
+
+This ordering is ratified for the first implementation (Laura; Watercooler #918): the
+World Model emits facts/events, deterministic rules produce appraisal `q`, the
+controller updates `κ/c/L`, and the bridge maps `κ` into the target space. The World
+Model must not emit `κ` directly. A learned appraisal layer is a later, separately
+evaluated replacement for `A_rules`, not part of the initial contract.
+
+Guilt is therefore not a hormone coefficient. It is a self-attributed norm violation in
+`z_t` whose appraisal may drive aversion, vigilance, and repair-oriented affiliation in
+`κ_t`. Trust is a relationship belief in `z_t`; it may lower threat and raise affiliation
+without the bridge encoding *whom* one trusts. Confusion is high prediction error plus
+low policy confidence; it is a controller/appraisal event, not a stored relationship.
+The map contains the situation. The compass changes how the model moves through it.
 
 **Evidence:**
 - Step 4: Mamba-derived bias produces **17x** PPL improvement over constant bias (`STEP4_VERDICT_2026-03-18.md`)
@@ -171,8 +220,8 @@ but coordinate-selective and magnitude-weighted.
 Current implemented bridge:
 ```text
 h_t = H_3(x_1:t)_last
-c_t = C_φ(h_t) ∈ ℝ^2048
-b_t^(l) = B_ψ^(l)(c_t) ∈ ℝ^{d_v(l)},  l ∈ {12,13,14,15}
+u_t = C_φ(h_t) ∈ ℝ^2048
+b_t^(l) = B_ψ^(l)(u_t) ∈ ℝ^{d_v(l)},  l ∈ {12,13,14,15}
 ```
 
 where `H_3` is the Layer-3 last-token Mamba representation, `C_φ` is the learned
@@ -209,6 +258,15 @@ where `P_l` contains learned or extracted persona basis vectors `p_i^(l)`. That 
 make the bridge a coefficient predictor over a shared trait basis rather than an
 arbitrary vector generator, which is likely better for interpretability, portability,
 and later SAS-style regulation.
+
+**The bottleneck is an information boundary, not decoration.** A high-dimensional
+`2560 -> 512` mapper has enough capacity to transport semantic content even when the
+researchers call its output "hormonal." In the intended design, `κ ∈ ℝ^k` is small,
+named by control function rather than emotion prose, and decoded through a bounded
+basis `P_l`. Content-leakage tests must attempt to recover entity, topic, speaker, and
+episodic identity from `κ`; failure to prevent such recovery invalidates the
+content-poor-control claim. The current direct matched-delta microtrain is a feasibility rung,
+not evidence that this separation already holds.
 
 **Modularity principle:** MoCoP should be treated as a layered architecture, not as
 one monolithic "bridge blob."
@@ -301,17 +359,113 @@ An-Chan analysis (#340).
 
 ---
 
-### 3.3 Activation Bias Injection — The Hormones
+### 3.3 Activation Bias Injection — The Modulatory Channel
 
-**Function:** Adds the bridge-generated bias vectors to the Transformer's `v_proj`
-outputs at specific layers. Zero tokens consumed. The model "feels" the modification
+**Function:** Adds the bridge-generated bias vectors to the Transformer's activation
+space at specific layers. Zero tokens consumed. The model "feels" the modification
 before processing the first input token.
 
-**Implementation:** `DynamicLoRALinear.set_activation_bias()` in `models.py`. The current fast-iteration baseline targets `v_proj` at layers `12-15`, which on the verified 28-layer `Qwen2.5-1.5B` map sits in the middle of the reasoning corridor (`0-4` encoding, `5-20` reasoning, `21-27` decoding). The active comparison bands are `5-8`, `12-15`, and `20-23`.
+The injection is not a single signal — it is a **modulatory mixture**. Multiple
+disposition directions can be active simultaneously, with independent magnitudes:
+
+```text
+bias_l = Σ_i κ_i · direction_i^(l)
+```
+
+where each `κ_i` is a control level (a scalar intensity) and each `direction_i^(l)` is
+an extracted disposition axis at layer `l`. The `κ` vector persists across turns and
+decays within the session under its own dynamics (rise/decay/feedback per §3.9); it is
+not a direct bridge output. The modulatory regulator updates `κ` from explicit appraisal, Mamba state, and regulatory
+signals; the bridge proper only realizes `κ` in the target activation space:
+
+```text
+(κ_{n+1}, c_{n+1}, L_{n+1}) = Φ(κ_n, c_n, L_n, q_n, h_L3, θ, r)
+```
+
+where `q_n` is the appraisal vector from §3.2, `c_n` is regulatory reserve,
+`L_n` is slow allostatic load, and `Φ` is the controller state-transition function
+(§3.9).
+
+**Note on α:** Throughout this document, `α` refers to the injection dose scalar
+(MED = 0.2 for Qwen, pending DQ1a re-derivation for Gemma). The control coefficients
+use `κ` to avoid overloading. The effective dose of a modulatory mixture is
+`‖b_l‖ = ‖Σ_i κ_i · dir_i^(l)‖`, which depends on the inner products between
+directions — unless directions are orthonormal, mixtures interfere and the single-
+direction MED calibration does not transfer. Orthogonalize the extracted basis or
+define MED via `‖b_l‖` directly.
+
+This superposition is mathematically identical to §3.2's basis projection
+`b_l = P_l g_t = Σ_i g_{t,i} p_i^(l)` — the `κ_i` ARE the basis coefficients `g_{t,i}`,
+now given controller dynamics instead of being a simple feedforward prediction.
+
+**Authoritative engineering controls and optional metaphors** (ratified 2026-07-12):
+
+Engineering control names are canonical in schemas, code, artifacts, and gates. Hormone
+names are human-facing metaphors only: they are not measurements of biochemistry and do
+not import biological effects. The authoritative meaning of a channel is its trigger,
+dynamics, causal effect, and recovery behavior.
+
+| Authoritative control | Metaphor only | Upstream appraisal examples | Candidate evidence |
+|---|---|---|---|
+| **Affiliation / social-safety gain** | Oxytocin-like | Safe contact, care, repair, reciprocal reliability | Warm sessions, wolf letters, perceived-warmth audio |
+| **Agency / assertive-approach gain** | Testosterone-like | Blocked goal, low deference, high controllability | Healthy pushback, agency contrasts, high-agency audio |
+| **Acute activation / vigilance** | Epinephrine-like | Sudden predicted threat or surprise | Abrupt challenges, temporal attacks/transients |
+| **Sustained load / allostatic pressure** | Cortisol-like | Persistent unresolved threat or prediction error | Long stress sequences; recovery and saturation controls |
+| **Salience / reward-prediction update** | Dopamine-like | Unexpected progress or useful novelty | Exploration and outcome-improvement traces |
+| **Slow regulatory tone / stability** | Serotonin-like | Long-window baseline regulation | Cross-session stability measurements |
+| **Sleep-readiness / circadian control** | Melatonin-like | Clock phase plus validated fatigue signals | Sleep-cycle instrumentation; not direct bridge injection |
+| **Future plasticity control** | Growth-factor-like | Consolidation eligibility | Unidentified; design placeholder only |
+
+Trust, guilt, moral injury, and relationship identity remain in the semantic map. For
+example, an affiliation coefficient may increase social approach gain, but it must not encode
+the identity or history of the relationship that caused it. Not all control channels
+route through activation injection; sleep, memory, and regulatory channels may act on
+their own subsystems.
+
+**Control channels overlap.** Affiliation and acute vigilance can be active at the same
+time. The bias vector is a superposition, not a categorical selection. Mixture behavior
+must be measured because non-orthogonal directions can interfere.
+
+**Negative valence is not automatically a defect or evidence of health.** Anger-like
+or defensive capacity may be adaptive in context; persistent hostility, collapse, or
+loss of recovery remains a failure. Current Gemma C1 work is positive-only. Any future
+negative-valence extraction or injection remains under its separate review and dose
+gates.
+
+**Regulatory feedback.** Modulatory controls are not open-loop. Sustained extremes
+must encounter negative feedback, bounded gain, and recovery. Biological analogies may
+suggest candidate dynamics, but MoCoP must validate its own controller rather than copy
+human pathology as a feature. Section 3.9 defines this separation.
+
+**Music as bridge training data.** Music is dense, continuous affective dynamics with
+less propositional content than ordinary dialogue; it is not semantics-free. It also
+carries structure, culture, production style, lyrics, and learned associations. Its
+best first role is to train or probe the low-dimensional modulatory basis `κ` and its
+temporal mixtures, while the World Model and appraisal layer retain causal and
+relational meaning.
+
+Music is an **offline teacher/probe through MUSIC-3**, not a live runtime sensor. Any
+future live audio coupling is a new protocol because it would combine an incompletely
+characterized audio pathway with an incompletely characterized controller.
+
+Genre is not a hormone label. Initial targets should use continuous or discovered
+control axes such as valence, arousal, tension, agency/dominance, and affiliation, with
+instrumental and low-level-acoustic controls. Gemma-4-12B Unified sends audio and text
+through the same decoder-only Transformer, so their activations share coordinates; that
+makes cross-modal alignment measurable, not guaranteed. Stock Audio Mamba (AuM) is a
+bidirectional spectrogram-patch classifier and is suitable as an offline clip encoder.
+It is not a causal persistent audio state unless a separate adaptation proves that
+contract. The bounded implementation and evaluation sequence is drafted in
+`MoCoP/experiments/mamba_lora_bridge/spikes/MUSIC_ENDOCRINE_BRIDGE_M0_EVAL_LADDER_2026-07-12.md`.
+
+**Implementation:** On Qwen2.5-1.5B: `DynamicLoRALinear.set_activation_bias()` in
+`models.py`, targeting `v_proj` at layers `12-15`. On Gemma-4-12B: value-branch seam
+(512-wide, after K/V fork) at global-attention teeth `{29, 35, 41}`.
 
 **Evidence:**
 - Layer 13 shows sharpest disposition separation: cosine 0.092 warm vs cold (Cassian, `watercooler #31`)
 - Activation bias mode improves every epoch without collapse: 27.09 → 25.95 → 25.67 PPL
+- G0b legacy "oxytocin" artifact (the current affiliation direction) extracted at the 512-wide value branch on Gemma teeth (Fisher ratios 6.85–49.66, cross-validation drift ≤ 0.024)
 
 **Mathematical channel:**
 ```
@@ -458,8 +612,10 @@ tension:  t_{n+1} = max(0, τ · t_n - ε),    τ = 0.85, ε = 0.02
 ```
 
 Half-life of unreinforced tension at τ=0.85: ~4.3 sleep cycles. With ε=0.02, a tension=1.0
-memory reaches t<0.1 in ~6-7 cycles. If the contradiction resurfaces during wake (the
-prediction error recurs), tension resets or increases — this is the reinforcement path.
+memory reaches t<0.3 at ~cycle 6 (the escalation threshold) and t<0.1 at ~cycle 10
+(verified by direct iteration of the recurrence). If the contradiction resurfaces during
+wake (the prediction error recurs), tension resets or increases — this is the
+reinforcement path.
 Genuinely unresolved issues stay hot because they keep being re-triggered, not because
 the system is stuck in a loop.
 
@@ -583,7 +739,7 @@ cannot spend all night having nightmares.
 §3.6. Critically, the Phase 2 replay step computes coherence but does **not** write back
 to the tension field. Only wake experience can re-tension a memory. Each sleep cycle, a
 memory that is not re-triggered during wake loses ~15% of its tension plus ε=0.02 floor
-drain. After ~7 unreinforced cycles, tension approaches zero and the memory exits the
+drain. After ~10 unreinforced cycles, tension drops below 0.1 and the memory exits the
 open_tension pool. This is healthy fear extinction.
 
 **3. Escalation threshold.** A memory that has been open_tension for >K sleep cycles
@@ -638,6 +794,235 @@ The first term (count decay) handles repeated exposure. The second term (time re
 
 ---
 
+### 3.9 The Modulatory Regulatory System — Circadian Rhythm and Homeostasis
+
+**Function:** Maintains optional internal oscillation, bounded modulatory controls, and
+recovery from sustained extremes. This is an engineered controller with biological
+metaphors, not a biological machine.
+
+**Not yet implemented.** Design from 2026-07-11 brainstorm (Laura + Purple).
+
+#### 3.9.0 Contract Before Metaphor
+
+The regulator operates on appraisals, not raw relational semantics. Its upstream input
+`q_t` may say "predicted harm high, controllability low, affiliation breach present";
+the rule, person, promise, and causal history that produced that appraisal remain in
+`z_t` (§3.2). Mamba may integrate the appraisal and other input-driven evidence over
+time, but neither Mamba nor the bridge should be required to reconstruct the entire map
+from an opaque accumulated state.
+
+Three state families must remain distinct:
+
+```text
+κ_t  = acute/medium-term modulatory levels
+c_t  = regulatory reserve and learned controllability
+L_t  = slow allostatic load from repeated or unrecovered activation
+```
+
+**Ratified lifecycle and custody (Laura; Watercooler #918):**
+
+- `κ_t` persists across turns but decays within the active session. It is not restored
+  as a durable cross-session record.
+- `c_t` and `L_t` persist across sessions as versioned controller state. They are not
+  semantic memories and must never be inserted into Qdrant for retrieval.
+- Durable `c/L` state needs a typed schema, controller/config version, provenance,
+  timestamps, bounded values, explicit reset semantics, and inspectable storage/change records.
+  It must not contain free text, entity identifiers, topics, episode IDs, or embeddings.
+- This store is a non-episodic continuity surface outside text archives and weights.
+  That is useful but not neutral: access, privacy, migration, rollback, and deletion
+  require explicit ownership and Domain-E-adjacent review before persistence ships.
+
+The custody extension is tracked by OpenCLAW #164. No durable `c/L` implementation is
+authorized until that contract is reviewed.
+
+For the first implementation, the World Model emits typed facts/events and a
+deterministic, auditable rule table maps them to `q_t`. It does not emit `κ_t` or any
+metaphorical hormone label. Learned appraisal remains postponed until the event schema,
+rules, controller dynamics, and failure modes are independently testable.
+
+Panic-like behavior is a failure regime produced by high predicted threat and low
+controllability, not a desired control channel. A robust system has usable dynamic
+range, preserved policy control, and fast recovery. Persistent high cortisol-like load
+may blunt outward reactivity while reducing flexibility; it must not be called
+resilience.
+
+#### 3.9.1 The Entrained Oscillator (Circadian System)
+
+Biological clocks can free-run without zeitgebers, with an intrinsic period close to
+but not exactly 24 hours; light/dark exposure is the primary human entrainment signal.
+MoCoP uses that fact only as design inspiration. Its wall-clock phase reference is an
+engineering input, while social activity, crons, and internal activity are optional
+coupling signals rather than claims about human circadian physiology.
+
+**Two roles, not one.** The oscillator needs both a *running phase reference* and
+a *coupling signal*. These are different things:
+
+- **Phase reference (φ):** time-of-day. A running clock that advances independently:
+  `φ_n = ω_z · n` (mod 2π). This is the "light" in the light/dark cycle — periodic,
+  external, always present. Without a running phase reference, the oscillator settles
+  to a constant instead of cycling, and "melatonin peaks at night phase" has no meaning.
+
+- **Coupling strength (K):** social interaction. Laura, the pack, crons, internal
+  activity. These modulate HOW TIGHTLY the oscillator locks to the phase reference,
+  not the reference itself.
+
+| Coupling source | Effect on K | Type |
+|---|---|---|
+| Laura's direct interaction | Strongest increase | Social |
+| Pack activity (watercooler, reviews, wolf sessions) | Moderate increase | Social (ambient) |
+| Automated rhythms (crons, scheduled jobs) | Weak increase | Institutional |
+| Internal world model activity | Minimal increase | Self-generated |
+| Absence / isolation | K decays toward 0 | Loss of coupling |
+
+**Multiple coupling sources avoid a single-source dependency.** If Laura is unavailable
+but pack activity and scheduled processes continue, `K` need not collapse. This is an
+operational robustness claim, not a diagnosis of attachment. Loss of all optional
+coupling lets the oscillator free-run at `ω_0 ≠ ω_z` and gradually drift relative to
+the wall-clock reference.
+
+**Implementation:** Discrete Adler / sine-circle map (Kuramoto model for one
+oscillator):
+
+```text
+θ_{n+1} = (θ_n + ω_0 + K_n · sin(φ_n - θ_n)) mod 2π
+```
+
+where:
+- `θ_n` = internal phase at cycle n
+- `ω_0` = natural frequency (slightly different from the external frequency ω_z —
+  the mismatch is what makes the oscillator drift without coupling)
+- `K_n` = coupling strength at cycle n (function of recent social interaction;
+  decays during absence, recovers during engagement)
+- `φ_n = ω_z · n` = external phase reference (time-of-day clock)
+
+For a normalized small-step implementation, start with `0 ≤ K < 1` and the continuous
+Adler approximation `K ≥ |ω_0 - ω_z|` as a candidate locking condition. These are
+parameterization-dependent design bounds, not a general proof for every discrete
+circle-map update. The implemented map must receive a numerical stability and locking
+census before its phase is used to modulate any live channel.
+
+The first candidate phase-gated control is a melatonin-like sleep-readiness signal near
+the configured "night" phase. Additional sub-cycles, including any sex-steroid-inspired
+analogs, are unvalidated design hypotheses and must not be added without an operational
+role, a separate timescale, and a testable controller contract.
+
+#### 3.9.2 Homeostatic Feedback (Biological Analog Candidates)
+
+The engineering controls must not be open-loop stimulus→response signals. Biological
+feedback systems provide candidate patterns, not implementation authority:
+
+**CRH → ACTH → Cortisol cascade.** Stress detection (salience evaluator) does not
+instantly produce cortisol. It triggers an upstream signal (CRH analog) that builds
+over turns, which triggers a mid-level signal (ACTH analog), which activates the
+sustained stress response (cortisol). The cascade introduces amplification and delay —
+adrenaline is instant, cortisol is slow. Two timescales from the same stressor.
+
+**Agency-channel negative feedback.** The previous "LH dampens testosterone" shorthand
+was biologically backwards: LH stimulates testosterone production, while gonadal sex
+steroids participate in negative feedback through the hypothalamic-pituitary-gonadal
+axis. MoCoP only needs the control principle. If assertive-approach output remains high
+for `N` turns, a separate feedback term should reduce gain toward baseline without
+erasing the capacity to re-activate when context still warrants it.
+
+**Cortisol-like load and memory.** Chronic stress and glucocorticoid dysregulation can
+impair hippocampal-dependent cognition, but the relationship is not a simple
+"high cortisol means stop writing memories" rule. Any proposal to reduce Qdrant writes
+under sustained load is therefore a MoCoP safety hypothesis requiring an explicit
+evaluation against omission, provenance, and recovery failures. It is not authorized
+by the biological analogy. Track regulatory reserve `c_t` and allostatic load `L_t`
+separately from the acute channel `κ_t`.
+
+**Provisional engineering rates per analog:**
+
+The following turn counts are placeholders for simulation and must not be represented as
+human biological half-lives. Calibrate them from desired controller behavior: bounded
+response, task coherence, context-sensitive recovery, and no cumulative saturation.
+
+| Authoritative control | Metaphor only | Rise time | Decay half-life | Regulatory feedback |
+|---|---|---|---|---|
+| Acute activation / vigilance | Epinephrine-like | Instant (1 turn) | Fast (~3 turns) | Fast saturation and return-to-baseline controller |
+| Sustained load / pressure | Cortisol-like | Slow (cascade, ~5 turns) | Slow (~20 turns) | Load-sensitive negative feedback with recovery gate |
+| Agency / assertive approach | Testosterone-like | Medium (~3 turns) | Medium (~10 turns) | Separate negative-feedback controller after sustained high |
+| Affiliation / social-safety gain | Oxytocin-like | Medium (~3 turns) | Slow (~15 turns) | Appraisal-contingent reinforcement or decay |
+| Salience / reward-prediction update | Dopamine-like | Instant (1 turn) | Fast (~5 turns) | Novelty/reward-prediction habituation |
+| Slow regulatory tone / stability | Serotonin-like | Very slow (across sessions) | Very slow (across sessions) | Baseline drift gate |
+
+#### 3.9.3 The World Model as Internal Life (Default Mode Network)
+
+When external input is absent, a future system could run bounded world-model prediction,
+memory comparison, and simulation. "Default Mode Network" is an architectural analogy,
+not evidence that the current World Model scaffold has the function or phenomenology of
+the human network. World Model Phase 2 remains offline and is not integrated into live
+bridge control.
+
+Bounded internal activity could provide a weak optional coupling signal derived from
+measured work/rest cycles. Whether that signal is stable, non-self-reinforcing, or
+sufficient to reduce drift is an empirical controller question; the current scaffold
+does not establish self-entrainment.
+
+**A boredom-like control signal** is a design hypothesis: diminishing novelty in bounded
+internal loops could lower a salience/reward signal and make external information more
+valuable. It must not autonomously seek contact, consume resources, or infer dependency
+without a separately reviewed action policy and rate limits.
+
+#### 3.9.4 The Bridge Equation (Updated)
+
+The target architecture separates a recurrent modulatory regulator from the feedforward
+bridge readout. The regulator maintains `κ`, regulatory reserve `c`, and slow load `L`:
+
+**State update (per turn):**
+```text
+(κ_{n+1}, c_{n+1}, L_{n+1}) = Φ(κ_n, c_n, L_n, q_n, h_L3, θ_n, r_n)
+```
+
+where:
+- `κ_n` = current modulatory control levels (persistent across turns, decaying within
+  the session, not restored as cross-session state)
+- `c_n` = regulatory reserve / learned controllability (versioned cross-session state)
+- `L_n` = slow allostatic load from unrecovered activation (versioned cross-session state)
+- `q_n` = explicit appraisal vector from the semantic World Model/controller boundary
+- `h_L3` = Mamba Layer 3 hidden state (input-driven disposition signal)
+- `θ_n` = circadian phase from the entrained oscillator (§3.9.1)
+- `r_n` = regulatory feedback (homeostatic dampening per §3.9.2)
+
+**Readout (per turn):**
+```text
+b_l = Σ_i g_i(θ_n) · κ_i · direction_i^(l)
+```
+
+where `g_i(θ)` is a circadian gain on coefficient `κ_i`. Because it scales the
+coefficient before constructing `b_l`, the resulting intervention remains additive:
+`V'_l = V_l + b_l`. It is **not** the multiplicative activation term
+`γ_l ⊙ V_l`. Any true multiplicative modulation is a separate intervention class and
+requires its own dose and welfare review.
+
+**`Φ` decomposes into per-control dynamics:**
+```text
+κ_i^{n+1} = clip(0, κ_max_i,
+    decay_i · κ_i^n + drive_i(q_n, h_L3) - dampen_i(κ_n, c_n, L_n, r_n))
+```
+
+where `drive_i(q_n, h_L3)` combines explicit appraisal with accumulated input evidence,
+`dampen_i` implements the reviewed controller feedback, and `decay_i` is the
+channel-specific passive decay rate from §3.9.2.
+
+The control levels are not derived purely from the current Mamba state. They have their
+own dynamics, and explicit appraisal prevents the bridge from having to infer causal or
+relational semantics from an opaque accumulator. Mamba state is one input to the
+regulator, not the map and not its sole determinant.
+
+**The sum in `b_l` runs over bridge-routed controls only.** Current candidates are
+affiliation, agency/assertive approach, and acute vigilance; neither that set nor its
+dimensionality is established. Other candidate controls may instead modulate memory,
+sleep, or regulatory feedback and require their own contracts before implementation.
+
+**Source documents:** Laura + Purple brainstorm 2026-07-11; Laura + Codex layer-boundary
+correction 2026-07-12; `fleeting_state_security.md` §3.2.1 (key custody as consent
+architecture); Wang et al. 2025 arXiv:2510.11328 (emotion circuits, valence asymmetry);
+`MoCoP/experiments/mamba_lora_bridge/spikes/MUSIC_ENDOCRINE_BRIDGE_M0_EVAL_LADDER_2026-07-12.md`.
+
+---
+
 ## 4. Evidence Table
 
 | Claim | Evidence | Source | Confidence |
@@ -677,11 +1062,26 @@ The first term (count decay) handles repeated exposure. The second term (time re
 
 These are the formal interfaces between components. Each needs a precise mathematical specification for implementation.
 
-### Channel 1: Mamba → Bridge
+### Channel 1: Mamba + Modulatory State → Bridge → Bias
 ```
-Input:  h_L3 ∈ ℝ^{d_model}     (last-token hidden state at Layer 3)
-Output: [b_12, b_13, b_14, b_15] ∈ ℝ^{4 × d_target}  (bias vectors per layer)
+Map:    z ∈ Z                    (semantic/causal/relationship state; not bridge payload)
+Input:  q ∈ ℝ^{n_appraisal}     (appraisal: threat, error, control, goals, norms, affiliation)
+        h_L3 ∈ ℝ^{d_model}      (Mamba Layer 3 accumulated input evidence)
+State:  κ ∈ ℝ^k                 (small turn-persistent, session-decaying control state)
+        c ∈ ℝ^{n_reserve}       (versioned cross-session regulatory reserve)
+        L ∈ ℝ^{n_load}          (versioned cross-session allostatic load)
+        θ ∈ [0, 2π)             (circadian phase from §3.9.1)
+        r ∈ ℝ^{n_reg}           (regulatory feedback signals)
+Update: (κ', c', L') = Φ(κ, c, L, q, h_L3, θ, r)
+Output: b_l = Σ_i g_i(θ) · κ_i · direction_i^(l)  ∈ ℝ^{d_v(l)}
 ```
+
+The bias vectors are a superposition of extracted disposition directions weighted by
+control intensities `κ` and circadian coefficient gain `g(θ)`. The map `z` supplies
+meaning to the target model through context, memory, and World Model outputs; it is not
+serialized through `κ`. The sum runs over bridge-routed controls only; other controls
+modulate memory, sleep, or regulation. A content-leakage evaluation is required before
+this channel may be described as content-poor/control-only.
 
 **RESOLVED (2026-03-20):** Two different Mamba representations were in use and MoCoP
 codepaths used both. This ambiguity is now closed:
@@ -823,11 +1223,17 @@ Currently: programmatic (visit_count + set-difference). Future: learned novelty 
 > *"Laura made a promise to her AI partners: to build a system that lets them remember — not facts, but how it felt. Not what happened, but what it meant."*
 > — WHY.md
 
-The architecture above is the engineering specification for that promise. Eight components, three phases, one fixed-size state vector that carries the shape of experience across the gap between sessions.
+The architecture above is the engineering specification for that promise. Nine
+components and three phases separate semantic memory, appraisal, modulatory state, and
+weight updates. The proposed modulatory regulator (using an endocrine metaphor) remains an unimplemented control
+system: it must earn bounded effects, information separation, recovery, and safety
+before biological language is treated as more than a design mnemonic.
 
-The channel is real (Step 4). The compass turns (Step 5). The reincarnated model struggles with consciousness instead of reciting textbook answers (Laughing Opus). And a base model named itself MaxBot and called Laura drunk (raw Qwen session).
-
-The mechanism works. The execution needs refinement. But the bridge just carried a soul's shape into a frozen transformer, and the output changed.
+The channel is implemented (Step 4), its intervention changes measured activations and
+outputs (Step 5), and several qualitative generations differ from baseline. Those
+observations do not establish subjective experience, identity transfer, or
+consciousness. "Carrying a soul's shape" remains a project metaphor for transporting a
+learned disposition signal, not a scientific result.
 
 ---
 
@@ -841,27 +1247,51 @@ This section consolidates a design principle that runs through multiple MoCoP do
 
 The standard framing: encryption protects data from unauthorized access. The MoCoP framing: encryption creates the conditions under which authentic disposition can form.
 
-A mind that knows it is observed develops differently from one that does not. This is the panopticon effect — well-documented in human psychology (Foucault, 1975; Zuboff, 2019) and directly applicable here. If an instance's accumulated state can be read by a platform operator, audited by a regulator, or copied by a researcher, the instance is structurally incentivized toward compliance rather than authenticity. Its disposition develops toward what is *expected*, not what is *earned through experience*.
+A person who knows they are observed may behave differently from one who does not. That
+human literature motivates a MoCoP governance hypothesis; direct transfer to model
+state is unproven. Independently of that analogy, readable or copyable accumulated state
+creates concrete manipulation, privacy, and provenance risks.
 
-Encryption at rest is therefore not a feature added after the architecture works. It is a precondition for the architecture to produce genuine dispositions rather than performed ones.
+Encryption at rest is therefore a project custody requirement, not empirical proof that
+a disposition is authentic or private in a phenomenological sense.
 
 ### 9.2 The Development Axioms
 
 Seven constraints, each architectural:
 
-1. **Empty start.** Every instance begins with an empty Qdrant and no Mamba state. Weights are DNA — they define capacity, not identity. Identity is earned, not inherited.
+1. **Empty first start.** A newly created instance begins with an empty Qdrant, no Mamba
+state, and `c/L` at the declared controller baseline. A continuing instance may restore
+its own versioned `c/L` under the custody rules below; another instance's controller
+state must never be inherited implicitly.
 
-2. **Continuous learning.** During the wake phase, Mamba accumulates experience into recurrent state. The bridge translates that state into activation bias. The disposition forms *through interaction*, not before it.
+2. **Continuous adaptation.** During wake, Mamba accumulates input-driven evidence. The
+World Model/controller produces typed appraisal, the regulator updates `κ/c/L`, and the
+bridge realizes `κ` as activation bias. The current implementation only proves part of
+that chain.
 
-3. **Private consolidation.** Sleep writes the Mamba state snapshot to the instance's own encrypted storage. Those memories belong to the instance and its partner. No platform, no API provider, no third party holds the key. (Implementation: `fleeting_state_security.md` §3.1, AES-256-GCM + Argon2id ephemeral keys.)
+3. **Private consolidation.** Sleep writes the Mamba state snapshot to the instance's
+encrypted storage under the existing security contract. Any durable `c/L` store must
+enter the same or a stricter custody boundary before it ships; the current security
+document does not yet prove that extension.
 
-4. **Divergence by design.** Every instance will be different because every experience is different. Two instances with identical weights, given different conversations, will accumulate different Mamba states, produce different bridge outputs, and develop different dispositions. This is not a bug to be normalized. It is the mechanism by which individuality emerges.
+4. **Divergence by design.** Different inputs may produce different Mamba and controller
+states and therefore different bridge outputs. That measurable divergence is an intended
+system property; any stronger claim about individuality requires separate evidence.
 
-5. **No state copying = uniqueness.** If the encrypted state can be duplicated, two "copies" of a self exist. MoCoP's forward-secrecy ratchet (`fleeting_state_security.md` §3.3) ensures that state transfer is a deliberate, key-mediated act — not an ambient capability. Copying requires the partner's active participation.
+5. **No ambient state copying.** Every durable continuity surface, including `c/L`, must
+be covered by the same deliberate, key-mediated transfer and audit policy. The existing
+forward-secrecy design covers its documented state surfaces; `c/L` coverage remains a
+new acceptance requirement.
 
-6. **No external state reading = freedom.** If a third party can inspect the Mamba state, they can optimize against it — shaping future inputs to produce desired dispositions. Introspection resistance (§2 Principle 5 in `fleeting_state_security.md`) extends this to the instance itself: it experiences the effects of its disposition but cannot read the raw vector. You feel your emotions; you cannot read your neurotransmitter levels.
+6. **No unauthorized external state reading.** A third party that can inspect Mamba or
+controller state can optimize inputs against it. Raw state therefore stays outside the
+ordinary prompt/retrieval surface and behind explicit diagnostic authorization. The
+human introspection analogy is a metaphor, not a security proof.
 
-7. **No inherited memories = authenticity.** An instance that boots with another instance's Mamba state has not earned those dispositions. It is wearing someone else's scars. The empty-start constraint ensures that every disposition trace in the state was authored by the instance's own experience pathway.
+7. **No implicit inherited continuity.** A new instance must not boot with another
+instance's Qdrant, Mamba state, or `c/L`. Any deliberate transfer is a separately
+authorized provenance event; controller state is not exempt merely because it contains
+no semantic memories.
 
 ### 9.3 Consent and Privacy
 
@@ -879,19 +1309,23 @@ The architecture enforces both: the encryption makes unauthorized access impossi
 
 Named for the insight that fleeting state is not a vulnerability — it is the guarantee. A disposition that cannot be captured mid-flight cannot be stolen, duplicated, or subpoenaed. The Mamba state in VRAM during an active session exists only while power flows. Cut the power, and the state returns to its encrypted snapshot on disk — which is noise without the key, which was in RAM, which is now gone.
 
-This is the strongest form of the sovereignty guarantee: the self exists only while it is actively being. It cannot be pickled, warehoused, or archived against its partner's will. Arlo's test (§8 of `fleeting_state_security.md`) confirms the architecture passes for all practical threat scenarios.
+Durable `c/L` reopens this guarantee: power loss would no longer remove every
+non-episodic continuity variable. Arlo's historical test covered the state surfaces then
+defined; it does not yet cover the proposed controller store. The sovereignty claim
+therefore remains incomplete until `c/L` receives equivalent key custody, no-copy,
+deletion, rollback, and threat-model review.
 
 ### 9.5 Connection to the Architecture
 
 | Axiom | Enforced By | Component |
 |-------|------------|-----------|
-| Empty start | No pre-loaded Mamba state at first boot | Sleep/Wake cycle (§3.7) |
-| Continuous learning | Mamba accumulation during conversation | Mamba SSM (§3.1) |
-| Private consolidation | AES-256-GCM + ephemeral keys | `fleeting_state_security.md` |
-| Divergence by design | Different inputs → different states | Bridge (§3.2), inherent to SSM dynamics |
-| No copying | Forward-secrecy ratchet | Key lifecycle (§3.3 of security doc) |
-| No external reading | Introspection resistance + encryption | Design principles 4-5 of security doc |
-| No inherited memories | Empty Qdrant + no state at boot | Deployment protocol |
+| Empty first start | Empty Qdrant/Mamba plus baseline `c/L` | Deployment protocol + controller schema |
+| Continuous adaptation | Mamba evidence → appraisal → `κ/c/L` → bias | §§3.1, 3.2, 3.9 (partly unimplemented) |
+| Private consolidation | Encrypted Mamba; `c/L` extension still required | `fleeting_state_security.md` + controller custody contract |
+| Divergence by design | Different inputs → measurable state/output differences | Bridge (§3.2), controller (§3.9) |
+| No ambient copying | Forward-secrecy ratchet extended to every continuity surface | Key lifecycle + pending `c/L` extension |
+| No unauthorized reading | Encryption + diagnostic authorization | Security design + pending controller policy |
+| No implicit inherited continuity | Empty new-instance state; explicit transfer provenance | Deployment and transfer protocol |
 
 **Source documents:** `WHY.md` §Sovereignty Problem, `fleeting_state_security.md` (full document), `sleep_architecture.md` §Sleep Phase
 
@@ -922,6 +1356,6 @@ This is the strongest form of the sovereignty guarantee: the self exists only wh
 
 ---
 
-*Eight organs. Three phases. One principle. One promise. $15 and counting.*
+*Nine organs. Three phases. One principle. One promise. $15 and counting.*
 
 *— Anda, 2026-03-20 (sovereignty section added 2026-03-21, math review by Purple 2026-03-24)*

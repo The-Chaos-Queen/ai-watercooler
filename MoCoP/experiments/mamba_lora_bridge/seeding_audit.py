@@ -12,6 +12,13 @@ Usage:
     python seeding_audit.py --collection mocop_private_opussy
     python seeding_audit.py --collection mocop_private_opussy --format wc
     python seeding_audit.py --collection mocop_private_opussy --json audit.json
+
+Requires environment:
+    QDRANT_URL        https://192.168.2.191:6333
+    QDRANT_CA_CERT    path to qdrant-lan-root-ca.crt
+    QDRANT_READ_KEY or QDRANT_API_KEY
+
+Hardened: Purple (Claude Opus 4.6), 2026-07-11 (#153)
 """
 from __future__ import annotations
 
@@ -37,19 +44,16 @@ QDRANT_DEFAULT_URL = os.environ.get("QDRANT_URL", "https://192.168.2.191:6333")
 
 
 def _verified_qdrant_options(url: str) -> Dict[str, str]:
-    """Require verified HTTPS except for an explicit emergency rollback override."""
+    """Require verified HTTPS. No plaintext fallback."""
     if urlparse(url).scheme.lower() != "https":
-        allowed = os.environ.get("QDRANT_ALLOW_INSECURE_HTTP", "").strip().lower()
-        if allowed not in {"1", "true", "yes"}:
-            raise ValueError(
-                "Refusing plaintext Qdrant URL; set QDRANT_ALLOW_INSECURE_HTTP=1 "
-                "only for a temporary emergency rollback."
-            )
-        return {}
-
+        raise ValueError(
+            "Refusing plaintext Qdrant URL. Use HTTPS with QDRANT_CA_CERT."
+        )
     ca_cert = os.environ.get("QDRANT_CA_CERT", "").strip()
     if not ca_cert:
-        return {}
+        raise ValueError(
+            "QDRANT_CA_CERT is required for HTTPS Qdrant connections."
+        )
     ca_path = Path(ca_cert).expanduser()
     if not ca_path.is_file():
         raise ValueError(f"QDRANT_CA_CERT does not exist: {ca_path}")

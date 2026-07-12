@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED — Qwen-era probe script using plain HTTP. Not hardened for TLS.
+# Kept for reference only. Do not run against live Qdrant. (#153, Purple 2026-07-11)
 import json, time, urllib.request
 from pathlib import Path
 from datetime import datetime, timezone

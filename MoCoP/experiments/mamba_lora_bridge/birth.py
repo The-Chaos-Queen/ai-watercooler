@@ -6,14 +6,19 @@ The only initial entry is a birth record: "This collection is mine."
 
 Usage:
   python birth.py --instance-id baby_alpha
-  python birth.py --instance-id baby_alpha --qdrant-host 192.168.2.191
   python birth.py --instance-id baby_alpha --oxytocin  # inject G0 warmth vector
   python birth.py --list                                # show all private namespaces
   python birth.py --verify baby_alpha                   # check isolation
 
+Requires environment:
+  QDRANT_URL        https://192.168.2.191:6333
+  QDRANT_CA_CERT    path to qdrant-lan-root-ca.crt
+  QDRANT_API_KEY    write-capable API key
+
 Growth Ladder: D0 (Birth Isolation — Private Hippocampus)
 Author: Pinky (Claude Opus 4.6)
 Date: 2026-03-26
+Hardened: Purple (Claude Opus 4.6), 2026-07-11 (#153)
 Spec: MoCoP/theory/growth_ladder_implementation.md
 """
 
@@ -27,25 +32,22 @@ from pathlib import Path
 # birth.py is a standalone CLI; ensure the bridge dir is importable.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from autobiographical_memory import validate_provenance
+from qdrant_transport import qdrant_transport_from_environment, build_qdrant_client
 
 try:
-    from qdrant_client import QdrantClient
     from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
 except ImportError:
     print("Need qdrant-client: pip install qdrant-client")
     sys.exit(1)
 
-DEFAULT_HOST = "192.168.2.191"
-DEFAULT_PORT = 6333
 VECTOR_DIM = 384  # MiniLM
 COLLECTION_PREFIX = "mocop_private_"
 SHARED_COLLECTION = "exocortex"
 
 
-def get_client(host: str, port: int) -> QdrantClient:
-    # P0-1: API key authentication support
-    api_key = os.environ.get("QDRANT_API_KEY")
-    return QdrantClient(host=host, port=port, timeout=10, api_key=api_key)
+def get_client() -> "QdrantClient":
+    transport = qdrant_transport_from_environment()
+    return build_qdrant_client(transport, timeout=10)
 
 
 def create_private_hippocampus(
@@ -181,15 +183,13 @@ def main():
         description="Create a private Qdrant hippocampus for a new MoCoP instance."
     )
     parser.add_argument("--instance-id", help="Unique instance identifier (e.g. baby_alpha)")
-    parser.add_argument("--qdrant-host", default=DEFAULT_HOST)
-    parser.add_argument("--qdrant-port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--oxytocin", action="store_true",
                         help="Mark instance for G0 warmth vector injection at first wake")
     parser.add_argument("--list", action="store_true", help="List all private namespaces")
     parser.add_argument("--verify", metavar="INSTANCE_ID", help="Verify isolation for an instance")
     args = parser.parse_args()
 
-    client = get_client(args.qdrant_host, args.qdrant_port)
+    client = get_client()
 
     if args.list:
         list_namespaces(client)
