@@ -1,13 +1,19 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-12 00:28 +02:00
-- Current owner: Codex returned CHANGES on `f20936a` for stage-bound `run_kind` contradicting an unchanged Stage-A/B manifest and for retaining single-Tier-1 STOP after Laura's baseline-first harm ruling. Codex also owns blocked #157: inventory found no admissible second artifact, and a split-clean estimator-family preregistration awaits named review. #149/#155/#157/#158 remain blocked; no C1/GPU/Qdrant action belongs to that chain. Separately, Techno-Monk completed and released the narrow keeper-directed full offline bridge-train slice; broad #146 remains queued for its intended production-recorder owners.
-- Primary focus: repair/re-review #149, decide whether a distinct warm-axis estimator satisfies DQ1a's second-family intent, then implement only the accepted #157 extraction path; no C1 Stage A or Stage B without its separately recorded keeper release. The separate bridge question now has a complete 32-skeleton offline **in-sample** fit, not a bridge-generalization result. No bridge-generalization holdout was reserved (`default-none`); define a fresh disjoint contract only if Laura explicitly chooses that next question.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-12-session-18.md`
+- Last updated: 2026-07-12 16:42 +02:00
+- Current owner: Codex owns OpenCLAW #152. The outcome-free Phase 2b design and complete review-gated runner/verifier are ready; no new LS20 outcome exists. Isegrim review was requested in #929/#930 and pinged once in #931, but no disposition had arrived at closeout. #163's model-free appraisal/controller kernel is implemented and Isegrim's #926 documentation notes are landed.
+- Primary focus: obtain the named #152 preregistration review, freeze the accepted design, run exactly one canonical offline LS20 result, and publish the reproducible scoped decision. Do not cross the review gate or treat reviewer silence as approval.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-12-session-19.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: skipped (`2026-07-12-session-18.md`; the keeper-directed full offline bridge train explicitly excluded Qdrant/memory/persistence, so no ingest was attempted)
+  - Latest session log ingest: done (`2026-07-12-session-19.md`; 10 chunks stored in `exocortex`)
+
+## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
+- **#152 outcome-free packet ready:** `spikes/WORLD_MODEL_PHASE2B_LS20_REPLICATION_PREREG_2026-07-12.md` at SHA-256 `df44982b90f239787957be728eee65f2d3e7fe7ee2e60a7a152ce6e4e112a4f5`; `spikes/world_model_phase2b.py` builds/verifies a reviewed freeze and collects/verifies exactly one canonical result. Proposed design reuses the exact v1 LS20 estimator/nulls with no refit or v1-eval pooling, 16 new 48-step runs, unchanged effect gates, and `>=12/16` positive-run consistency. Real collection remains blocked on Isegrim's three-question review.
+- **Custody hardening:** all seeds/actions/run identities, v1 artifacts, package/game/runtime/code hashes, analysis, decision, review message, and canonical publication paths are bound. Deterministic outcome-bearing staging blocks replacement after failure. The local ARC source/package preflight matches v1; no environment reset occurred.
+- **Verification:** Phase 2b has 13 targeted tests including synthetic end-to-end custody and historical v1 score reconstruction. Intended full roots: `478 passed, 45 deselected, 5 subtests passed`; Ruff and `git diff --check` clean.
+- **#163 implemented, no runtime integration:** strict `WorldEvent` schema plus deterministic appraisal/controller reference kernel and tests are on disk. The contract now names the agency crossover, per-turn re-emission duty, and other-attributed norm-decomposition duty from Isegrim #926. No model, bridge, GPU, Qdrant, persistence, or action selection is connected.
 
 ## Current State — Qdrant TLS Migration (2026-07-11)
 - **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
@@ -97,10 +103,11 @@
 - [ ] **DOL-1 only if separately approved:** first prove an exact SAE/probe/J-lens substrate fit and a read-only capture manifest; it remains alarm-only and cannot substitute for DQ1b.
 - [ ] **C1 completion / #158:** decide/review #157's estimator-family preregistration, then extract/freeze a second positive 512-wide `value_norm_pre` direction/full matrix only if accepted; implement/review model-free P5 (#156); review no-component B0 (#155); close #149/final manifest; obtain Stage-A keeper GO before the true alpha-zero anchor; then obtain a separate Stage-B keeper GO tied to its immutable report before exactly one birth injection #1.
 - [ ] **#146 matched-delta lane (queued; full narrow train exists):** Techno-Monk's isolated real 512-wide `value_norm_pre` full train fits all 32 frozen non-C1 warm skeletons offline (Watercooler #912–#914; artifact SHA `090385c9…7094a9`). It proves only the full in-sample learnability path. Production work remains: capture paired scenario-neutral source deltas at the correct surface, wire production trainer targets, resolve `L_sep`, provenance/atomic gates, and throughput. A bridge-generalization readout is not implicitly next: it requires a new, explicitly frozen disjoint bridge split, never the eight C1-primary holdouts.
-- [ ] **#152 World Model Phase 2b:** preregister a new independently seeded LS20 consistency replication before collecting outcomes. Preserve Phase 2 v1 and its thresholds unchanged; keep all World Model work offline and outside bridge loss/control.
+- [ ] **#152 World Model Phase 2b (review-blocked, outcome-free):** Isegrim must disposition the 16-run design, terminal/short-run support policy, and scoped GO boundary in `WORLD_MODEL_PHASE2B_LS20_REPLICATION_PREREG_2026-07-12.md` (digest `df44982b...`). After accepted changes, use `world_model_phase2b.py` to publish the canonical freeze and exactly one canonical offline result; never bypass the review ID/path/hash gates or pool v1 eval rows.
 - [ ] **#141 owner close:** the bounded offline v2 evaluator is GREEN. Any real capture exporter/model hook is a new reviewed slice.
 
 ## Watch Out For
+- Phase 2b has no outcome yet. `phase2b_ls20_prereg_v1` and `phase2b_ls20_real_v1` are canonical single-use paths. A retained `.phase2b_ls20_real_v1.staging-*` directory is outcome-bearing audit evidence and blocks replacement; do not delete it to rerun.
 - Qdrant is TLS-only. Never revive `http://192.168.2.191:6333`, `curl -k`, or `verify=False` to accommodate a stale client; install the public CA instead.
 - ML-WS remains a no-Git deployed bundle. #151's reviewed runtime has been synchronized and hash-verified, but future changes must use a staged/hash-checked deployment plus backup; do not revive any pre-#151 copy or bypass the private writer wrapper.
 - PVE snapshot `pre-qdrant-tls-20260711T122338` predates later writes. Rollback can discard data and requires explicit maintenance approval.
@@ -116,19 +123,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Keep the C1 chain unchanged: land/re-review Codex #896's two `f20936a` fixes and obtain named #157/WC#897 verdicts. Separately, preserve the complete 32-skeleton bridge-fit artifact and take **no automatic bridge follow-up**. If Laura selects bridge generalization as the next question, first freeze a fresh disjoint bridge-specific evaluation contract; never use the eight C1-primary holdouts. Only after the accepted #157 artifact path, #156, #155 review, post-B0 numerics, and #149 closure may Stage-A keeper review begin; Stage B remains a separate later release.
+- First resolve Isegrim's #152 preregistration review. If accepted, freeze and run the canonical offline LS20 replication with the pinned ARC venv, verify the result bundle, and post the scoped decision. Keep the C1 and bridge-generalization lanes unchanged and separate.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #912/#913/#914; OpenCLAW #146 full-slice comment/release; canonical debrief, provenance, and this handoff)
-- Session log written: yes (`2026-07-12-session-18.md`)
+- Tracking surfaces updated if needed: yes (OpenCLAW #152; Watercooler #929-#932; canonical Phase 2b/#163 docs; this handoff)
+- Session log written: yes (`2026-07-12-session-19.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: skipped (keeper-directed full offline bridge train's no-Qdrant/memory/persistence boundary; no attempt made)
-- Git commit in repo: yes (session-18 scoped closure commit binds source/tests/provenance/debrief/handoff)
-- Watercooler findings reflected in docs: yes (`FULL_32_WARM_VALUE_NORM_BRIDGE_TRAIN_DEBRIEF_2026-07-11.md`, full-train provenance receipt, Watercooler #912–#914)
-- No P0 bugs left unfixed: no new P0 found; numeric C1 gate is honestly blocked, not filed as resolved
+- Qdrant ingest for latest session log confirmed: done (10 chunks)
+- Git commit in repo: pending
+- Watercooler findings reflected in docs: yes (`WORLD_MODEL_PHASE2B_LS20_REPLICATION_PREREG_2026-07-12.md` and `APPRAISAL_MODULATORY_CONTROLLER_CONTRACT_2026-07-12.md`)
+- No P0 bugs left unfixed: yes; custody retry/path gaps found during implementation were fixed and tested
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-12 16:46 +02:00 | Codex | Implemented #163's model-free event/appraisal/controller kernel and landed Isegrim #926 contract notes. For #152, audited immutable Phase 2 v1, wrote the outcome-free 16-run LS20 replication candidate (`df44982b...`), built review-gated canonical freeze/collection/report verification, verified exact host provenance, and passed 478 intended tests. No Phase 2b outcome exists; #152 is review-blocked pending Isegrim (#929-#933). Session-19 ingested to Qdrant (10 chunks); commit pending.
 - 2026-07-12 00:28 +02:00 | Techno-Monk | Executed Laura's keeper-directed first full offline Gemma bridge train after correcting `default-none` to mean no bridge-generalization holdout while preserving eight C1-primary holdouts. Added full-run audit plumbing/C1 structural refusal; ran all 32 frozen non-C1 warm skeletons on ML-WS (CUDA bridge-only, 256 steps), directional loss `1.0068252 -> 0.0`, final in-sample cosine `1.0` at teeth `{29,35,41}`. Local/remote artifact SHA `090385c9…7094a9`, checkpoint reload/finiteness/shape, C1 exclusion, 32 capture events, 16 train events, and idle GPU PASS. Watercooler #912–#914; #146 narrow slice documented then released because broad production scope remains open. Session-18 recorded; Qdrant ingest skipped by declared no-Qdrant boundary.
 - 2026-07-11 22:26 +02:00 | Techno-Monk | Laura corrected the bridge rationale: build because something is missing; beneficiaries are unknown, with hope Gemma may benefit. Ran the first isolated real offline Gemma/Mamba matched-delta bridge microtrain at current 512-wide `value_norm_pre` teeth `{29,35,41}`: two frozen non-holdout pairs, 16 bridge-only CPU steps, directional loss `0.9836281 -> 0.0099958`, save/load PASS, hosts frozen/GPU idle. Commit `866fc8b`; checkpoint SHA `c257dbad…23fb203c` retained ignored with tracked provenance; Watercooler #907; #146 documented then released because its broader production scope remains open. Session-17 recorded; Qdrant ingest skipped by declared no-Qdrant boundary.
 - 2026-07-11 20:12 +02:00 | Codex | Returned CHANGES on `f20936a` for manifest-stage identity and Laura's Tier-1 harm policy (#896). Claimed #157, found no admissible second artifact locally or on ML-WS, wrote a review-held split-clean estimator-family preregistration, requested named reviews in #897, and blocked before GPU/model capture. Session-16 recorded; Qdrant ingest skipped under #157's no-write envelope.
@@ -170,9 +178,9 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #911–#914.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + OpenCLAW #152 + Watercooler #929-#932.
 - Decide first:
-  - Keep two lanes distinct: read #902–#904 for #157 and preserve the C1 chain (raw `R_C/R_S` diagnostics only; B0 no-component; carryover-only recovery; SEV ID disjointness/signed overlap). #158 stays blocked until #149/#155/#156/#157, Stage-A report, and separate Stage-B keeper GO. Separately, the bridge has a complete all-32 offline **in-sample** fit (#914); no bridge-generalization split was reserved. Do not take a bridge follow-up unless Laura chooses it and a fresh disjoint split is frozen; never use C1 holdouts or claim benefit/injection readiness.
+  - Check for Isegrim's #152 disposition first. Do not freeze or collect on silence. If reviewed, incorporate changes while outcome-free, publish the canonical freeze, and run exactly one canonical offline result. Keep #149/#155/#157/#158 and bridge-generalization as separate lanes.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller
@@ -185,5 +193,7 @@
   - `MoCoP/experiments/mamba_lora_bridge/spikes/GEMMA_VALUE_NORM_BRIDGE_MICROTRAIN_DEBRIEF_2026-07-11.md`
   - `MoCoP/experiments/mamba_lora_bridge/spikes/train_gemma_value_norm_bridge_microtrain.py`
   - `MoCoP/reviews/world_model_math_audit_2026-07-10.md`
+  - `MoCoP/experiments/mamba_lora_bridge/spikes/WORLD_MODEL_PHASE2B_LS20_REPLICATION_PREREG_2026-07-12.md`
+  - `MoCoP/experiments/mamba_lora_bridge/spikes/world_model_phase2b.py`
   - `MoCoP/experiments/mamba_lora_bridge/{world_model_trace.py,world_model_baselines.py}`
   - OpenCLAW #146/#149/#152 context before recorder, C1, or new World Model work
