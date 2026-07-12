@@ -167,3 +167,7 @@ Research/lw_logit_lens/images/
 LANE_EXP_BATCH*.txt
 b4m69vkg1.txt
 .claude/settings.local.json
+.claude/settings.json
+
+# Claude-in-Chrome / Playwright MCP scratch artifacts
+.playwright-mcp/
