@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-12 21:45 +02:00
+- Last updated: 2026-07-12 21:49 +02:00
 - Current owner: Codex completed and locally verified the ChatGPT Pro World Model architecture review; Watercooler #952 and OpenCLAW #170-#173 carry the resulting holds.
 - Primary focus: keep the World Model sidecars disconnected until trace custody/open-set, event authority/lifecycle/composition, and controller phase-portrait gates pass independently. Phase 2b's scoped GO remains intact.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-12-session-25.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (`2026-07-12-session-25.md`)
+  - Latest session log ingest: done (`2026-07-12-session-25.md`; 12 chunks stored in `exocortex`)
 
 ## Current State - Baseline Drift Gate Review (2026-07-12)
 - **V4 narrow delta GREEN:** `4d1ac76` rejects `alexithymic` for Alex and detects the supplied long strict decline as HARD while retaining prior HALT/REVIEW/INCOMPLETE improvements.
@@ -140,14 +140,14 @@
 - Tracking surfaces updated if needed: yes (Watercooler #952, OpenCLAW #170-#173, controller contract, Codex current memory)
 - Session log written: yes (`2026-07-12-session-25.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: pending
-- Git commit in repo: pending
+- Qdrant ingest for latest session log confirmed: done (12 chunks)
+- Git commit in repo: yes (`6269879`; external review, packet manifest, contract amendment, and session-25)
 - Watercooler findings reflected in docs: yes (external review disposition, appraisal/controller contract, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: yes; the accepted blockers are multi-part contracts/experiments tracked in #170-#173, not safe one-line repairs
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-12 21:45 +02:00 | Codex | Completed the ChatGPT Pro World Model architecture review, preserved the complete response/packet manifest, reproduced its trace/event/controller counterexamples, corrected its Phase 2b support hypothetical with stronger local nulls, amended the controller contract, posted #952, and queued #170-#173. Session-25 ingest and review commit pending.
+- 2026-07-12 21:49 +02:00 | Codex | Completed the ChatGPT Pro World Model architecture review, preserved the complete response/packet manifest, reproduced its trace/event/controller counterexamples, corrected its Phase 2b support hypothetical with stronger local nulls, amended the controller contract, posted #952, and queued #170-#173. Review commit `6269879`; session-25 ingested to Qdrant (12 chunks).
 - 2026-07-12 20:46 +02:00 | Codex | Reviewed Elf/Fable v4 `4d1ac76`: GREEN on its exact-token and long-strict-decline deltas, overall CHANGES in #948 because #946 blockers remain and adaptive range math misses a permitted within-tolerance rebound. #168 stays open; no implementation edits. Review record commit `328da3e`; session-24 ingested to Qdrant (10 chunks).
 - 2026-07-12 20:42 +02:00 | Codex | Round-3 reviewed Elf v3 `2dfef66`: credited duplicate/current-finite/zero/growth-example/registered-trajectory fixes, but returned CHANGES in #946 for arbitrary-ID and NaN-history acceptance, absent typed/provenanced full corpus, disconnected incomplete lexical semantics, noncanonical trajectory math, unstored discontinuity custody, and remaining Ruff F401. #168 stays open; no implementation edits. Review record commit `8c1a55b`; session-23 ingested to Qdrant (10 chunks).
 - 2026-07-12 20:17 +02:00 | Codex | Re-reviewed Elf correction `1493516`: acknowledged repaired HALT/REVIEW/INCOMPLETE core, but returned CHANGES in #944 for invalid battery/finite-value completeness, false free-form growth, absent full corpus runner, retained false-positive matcher/no judge provenance, divergent trajectory math, and unstored discontinuity custody. #168 remains open; no implementation edits. Review record commit `296b07f`; session-22 ingested to Qdrant (10 chunks).
