@@ -171,3 +171,7 @@ b4m69vkg1.txt
 
 # Claude-in-Chrome / Playwright MCP scratch artifacts
 .playwright-mcp/
+
+# Session logs live in qdrant, not git (per keeper 2026-07-13)
+CHEESE_Memory/session_logs/
+CHEESE_Memory/laura.md
