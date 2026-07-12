@@ -774,6 +774,20 @@ bind calibrated semantic adjudication/provenance, implement the reviewed range
 math and discontinuity note, map slot abstention to review, obtain the remaining
 prerequisite dispositions, and pass implementation re-review.
 
+**Re-review (2026-07-12, commit `1493516`, Watercooler #944): CHANGES.**
+The correction restores protected-loss HALT, slot-abstention REVIEW, explicit
+`INCOMPLETE` for empty/deferred axes, and honest partial-scorer labeling. Four
+contract gaps remain. Completeness accepts eight duplicate slot rows and
+non-finite diversity values while rejecting valid zero diversity; free-form
+notes containing the substring `new` can manufacture `GROWTH`, and the full
+Cases 01-08/canary/bidirectionality runner is still absent; the known-negation
+false-positive token matcher remains in place and has no judge provenance; and
+range scoring still uses an unreviewed early-peak/90%-filter/noise-floor rule
+plus per-adjacent-step drops rather than the reviewed equation. Discontinuity
+reset also claims the prior trajectory was logged without storing a reference.
+Forty focused tests pass, but Ruff still reports one unused import. #168 remains
+open pending a further superseding commit and re-review.
+
 ---
 
 ## P3 — Future-Facing Backlog

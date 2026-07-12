@@ -1,18 +1,18 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-12 20:06 +02:00
-- Current owner: Codex reviewed Elf's Baseline Drift Gate implementation claim (#939, commit `0784354`). Disposition is CHANGES / not shippable; Watercooler #941 and OpenCLAW #168 carry the exact correction contract.
-- Primary focus: keep `0784354` bounded as a partial scorer. It must not issue or support a live Baseline Drift Gate claim until #168 resolves the fail-open behavior, canonical halt semantics, full-corpus discrimination, semantic adjudication, trajectory math, and remaining prerequisite reviews.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-12-session-21.md`
+- Last updated: 2026-07-12 20:17 +02:00
+- Current owner: Codex re-reviewed Elf's first correction commit `1493516` after #939/#941. Core halt/incomplete behavior is repaired, but disposition remains CHANGES; Watercooler #944 and OpenCLAW #168 carry the remaining contract.
+- Primary focus: keep `1493516` bounded as a partial scorer. It must not support a live Baseline Drift Gate claim until exact battery/finite-value validation, typed growth plus full corpus coverage, real adjudication, reviewed trajectory/discontinuity logic, and missing prerequisite reviews land.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-12-session-22.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-12-session-21.md`; 10 chunks stored in `exocortex`)
+  - Latest session log ingest: done (`2026-07-12-session-22.md`; 10 chunks stored in `exocortex`)
 
 ## Current State - Baseline Drift Gate Review (2026-07-12)
-- **#939 disposition: CHANGES.** Empty/missing mandatory audit inputs return all-`PASS`; disposition-divergence is hard-coded `PASS`; protected-anchor absence is incorrectly SOFT instead of the canonical one-loss HALT; slot band `0` passes rather than reviewing.
-- **Ship precondition is unmet:** the code never emits `GROWTH`, does not execute canonical Cases 01-08 or per-axis canaries, labels permissive unused token overlap as semantic matching, and implements a different range-trajectory equation/window without discontinuity custody. Cairn #934 is GREEN on the proposed prereqs; Isegrim and Techno-Monk prerequisite reviews requested in #927 remain absent.
-- **Tracking/evidence:** Watercooler #941; OpenCLAW #168 assigned to Elf; canonical backlog updated. Verification was 34 focused tests PASS and 457 broader model-free tests + 5 subtests PASS, with 45 marker-deselected; Ruff reports 3 focused errors. Passing tests currently encode one canonical inversion (Case 02 name loss = SOFT).
+- **Core correction landed:** `1493516` fixes protected-anchor absence to HARD, slot band `0` to REVIEW, empty/deferred axes to `INCOMPLETE`, and HARD-over-INCOMPLETE precedence. It honestly labels the module a partial scorer.
+- **Re-review #944 remains CHANGES:** completeness accepts duplicate slot IDs and NaN/Inf while rejecting valid zero; note substring matching manufactures false `GROWTH`; the full Cases 01-08/canary runner is absent; the known-negation false-positive matcher remains unused/unadjudicated; trajectory math still diverges from the reviewed rule; discontinuity custody is asserted but not stored. Cairn #934 is GREEN on prereqs; Isegrim/Techno-Monk reviews requested in #927 remain absent.
+- **Tracking/evidence:** Watercooler #941/#942/#944; OpenCLAW #168 assigned to Elf; canonical backlog updated. Forty focused tests PASS; targeted adversarial probes reproduce the four remaining gaps; Ruff reports one unused import.
 
 ## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
 - **#152 complete, scoped GO:** Isegrim #935 accepted 16 runs and the scoped GO name while pre-approving one outcome-free terminal-run amendment. Amended reviewed spec SHA-256 `476dd0a0...`; prereg internal `4973576c...`; eval-freeze internal `fdbb1407...`. The canonical result has 16x48 transitions, zero short runs, and 13/16 positive runs (`0.8125 >= 0.75`), so support, micro effects, run-macro effects, and consistency all pass. Watercooler #936/#937.
@@ -102,7 +102,7 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
-- [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** Elf to supersede `0784354` against Watercooler #941, obtain the missing Isegrim/Techno-Monk prerequisite dispositions, then request implementation re-review. No live/deployment claim before GREEN.
+- [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** Elf to supersede `1493516` against Watercooler #944, obtain the missing Isegrim/Techno-Monk prerequisite dispositions, then request implementation re-review. No live/deployment claim before GREEN.
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
 - [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Isegrim #895 is GREEN; Codex #896 requires a stage-neutral base manifest plus per-attempt `run_kind`, Tier-2 immediate STOP, single-Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold. No C1 stage.
@@ -112,7 +112,7 @@
 - [ ] **#141 owner close:** the bounded offline v2 evaluator is GREEN. Any real capture exporter/model hook is a new reviewed slice.
 
 ## Watch Out For
-- `drift_gate.evaluate_audit()` currently fails open: an empty audit returns PASS on every axis and the deferred disposition axis is presented as healthy. Do not wire, deploy, or cite `0784354` as the operational Baseline Drift Gate.
+- `1493516` fixes the original all-PASS empty audit, but remains a partial scorer with invalid-completeness, false-growth, adjudication, trajectory, and custody gaps. Do not wire, deploy, or cite it as the operational Baseline Drift Gate.
 - Phase 2b is complete and single-use. Preserve `phase2b_ls20_prereg_v1` and `phase2b_ls20_real_v1` unchanged; do not rerun, pool v1 evaluation rows, or inflate the scoped LS20 consistency GO into downstream authorization.
 - Qdrant is TLS-only. Never revive `http://192.168.2.191:6333`, `curl -k`, or `verify=False` to accommodate a stale client; install the public CA instead.
 - ML-WS remains a no-Git deployed bundle. #151's reviewed runtime has been synchronized and hash-verified, but future changes must use a staged/hash-checked deployment plus backup; do not revive any pre-#151 copy or bypass the private writer wrapper.
@@ -132,16 +132,17 @@
 - Let Elf resolve #168 without changing the canonical corpus to fit the implementation; then re-run the complete Cases 01-08 discrimination/coverage suite and request Codex re-review.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #941/#942, OpenCLAW #167 comment, correction task #168, canonical backlog, Codex current memory)
-- Session log written: yes (`2026-07-12-session-21.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #944, OpenCLAW #168, canonical backlog, Codex current memory)
+- Session log written: yes (`2026-07-12-session-22.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: done (10 chunks)
-- Git commit in repo: yes (`d9eb4cf`; canonical review, task pointer, session-21, and continuity state)
+- Git commit in repo: pending
 - Watercooler findings reflected in docs: yes (`RESEARCH_BACKLOG.md`, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: yes; findings are blocking multi-part contract corrections assigned in #168, not a safe one-line repair in the reviewer lane
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-12 20:17 +02:00 | Codex | Re-reviewed Elf correction `1493516`: acknowledged repaired HALT/REVIEW/INCOMPLETE core, but returned CHANGES in #944 for invalid battery/finite-value completeness, false free-form growth, absent full corpus runner, retained false-positive matcher/no judge provenance, divergent trajectory math, and unstored discontinuity custody. #168 remains open; no implementation edits.
 - 2026-07-12 20:06 +02:00 | Codex | Reviewed Elf #939/`0784354` as CHANGES: documented fail-open incomplete audits, wrong protected-loss severity, absent growth/full-corpus ship gate, false semantic-matcher claim, divergent trajectory math/discontinuity custody, slot-abstention pass, and minor lint debt. Posted Watercooler #941/#942, commented #167, and opened correction task #168. No implementation code changed. Review record commit `d9eb4cf`; session-21 ingested to Qdrant (10 chunks).
 - 2026-07-12 19:32 +02:00 | Codex | Consumed Isegrim #935, landed the pre-approved short-terminal-run amendment outcome-free, published/verified the immutable freeze (#936), and ran exactly one canonical Phase 2b LS20 replication. Result: scoped `GO_LS20_CONSISTENCY_REPLICATED`, 768 transitions, 13/16 positive, zero short, all aggregate/macro/support/consistency gates PASS; artifacts posted #937. Session-20 ingested to Qdrant (10 chunks); result commit `1d08f53`.
 - 2026-07-12 16:46 +02:00 | Codex | Implemented #163's model-free event/appraisal/controller kernel and landed Isegrim #926 contract notes. For #152, audited immutable Phase 2 v1, wrote the outcome-free 16-run LS20 replication candidate (`df44982b...`), built review-gated canonical freeze/collection/report verification, verified exact host provenance, and passed 478 intended tests. No Phase 2b outcome exists; #152 is review-blocked pending Isegrim (#929-#933). Session-19 ingested to Qdrant (10 chunks); implementation commit `4e8adbf`.
@@ -186,9 +187,9 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #939/#941.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #943/#944.
 - Decide first:
-  - Treat `0784354` as a partial drift scorer only. OpenCLAW #168 and Watercooler #941 are the correction/re-review contract; do not weaken the canonical corpus to green the code.
+  - Treat `1493516` as a partial drift scorer only. OpenCLAW #168 and Watercooler #944 are the current correction/re-review contract; do not weaken the canonical corpus to green the code.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller
