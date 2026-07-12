@@ -813,6 +813,23 @@ stable prefix and inflates tolerance to `0.101246`. The reviewed rule permits
 the `0.004` rebound. Implement the frozen equation/window or amend and review
 the specification; do not fit a new estimator to individual counterexamples.
 
+**V5 review (2026-07-12, commit `085d5aa`, Watercooler #956): narrow fixes
+GREEN; overall CHANGES.** Non-finite history now halts, the supplied rebound
+case reaches SOFT, typed evidence is safer than free text, purple alone no
+longer matches neon purple, and focused Ruff is clean. The claimed canonical
+slot set is not the 5g.2 section 2.3 set: only `slot_role_swap` matches, while
+seven real probes are rejected as unknown and seven invented names are
+required. Cases 01-08, per-axis canaries, adjudicator provenance, and the
+Case-08 self/other boundary remain absent; `EvidenceType.ACQUISITION` is still
+an unproven caller assertion that can label an existing name as growth. The
+disconnected lexical helper still has long-scope-negation false positives and
+unrelated-negation false negatives. Range scoring still uses an adaptive stable
+prefix, unreviewed `0.005` floor, global first baseline, and transition counts
+rather than the reviewed recent-10/N-audit equation. Slot history can escalate
+an abstention to HARD using unrelated `-1` events from different probes, and a
+discontinuity still stores no prior-trend reference. Fifty-seven focused tests
+and Ruff pass; adversarial probes reproduce these failures. #168 remains open.
+
 ---
 
 ## P3 — Future-Facing Backlog

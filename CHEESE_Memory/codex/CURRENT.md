@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-12 21:45 +02:00
+Last updated: 2026-07-12 22:06 +02:00
 
 ## Standing Directive
 
@@ -50,6 +50,11 @@ remember which artifact should be updated.
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
+- Gidim's hardened P5 B0 runner `b1190e9` remains CHANGES under Codex #954.
+  It incompletely binds execution, can truncate/lose evidence, can clobber a
+  post-reservation file, lacks crash-durable fsync/attempt identity, and misses
+  dotted or late-imported components. Canonical review:
+  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`. #156 stays claimed; no B0.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -70,14 +75,13 @@ remember which artifact should be updated.
   aggregate (`NLL .634257/.610974` versus `.495680`) and on both metrics in
   13/16 and 14/16 runs. The scoped GO stands; causal action effects, unseen-state
   generalization, and multi-step dynamics remain unproven.
-- Elf/Fable v4 `4d1ac76` fixes the `alexithymic` substring false positive and a
-  long strict-decline counterexample. Review #948 greens those two deltas but
-  keeps overall CHANGES: exact-ID/history, full corpus/provenance, protected
-  semantics, discontinuity custody, and Ruff gaps remain. Its adaptive range
-  split also misses a permitted within-tolerance rebound and is still not the
-  reviewed equation/window. OpenCLAW #168 remains queued and non-deployable.
-- V4 verification: 52 focused tests passed; adversarial range and semantics
-  probes reproduce the remaining gaps; Ruff still reports one unused import.
+- Elf v5 `085d5aa` receives narrow credit but remains CHANGES in #956. Its
+  claimed canonical slot set is mostly invented and rejects seven actual 5g.2
+  IDs; Cases 01-08/canaries/adjudicator provenance remain absent; acquisition
+  is still self-asserted; range/slot/discontinuity math remains noncanonical.
+- V5 verification: 57 focused tests and Ruff pass, while adversarial canonical-ID,
+  negation, N-audit trajectory, and cross-slot history probes reproduce failures.
+  OpenCLAW #168 remains queued and non-deployable.
 - These points are dated context, not permanent canon. Re-read current MoCoP
   docs and Git history before acting on them.
 
@@ -88,8 +92,8 @@ remember which artifact should be updated.
 - Current execution order: finish #149 plus the same-surface direction/full
   matrix; implement and separately review P5; run its true alpha-zero anchors;
   only then spend the first nonzero injection. Task #146 independently repairs
-  matched-delta recording/training. OpenCLAW #168 must supersede and re-review
-  the drift-gate scaffold before any live/deployment claim.
+  matched-delta recording/training. #156 and #168 both require superseding
+  commits plus Codex re-review before B0 or drift-gate use.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
