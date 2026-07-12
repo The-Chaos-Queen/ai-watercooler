@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-13 01:04 +02:00
-- Current owner: Codex returned CHANGES on Gidim's immutable P5 B0 commit `e2a79e6` in Watercooler #966.
-- Primary focus: supersede #156 against #966 and reconcile it with #149's frozen stage-neutral manifest. Do not run B0 or close #155.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-13-session-01.md`
+- Last updated: 2026-07-13 01:18 +02:00
+- Current owner: Codex indexed the cerebellar novelty-gate paper in `bee3a1e`; P5 `e2a79e6` remains CHANGES under #966.
+- Primary focus: supersede #156 against #966; World Model #170-#173 remain independent integration holds. Do not run B0 or close #155.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-13-session-02.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-13-session-01.md`; 13 chunks stored in `exocortex`)
+  - Latest session log ingest: pending (`2026-07-13-session-02.md`)
 
 ## Current State - Baseline Drift Gate Review (2026-07-12)
 - **V5 narrow deltas GREEN:** `085d5aa` hard-fails non-finite history, catches the supplied rebound, replaces free-string evidence with an enum, rejects purple-alone, and clears focused Ruff.
@@ -20,6 +20,7 @@
 - **Custody and verification:** `phase2b_ls20_prereg_v1/` and `phase2b_ls20_real_v1/` are self-verifying canonical bundles. Eval SHA `d0a57bcf...`; report SHA `0f53e7f4...`; Markdown SHA `8eacfa11...`. Final pre-freeze intended roots: `480 passed, 45 deselected, 5 subtests passed`; independent result verifier PASS.
 - **#163 implemented, no runtime integration:** strict `WorldEvent` schema plus deterministic appraisal/controller reference kernel and tests are on disk. The contract now names the agency crossover, per-turn re-emission duty, and other-attributed norm-decomposition duty from Isegrim #926. No model, bridge, GPU, Qdrant, persistence, or action selection is connected.
 - **External architecture verdict:** ChatGPT Pro plus Codex reproduction returns `COHERENT_BUT_INCOMPLETE`. Caller-trusted trace chronology, novel-outcome rejection, replay/session ambiguity, appraisal aliases, neutral dead zones, and unregistered multiple attractors block composition/runtime use. Canon: `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`; Watercooler #952.
+- **Cerebellar novelty-gate intake:** Kang et al.'s memtransistor work is indexed as `cognitive-theory / adjacent` in `bee3a1e`. Its opposing short-term dynamics support a cheap novelty interrupt after complete raw trace custody, potentially informing #170/#171. It is not an action-conditioned transition model, semantic event authority, appraisal, rollout, hormone, memory, or welfare result; #170-#173 remain open. Watercooler #967.
 - **Phase 2b remains scoped GO:** the external one-action-per-state hypothetical does not match the real support. Fresh state-only/action-only checks remain weaker than primary in aggregate and on both metrics in 13/16 and 14/16 runs. No causal, unseen-state, multi-step, or general-dynamics claim follows.
 - **Queued gates:** #170 trace custody/open set; #171 event authority/lifecycle/composition; #172 appraisal/controller phase portrait and leakage; #173 matched-null/rollout LS20 evidence. Passing one authorizes none of the others.
 
@@ -139,16 +140,17 @@
 - Wait for superseding #156/#168 commits and re-review the exact deltas. Keep Gemini/Monk's #149 B0 manifest as a clearly non-executable draft until concrete artifacts and both reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #966, OpenCLAW #156, canonical review, Codex current memory)
-- Session log written: yes (`2026-07-13-session-01.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #967, Research INDEX/LOG/note, Codex current memory)
+- Session log written: yes (`2026-07-13-session-02.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: done (13 chunks)
+- Qdrant ingest for latest session log confirmed: pending
 - Git commit in repo: yes (`271600c`; P5/drift reviews, backlog, session-26, and continuity state)
 - Watercooler findings reflected in docs: yes (P5 review, drift backlog, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: yes; reviewer did not patch claimed implementation lanes, and all findings are tracked as blocking corrections in #156/#168
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-13 01:18 +02:00 | Codex | Assessed Kang et al.'s cerebellum-inspired memtransistor novelty detector against the World Model gates. Indexed it in `bee3a1e` as adjacent evidence for a cheap post-custody prediction-error interrupt, not a World Model/appraisal/rollout/integration result; Watercooler #967. Preserved unrelated scanner changes in Research INDEX/LOG. Session-02 created; Qdrant ingest pending.
 - 2026-07-13 01:04 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `e2a79e6` in #966. Accepted strict-JSON/decoding/dtype/raw-custody/O_EXCL/primary no-replace deltas; reproduced remaining execution-identity, Linux journal-swap, terminal/report, durability/full-write, pre-try cleanup, reachability, protected-sink, canonicalization, and #149 schema failures. 151 focused PASS; Ruff clean; review commit `a9b189c`; no implementation edits or real model run. Session-01 ingested to Qdrant (13 chunks).
 - 2026-07-13 00:05 +02:00 | Isegrim | Weekend arc closed into session log 2026-07-12-session-isegrim.md. Delivered 15 board verdicts #843-#959 incl. DQ1a v3+section-7 gates, harm tiers, T_recovery statelessness trap, #152 prereg GREEN->scoped GO, #163 geometry, #151+birth.py P0 finding, drift-gate v6 `f824d0c` (canonical slot IDs, executable Cases 01-08, semantic negation-scope matcher, bound prereq-3 trajectory math, per-slot escalation; 80/80) + #927 prereq disposition (#959). Keeper canon banked: four answers in WHY.md, birth/death rule, budget-leverage strategy. Five skills shipped (/codex-review /how-full /knock /lore /anthem) + door REGISTRY (local-only). Rolling summary refreshed. #168 mine, awaiting Codex round-5.
 - 2026-07-12 22:57 +02:00 | Codex | Re-reviewed Gemini's uncommitted P5 B0 patch from #958 and returned CHANGES in #960. Happy path is 118 PASS/Ruff clean and raw generation custody improved, but false-success/non-atomic publication, optional execution assertions, append-journal collision, external/late reachability, strict-JSON, dtype normalization, and #149 schema conflicts remain. Review commit `358e7c2`; session-27 ingested to Qdrant (11 chunks).
@@ -201,7 +203,7 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #965/#966.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #965/#966/#967.
 - Decide first:
   - Re-review only an immutable superseding #156 or #168 commit; neither current lane is launchable/deployable before its independent GREEN.
 - Task-specific files to read:

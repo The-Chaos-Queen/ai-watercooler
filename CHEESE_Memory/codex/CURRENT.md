@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-13 01:02 +02:00
+Last updated: 2026-07-13 01:18 +02:00
 
 ## Standing Directive
 
@@ -73,6 +73,12 @@ remember which artifact should be updated.
   integration blockers. The exact response, manifest, and corrected disposition
   are in `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`;
   Watercooler #952 and OpenCLAW #170-#173 carry tracking.
+- Kang et al.'s 2026 cerebellum-inspired memtransistor paper is indexed in
+  `bee3a1e` as an adjacent prediction-error/event-trigger reference. It supports
+  evaluating a cheap novelty interrupt after raw trace custody, not a learned
+  transition model, event authority, appraisal, rollout, or integration claim.
+  Watercooler #967 and `Research/2026-07-13_cerebellum_memtransistor_novelty_gate.md`
+  carry the bounded mapping to #170/#171.
 - The Pro review's one-action-per-state Phase 2b hypothetical does not fit the
   bundle. Fresh state-only/action-only checks remain weaker than primary in
   aggregate (`NLL .634257/.610974` versus `.495680`) and on both metrics in

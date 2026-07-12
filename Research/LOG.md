@@ -235,6 +235,28 @@ All five cross-linked into `INDEX.md` under a new top-level "wiki pages" section
 
 **Graph:** no graphify rebuild yet. Add to next knowledge-graph refresh batch with recent paper notes and MoCoP substrate bakeoff artifacts.
 
+
+---
+
+## 2026-07-10 — Scanner intake triage: weekly sweep 2026-07-06 (5 items)
+
+**Operation:** First manual triage of the LXC-101 research scanner's output (the scanner has run weekly since spring but had no delivery pipe — see reference_infrastructure audit 2026-07-10). Sonnet subagent sifted; Isegrim completed the log + verdicts.
+
+**Source:** `/root/research_scanner_results.md` on LXC 101, sweep of 2026-07-06 (7-day lookback: 0 arXiv, 1 GitHub, 4 HF).
+
+**Verdicts (scanner's own keyword scores were REL:1 across the board — ignored):**
+- `HUHUHUruixuan/emotional-dynamics-llm` (GitHub, 2★) — **INDEXED, core.** Hypernetwork maps valence-arousal coordinates → dynamic LoRA weights injected at inference into frozen Qwen2.5-0.5B q_proj/v_proj. Direct external precedent for the endocrine/tension-parameter lane; it is a related attention-projection modulation design, not the current Gemma `value_norm_pre` bridge seam.
+- 2606.31672 WorldRoamBench — **INDEXED, tangential.** Long-horizon world-model stability benchmark (memory + physics dims); eval scaffold for the active-inference lane someday.
+- 2605.27898 Unified Framework for LLM Agentic Capabilities — **skipped (WEAK).** Its capability-vs-harness confound theme rhymes with our judge/panel calibration concerns, but it's eval-harness meta-work with no mechanism; panel methodology already addresses the concern via two-rater calibration. Revisit only if the disposition panel goes public-benchmark.
+- 2607.02269 AnyGroundBench (video grounding VLM) — **skipped (NONE).**
+- 2607.01444 Pruned MoE biomedical factual reliability — **skipped (NONE).**
+
+**Files:** `Research/INDEX.md` two new rows (core + tangential). No digest files (intake only).
+
+**Graph:** no graphify rebuild (per batch convention). Add both indexed items to the next knowledge-graph refresh batch.
+
+**Process note:** scanner delivery pipe + taste-refresh still pending keeper decision — see board and reference_infrastructure. The dumb-net + smart-filter pattern validated on first manual run: the keyword robot's own scoring buried its best find.
+
 ---
 
 ## 2026-07-13 - Cerebellum-inspired memtransistor novelty-gate intake (Codex)

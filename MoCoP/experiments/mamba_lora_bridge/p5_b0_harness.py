@@ -239,16 +239,20 @@ def assert_strict_json(obj: Any, *, _path: str = "$") -> None:
                 raise EvidenceBundleError(f"non-string mapping key at {_path}: {key!r}")
             assert_strict_json(value, _path=f"{_path}.{key}")
         return
-    if isinstance(obj, (list, tuple)):
+    if isinstance(obj, list):
         for i, value in enumerate(obj):
             assert_strict_json(value, _path=f"{_path}[{i}]")
         return
+    # tuples are rejected: json.dumps would collapse (1, 2) into [1, 2], so a digest over a
+    # tuple is not injective. Callers must normalize to a list before custody (#966 MED-6).
     raise EvidenceBundleError(f"non-JSON value at {_path}: {type(obj).__name__}")
 
 
 def canonical_digest(obj: Any) -> str:
-    # No ``default=str`` fallback and ``allow_nan=False``: a value that is not strict
-    # JSON must RAISE, never be coerced into a process-specific string or a literal NaN.
+    # No ``default=str`` fallback and ``allow_nan=False``, AND the strict validator runs
+    # first so non-string keys / tuples / non-finite floats RAISE rather than silently
+    # collapsing ({1:"x"} vs {"1":"x"}, (1,2) vs [1,2]) into a colliding digest (#966 MED-6).
+    assert_strict_json(obj)
     payload = json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False,
                          ensure_ascii=True).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
@@ -261,7 +265,14 @@ def authorize_b0_launch(manifest: Mapping[str, Any]) -> B0LaunchDecision:
     and nothing else. It never authorizes injection, birth, or any component route.
     """
     refusals = validate_b0_manifest(manifest)
-    digest = canonical_digest(manifest) if isinstance(manifest, Mapping) else None
+    # A manifest that fails strict-JSON (non-string key, tuple, non-finite) is invalid
+    # anyway; digest=None rather than letting canonical_digest raise out of authorization.
+    try:
+        digest = canonical_digest(manifest) if isinstance(manifest, Mapping) else None
+    except EvidenceBundleError:
+        digest = None
+        if not refusals:
+            refusals.append("manifest is not strict JSON (non-string key / tuple / non-finite)")
     return B0LaunchDecision(ok=not refusals, refusals=tuple(refusals), manifest_digest=digest)
 
 

@@ -166,8 +166,6 @@ Research/lw_logit_lens/images/
 # Ultrareview / lane-experiment temp outputs
 LANE_EXP_BATCH*.txt
 b4m69vkg1.txt
-.claude/settings.local.json
-.claude/settings.json
 
 # Claude-in-Chrome / Playwright MCP scratch artifacts
 .playwright-mcp/
@@ -175,3 +173,10 @@ b4m69vkg1.txt
 # Session logs live in qdrant, not git (per keeper 2026-07-13)
 CHEESE_Memory/session_logs/
 CHEESE_Memory/laura.md
+tools/ai_watercooler/ROLLING_SUMMARY.md
+
+# Ignore all .claude/settings.local.json files
+.claude/settings.local.json
+.claude/settings.json
+**/settings.local.json
+
