@@ -235,3 +235,28 @@ All five cross-linked into `INDEX.md` under a new top-level "wiki pages" section
 
 **Graph:** no graphify rebuild yet. Add to next knowledge-graph refresh batch with recent paper notes and MoCoP substrate bakeoff artifacts.
 
+---
+
+## 2026-07-13 - Cerebellum-inspired memtransistor novelty-gate intake (Codex)
+
+**Operation:** Read Laura's Northwestern link, followed it to the primary Nature
+Communications paper and the two NECTAR/Zenodo supporting-data records, then wrote a
+bounded MoCoP relevance note.
+
+**Source:** Kang et al., *Cerebellum-inspired memtransistors enable emergent
+differentiation for hardware-efficient novelty detection*, Nature Communications
+(2026), DOI `10.1038/s41467-026-75212-4`; supporting data DOI records
+`10.5281/zenodo.20672359` and `10.5281/zenodo.20672360`.
+
+**Outcome:** Added `2026-07-13_cerebellum_memtransistor_novelty_gate.md` and indexed it
+under `cognitive-theory` as `adjacent`. The reusable signal is a cheap opposing-dynamics
+novelty interrupt that may gate expensive appraisal/World Model work. It is explicitly
+not cataloged as a learned transition model, semantic event layer, appraisal system,
+rollout engine, hormone channel, or welfare result.
+
+**MoCoP mapping:** Potential reference for #170 trace/open-set novelty proposals and
+#171 event-triggering policy. It does not close #170-#173, alter the scoped Phase 2b GO,
+or authorize Gemma/Mamba/bridge/controller integration.
+
+**Graph:** no rebuild. Add this note and its prediction-error/event-trigger concepts to
+the next batched knowledge-graph refresh.

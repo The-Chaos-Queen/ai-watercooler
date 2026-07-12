@@ -259,6 +259,7 @@ Stable, undated synthesis pages built by 5-subagent fan-out on 2026-04-21. Each 
 | `A foundation model of vision, audition, and language for in-silico neuroscience.pdf` | TRIBE v2 (Meta FAIR / ENS, March 2026) | Tri-modal foundation model predicting fMRI brain responses; brain-AI representational alignment. | tangential |
 | 2301.08243 | I-JEPA (Assran/Duval/.../LeCun, Jan 2023) | Self-supervised joint-embedding predictive architecture — predicts masked image-block reps from context blocks. Foundational JEPA paper for the world-model lineage LeCun has been pushing. **Not yet fetched locally** — URL-only. | adjacent |
 | `batali94innateBiases.pdf` | Innate Biases & Critical Periods (Batali, Alife IV 1994) | Critical periods explained as innate initial weights *diverging* under spurious training (entrenchment), not maturation. Networks evolve biases via population GA + Baldwin-effect learning. Direct mechanistic ancestor of Hurtig's #115 protected-identity gate; paired with 2605.26099 as the inverse direction — consolidation deepens, divergence erodes. | core |
+| [s41467-026-75212-4](2026-07-13_cerebellum_memtransistor_novelty_gate.md) | Cerebellum-inspired memtransistor novelty detection (Kang et al., Nature Communications 2026) | Opposing excitatory/inhibitory short-term device dynamics expose temporal novelty with sparse compute. Useful precedent for a prediction-error interrupt ahead of appraisal, not an action-conditioned World Model, semantic event authority, or rollout system. | adjacent |
 
 ---
 
