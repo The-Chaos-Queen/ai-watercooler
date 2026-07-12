@@ -1,0 +1,80 @@
+{
+  "analysis_contract": {
+    "aggregate_weighting": "transition_micro",
+    "decision_precedence": [
+      "INVALID_PROTOCOL",
+      "NO_GO_LS20_INSUFFICIENT_EVIDENCE",
+      "NO_GO_LS20_PREDICTIVE_FAILURE",
+      "NO_GO_LS20_RUN_INCONSISTENT",
+      "NO_GO_LS20_EFFECT_GATE_FAILED",
+      "GO_LS20_CONSISTENCY_REPLICATED"
+    ],
+    "effect_gate_applies_to": [
+      "transition_micro",
+      "unweighted_run_macro"
+    ],
+    "failed_run_policy": "resume_same_hash_bound_journal_or_fail_support_no_new_seed",
+    "positive_run": "all_nll_and_class_summed_brier_deltas_strictly_positive_against_both_frozen_nulls",
+    "run_macro_weighting": "unweighted_complete_run",
+    "terminal_run_policy": "retain_without_replacement",
+    "v1_eval_use": "historical_context_only_never_pooled_or_gated"
+  },
+  "code_sha256": {
+    "MoCoP/experiments/mamba_lora_bridge/spikes/collect_world_model_phase2.py": "45033f09feda7aeb304130b594ccf26ffc87459f020192cd9cc9886a586080a7",
+    "MoCoP/experiments/mamba_lora_bridge/spikes/score_world_model_trace.py": "1c28f70c25ab50848b6e22f89b77deafd300e5147fb5d71bcfa85acc949860bd",
+    "MoCoP/experiments/mamba_lora_bridge/spikes/world_model_phase2b.py": "d7062ac4b3bee41d9cbc2fa1ef486a2eae6e913c6ddceb5d134489002ac59296",
+    "MoCoP/experiments/mamba_lora_bridge/world_model_baselines.py": "6b44390f6a7353d1e1c5a342b894f7c98935a4324dcf81e614eecb7adca0b2aa",
+    "MoCoP/experiments/mamba_lora_bridge/world_model_capture.py": "e5af1edcbb15307a79e450cb08a29e4fff2e662e9e5268d0844f3866ca3b5c65",
+    "MoCoP/experiments/mamba_lora_bridge/world_model_trace.py": "c87d94bac4df8b211d9a067e8c68ba34aabcb60f8d190a873e832d36dbdeed5d"
+  },
+  "created_at_utc": "2026-07-12T17:25:46.871506+00:00",
+  "decision_rule": {
+    "domain": "ls20",
+    "max_short_runs": 4,
+    "min_brier_improvement": 0.01,
+    "min_eval_runs": 16,
+    "min_eval_transitions": 512,
+    "min_nll_improvement_nats": 0.02,
+    "min_positive_run_fraction": 0.75,
+    "min_positive_runs": 12,
+    "min_train_action_count": 8,
+    "min_train_state_action_cells": 4,
+    "min_train_transitions": 192,
+    "short_run_transition_threshold": 16
+  },
+  "estimator_ids": {
+    "action_shuffle_null": "action-shuffle-null-v1:001b866749367806",
+    "empirical_marginal_null": "empirical-marginal-null-v1:ls20:29b3f349d43f6ae2",
+    "tabular": "dirichlet-tabular-v1:ls20:29b3f349d43f6ae2"
+  },
+  "eval_freeze_sha256": "fdbb1407bcf192664147330c194d0aae12208b7da3ade08123b8517f22c002bf",
+  "eval_run_specs_sha256": "0944f2df7538c3861c8f81394bc9c33f6d069b108ccd6e0363f5732814eb26d6",
+  "preregistration_sha256": "4973576cb5a660c345a708995fee5eb4a9c9de6a8411930e2e80dcc39a899930",
+  "publication_contract": {
+    "freeze_bundle_path": "MoCoP/experiments/mamba_lora_bridge/results/world_model_phase2/phase2b_ls20_prereg_v1",
+    "result_bundle_path": "MoCoP/experiments/mamba_lora_bridge/results/world_model_phase2/phase2b_ls20_real_v1",
+    "retained_staging_blocks_replacement": true,
+    "single_result_per_eval_freeze": true
+  },
+  "review_attestation": {
+    "disposition": "approved_with_changes_resolved",
+    "note": "Watercooler #935 reviewed df44982b... and pre-approved the outcome-free Q2 amendment now bound in reviewed document SHA-256 476dd0a03ef902dd6f10dd75cab873bd1cf6dfb9e3881407765b3fce5fdd77b0.",
+    "reviewed_at_utc": "2026-07-12T17:01:06Z",
+    "reviewed_document_path": "MoCoP/experiments/mamba_lora_bridge/spikes/WORLD_MODEL_PHASE2B_LS20_REPLICATION_PREREG_2026-07-12.md",
+    "reviewed_document_sha256": "476dd0a03ef902dd6f10dd75cab873bd1cf6dfb9e3881407765b3fce5fdd77b0",
+    "reviewer": "isegrim",
+    "watercooler_message_id": 935
+  },
+  "runtime": {
+    "os_name": "nt",
+    "platform": "win32",
+    "python_executable": "C:\\Users\\cerub\\AppData\\Local\\MoCoP\\venvs\\world-model-arc-agi-0.9.8\\Scripts\\python.exe",
+    "python_version": "3.13.9 | packaged by Anaconda, Inc. | (main, Oct 21 2025, 19:09:58) [MSC v.1929 64 bit (AMD64)]"
+  },
+  "schema_version": "world-model-phase2b-eval-freeze-v1",
+  "status": "frozen_before_phase2b_outcomes",
+  "v1_baseline_bundle_sha256": "6e96fae900fa85a12ac638df6e33d652ae6398cc8648dd143d6934679097bc7a",
+  "v1_baseline_file_sha256": "4e0d2d39dfab75fcf68abe53ab97738eeaaa1653c6523aa95769e3f8e9cf780c",
+  "v1_manifest_sha256": "497acb5cbbea6f26afecfaf9c8f28d4bbd7cebba081e35d2f34d07ddef4facd2",
+  "v1_train_trace_sha256": "29b3f349d43f6ae29b3a8509d0513177198a38f5232346fae3e27b88e9f657ef"
+}

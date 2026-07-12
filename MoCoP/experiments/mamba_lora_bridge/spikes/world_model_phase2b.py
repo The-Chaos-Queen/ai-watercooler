@@ -107,7 +107,8 @@ DECISION_RULE = {
     "min_train_action_count": 8,
     "min_train_state_action_cells": 4,
     "min_train_transitions": 192,
-    "min_transitions_per_eval_run": 16,
+    "short_run_transition_threshold": 16,
+    "max_short_runs": 4,
 }
 ANALYSIS_CONTRACT = {
     "aggregate_weighting": "transition_micro",
@@ -567,10 +568,17 @@ def load_frozen_ls20_estimators(
 def decide(score: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """Apply the preregistered LS20-only decision rule."""
     bucket = score["domains"]["ls20"]
-    run_buckets = [
-        run_bucket
-        for run_bucket in score["runs"].values()
+    run_items = [
+        (run_id, run_bucket)
+        for run_id, run_bucket in score["runs"].items()
         if run_bucket["domain"] == "ls20"
+    ]
+    run_buckets = [run_bucket for _, run_bucket in run_items]
+    short_run_threshold = DECISION_RULE["short_run_transition_threshold"]
+    short_run_ids = [
+        run_id
+        for run_id, run_bucket in run_items
+        if run_bucket["n_eval"] < short_run_threshold
     ]
     deltas = {
         "marginal": bucket["delta_marginal_minus_tabular"],
@@ -603,10 +611,7 @@ def decide(score: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         training["n_train"] >= DECISION_RULE["min_train_transitions"]
         and bucket["n_eval"] >= DECISION_RULE["min_eval_transitions"]
         and len(run_buckets) == DECISION_RULE["min_eval_runs"]
-        and all(
-            run_bucket["n_eval"] >= DECISION_RULE["min_transitions_per_eval_run"]
-            for run_bucket in run_buckets
-        )
+        and len(short_run_ids) <= DECISION_RULE["max_short_runs"]
         and min(training["action_counts"].values())
         >= DECISION_RULE["min_train_action_count"]
         and training["n_state_action_cells"]
@@ -623,7 +628,8 @@ def decide(score: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         for delta in macro_deltas.values()
     )
     positive_runs = sum(
-        all(
+        run_bucket["n_eval"] >= short_run_threshold
+        and all(
             run_bucket[delta_key][metric] > 0.0
             for delta_key in (
                 "delta_marginal_minus_tabular",
@@ -679,9 +685,10 @@ def decide(score: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         "n_eval_runs": len(run_buckets),
         "required_eval_runs": DECISION_RULE["min_eval_runs"],
         "eval_run_lengths": [run_bucket["n_eval"] for run_bucket in run_buckets],
-        "minimum_transitions_per_eval_run": DECISION_RULE[
-            "min_transitions_per_eval_run"
-        ],
+        "short_run_transition_threshold": short_run_threshold,
+        "short_run_ids": short_run_ids,
+        "short_runs": len(short_run_ids),
+        "maximum_short_runs": DECISION_RULE["max_short_runs"],
         "train_action_counts": training["action_counts"],
         "minimum_train_action_count": DECISION_RULE["min_train_action_count"],
         "train_state_action_cells": training["n_state_action_cells"],
@@ -868,10 +875,13 @@ def _markdown_report(report: dict[str, Any]) -> str:
         run = score["runs"][run_id]
         marginal = run["delta_marginal_minus_tabular"]
         shuffle = run["delta_null_minus_tabular"]
-        positive = all(
+        positive = (
+            run["n_eval"] >= DECISION_RULE["short_run_transition_threshold"]
+            and all(
             run[key][metric] > 0.0
             for key in ("delta_marginal_minus_tabular", "delta_null_minus_tabular")
             for metric in ("categorical_nll", "multiclass_brier")
+            )
         )
         lines.append(
             f"| {run_id} | {run['n_eval']} | "
@@ -888,10 +898,13 @@ def _markdown_report(report: dict[str, Any]) -> str:
             f"Micro effects: `{'PASS' if check['aggregate_effect_passed'] else 'FAIL'}`. "
             f"Run-macro effects: `{'PASS' if check['macro_effect_passed'] else 'FAIL'}`. "
             f"Consistency: `{check['positive_runs']}/{check['n_eval_runs']}` "
-            f"(`{'PASS' if check['run_consistency_passed'] else 'FAIL'}`).",
+            f"(`{'PASS' if check['run_consistency_passed'] else 'FAIL'}`). "
+            f"Short runs: `{check['short_runs']}/{check['maximum_short_runs']}` "
+            f"(threshold `<{check['short_run_transition_threshold']}`).",
             "",
             "NLL is in nats. Brier is the class-summed multiclass score in `[0, 2]`. "
-            "Positive deltas mean the exact v1 tabular estimator beats the named exact v1 null.",
+            "Positive deltas mean the exact v1 tabular estimator beats the named exact v1 null. "
+            "A run with fewer than 16 transitions is automatically non-positive.",
             "",
             "## Boundary",
             "",

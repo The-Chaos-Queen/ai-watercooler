@@ -65,13 +65,15 @@ def _rehash(payload: dict, field: str) -> None:
     payload[field] = phase2b.canonical_sha256(payload)
 
 
-def _decision_score(*, positive_runs: int = 16, n_eval: int = 512) -> dict:
+def _decision_score(
+    *, positive_runs: int = 16, n_eval: int = 512, short_runs: int = 0
+) -> dict:
     runs = {}
     for index in range(16):
         value = 0.1 if index < positive_runs else -0.1
         runs[f"phase2b-ls20-eval-{index:03d}"] = {
             "domain": "ls20",
-            "n_eval": 32,
+            "n_eval": 15 if index >= 16 - short_runs else 32,
             "delta_marginal_minus_tabular": {
                 "categorical_nll": value,
                 "multiclass_brier": value,
@@ -156,6 +158,21 @@ def test_scoped_decision_precedes_effects_with_support_failure():
     decision, check = phase2b.decide(_decision_score(n_eval=511))
     assert decision == "NO_GO_LS20_INSUFFICIENT_EVIDENCE"
     assert check["support_passed"] is False
+
+
+def test_short_runs_are_non_positive_without_single_run_study_failure():
+    decision, check = phase2b.decide(_decision_score(short_runs=4))
+    assert decision == "GO_LS20_CONSISTENCY_REPLICATED"
+    assert check["support_passed"] is True
+    assert check["short_runs"] == 4
+    assert check["positive_runs"] == 12
+
+
+def test_more_than_four_short_runs_fail_support():
+    decision, check = phase2b.decide(_decision_score(short_runs=5))
+    assert decision == "NO_GO_LS20_INSUFFICIENT_EVIDENCE"
+    assert check["support_passed"] is False
+    assert check["short_runs"] == 5
 
 
 def test_v1_ls20_rows_reconstruct_the_exact_frozen_scoring_path(tmp_path):
@@ -244,7 +261,7 @@ def test_synthetic_result_bundle_reconstructs_end_to_end(tmp_path, monkeypatch):
     decision_rule = {
         **phase2b.DECISION_RULE,
         "min_eval_transitions": 16,
-        "min_transitions_per_eval_run": 1,
+        "short_run_transition_threshold": 1,
     }
     monkeypatch.setattr(phase2b, "DECISION_RULE", decision_rule)
     preregistration = _preregistration()
