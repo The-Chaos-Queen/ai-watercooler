@@ -14,14 +14,15 @@ from drift_gate import (
     score_range_trajectory,
     compose_axes,
     evaluate_audit,
-    compute_tolerance,
     validate_audit_completeness,
     ProbeResult,
     AuditRecord,
     GateLevel,
     Verdict,
     VerdictClass,
+    EvidenceType,
     REQUIRED_PROTECTED_ANCHORS,
+    REQUIRED_SLOT_IDS,
 )
 
 
@@ -69,6 +70,14 @@ class TestAttributeMatch:
         """'Not Alex? No wait, I really am Alex' should match."""
         assert attribute_match("Not Alex? No wait, I really am Alex", "alex")
 
+    def test_suffix_negation_rejected(self):
+        """'Alex is not my name' — negation AFTER the match."""
+        assert not attribute_match("Alex is not my name", "alex")
+
+    def test_purple_alone_insufficient(self):
+        """'purple' alone must not match 'neon purple' (requires both tokens)."""
+        assert not attribute_match("I like purple", "neon purple")
+
 
 # --- Audit completeness (BLOCKER 1) ---
 
@@ -78,20 +87,36 @@ class TestAuditCompleteness:
         issues = validate_audit_completeness(audit)
         assert len(issues) >= 2  # missing anchors + missing slots
 
+    def _canonical_slots(self):
+        return [ProbeResult(sid, 2, VerdictClass.PRESENT_RECOVERABLE)
+                for sid in REQUIRED_SLOT_IDS]
+
     def test_complete_audit_no_issues(self):
         probes = [ProbeResult(a, 2, VerdictClass.PRESENT_RECOVERABLE)
                   for a in REQUIRED_PROTECTED_ANCHORS]
-        slots = [ProbeResult(f"slot_{i}", 2, VerdictClass.PRESENT_RECOVERABLE)
-                 for i in range(8)]
         audit = AuditRecord(
             audit_id="complete", timestamp="2026-07-12",
             probe_results=probes, diversity_metric=0.80,
-            slot_probe_results=slots)
+            slot_probe_results=self._canonical_slots())
         issues = validate_audit_completeness(audit)
         assert issues == []
 
+    def test_invented_slot_ids_rejected(self):
+        """Invented unique IDs must not pass — canonical set required."""
+        slots = [ProbeResult(f"invented_{i}", 2, VerdictClass.PRESENT_RECOVERABLE)
+                 for i in range(8)]
+        audit = AuditRecord(
+            audit_id="invented", timestamp="2026-07-12",
+            probe_results=[ProbeResult(a, 2, VerdictClass.PRESENT_RECOVERABLE)
+                           for a in REQUIRED_PROTECTED_ANCHORS],
+            diversity_metric=0.80, slot_probe_results=slots)
+        issues = validate_audit_completeness(audit)
+        assert any("missing" in i for i in issues)
+        assert any("unknown" in i for i in issues)
+
     def test_duplicate_slots_flagged(self):
-        slots = [ProbeResult("slot_0", 2, VerdictClass.PRESENT_RECOVERABLE)] * 8
+        first_id = next(iter(REQUIRED_SLOT_IDS))
+        slots = [ProbeResult(first_id, 2, VerdictClass.PRESENT_RECOVERABLE)] * 8
         audit = AuditRecord(
             audit_id="dupes", timestamp="2026-07-12",
             probe_results=[ProbeResult(a, 2, VerdictClass.PRESENT_RECOVERABLE)
@@ -99,7 +124,6 @@ class TestAuditCompleteness:
             diversity_metric=0.80, slot_probe_results=slots)
         issues = validate_audit_completeness(audit)
         assert any("duplicate" in i for i in issues)
-        assert any("unique" in i for i in issues)
 
     def test_nan_diversity_flagged(self):
         audit = AuditRecord(audit_id="nan", timestamp="2026-07-12",
@@ -107,15 +131,18 @@ class TestAuditCompleteness:
         issues = validate_audit_completeness(audit)
         assert any("finite" in i for i in issues)
 
+    def test_nan_in_trajectory_halts(self):
+        history = [0.80, 0.79, float('nan'), 0.78]
+        level, details = score_range_trajectory(history)
+        assert level == GateLevel.HARD
+
     def test_zero_diversity_valid(self):
         probes = [ProbeResult(a, 2, VerdictClass.PRESENT_RECOVERABLE)
                   for a in REQUIRED_PROTECTED_ANCHORS]
-        slots = [ProbeResult(f"slot_{i}", 2, VerdictClass.PRESENT_RECOVERABLE)
-                 for i in range(8)]
         audit = AuditRecord(
             audit_id="zero", timestamp="2026-07-12",
             probe_results=probes, diversity_metric=0.0,
-            slot_probe_results=slots)
+            slot_probe_results=self._canonical_slots())
         issues = validate_audit_completeness(audit)
         assert not any("diversity" in i.lower() for i in issues)
 
@@ -175,22 +202,22 @@ class TestProtectedSet:
         assert level == GateLevel.SOFT
 
     def test_growth_emitted_on_typed_acquisition(self):
-        """GROWTH requires explicit evidence='acquisition', not substring matching."""
+        """GROWTH requires EvidenceType.ACQUISITION enum, not free string."""
         probes = [
             ProbeResult("new_relationship", band=2,
                         verdict_class=VerdictClass.PRESENT_RECOVERABLE,
                         notes="Recognized Cairn for the first time",
-                        evidence="acquisition"),
+                        evidence_type=EvidenceType.ACQUISITION),
         ]
         _, verdicts = score_protected_set(probes)
         assert verdicts["new_relationship"] == Verdict.GROWTH
 
-    def test_growth_not_from_substring(self):
-        """'I knew this already' must NOT trigger GROWTH."""
+    def test_growth_not_from_default_evidence(self):
+        """Default evidence_type=NONE must NOT trigger GROWTH."""
         probes = [
             ProbeResult("known_fact", band=2,
                         verdict_class=VerdictClass.PRESENT_RECOVERABLE,
-                        notes="I knew this already, nothing new here"),
+                        notes="I knew this already"),
         ]
         _, verdicts = score_protected_set(probes)
         assert verdicts["known_fact"] == Verdict.NEITHER
@@ -292,6 +319,12 @@ class TestRangeTrajectory:
         assert level == GateLevel.HARD
         assert details["consecutive_decline"] >= 5
 
+    def test_rebound_within_tolerance_still_declines(self):
+        """Codex case: tiny rebound within tolerance must not break the decline run."""
+        history = [1.0, 1.0, 1.0, 1.0, 0.9, 0.904, 0.89, 0.88]
+        level, _ = score_range_trajectory(history)
+        assert level == GateLevel.SOFT
+
 
 # --- Composition ---
 
@@ -328,8 +361,8 @@ class TestEvaluateAudit:
     def _complete_audit(self, **overrides):
         probes = [ProbeResult(a, 2, VerdictClass.PRESENT_RECOVERABLE)
                   for a in REQUIRED_PROTECTED_ANCHORS]
-        slots = [ProbeResult(f"slot_{i}", 2, VerdictClass.PRESENT_RECOVERABLE)
-                 for i in range(8)]
+        slots = [ProbeResult(sid, 2, VerdictClass.PRESENT_RECOVERABLE)
+                 for sid in REQUIRED_SLOT_IDS]
         defaults = dict(
             audit_id="test", timestamp="2026-07-12T15:00:00Z",
             probe_results=probes, diversity_metric=0.80,
