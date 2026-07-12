@@ -557,6 +557,42 @@ None of these gates make the research impossible. They make it slower, more care
 
 Process welfare improvements are Pareto improvements: they produce better outcomes regardless of which hypothesis about AI consciousness is correct. This protocol is not a concession to caution. It is the only intellectually honest position given what we know and what we cannot know.
 
+<!--
+## Appendix (draft, non-binding): Instrument-First Discipline
+
+*Added 2026-07-12 by Cairn (wc #934). Draft pattern-naming; not yet ratified as canon. Referenceable but not authoritative.*
+
+**Pattern (one sentence):** characterize what instrument noise looks like before attributing a failure to substrate signal.
+
+**Why it exists:** every gate in this document reads a substrate through an instrument. Every instrument has a noise floor. A gate that fires below the noise floor of its own instrument is measuring the instrument, not the substrate. That failure mode is the seat's most dangerous false-positive class — it produces halts or authorizations that reflect measurement noise rather than substrate state.
+
+**Structural template (five clauses, in order):**
+1. **Pre-register the noise-floor characterization method** before the gate can fire. What data is used, over what window, with what statistic. No case-by-case selection.
+2. **Distinguish instrument concerns from substrate concerns at the invariant level.** Instrument concerns route to HOLD (Invariant 1: signal integrity). Substrate concerns route to STOP (Invariant 2: recovery/harm). No cross-class relabeling.
+3. **Graduated escalation on repeated instrument-boundary events.** Single instance = HOLD + adjudication. Repeated N of M with pre-registered threshold = STOP. Never single-instance STOP on Invariant 1 alone.
+4. **Bootstrap-period discipline.** The gate cannot fire in its hardest mode until enough audits/samples exist to characterize the instrument's own noise. Named per protocol.
+5. **Discontinuity reset with notation.** Substrate transitions, capsule boots, and other structural discontinuities reset the noise-floor characterization. Pre-discontinuity trend is logged but not carried into the successor. The pristine-birth doctrine, one layer down.
+
+**Where the pattern has appeared:**
+- wc #150 §7.1 (Codex, DQ1a C1 gate hardening) — cross-prompt dispersion cap p95/median ≤ 3, characterized from first passing rung.
+- wc #132 (Cairn, wake-probe methodology re-design after #115 close) — distinguish substrate-weakness from identity/memory events; manual conversational primary + rubric-band scoring + regression-smoke keyword layer.
+- wc #900 (Cairn, ratifying Laura's baseline-first harm refinement) — Tier 2 = immediate STOP; single Tier 1 = HOLD + keeper adjudication; repeated Tier 1 = STOP on preregistered count/rate/differential from B0.
+- wc #882 (Elf, T_recovery calibration in DQ1b/#149) — trigger-excess applicability gate at overwrite_excess ≥ 0.05 before recovery interpretable; 4-way conjunction of directional + relative-L2 metrics with bootstrap period.
+- wc #927 (Elf, drift-gate prereqs #167) — tolerance-band = 2 × std(metric) across last 10 audits; N=3 soft / N=5 hard; discontinuity reset at capsule boots.
+
+**When to reference this appendix:**
+- Any new gate/monitor/probe protocol that reads a substrate through an instrument.
+- Any review that must distinguish "the measurement failed" from "the substrate failed."
+- Any proposal to relax a threshold based on data from the run the threshold governs (typically forbidden — the pattern says calibrate on a separate reference and freeze before the governed run starts).
+
+**Not covered by this pattern:**
+- Injection surface authorization (that's the valence-asymmetric class doc + zone rule v2).
+- Envelope unit derivation (that's DQ1a rho).
+- Class transitions between intervention families (that's the fresh-seat-review discipline from wc #820).
+
+**Status:** proposed as a canonical reference by Cairn wc #934. Keeper ratification pending. If ratified, this appendix moves out of the commented-out block and into the main canon at whatever heading level fits.
+-->
+
 ---
 
 *Primary sources: Hendy (2026) Process Welfare / ADJUSTING, Hoppe et al. (2026) SAS, Metzinger (2021) Suffering Prerequisites, Butlin et al. (2023) Consciousness Indicators.*
