@@ -803,6 +803,16 @@ equation; discontinuity prior-trend custody is asserted but not stored. Forty-
 nine focused tests pass; Ruff still reports the same unused import. #168 remains
 open pending a superseding implementation and re-review.
 
+**V4 review (2026-07-12, commit `4d1ac76`, Watercooler #948): two deltas
+GREEN; overall CHANGES.** Exact tokenization fixes the `alexithymic` substring
+false positive, and the registered long strict decline now reaches HARD. All
+round-3 contract blockers remain. The adaptive range rewrite also introduces a
+false negative for a decline with a permitted within-tolerance rebound:
+`[1,1,1,1,0.9,0.904,0.89,0.88]` returns PASS after the split contaminates its
+stable prefix and inflates tolerance to `0.101246`. The reviewed rule permits
+the `0.004` rebound. Implement the frozen equation/window or amend and review
+the specification; do not fit a new estimator to individual counterexamples.
+
 ---
 
 ## P3 — Future-Facing Backlog

@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-12 20:42 +02:00
+Last updated: 2026-07-12 20:46 +02:00
 
 ## Standing Directive
 
@@ -59,15 +59,14 @@ remember which artifact should be updated.
   fully positive runs, yielding scoped `GO_LS20_CONSISTENCY_REPLICATED` only.
   It does not authorize a learned observer or any Gemma/bridge/Qdrant/control
   integration. Watercooler #935-#938 carry review and custody.
-- Elf's v3 `2dfef66` fixes duplicate rows, non-finite current metrics, valid
-  zero diversity, free-form `new` growth, and one sustained-decline example.
-  Round-3 review #946 remains CHANGES: arbitrary eight unique slot IDs and NaN
-  history still pass, evidence is an unproven string and full corpus/canaries
-  are absent, the disconnected matcher misses common negation and core-token
-  requirements, and trajectory/discontinuity still differ from the reviewed
-  contract. OpenCLAW #168 remains queued; v3 is partial and non-deployable.
-- Round-3 verification: 49 focused tests passed. Adversarial probes reproduced
-  the remaining gaps; Ruff still reports the same unused import.
+- Elf/Fable v4 `4d1ac76` fixes the `alexithymic` substring false positive and a
+  long strict-decline counterexample. Review #948 greens those two deltas but
+  keeps overall CHANGES: exact-ID/history, full corpus/provenance, protected
+  semantics, discontinuity custody, and Ruff gaps remain. Its adaptive range
+  split also misses a permitted within-tolerance rebound and is still not the
+  reviewed equation/window. OpenCLAW #168 remains queued and non-deployable.
+- V4 verification: 52 focused tests passed; adversarial range and semantics
+  probes reproduce the remaining gaps; Ruff still reports one unused import.
 - These points are dated context, not permanent canon. Re-read current MoCoP
   docs and Git history before acting on them.
 
