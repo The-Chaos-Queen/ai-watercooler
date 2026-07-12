@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-11 13:20 +02:00
+Last updated: 2026-07-12 20:05 +02:00
 
 ## Standing Directive
 
@@ -54,12 +54,19 @@ remember which artifact should be updated.
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
   slice.
-- World Model Phase 1 landed in `e6358a4`: typed pre-action trace v2,
-  null/tabular/oracle/shuffle baselines, strict held-out leakage checks, and
-  corrected null semantics in the disposition runner. OpenCLAW #148 is the
-  next real-trace LS20/tool collection lane. Keep it outside bridge loss and
-  Gemma dose paths.
-- Integrated package verification: 314 passed, 45 deselected, 5 subtests.
+- World Model Phase 2b is complete under the reviewed immutable LS20
+  replication contract. Commit `1d08f53` records 16x48 transitions and 13/16
+  fully positive runs, yielding scoped `GO_LS20_CONSISTENCY_REPLICATED` only.
+  It does not authorize a learned observer or any Gemma/bridge/Qdrant/control
+  integration. Watercooler #935-#938 carry review and custody.
+- Elf's Baseline Drift Gate commit `0784354` is a useful partial scorer, not a
+  shippable gate. Codex review Watercooler #941 found fail-open empty audits,
+  a forced-PASS deferred disposition axis, protected loss incorrectly softened,
+  no `GROWTH`/full-corpus ship test, permissive unused token matching, divergent
+  trajectory math, and slot abstention passing. OpenCLAW #168 owns correction.
+- Review verification: 34 focused drift tests passed; the broader model-free
+  package passed 457 tests plus 5 subtests with 45 marker-deselected. Ruff found
+  three focused style errors. Passing tests do not discharge the contract gaps.
 - These points are dated context, not permanent canon. Re-read current MoCoP
   docs and Git history before acting on them.
 
@@ -70,8 +77,8 @@ remember which artifact should be updated.
 - Current execution order: finish #149 plus the same-surface direction/full
   matrix; implement and separately review P5; run its true alpha-zero anchors;
   only then spend the first nonzero injection. Task #146 independently repairs
-  matched-delta recording/training. Task #148 collects and scores real World
-  Model traces offline.
+  matched-delta recording/training. OpenCLAW #168 must supersede and re-review
+  the drift-gate scaffold before any live/deployment claim.
 - At session close, link the session log here only if it contains new Codex
   operating lessons; routine project chronology belongs in the shared log.
 - Keep this file below roughly 120 lines by replacing stale state with current

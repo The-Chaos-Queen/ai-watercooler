@@ -752,6 +752,28 @@ Use Watercooler for fast swarm coordination.
 
 **Tag:** gate-spec-prereq
 
+**Implementation review (2026-07-12, commit `0784354`, Watercooler #941): CHANGES.**
+The first executable scaffold is not the shippable Baseline Drift Gate. It can
+return `PASS` for an empty audit, hard-codes the deferred disposition axis to
+`PASS`, downgrades protected-anchor absence to soft review despite the
+canonical one-loss halt rule, and cannot emit `GROWTH` or satisfy the corpus
+coverage/bidirectionality precondition. Its generic token-overlap helper is
+neither semantic nor connected to evaluation; slot band `0` passes instead of
+reviewing; and the range implementation uses an unreviewed stable-prefix noise
+window plus a stricter adjacent-drop test rather than the reviewed tolerance
+equation. Discontinuity custody is also absent from the audit schema.
+The prerequisite artifact itself remains proposed: Cairn returned GREEN in
+Watercooler #934, while the Isegrim slot-pressure and Techno-Monk
+discontinuity/capsule reviews requested in #927 are not yet on record.
+
+**Correction tracking:** OpenCLAW #168. A superseding implementation must
+reject or mark incomplete missing mandatory inputs, keep unavailable axes from
+certifying `PASS`, restore protected-set halt semantics, execute all calibration
+Cases 01-08 (including subcases) with per-axis canaries and all three verdicts,
+bind calibrated semantic adjudication/provenance, implement the reviewed range
+math and discontinuity note, map slot abstention to review, obtain the remaining
+prerequisite dispositions, and pass implementation re-review.
+
 ---
 
 ## P3 — Future-Facing Backlog
