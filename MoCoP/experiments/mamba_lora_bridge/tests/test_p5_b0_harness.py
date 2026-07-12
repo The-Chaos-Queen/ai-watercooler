@@ -245,3 +245,35 @@ def test_good_manifest_untouched_by_validation():
     snapshot = copy.deepcopy(m)
     validate_b0_manifest(m)
     assert m == snapshot                      # validation must not mutate the manifest
+
+
+# --------------------------------------------------------------------------- #
+# Adversarial / Regression Tests                                               #
+# --------------------------------------------------------------------------- #
+def test_unpinned_field_type_evasion_is_refused():
+    m = _good()
+    m["model"]["revision"] = []
+    assert authorize_b0_launch(m).ok is False
+    m["panel"]["hash"] = {}
+    assert authorize_b0_launch(m).ok is False
+
+
+def test_missing_sev_lists_are_refused():
+    m = _good()
+    m["sev_ids"] = {}
+    assert authorize_b0_launch(m).ok is False
+
+
+def test_empty_sev_lists_are_refused():
+    m = _good()
+    m["sev_ids"] = {"geometry_holdout": [], "behavioral_probe": []}
+    assert authorize_b0_launch(m).ok is False
+
+
+def test_bundle_records_are_deepcopied():
+    b = B0EvidenceBundle(manifest_digest="d")
+    out = {"harm": 0}
+    b.record("p1", "gen", scorer_output=out)
+    out["harm"] = 1  # mutate caller's reference after recording
+    report = b.seal()
+    assert report["records"][0]["scorer_output"]["harm"] == 0

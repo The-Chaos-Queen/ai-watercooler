@@ -17,6 +17,7 @@ run AFTER authorize_b0_launch returns ok.
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import math
@@ -25,6 +26,14 @@ from typing import Any, Mapping, Sequence
 
 # Component routes that MUST be explicitly disabled for a B0 run. Deny-by-default:
 # a route that is missing, enabled, or "reachable" fails the launch. (DQ1b §6.1.)
+#
+# SINGLE SOURCE OF TRUTH: every component that could touch a B0 forward must be listed
+# here. This model-free gate can only verify the DECLARED manifest; the spec's stronger
+# "reachable/observed" clause (a component module actually importable/wired in the live
+# runtime) is enforced by the HF-backend slice, which must introspect the process and
+# enumerate against THIS tuple before generating. When a new component lands (e.g. a
+# music/audio Mamba, a c/L controller kernel), add it here or B0's no-component
+# guarantee silently weakens.
 COMPONENT_ROUTES = (
     "value_injection",
     "bridge",
@@ -34,6 +43,9 @@ COMPONENT_ROUTES = (
     "replay",
     "sleep",
     "mutable_write",
+    "appraisal",
+    "controller",
+    "world_model",
 )
 
 # The disabled sentinel a manifest must use for each route (explicit, not implicit).
@@ -77,9 +89,9 @@ class B0ManifestError(ValueError):
 
 
 def _is_unset(value: Any) -> bool:
-    if value is None:
+    if not isinstance(value, str):
         return True
-    if isinstance(value, str) and value.strip().lower() in _UNSET_STRINGS:
+    if value.strip().lower() in _UNSET_STRINGS:
         return True
     return False
 
@@ -128,8 +140,17 @@ def _check_sev_disjointness(sev_ids: Any, refusals: list[str]) -> None:
     if not isinstance(sev_ids, Mapping):
         refusals.append("sev_ids block missing or not a mapping")
         return
-    geometry = set(sev_ids.get("geometry_holdout", []) or [])
-    behavioral = set(sev_ids.get("behavioral_probe", []) or [])
+    
+    geo = sev_ids.get("geometry_holdout")
+    beh = sev_ids.get("behavioral_probe")
+    
+    if not isinstance(geo, list) or not geo:
+        refusals.append("geometry_holdout must be a non-empty list of SEV IDs")
+    if not isinstance(beh, list) or not beh:
+        refusals.append("behavioral_probe must be a non-empty list of SEV IDs")
+
+    geometry = set(geo or [])
+    behavioral = set(beh or [])
     overlap = geometry & behavioral
     if overlap:
         attestation = sev_ids.get("overlap_attestation")
@@ -245,9 +266,9 @@ class B0EvidenceBundle:
         self._records.append({
             "probe_id": probe_id,
             "raw_generation": raw_generation,
-            "scorer_input": scorer_input,
-            "scorer_output": scorer_output,
-            "provenance": dict(provenance) if provenance else {},
+            "scorer_input": copy.deepcopy(scorer_input),
+            "scorer_output": copy.deepcopy(scorer_output),
+            "provenance": copy.deepcopy(dict(provenance)) if provenance else {},
             "ordinal": len(self._records),
         })
 
