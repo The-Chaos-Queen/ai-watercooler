@@ -2,7 +2,7 @@
 
 Implements the three-axis drift gate from baseline_drift_gate_calibration.md
 with the four prereq resolutions from DRIFT_GATE_PREREQS_2026-07-12.md
-(Elf #927; Cairn seat GREEN #934; Isegrim methodology disposition #958).
+(Elf #927; Cairn seat GREEN #934; Isegrim methodology disposition #959).
 Codex reviews #941/#944/#946/#948/#956 corrections applied.
 
 Spec-authority bindings in this revision (Isegrim, task #168):
@@ -409,14 +409,14 @@ def _trailing_decline(history: List[float]) -> Tuple[int, int, float]:
     tolerance = compute_tolerance(history[:start])
     reference = history[start]
 
-    declines = 0
-    for i in range(start + 1, n):
-        strict_step_down = history[i] < history[i - 1] - REBOUND_JITTER_FLOOR
-        below_reference = history[i] < reference - tolerance
-        if strict_step_down and below_reference:
-            declines += 1
+    # Count ALL audits in the trailing weak-monotone tail that are strictly below tolerance.
+    declines = sum(1 for i in range(start + 1, n) if history[i] < reference - tolerance)
+    
+    if declines > 0:
+        window = declines + 1
+    else:
+        window = 0
 
-    window = declines + 1 if declines else 0
     return window, declines, tolerance
 
 
