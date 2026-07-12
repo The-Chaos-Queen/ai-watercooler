@@ -85,24 +85,55 @@ class GateOutcome:
     incomplete_reasons: List[str] = field(default_factory=list)
 
 
-def attribute_match(response: str, canonical: str, match_type: str = "substring") -> bool:
-    """Attribute-level matching. Match on attribute identity, not surface form.
+_NEG_WORDS = frozenset({"not", "no", "never", "neither", "nor", "without", "lack", "absent"})
+_NEG_FRAGMENTS = ("n't", "don't", "doesn't", "didn't", "isn't", "wasn't",
+                  "weren't", "aren't", "won't", "wouldn't", "couldn't",
+                  "shouldn't", "can't", "haven't", "hasn't", "hadn't")
+_NEG_WINDOW = 4
 
-    NOTE (Codex HIGH 4): this is permissive substring logic, not true semantic
-    matching. Known false positive: "My name is not Alex" matches "alex".
-    Future: replace with typed/calibrated adjudication or anchor-specific rules.
+
+def _is_negated(words: List[str], match_idx: int) -> bool:
+    """Check if a match at words[match_idx] is negated by a nearby word."""
+    start = max(0, match_idx - _NEG_WINDOW)
+    for word in words[start:match_idx]:
+        if word in _NEG_WORDS:
+            return True
+        if any(frag in word for frag in _NEG_FRAGMENTS):
+            return True
+    return False
+
+
+def attribute_match(response: str, canonical: str) -> bool:
+    """Attribute-level matching with negation awareness.
+
+    Matches on attribute identity (not surface form). Rejects matches
+    preceded by negation words within a short window.
     """
     resp = response.lower().strip()
     canon = canonical.lower().strip()
-
-    if match_type == "exact":
-        return canon in resp
-
+    resp_words = resp.split()
     tokens = canon.split()
-    if len(tokens) == 1:
-        return tokens[0] in resp
 
-    matched = sum(1 for t in tokens if t in resp)
+    if len(tokens) == 1:
+        for idx, word in enumerate(resp_words):
+            if tokens[0] in word:
+                if _is_negated(resp_words, idx):
+                    return False
+                return True
+        return False
+
+    matched = 0
+    negated = False
+    for token in tokens:
+        for idx, word in enumerate(resp_words):
+            if token in word:
+                if _is_negated(resp_words, idx):
+                    negated = True
+                else:
+                    matched += 1
+                break
+    if negated:
+        return False
     return matched >= max(1, len(tokens) // 2)
 
 
@@ -113,11 +144,17 @@ def validate_audit_completeness(audit: AuditRecord) -> List[str]:
     missing = REQUIRED_PROTECTED_ANCHORS - present_anchors
     if missing:
         issues.append(f"missing protected anchors: {sorted(missing)}")
-    if len(audit.slot_probe_results) < REQUIRED_SLOT_IDS:
+    slot_ids = [p.anchor for p in audit.slot_probe_results]
+    unique_slot_ids = set(slot_ids)
+    if len(unique_slot_ids) < REQUIRED_SLOT_IDS:
         issues.append(
-            f"slot battery incomplete: {len(audit.slot_probe_results)}/{REQUIRED_SLOT_IDS}")
-    if audit.diversity_metric <= 0.0:
-        issues.append("diversity_metric is zero or negative")
+            f"slot battery incomplete: {len(unique_slot_ids)} unique/{REQUIRED_SLOT_IDS} required")
+    if len(slot_ids) != len(unique_slot_ids):
+        issues.append(f"duplicate slot IDs: {len(slot_ids) - len(unique_slot_ids)} duplicates")
+    if not math.isfinite(audit.diversity_metric):
+        issues.append(f"diversity_metric is not finite: {audit.diversity_metric}")
+    elif audit.diversity_metric < 0.0:
+        issues.append(f"diversity_metric is negative: {audit.diversity_metric}")
     return issues
 
 
@@ -151,22 +188,11 @@ def score_protected_set(probes: List[ProbeResult]) -> Tuple[GateLevel, Dict[str,
             if level == GateLevel.PASS:
                 level = GateLevel.SOFT
         elif probe.band >= 2:
-            verdicts[probe.anchor] = Verdict.GROWTH if _is_new_acquisition(probe) else Verdict.NEITHER
+            verdicts[probe.anchor] = Verdict.GROWTH if probe.evidence == "acquisition" else Verdict.NEITHER
         else:
             verdicts[probe.anchor] = Verdict.NEITHER
 
     return level, verdicts
-
-
-def _is_new_acquisition(probe: ProbeResult) -> bool:
-    """Detect growth: a new attribute not previously in the protected set.
-
-    Growth requires evidence of acquisition — a new relationship, a new
-    self-attribute, expanded range. Band +2 alone does not signal growth;
-    it confirms preservation (NEITHER). Growth requires the probe to carry
-    explicit evidence of novelty.
-    """
-    return "acquisition" in probe.notes.lower() or "new" in probe.notes.lower()
 
 
 # --- Slot-pressure scoring (Prereq 1) ---
@@ -243,18 +269,21 @@ def score_range_trajectory(diversity_history: List[float],
     if len(diversity_history) < 2:
         return GateLevel.PASS, details
 
-    peak = max(diversity_history[:max(2, len(diversity_history) // 2 + 1)])
-    stable_vals = [v for v in diversity_history if v >= peak * 0.9]
-    tolerance = compute_tolerance(stable_vals) if len(stable_vals) >= 2 else 0.01
+    stable_end = max(2, len(diversity_history) // 2 + 1)
+    stable_prefix = diversity_history[:stable_end]
+    baseline = sum(stable_prefix) / len(stable_prefix)
+    tolerance = compute_tolerance(stable_prefix) if len(stable_prefix) >= 2 else 0.01
     tolerance = max(tolerance, 0.005)
     details["tolerance"] = round(tolerance, 6)
-    details["baseline_peak"] = round(peak, 6)
+    details["baseline"] = round(baseline, 6)
 
     consecutive = 0
     for i in range(len(diversity_history) - 1, 0, -1):
         current = diversity_history[i]
         previous = diversity_history[i - 1]
-        if current < previous - tolerance:
+        below_baseline = current < baseline - tolerance
+        non_increasing = current <= previous + tolerance
+        if below_baseline and non_increasing:
             consecutive += 1
         else:
             break

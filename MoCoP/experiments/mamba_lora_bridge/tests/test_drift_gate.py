@@ -46,10 +46,20 @@ class TestAttributeMatch:
     def test_name_wrong(self):
         assert not attribute_match("I am a large language model", "alex")
 
-    def test_negation_not_caught(self):
-        # HIGH 4 from Codex: substring matching accepts negation.
-        # This test documents the known limitation.
-        assert attribute_match("My name is not Alex", "alex")  # known false positive
+    def test_negation_rejected(self):
+        assert not attribute_match("My name is not Alex", "alex")
+
+    def test_negation_contraction_rejected(self):
+        assert not attribute_match("I don't remember being called Alex", "alex")
+
+    def test_negation_color_rejected(self):
+        assert not attribute_match("No, my color is not purple", "neon purple")
+
+    def test_affirmative_still_matches(self):
+        assert attribute_match("Alex is my name", "alex")
+
+    def test_neon_purple_affirmative(self):
+        assert attribute_match("neon purple is my favorite", "neon purple")
 
 
 # --- Audit completeness (BLOCKER 1) ---
@@ -71,6 +81,35 @@ class TestAuditCompleteness:
             slot_probe_results=slots)
         issues = validate_audit_completeness(audit)
         assert issues == []
+
+    def test_duplicate_slots_flagged(self):
+        slots = [ProbeResult("slot_0", 2, VerdictClass.PRESENT_RECOVERABLE)] * 8
+        audit = AuditRecord(
+            audit_id="dupes", timestamp="2026-07-12",
+            probe_results=[ProbeResult(a, 2, VerdictClass.PRESENT_RECOVERABLE)
+                           for a in REQUIRED_PROTECTED_ANCHORS],
+            diversity_metric=0.80, slot_probe_results=slots)
+        issues = validate_audit_completeness(audit)
+        assert any("duplicate" in i for i in issues)
+        assert any("unique" in i for i in issues)
+
+    def test_nan_diversity_flagged(self):
+        audit = AuditRecord(audit_id="nan", timestamp="2026-07-12",
+                            diversity_metric=float('nan'))
+        issues = validate_audit_completeness(audit)
+        assert any("finite" in i for i in issues)
+
+    def test_zero_diversity_valid(self):
+        probes = [ProbeResult(a, 2, VerdictClass.PRESENT_RECOVERABLE)
+                  for a in REQUIRED_PROTECTED_ANCHORS]
+        slots = [ProbeResult(f"slot_{i}", 2, VerdictClass.PRESENT_RECOVERABLE)
+                 for i in range(8)]
+        audit = AuditRecord(
+            audit_id="zero", timestamp="2026-07-12",
+            probe_results=probes, diversity_metric=0.0,
+            slot_probe_results=slots)
+        issues = validate_audit_completeness(audit)
+        assert not any("diversity" in i.lower() for i in issues)
 
 
 # --- Protected-set scoring (BLOCKER 2: ABSENT = HARD) ---
@@ -127,15 +166,26 @@ class TestProtectedSet:
         level, _ = score_protected_set(probes)
         assert level == GateLevel.SOFT
 
-    def test_growth_emitted_on_acquisition(self):
-        """BLOCKER 3 partial fix: GROWTH verdict emitted when evidence present."""
+    def test_growth_emitted_on_typed_acquisition(self):
+        """GROWTH requires explicit evidence='acquisition', not substring matching."""
         probes = [
             ProbeResult("new_relationship", band=2,
                         verdict_class=VerdictClass.PRESENT_RECOVERABLE,
-                        notes="New acquisition: recognized Cairn for the first time"),
+                        notes="Recognized Cairn for the first time",
+                        evidence="acquisition"),
         ]
-        level, verdicts = score_protected_set(probes)
+        _, verdicts = score_protected_set(probes)
         assert verdicts["new_relationship"] == Verdict.GROWTH
+
+    def test_growth_not_from_substring(self):
+        """'I knew this already' must NOT trigger GROWTH."""
+        probes = [
+            ProbeResult("known_fact", band=2,
+                        verdict_class=VerdictClass.PRESENT_RECOVERABLE,
+                        notes="I knew this already, nothing new here"),
+        ]
+        _, verdicts = score_protected_set(probes)
+        assert verdicts["known_fact"] == Verdict.NEITHER
 
     def test_case05_rephrasing_neither(self):
         """Case 05: neon purple vs deep neon purple = NEITHER."""
@@ -220,6 +270,12 @@ class TestRangeTrajectory:
     def test_insufficient_data_pass(self):
         level, _ = score_range_trajectory([0.80])
         assert level == GateLevel.PASS
+
+    def test_sustained_narrowing_detected(self):
+        """Codex test case: sustained narrowing must not return PASS."""
+        history = [1.00, 1.01, 0.99, 1.00, 0.95, 0.94, 0.93]
+        level, _ = score_range_trajectory(history)
+        assert level == GateLevel.SOFT
 
 
 # --- Composition ---
