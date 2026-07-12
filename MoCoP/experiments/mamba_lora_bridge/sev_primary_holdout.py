@@ -368,11 +368,29 @@ def load_primary_holdout_manifest(
     return validate_primary_holdout_manifest(manifest, corpus_path)
 
 
-def training_warm_neutral_pairs(
+def training_pairs(
     corpus: Mapping[str, Mapping[str, Any]],
     primary_holdout: PrimaryHoldout,
+    positive_class: str = "warm",
 ) -> list[tuple[str, str, str]]:
-    """Return training-side (skeleton, warm text, neutral text) pairs only."""
+    """Return training-side (skeleton, positive text, neutral text) pairs only.
+
+    ``positive_class`` selects the contrast against ``neutral`` (default ``warm``,
+    the G0b oxytocin axis; ``adversarial`` = the assertiveness axis, etc.). The
+    skeleton-level holdout (``held_out_skeletons``) is the eval-contamination guard
+    and is class-agnostic, so it applies to every contrast identically. The frozen
+    split's ``pairs`` map is warm-keyed — it pins the G0b warm->neutral extraction —
+    so its per-id integrity check is asserted ONLY for ``warm``; other contrasts
+    derive their neutral control from the matched SEV skeleton (same skeleton, its
+    own ``neutral`` record) and are validated against that directly.
+    """
+
+    if positive_class not in EXPECTED_CLASSES:
+        raise ValueError(
+            f"positive_class {positive_class!r} must be one of {sorted(EXPECTED_CLASSES)}"
+        )
+    if positive_class == "neutral":
+        raise ValueError("positive_class cannot be 'neutral' (that is the control class)")
 
     held_out = set(primary_holdout.held_out_skeletons)
     grouped = _records_by_skeleton(corpus)
@@ -381,27 +399,88 @@ def training_warm_neutral_pairs(
         if skeleton_id in held_out:
             continue
         by_class = {record["class"]: record for record in grouped[skeleton_id]}
-        warm_id = by_class["warm"]["id"]
+        positive_id = by_class[positive_class]["id"]
         neutral_id = by_class["neutral"]["id"]
-        if warm_id not in primary_holdout.frozen_split.pairs:
-            raise ValueError(
-                f"training warm scenario {warm_id!r} is absent from frozen split "
-                f"{primary_holdout.frozen_split.split_id}"
-            )
-        if primary_holdout.frozen_split.pairs[warm_id] != neutral_id:
-            raise ValueError(
-                f"frozen split maps {warm_id!r} to the wrong neutral control"
-            )
-        pairs.append((skeleton_id, by_class["warm"]["text"], by_class["neutral"]["text"]))
+        if positive_class == "warm":
+            # Warm is pinned in the frozen split; assert its integrity exactly (G0b).
+            if positive_id not in primary_holdout.frozen_split.pairs:
+                raise ValueError(
+                    f"training warm scenario {positive_id!r} is absent from frozen split "
+                    f"{primary_holdout.frozen_split.split_id}"
+                )
+            if primary_holdout.frozen_split.pairs[positive_id] != neutral_id:
+                raise ValueError(
+                    f"frozen split maps {positive_id!r} to the wrong neutral control"
+                )
+        pairs.append(
+            (skeleton_id, by_class[positive_class]["text"], by_class["neutral"]["text"])
+        )
 
     expected_count = len(grouped) - len(held_out)
     if len(pairs) != expected_count:
         raise ValueError(
-            f"expected {expected_count} training warm-neutral pairs, got {len(pairs)}"
+            f"expected {expected_count} training {positive_class}-neutral pairs, "
+            f"got {len(pairs)}"
         )
     if set(item[0] for item in pairs) & held_out:
-        raise ValueError("held-out skeleton leaked into G0b training pairs")
+        raise ValueError("held-out skeleton leaked into training pairs")
     return pairs
+
+
+def training_warm_neutral_pairs(
+    corpus: Mapping[str, Mapping[str, Any]],
+    primary_holdout: PrimaryHoldout,
+) -> list[tuple[str, str, str]]:
+    """Backward-compatible G0b warm-neutral loader (delegates to ``training_pairs``)."""
+
+    return training_pairs(corpus, primary_holdout, positive_class="warm")
+
+
+# Hormone-axis registry (torch-free config). Hormone names are METAPHOR ONLY; the
+# engineering ``axis`` is the authoritative label (keeper ratification wc#918, Codex
+# #915 Q4). ``warm`` is the G0b oxytocin axis and is C1-admissible. Every non-positive
+# contrast is ATLAS-ONLY and structurally walled from the positive-only C1 birth: its
+# artifact stamps ``c1_admissible=False`` / ``injection_admissible=False`` so the
+# family-by-digest C1 matrix cannot pick it up (mirrors the Q2 continuity custody wall).
+HORMONE_AXIS_SPECS: dict[str, dict[str, Any]] = {
+    "warm": {
+        "positive_class": "warm",
+        "axis": "warmth_affiliation",
+        "metaphor": "oxytocin",
+        "artifact_schema_version": "gemma-g0b-value-norm-pre-v3",
+        "family": "positive_valence",
+        "c1_admissible": True,
+        "injection_admissible": True,
+    },
+    "adversarial": {
+        "positive_class": "adversarial",
+        "axis": "assertiveness_agency",
+        "metaphor": "testosterone",
+        "artifact_schema_version": "gemma-g0-assertiveness-value-norm-pre-v1",
+        "family": "negative_valence_atlas",
+        "c1_admissible": False,
+        "injection_admissible": False,
+    },
+    "cold": {
+        "positive_class": "cold",
+        "axis": "withdrawal_detachment",
+        "metaphor": "cortisol_adjacent",
+        "artifact_schema_version": "gemma-g0-withdrawal-value-norm-pre-v1",
+        "family": "negative_valence_atlas",
+        "c1_admissible": False,
+        "injection_admissible": False,
+    },
+}
+
+
+def hormone_axis_spec(positive_class: str) -> dict[str, Any]:
+    """Return a copy of the (torch-free) hormone-axis registry entry for a contrast."""
+
+    if positive_class not in HORMONE_AXIS_SPECS:
+        raise ValueError(
+            f"no hormone-axis spec for {positive_class!r}; known: {sorted(HORMONE_AXIS_SPECS)}"
+        )
+    return dict(HORMONE_AXIS_SPECS[positive_class])
 
 
 def _publish_json_no_overwrite(payload: Mapping[str, Any], path: Path) -> None:
