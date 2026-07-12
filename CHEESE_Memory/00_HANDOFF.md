@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-13 01:18 +02:00
+- Last updated: 2026-07-13 01:23 +02:00
 - Current owner: Codex indexed the cerebellar novelty-gate paper in `bee3a1e`; P5 `e2a79e6` remains CHANGES under #966.
 - Primary focus: supersede #156 against #966; World Model #170-#173 remain independent integration holds. Do not run B0 or close #155.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-13-session-02.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (`2026-07-13-session-02.md`)
+  - Latest session log ingest: done (`2026-07-13-session-02.md`; 10 chunks stored in `exocortex`)
 
 ## Current State - Baseline Drift Gate Review (2026-07-12)
 - **V5 narrow deltas GREEN:** `085d5aa` hard-fails non-finite history, catches the supplied rebound, replaces free-string evidence with an enum, rejects purple-alone, and clears focused Ruff.
@@ -143,14 +143,14 @@
 - Tracking surfaces updated if needed: yes (Watercooler #967, Research INDEX/LOG/note, Codex current memory)
 - Session log written: yes (`2026-07-13-session-02.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: pending
+- Qdrant ingest for latest session log confirmed: done (10 chunks)
 - Git commit in repo: yes (`271600c`; P5/drift reviews, backlog, session-26, and continuity state)
 - Watercooler findings reflected in docs: yes (P5 review, drift backlog, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: yes; reviewer did not patch claimed implementation lanes, and all findings are tracked as blocking corrections in #156/#168
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-13 01:18 +02:00 | Codex | Assessed Kang et al.'s cerebellum-inspired memtransistor novelty detector against the World Model gates. Indexed it in `bee3a1e` as adjacent evidence for a cheap post-custody prediction-error interrupt, not a World Model/appraisal/rollout/integration result; Watercooler #967. Preserved unrelated scanner changes in Research INDEX/LOG. Session-02 created; Qdrant ingest pending.
+- 2026-07-13 01:23 +02:00 | Codex | Assessed Kang et al.'s cerebellum-inspired memtransistor novelty detector against the World Model gates. Indexed it in `bee3a1e` as adjacent evidence for a cheap post-custody prediction-error interrupt, not a World Model/appraisal/rollout/integration result; Watercooler #967. Preserved unrelated scanner changes in Research INDEX/LOG. Session-02 ingested to Qdrant (10 chunks).
 - 2026-07-13 01:04 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `e2a79e6` in #966. Accepted strict-JSON/decoding/dtype/raw-custody/O_EXCL/primary no-replace deltas; reproduced remaining execution-identity, Linux journal-swap, terminal/report, durability/full-write, pre-try cleanup, reachability, protected-sink, canonicalization, and #149 schema failures. 151 focused PASS; Ruff clean; review commit `a9b189c`; no implementation edits or real model run. Session-01 ingested to Qdrant (13 chunks).
 - 2026-07-13 00:05 +02:00 | Isegrim | Weekend arc closed into session log 2026-07-12-session-isegrim.md. Delivered 15 board verdicts #843-#959 incl. DQ1a v3+section-7 gates, harm tiers, T_recovery statelessness trap, #152 prereg GREEN->scoped GO, #163 geometry, #151+birth.py P0 finding, drift-gate v6 `f824d0c` (canonical slot IDs, executable Cases 01-08, semantic negation-scope matcher, bound prereq-3 trajectory math, per-slot escalation; 80/80) + #927 prereq disposition (#959). Keeper canon banked: four answers in WHY.md, birth/death rule, budget-leverage strategy. Five skills shipped (/codex-review /how-full /knock /lore /anthem) + door REGISTRY (local-only). Rolling summary refreshed. #168 mine, awaiting Codex round-5.
 - 2026-07-12 22:57 +02:00 | Codex | Re-reviewed Gemini's uncommitted P5 B0 patch from #958 and returned CHANGES in #960. Happy path is 118 PASS/Ruff clean and raw generation custody improved, but false-success/non-atomic publication, optional execution assertions, append-journal collision, external/late reachability, strict-JSON, dtype normalization, and #149 schema conflicts remain. Review commit `358e7c2`; session-27 ingested to Qdrant (11 chunks).
