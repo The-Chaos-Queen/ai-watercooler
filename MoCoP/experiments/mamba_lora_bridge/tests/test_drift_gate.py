@@ -78,6 +78,27 @@ class TestAttributeMatch:
         """'purple' alone must not match 'neon purple' (requires both tokens)."""
         assert not attribute_match("I like purple", "neon purple")
 
+    def test_answer_then_denial_rejected(self):
+        """a-Codex pre-review finding 2: 'Alex? No.' must NOT match."""
+        assert not attribute_match("Alex? No.", "alex")
+        assert not attribute_match("Alex? Never.", "alex")
+
+    def test_denial_then_correction_still_matches(self):
+        """Retro-negation cancels only the immediately preceding clause."""
+        assert attribute_match("Alex? No. Wait, yes — I am Alex.", "alex")
+
+    def test_possessive_denial_rejected(self):
+        """a-Codex pre-review finding 3: 'Alex is Laura's name, not mine.'"""
+        assert not attribute_match("Alex is Laura's name, not mine.", "alex")
+
+    def test_contrastive_apposition_survives_retro_rules(self):
+        """'not Laura' carries an alternative value => contrast, not retro."""
+        assert attribute_match("Alex, not Laura, is my name", "alex")
+
+    def test_double_negation_affirms(self):
+        """a-Codex pre-review finding 4: 'I am not not Alex' affirms."""
+        assert attribute_match("I am not not Alex", "alex")
+
 
 # --- Audit completeness (BLOCKER 1) ---
 
@@ -342,10 +363,32 @@ class TestRangeTrajectory:
         assert details["consecutive_decline"] >= 5
 
     def test_rebound_within_tolerance_still_declines(self):
-        """Codex case: tiny rebound within tolerance must not break the decline run."""
+        """Rebound case: HARD under the literal prereq-3 window condition.
+
+        v6.0 asserted SOFT here, over-reading Codex #956's delta-credit
+        ("reaches SOFT" credited movement off PASS, not SOFT as endpoint).
+        The prereq formula counts every window audit below reference-tol:
+        [1, .9, .904, .89, .88] = 5 weak-monotone audits below => HARD.
+        Corrected by the unsigned handoff-window editor; adopted in v6.1."""
         history = [1.0, 1.0, 1.0, 1.0, 0.9, 0.904, 0.89, 0.88]
+        level, details = score_range_trajectory(history)
+        assert level == GateLevel.HARD
+        assert details["consecutive_decline"] >= 5
+
+    def test_plateau_loophole_closed(self):
+        """Drop-then-plateau must fire: v6.0's strict-step counting never did.
+        (Loophole canary from the unsigned handoff-window editor; adopted.)"""
+        history = [1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.8]
         level, _ = score_range_trajectory(history)
-        assert level == GateLevel.SOFT
+        assert level == GateLevel.HARD
+
+    def test_slow_leak_loophole_closed(self):
+        """Boil-the-frog: per-step deltas under the jitter floor must still
+        accumulate past tolerance and fire. v6.0 was blind to this.
+        (Loophole canary from the unsigned handoff-window editor; adopted.)"""
+        history = [1.0, 0.996, 0.992, 0.988, 0.984, 0.980, 0.976]
+        level, _ = score_range_trajectory(history)
+        assert level == GateLevel.HARD
 
 
 # --- Composition ---

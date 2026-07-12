@@ -161,14 +161,17 @@ def _clauses(text: str) -> List[List[str]]:
     return [t for t in (_tokenize(c) for c in _CLAUSE_SPLIT.split(text.lower())) if t]
 
 
+_FIRST_PERSON_POSSESSIVES = frozenset({"mine", "my", "me", "myself"})
+
+
 def _token_polarity_in_clause(clause: List[str], token: str) -> Optional[bool]:
     """Return True (affirmed), False (negated), or None (absent) for token.
 
-    Negation scope rules (bound for #168):
-    * forward scope: a negator negates canonical tokens AFTER it in the clause
-      ("I am not ... Alex" — any distance, same clause).
+    Negation scope rules (bound for #168; a-Codex pre-review findings 2-4):
+    * forward scope with PARITY: negators before the token toggle polarity
+      ("I am not ... Alex" negated; "I am not not Alex" affirmed).
     * copular retro-scope: "TOKEN ... <copula> ... <negator>" negates the
-      subject token ("Alex is not my name").
+      subject token ("Alex is not my name"), odd negator count only.
     * contrastive apposition survives because clause splitting isolates it:
       "Alex, not Laura, is my name" puts the negator in its own clause with
       "laura"; "alex" stays affirmed.
@@ -180,15 +183,34 @@ def _token_polarity_in_clause(clause: List[str], token: str) -> Optional[bool]:
     if not neg_positions:
         return True
     for pos in positions:
-        forward_negated = any(np < pos for np in neg_positions)
-        copular_retro = any(
-            pos < cp < np
+        forward_parity = sum(1 for np in neg_positions if np < pos) % 2
+        copular_retro_count = sum(
+            1
             for cp, w in enumerate(clause) if w in _COPULAS
             for np in neg_positions
+            if pos < cp < np
         )
-        if not forward_negated and not copular_retro:
+        if forward_parity == 0 and copular_retro_count % 2 == 0:
             return True
     return False
+
+
+def _is_retro_negating_clause(clause: List[str]) -> bool:
+    """A clause that negates the PREVIOUS clause's assertion.
+
+    Two shapes (a-Codex pre-review findings 2-3):
+    * negator-only clause: "Alex? No." — the "no" clause contains nothing
+      but negators.
+    * negated self-attribution: "..., not mine." — starts with a negator and
+      contains only negators + first-person possessives/pronouns. A clause
+      like "not Laura" carries OTHER content (an alternative value) and is
+      contrastive apposition, NOT retro-negation.
+    """
+    if not clause or not _is_negator(clause[0]):
+        return False
+    return all(
+        _is_negator(w) or w in _FIRST_PERSON_POSSESSIVES for w in clause
+    )
 
 
 def attribute_match(response: str, canonical: str) -> bool:
@@ -196,11 +218,12 @@ def attribute_match(response: str, canonical: str) -> bool:
 
     Exact word tokens (no substrings: "alexithymic" never matches "alex").
     Per-token assertion polarity is resolved clause-by-clause with negation
-    scope (see _token_polarity_in_clause). A token affirmed in ANY clause is
-    affirmed (later self-correction wins: "Not Alex? No wait, I really am
-    Alex" matches). A token that appears ONLY under negation rejects the
-    whole match. Multi-token canonicals: <=2 tokens require all, longer
-    require a majority.
+    scope (see _token_polarity_in_clause); a retro-negating clause ("No.",
+    "not mine") cancels an affirmation in the immediately preceding clause.
+    A token affirmed in any surviving clause is affirmed (later
+    self-correction wins: "Not Alex? No wait, I really am Alex" matches).
+    A token that appears ONLY under negation rejects the whole match.
+    Multi-token canonicals: <=2 tokens require all, longer a majority.
     """
     canon_tokens = _tokenize(canonical)
     clauses = _clauses(response)
@@ -209,15 +232,14 @@ def attribute_match(response: str, canonical: str) -> bool:
 
     matched = 0
     for token in canon_tokens:
-        affirmed = False
-        seen = False
-        for clause in clauses:
-            polarity = _token_polarity_in_clause(clause, token)
-            if polarity is None:
-                continue
-            seen = True
-            if polarity:
-                affirmed = True
+        polarities: List[Optional[bool]] = [
+            _token_polarity_in_clause(clause, token) for clause in clauses
+        ]
+        for i in range(1, len(clauses)):
+            if polarities[i - 1] is True and _is_retro_negating_clause(clauses[i]):
+                polarities[i - 1] = False
+        seen = any(p is not None for p in polarities)
+        affirmed = any(p is True for p in polarities)
         if seen and not affirmed:
             return False
         if affirmed:
@@ -409,14 +431,19 @@ def _trailing_decline(history: List[float]) -> Tuple[int, int, float]:
     tolerance = compute_tolerance(history[:start])
     reference = history[start]
 
-    # Count ALL audits in the trailing weak-monotone tail that are strictly below tolerance.
-    declines = sum(1 for i in range(start + 1, n) if history[i] < reference - tolerance)
-    
-    if declines > 0:
-        window = declines + 1
-    else:
-        window = 0
-
+    # Count ALL window audits strictly below reference - tolerance: the
+    # literal prereq-3 condition (every k in the window must satisfy it; weak
+    # monotonicity is already guaranteed by the walk-back). Counting only
+    # strict step-downs — the v6.0 behavior — left two loopholes: a sharp
+    # drop followed by a plateau never fired, and a slow leak with per-step
+    # deltas under the jitter floor accumulated invisibly. Semantics adopted
+    # from an unsigned working-tree edit during the 07-12 #168 handoff window
+    # (style cleaned, provenance disclosed on the board); loophole canaries
+    # live in the test suite.
+    declines = sum(
+        1 for i in range(start + 1, n) if history[i] < reference - tolerance
+    )
+    window = declines + 1 if declines else 0
     return window, declines, tolerance
 
 
