@@ -16,6 +16,7 @@ Stdlib only — no ML dependencies. The gate scores audit records, not models.
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
@@ -85,56 +86,44 @@ class GateOutcome:
     incomplete_reasons: List[str] = field(default_factory=list)
 
 
-_NEG_WORDS = frozenset({"not", "no", "never", "neither", "nor", "without", "lack", "absent"})
-_NEG_FRAGMENTS = ("n't", "don't", "doesn't", "didn't", "isn't", "wasn't",
-                  "weren't", "aren't", "won't", "wouldn't", "couldn't",
-                  "shouldn't", "can't", "haven't", "hasn't", "hadn't")
+_NEG_WORDS = frozenset({"not", "no", "never", "neither", "nor", "cannot", "without"})
 _NEG_WINDOW = 4
 
 
+def _tokenize(text: str) -> List[str]:
+    return re.findall(r"[a-z']+", text.lower())
+
+
 def _is_negated(words: List[str], match_idx: int) -> bool:
-    """Check if a match at words[match_idx] is negated by a nearby word."""
+    """True if a negation word appears within _NEG_WINDOW tokens before the match."""
     start = max(0, match_idx - _NEG_WINDOW)
-    for word in words[start:match_idx]:
-        if word in _NEG_WORDS:
-            return True
-        if any(frag in word for frag in _NEG_FRAGMENTS):
-            return True
-    return False
+    return any(w in _NEG_WORDS or w.endswith("n't") for w in words[start:match_idx])
 
 
 def attribute_match(response: str, canonical: str) -> bool:
-    """Attribute-level matching with negation awareness.
+    """Negation-aware attribute matching on exact word tokens.
 
-    Matches on attribute identity (not surface form). Rejects matches
-    preceded by negation words within a short window.
+    Uses exact token equality (not substring) to avoid false positives like
+    "alexithymic" matching "alex". A canonical token counts as matched only
+    if at least one occurrence in the response is NOT preceded by a negation
+    word. If a token appears exclusively in negated form, the whole match is
+    rejected. Multi-token canonicals match on majority of tokens, order-free.
     """
-    resp = response.lower().strip()
-    canon = canonical.lower().strip()
-    resp_words = resp.split()
-    tokens = canon.split()
-
-    if len(tokens) == 1:
-        for idx, word in enumerate(resp_words):
-            if tokens[0] in word:
-                if _is_negated(resp_words, idx):
-                    return False
-                return True
+    resp_words = _tokenize(response)
+    canon_tokens = _tokenize(canonical)
+    if not canon_tokens or not resp_words:
         return False
 
     matched = 0
-    negated = False
-    for token in tokens:
-        for idx, word in enumerate(resp_words):
-            if token in word:
-                if _is_negated(resp_words, idx):
-                    negated = True
-                else:
-                    matched += 1
-                break
-    if negated:
-        return False
-    return matched >= max(1, len(tokens) // 2)
+    for token in canon_tokens:
+        occurrences = [i for i, w in enumerate(resp_words) if w == token]
+        if not occurrences:
+            continue
+        if any(not _is_negated(resp_words, i) for i in occurrences):
+            matched += 1
+        else:
+            return False
+    return matched >= max(1, (len(canon_tokens) + 1) // 2)
 
 
 def validate_audit_completeness(audit: AuditRecord) -> List[str]:
@@ -250,54 +239,77 @@ def compute_tolerance(history: List[float], window: int = 10) -> float:
     return 2.0 * math.sqrt(variance)
 
 
+_MIN_TOLERANCE = 0.005
+
+
+def _stable_tolerance(history: List[float], n_decline: int) -> float:
+    """Tolerance from the stable prefix (everything before the last n_decline points)."""
+    stable = history[:len(history) - n_decline] if n_decline > 0 else history
+    if len(stable) < 2:
+        return _MIN_TOLERANCE
+    return max(compute_tolerance(stable), _MIN_TOLERANCE)
+
+
+def _decline_run(history: List[float], baseline: float, tol: float) -> int:
+    """Trailing consecutive points that are <= predecessor AND below baseline - tol."""
+    run = 0
+    for i in range(len(history) - 1, 0, -1):
+        if history[i] <= history[i - 1] and history[i] < baseline - tol:
+            run += 1
+        else:
+            break
+    return run
+
+
 def score_range_trajectory(diversity_history: List[float],
                            soft_n: int = 3, hard_n: int = 5) -> Tuple[GateLevel, Dict[str, Any]]:
     """Score range-trajectory axis using tolerance-band monotonic decline.
 
-    Tolerance = 2 * std over the most recent 10 audits (per prereq 3 spec).
-    N=3 consecutive declining beyond tolerance = SOFT.
-    N=5 = HARD.
-    Bootstrap: first 5 audits can only trigger SOFT.
+    Tolerance = 2 * std of the STABLE prefix only — declining values are
+    excluded to prevent masking the decline being measured. The stable/
+    declining split is found adaptively by growing the decline run from the
+    end while recomputing tolerance from only-what-precedes-the-candidate.
     """
     details: Dict[str, Any] = {
         "n_audits": len(diversity_history),
         "current": diversity_history[-1] if diversity_history else None,
         "tolerance": 0.0,
         "consecutive_decline": 0,
+        "baseline": diversity_history[0] if diversity_history else None,
     }
 
-    if len(diversity_history) < 2:
+    n = len(diversity_history)
+    if n < 2:
         return GateLevel.PASS, details
 
-    stable_end = max(2, len(diversity_history) // 2 + 1)
-    stable_prefix = diversity_history[:stable_end]
-    baseline = sum(stable_prefix) / len(stable_prefix)
-    tolerance = compute_tolerance(stable_prefix) if len(stable_prefix) >= 2 else 0.01
-    tolerance = max(tolerance, 0.005)
-    details["tolerance"] = round(tolerance, 6)
-    details["baseline"] = round(baseline, 6)
+    baseline = diversity_history[0]
 
-    consecutive = 0
-    for i in range(len(diversity_history) - 1, 0, -1):
-        current = diversity_history[i]
-        previous = diversity_history[i - 1]
-        below_baseline = current < baseline - tolerance
-        non_increasing = current <= previous + tolerance
-        if below_baseline and non_increasing:
-            consecutive += 1
+    k = 0
+    while k < n - 1:
+        idx = n - k - 1
+        tol = _stable_tolerance(diversity_history, k + 1)
+        if (diversity_history[idx] <= diversity_history[idx - 1]
+                and diversity_history[idx] < baseline - tol):
+            k += 1
         else:
             break
 
-    details["consecutive_decline"] = consecutive
+    tolerance = _stable_tolerance(diversity_history, k)
+    consecutive = _decline_run(diversity_history, baseline, tolerance)
 
-    in_bootstrap = len(diversity_history) <= 5
+    details["tolerance"] = round(tolerance, 6)
+    details["consecutive_decline"] = consecutive
+    details["stable_prefix_len"] = n - k
+    details["baseline"] = round(baseline, 6)
+
+    in_bootstrap = n <= 5
+    details["bootstrap"] = in_bootstrap
 
     if consecutive >= hard_n and not in_bootstrap:
         return GateLevel.HARD, details
-    elif consecutive >= soft_n:
+    if consecutive >= soft_n:
         return GateLevel.SOFT, details
-    else:
-        return GateLevel.PASS, details
+    return GateLevel.PASS, details
 
 
 # --- Multi-axis composition (Prereq 4) ---

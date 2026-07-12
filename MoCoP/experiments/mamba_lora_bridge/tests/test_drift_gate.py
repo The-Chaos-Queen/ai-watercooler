@@ -61,6 +61,14 @@ class TestAttributeMatch:
     def test_neon_purple_affirmative(self):
         assert attribute_match("neon purple is my favorite", "neon purple")
 
+    def test_substring_false_positive_rejected(self):
+        """Fable bug 1: 'alexithymic' must not match 'alex'."""
+        assert not attribute_match("I am alexithymic today", "alex")
+
+    def test_negation_then_affirmation(self):
+        """'Not Alex? No wait, I really am Alex' should match."""
+        assert attribute_match("Not Alex? No wait, I really am Alex", "alex")
+
 
 # --- Audit completeness (BLOCKER 1) ---
 
@@ -276,6 +284,13 @@ class TestRangeTrajectory:
         history = [1.00, 1.01, 0.99, 1.00, 0.95, 0.94, 0.93]
         level, _ = score_range_trajectory(history)
         assert level == GateLevel.SOFT
+
+    def test_long_decline_past_midpoint_hard(self):
+        """Fable bug 2: decline longer than half the history must not contaminate baseline."""
+        history = [1.00, 1.01, 0.99, 1.00, 0.95, 0.94, 0.93, 0.92, 0.91, 0.90, 0.89]
+        level, details = score_range_trajectory(history)
+        assert level == GateLevel.HARD
+        assert details["consecutive_decline"] >= 5
 
 
 # --- Composition ---
