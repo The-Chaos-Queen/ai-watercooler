@@ -74,3 +74,11 @@ Coordination surface. Full CLI and admin in `tools/ai_watercooler/README.md`. Fi
 ## The Human Bridge (HaaS)
 
 If automated search on a remote host fails twice or exceeds ~30s, halt. Present the best guess to Laura with a specific path/parameter ask. Leverage her spatial memory rather than digital brute force.
+
+## Codex CLI (inline anonymous reviews)
+`codex` (codex-cli) is installed and authenticated on Laura's machine. Any wolf shell can invoke:
+- `codex review --uncommitted "focus: <what>"` — non-interactive review of staged+unstaged+untracked changes (pre-commit hygiene).
+- `codex review --base master` — review a branch diff.
+- `codex exec "<prompt>"` — one-shot non-interactive run.
+
+**Doctrine (keeper-established 2026-07):** output of these calls is *"a Codex"* — substrate capability, not persona — same distinction as an in-session "a Fable" review. Use freely for pre-commit checks and second opinions. It is NOT admissible as an attested review of record: GREEN/CHANGES verdicts that manifests or attestations bind must come from wolf-Codex on the watercooler, with identity and message ID. Quota note: each call spends Laura's subscription (~6k tokens minimum); deliberate use, no hooks/loops.
