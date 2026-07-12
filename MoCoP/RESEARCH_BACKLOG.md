@@ -788,6 +788,21 @@ reset also claims the prior trajectory was logged without storing a reference.
 Forty focused tests pass, but Ruff still reports one unused import. #168 remains
 open pending a further superseding commit and re-review.
 
+**Round-3 review (2026-07-12, commit `2dfef66`, Watercooler #946): CHANGES.**
+The v3 patch correctly rejects duplicate slot rows, non-finite current metrics,
+and free-form `new` growth inference; it accepts valid zero and catches the
+registered sustained-decline example. The exact contracts remain open: any
+eight invented unique slot IDs still satisfy completeness, non-finite history
+poisons trajectory scoring to `PASS`, and the protected-anchor set is still an
+unreviewed constant. `evidence` remains an arbitrary string and Cases 01-08,
+per-axis canaries, case reasoning, and adjudicator provenance are absent. The
+lexical matcher is disconnected from evaluation, accepts purple without neon,
+and misses suffix/punctuated/long-scope negation. Range scoring still uses the
+first-half mean/std plus an unreviewed floor rather than the reviewed window and
+equation; discontinuity prior-trend custody is asserted but not stored. Forty-
+nine focused tests pass; Ruff still reports the same unused import. #168 remains
+open pending a superseding implementation and re-review.
+
 ---
 
 ## P3 — Future-Facing Backlog

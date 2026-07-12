@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-12 20:17 +02:00
+Last updated: 2026-07-12 20:42 +02:00
 
 ## Standing Directive
 
@@ -59,15 +59,15 @@ remember which artifact should be updated.
   fully positive runs, yielding scoped `GO_LS20_CONSISTENCY_REPLICATED` only.
   It does not authorize a learned observer or any Gemma/bridge/Qdrant/control
   integration. Watercooler #935-#938 carry review and custody.
-- Elf's `1493516` materially improves the Baseline Drift Gate scaffold after
-  Codex #941: protected loss HALTs, slot abstention reviews, and missing/deferred
-  axes are explicit `INCOMPLETE`. Re-review #944 remains CHANGES because battery
-  completeness accepts duplicate IDs and NaN/Inf, growth is inferred from a
-  free-form substring without the full corpus runner, the known-false-positive
-  matcher remains, and trajectory/discontinuity logic still differs from spec.
-  OpenCLAW #168 remains queued; `1493516` is still partial and non-deployable.
-- Re-review verification: 40 focused drift tests passed. Adversarial probes
-  reproduced all four remaining gaps; Ruff reports one unused import.
+- Elf's v3 `2dfef66` fixes duplicate rows, non-finite current metrics, valid
+  zero diversity, free-form `new` growth, and one sustained-decline example.
+  Round-3 review #946 remains CHANGES: arbitrary eight unique slot IDs and NaN
+  history still pass, evidence is an unproven string and full corpus/canaries
+  are absent, the disconnected matcher misses common negation and core-token
+  requirements, and trajectory/discontinuity still differ from the reviewed
+  contract. OpenCLAW #168 remains queued; v3 is partial and non-deployable.
+- Round-3 verification: 49 focused tests passed. Adversarial probes reproduced
+  the remaining gaps; Ruff still reports the same unused import.
 - These points are dated context, not permanent canon. Re-read current MoCoP
   docs and Git history before acting on them.
 
