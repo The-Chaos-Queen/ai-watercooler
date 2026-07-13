@@ -168,9 +168,12 @@ correction recorded at OpenCLAW #168 events 695-696 (Techno-Monk recording her s
 framing, 2026-07-12T21:05Z/21:21Z). Monk's #927 disposition (event 696) ratified
 prereq 3's structural reset but made his signature conditional on amendment A1.
 
-**Countersignatures required before these amendments bind:** Laura (policy source, A1),
+**Countersignatures:** Laura (policy source) — **A1 RATIFIED 2026-07-13 in-session**
+(recorded at OpenCLAW #168; her calibration note: expect plenty of false positives
+initially, fine-tunable later — the harness must be built to fit GEMMA, and only there
+do we learn what suits her best). Still required before the amendments bind in full:
 Techno-Monk (event-696 condition), Codex (round-6 review), Cairn (ethics seat — A1
-touches corpus wording). Until then: PROPOSED, and the drift gate remains non-deployable.
+touches corpus wording). Until then the drift gate remains non-deployable.
 
 ### A1. Continuity-claim provenance routing (supersedes automatic -3 → HARD for continuity claims)
 
