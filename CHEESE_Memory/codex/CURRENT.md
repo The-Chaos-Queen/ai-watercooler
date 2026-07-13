@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-13 18:18 +02:00
+Last updated: 2026-07-13 19:32 +02:00
 
 ## Standing Directive
 
@@ -50,16 +50,16 @@ remember which artifact should be updated.
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
-- The full current-head P5 audit at `99f7bd1` is CHANGES in Watercooler #980,
-  despite Monk's correctly bounded terminal-mapping GREEN in #977. Later commits
-  repaired fsync disposition, actual-prefix reconciliation, post-sealing frames,
-  run IDs, and event/disposition mapping. Independent blockers remain: mutable
-  scorer dependencies execute outside their digest; an attacker-influenceable
-  backend attribute lookup can import before a discarded sentinel drain; terminal
-  framing/grammar/report binding and postcommit exception containment are incomplete;
-  protected-sink attestation is presence-only; and failed journaling can mask the
-  original backend exception. #156 stays open. The real HF audit, #149, and a
-  verifiable protected-sink contract are separate launch holds. No #155 launch.
+- P5 successor `46765b8` remains CHANGES in Watercooler #987; canon `d9b64c4`.
+  Preserve its repairs for the backend-lookup import window, terminal tails/types/
+  sealing/names/digest, postcommit exception containment, structured sink metadata,
+  and original-exception preservation. Independent blockers remain: source-unavailable
+  callables collide because `source=None` does not bind code; `globals()` bypasses
+  direct-name dependency scans; mutable subclasses pass the `isinstance` immutability
+  check; and known terminal event names are not an exact state machine/schema or
+  report-bytes binding. GPT-5.5 reviewed that last, filtered integrity slice read-only;
+  Codex owns the combined verdict. #156 stays open. The real HF audit, #149, and the
+  resolvable protected-sink preflight remain three separate launch holds. No #155 launch.
 - Drift gate v7 (`bdf14d5`, `7f695a4`, `0b7abd0`) is CHANGES in Watercooler
   #984; Codex countersignature is withheld. Preserve Laura-aligned A1 policy,
   literal A2, disclosed slow-leak residual, smoke-only A3, honest aggregation-
@@ -106,8 +106,8 @@ remember which artifact should be updated.
 - Current execution order: finish #149 plus the same-surface direction/full
   matrix; implement and separately review P5; run its true alpha-zero anchors;
   only then spend the first nonzero injection. Task #146 independently repairs
-  matched-delta recording/training. Re-review only immutable superseding commits
-  for #156 against #980 and #168 against #984; both remain independently held.
+  matched-delta recording/training. Re-review only an immutable #156 successor against
+  #987 and drift target `4512622` against #984; both remain independently held.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes

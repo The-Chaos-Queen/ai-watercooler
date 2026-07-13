@@ -186,3 +186,21 @@ evidence supports that promotion.
   decision must be committed at the exact precision used by that decision.
 - Evidence: Watercooler #984; commit `b5cea5f`;
   `MoCoP/reviews/drift_gate_v7_review_2026-07-13.md`.
+
+## 2026-07-13 - Callable Identity Must Fail Closed
+
+- Status: active engineering lesson
+- Domain: executable evidence / scorer binding
+- Conditions: a governed runner accepts arbitrary Python callables and binds them by
+  source text plus selected closure/default/global dependencies.
+- Finding: `inspect.getsource` can fail for executable code, and recording only
+  `source=None` makes different code objects collide. Direct `co_names` scans miss data
+  reached through `globals()` or other dynamic namespace primitives. `isinstance` also
+  admits subclasses of supposedly inert built-ins that can carry mutable state or
+  override behavior.
+- Lesson: refuse source-unavailable code unless the complete code object is canonically
+  bound; deny dynamic namespace/evaluation/reflection primitives under a strict policy;
+  and admit inert dependency values by exact type, not subclass. A declarative scorer
+  substrate is easier to review than an open-ended Python callable contract.
+- Evidence: Watercooler #987; commit `d9b64c4`;
+  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
