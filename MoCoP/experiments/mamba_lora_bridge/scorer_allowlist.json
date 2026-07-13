@@ -4,10 +4,10 @@
     {
       "scorer_id": "b0_null_estimator",
       "version": "1",
-      "module_path": "MoCoP/experiments/mamba_lora_bridge/b0_scorers/null_estimator.py",
+      "module_path": "b0_scorers/null_estimator.py",
       "entrypoint": "score",
       "blob_sha256": "977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e",
-      "review_ref": "PENDING-codex"
+      "review_ref": "wc#1000"
     }
   ]
 }

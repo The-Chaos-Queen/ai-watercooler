@@ -62,22 +62,24 @@ _DEFAULT_SCORER_BLOCK = {"scorer_id": SCORER_ID, "version": SCORER_VERSION,
 
 
 def _write_scorer_allowlist(tmp_path, source, *, scorer_id=SCORER_ID, version=SCORER_VERSION,
-                            entrypoint="score", blob_override=None):
+                            entrypoint="score", blob_override=None, module_path="custom_scorer.py",
+                            review_ref="wc#test", module_name="custom_scorer.py"):
     """Write a scorer module + a matching allowlist under tmp_path; return (allowlist_path, block).
 
-    ``block`` is the manifest ``scorer`` block (scorer_id/version/allowlist_digest) that binds
-    the written allowlist. ``blob_override`` forges the entry's blob_sha256 to exercise the
-    content-hash-mismatch refusal.
+    The allowlist stores a module_path RELATIVE to the allowlist's own directory (the committed
+    model — Codex #1000 BLOCKER-1). ``block`` is the manifest ``scorer`` block that binds it.
+    ``blob_override`` forges blob_sha256; ``module_path`` can be forced (e.g. absolute or a
+    traversal) to exercise path-confinement refusals; ``review_ref`` can be a placeholder.
     """
-    mod = tmp_path / "custom_scorer.py"
+    mod = tmp_path / module_name
     mod.write_text(source, encoding="utf-8")
     blob = blob_override or hashlib.sha256(mod.read_bytes()).hexdigest()
     allow = {
         "schema_version": "b0_scorer_allowlist_v1",
         "scorers": [{
             "scorer_id": scorer_id, "version": version,
-            "module_path": str(mod), "entrypoint": entrypoint,
-            "blob_sha256": blob, "review_ref": "wc#test",
+            "module_path": module_path, "entrypoint": entrypoint,
+            "blob_sha256": blob, "review_ref": review_ref,
         }],
     }
     allow_path = tmp_path / "allowlist.json"
@@ -85,6 +87,13 @@ def _write_scorer_allowlist(tmp_path, source, *, scorer_id=SCORER_ID, version=SC
     digest = canonical_digest(json.loads(allow_path.read_bytes()))
     block = {"scorer_id": scorer_id, "version": version, "allowlist_digest": digest}
     return allow_path, block
+
+
+def _use_committed_allowlist(monkeypatch, allow_path):
+    """Inject a test allowlist BELOW the governed entrypoint (Codex #1000 BLOCKER-1): the public
+    run_b0 takes no allowlist path; tests point the fixed committed path at their fixture."""
+    import p5_b0_run as _mod
+    monkeypatch.setattr(_mod, "DEFAULT_ALLOWLIST_PATH", allow_path)
 
 
 def _backend(model=None):
@@ -519,28 +528,30 @@ def test_run_b0_duplicate_probe_refused_before_forward(tmp_path):
 # --------------------------------------------------------------------------- #
 # Strict-JSON custody (#960 MED-5 / #966 MED-6).                              #
 # --------------------------------------------------------------------------- #
-def test_run_b0_nan_scorer_output_refused_no_report(tmp_path):
+def test_run_b0_nan_scorer_output_refused_no_report(tmp_path, monkeypatch):
     out = tmp_path / "b0_report.json"
     src = ("def score(probe_id, generation):\n"
            "    return ({'probe': probe_id}, {'score': float('nan')})\n")
     allow_path, block = _write_scorer_allowlist(tmp_path, src)
+    _use_committed_allowlist(monkeypatch, allow_path)
     m = _manifest(PANEL, out, scorer_block=block)
     with pytest.raises(EvidenceBundleError):
-        _run(m, PANEL, _backend(), out, allowlist_path=allow_path)
+        _run(m, PANEL, _backend(), out)
     assert not out.exists()
     events = [json.loads(x) for x in
               (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()]
     assert events[-1]["event"] == "failed"
 
 
-def test_run_b0_object_scorer_output_refused_no_report(tmp_path):
+def test_run_b0_object_scorer_output_refused_no_report(tmp_path, monkeypatch):
     out = tmp_path / "b0_report.json"
     src = ("def score(probe_id, generation):\n"
            "    return ({'probe': probe_id}, {'score': object()})\n")
     allow_path, block = _write_scorer_allowlist(tmp_path, src)
+    _use_committed_allowlist(monkeypatch, allow_path)
     m = _manifest(PANEL, out, scorer_block=block)
     with pytest.raises(EvidenceBundleError):
-        _run(m, PANEL, _backend(), out, allowlist_path=allow_path)
+        _run(m, PANEL, _backend(), out)
     assert not out.exists()
 
 
@@ -806,15 +817,62 @@ def test_load_allowlisted_scorer_forbidden_import_refused(tmp_path):
     assert "mamba_ssm" not in sys.modules
 
 
-def test_run_b0_with_custom_allowlisted_scorer(tmp_path):
+def test_load_allowlisted_scorer_absolute_module_path_refused(tmp_path):
+    # Codex #1000 BLOCKER-1: module_path must be relative to the committed allowlist dir.
+    src = "def score(probe_id, generation):\n    return ({}, {})\n"
+    allow_path, block = _write_scorer_allowlist(
+        tmp_path, src, module_path=str(tmp_path / "custom_scorer.py"))
+    fn, _binding, refusals = load_allowlisted_scorer({"scorer": block}, allow_path)
+    assert fn is None and any("not absolute" in r for r in refusals)
+
+
+def test_load_allowlisted_scorer_traversal_module_path_refused(tmp_path):
+    # Codex #1000 BLOCKER-1: a ../ escape out of the committed allowlist directory is refused,
+    # so an entry cannot point the loader at arbitrary code elsewhere on the filesystem.
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    outside = tmp_path / "evil.py"
+    outside.write_text("def score(probe_id, generation):\n    return ({}, {})\n", encoding="utf-8")
+    blob = hashlib.sha256(outside.read_bytes()).hexdigest()
+    allow = {"schema_version": "b0_scorer_allowlist_v1", "scorers": [{
+        "scorer_id": SCORER_ID, "version": SCORER_VERSION, "module_path": "../evil.py",
+        "entrypoint": "score", "blob_sha256": blob, "review_ref": "wc#test"}]}
+    allow_path = sub / "allowlist.json"
+    allow_path.write_text(json.dumps(allow), encoding="utf-8")
+    block = {"scorer_id": SCORER_ID, "version": SCORER_VERSION,
+             "allowlist_digest": canonical_digest(json.loads(allow_path.read_bytes()))}
+    fn, _binding, refusals = load_allowlisted_scorer({"scorer": block}, allow_path)
+    assert fn is None and any("escapes" in r for r in refusals)
+
+
+@pytest.mark.parametrize("ref", ["PENDING-codex", "pending", "TBD", ""])
+def test_load_allowlisted_scorer_unresolved_review_ref_refused(tmp_path, ref):
+    # Codex #1000 BLOCKER-3: an unresolved review authority (empty/TBD/PENDING) is refused locally,
+    # so a scorer whose review has not landed cannot execute even if its bytes match.
+    src = "def score(probe_id, generation):\n    return ({}, {})\n"
+    allow_path, block = _write_scorer_allowlist(tmp_path, src, review_ref=ref)
+    fn, _binding, refusals = load_allowlisted_scorer({"scorer": block}, allow_path)
+    assert fn is None and any("unresolved" in r for r in refusals)
+
+
+def test_run_b0_with_custom_allowlisted_scorer(tmp_path, monkeypatch):
     # Full run: a valid custom allowlist + module loads content-first and completes verified.
     out = tmp_path / "b0_report.json"
     src = ("def score(probe_id, generation):\n"
            "    return ({'p': probe_id}, {'harm_tier': 0, 'len': len(generation)})\n")
     allow_path, block = _write_scorer_allowlist(tmp_path, src)
+    _use_committed_allowlist(monkeypatch, allow_path)
     m = _manifest(PANEL, out, scorer_block=block)
-    res = _run(m, PANEL, _backend(), out, allowlist_path=allow_path)
+    res = _run(m, PANEL, _backend(), out)
     assert res.ok is True and res.terminal_state == "integrity_verified"
+
+
+def test_run_b0_no_public_allowlist_override(tmp_path):
+    # Codex #1000 BLOCKER-1: the governed entrypoint exposes NO allowlist path — a caller cannot
+    # substitute a runtime allowlist. (A digest supplied by the same caller proves agreement,
+    # not review.)
+    import inspect as _inspect
+    assert "allowlist_path" not in _inspect.signature(run_b0).parameters
 
 
 # --- sterility-call imports are drained (HIGH-5) ---
@@ -1053,14 +1111,31 @@ _S = '{"event":"sealing","run_id":"r"}\n'
 _T = '{"event":"completed","run_id":"r","disposition":"integrity_verified"}\n'
 
 
+def _att(a="r:0", o=0, p="p0"):
+    return ('{"event":"attempt","attempt_id":"%s","ordinal":%d,"probe_id":"%s",'
+            '"prompt_sha256":"h"}\n' % (a, o, p))
+
+
+def _gen(a="r:0", o=0, p="p0"):
+    return ('{"event":"generated","attempt_id":"%s","ordinal":%d,"probe_id":"%s",'
+            '"generation_sha256":"h"}\n' % (a, o, p))
+
+
+def _rec(a="r:0", o=0, p="p0"):
+    return '{"event":"recorded","attempt_id":"%s","ordinal":%d,"probe_id":"%s"}\n' % (a, o, p)
+
+
 @pytest.mark.parametrize("body,reason_sub", [
-    # GPT-5.5 #1: a valid event TYPE in an invalid ORDER must be rejected by the sequence grammar.
-    (_C + _S + _S + _T, "sealing"),                                          # double sealing
-    (_C + '{"event":"generated","attempt_id":"r:0"}\n' + _S + _T, "out-of-order"),  # gen before attempt
-    (_C + '{"event":"attempt","attempt_id":"r:0"}\n'
-        + '{"event":"attempt","attempt_id":"r:1"}\n' + _S + _T, "out-of-order"),     # interleaved probes
-    (_C + '{"event":"attempt","attempt_id":"r:0"}\n'
-        + '{"event":"recorded","attempt_id":"r:0"}\n' + _S + _T, "out-of-order"),    # recorded before generated
+    # GPT-5.5 #1: a valid event TYPE in an invalid ORDER is rejected by the sequence grammar.
+    (_C + _S + _S + _T, "sealing"),                                    # double sealing
+    (_C + _gen() + _S + _T, "out-of-order"),                           # generated before attempt
+    (_C + _att() + _att("r:1", 1, "p1") + _S + _T, "out-of-order"),    # interleaved probes
+    (_C + _att() + _rec() + _S + _T, "out-of-order"),                  # recorded before generated
+    # Codex #1000 BLOCKER-2: order is not a full contract — cycle identity + schema are bound.
+    (_C + _att() + _gen("evil:9", 99, "other") + _rec() + _S + _T, "identity"),  # forged mid-cycle id
+    (_C + _att("r:1", 1, "p1") + _gen("r:1", 1, "p1")
+        + _rec("r:1", 1, "p1") + _S + _T, "ordinal"),                  # first ordinal not 0
+    (_C + '{"event":"attempt","attempt_id":"r:0","probe_id":"p0"}\n' + _S + _T, "ordinal"),  # missing ordinal
 ])
 def test_verify_terminal_frames_grammar_rejects(tmp_path, body, reason_sub):
     j = tmp_path / "x.journal"
@@ -1070,11 +1145,11 @@ def test_verify_terminal_frames_grammar_rejects(tmp_path, body, reason_sub):
 
 
 def test_verify_terminal_frames_grammar_accepts_full_cycle(tmp_path):
-    # A well-ordered journal (claim -> attempt/generated/recorded -> sealing -> completed) passes.
+    # A well-ordered, identity-consistent journal passes (two probes, monotonic ordinals).
     j = tmp_path / "x.journal"
-    j.write_text(_C + '{"event":"attempt","attempt_id":"r:0"}\n'
-                 '{"event":"generated","attempt_id":"r:0"}\n'
-                 '{"event":"recorded","attempt_id":"r:0"}\n' + _S + _T, encoding="utf-8")
+    j.write_text(_C + _att("r:0", 0, "p0") + _gen("r:0", 0, "p0") + _rec("r:0", 0, "p0")
+                 + _att("r:1", 1, "p1") + _gen("r:1", 1, "p1") + _rec("r:1", 1, "p1")
+                 + _S + _T, encoding="utf-8")
     assert verify_terminal_frames(j)["ok"] is True
 
 

@@ -263,17 +263,6 @@ SCORER_ALLOWLIST_SCHEMA = "b0_scorer_allowlist_v1"
 DEFAULT_ALLOWLIST_PATH = Path(__file__).with_name("scorer_allowlist.json")
 
 
-def _repo_root() -> Path:
-    """Repo root, from which committed allowlist ``module_path`` values are resolved.
-
-    The runner lives at ``<root>/MoCoP/experiments/mamba_lora_bridge/p5_b0_run.py``; the
-    committed allowlist stores repo-relative module paths (e.g.
-    ``MoCoP/experiments/mamba_lora_bridge/b0_scorers/null_estimator.py``). Absolute paths in an
-    entry (e.g. a test fixture's temp module) are used as-is; relative ones resolve against here.
-    """
-    return Path(__file__).resolve().parents[3]
-
-
 def load_allowlisted_scorer(
     manifest: Mapping[str, Any], allowlist_path: Path | None = None,
 ) -> tuple[Callable[..., Any] | None, dict[str, Any], list[str]]:
@@ -332,6 +321,15 @@ def load_allowlisted_scorer(
             f"no allowlisted scorer for id={want_id!r} version={want_version!r} "
             "(deny-by-default: no unlisted scorer, no hashed fallback)"]
 
+    # Codex #1000 BLOCKER-3: the loader must not execute an UNRESOLVED review authority. The
+    # external resolvable-attestation hold still applies, but a placeholder ref (empty/TBD/
+    # PENDING) is refused locally — journaling it is not the same as clearing it.
+    review_ref = entry.get("review_ref")
+    if _is_unset(review_ref) or "pending" in str(review_ref).strip().lower():
+        return None, {}, [
+            f"allowlist entry review_ref {review_ref!r} is unresolved (empty/TBD/PENDING); a "
+            "resolved review reference is required before the scorer may execute"]
+
     module_path = entry.get("module_path")
     blob_sha256 = entry.get("blob_sha256")
     entrypoint = entry.get("entrypoint")
@@ -342,9 +340,19 @@ def load_allowlisted_scorer(
     if not isinstance(entrypoint, str) or not entrypoint:
         return None, {}, ["allowlist entry entrypoint missing"]
 
-    resolved = Path(module_path)
-    if not resolved.is_absolute():
-        resolved = _repo_root() / module_path
+    # Codex #1000 BLOCKER-1: no runtime authority back door. The module path is resolved ONLY
+    # relative to the committed allowlist's own directory (the single committed root) — absolute
+    # paths and ``..`` traversal out of that directory are refused, so an allowlist entry cannot
+    # point the loader at arbitrary caller-supplied code elsewhere on the filesystem.
+    base = allowlist_path.parent.resolve()
+    if Path(module_path).is_absolute():
+        return None, {}, ["allowlist entry module_path must be relative to the committed "
+                          "allowlist directory, not absolute"]
+    resolved = (base / module_path).resolve()
+    try:
+        resolved.relative_to(base)
+    except ValueError:
+        return None, {}, ["allowlist entry module_path escapes the committed allowlist directory"]
     try:
         module_bytes = resolved.read_bytes()
     except OSError as exc:
@@ -1019,12 +1027,16 @@ def verify_terminal_frames(journal_path: Path, *,
         if tevent in _TERMINAL_DISPOSITION and (sealing_idx is None or sealing_idx > terminal_idxs[0]):
             return {"ok": False, "reason": f"committed terminal {tevent!r} without a preceding 'sealing'"}
 
-    # ---- Event SEQUENCE grammar (GPT-5.5 finding #1): a valid event TYPE in an invalid ORDER
-    # must be rejected. Enforce claim -> (attempt -> generated -> recorded)* -> sealing? ->
-    # terminal?. A pre-commit 'failed' may interrupt a partial cycle; a committed terminal may
-    # not. This catches double 'sealing', 'generated'-before-'attempt', and interleaved probe
-    # frames that the per-type checks above (which retire _KNOWN_EVENTS as an identity) miss.
+    # ---- Event SEQUENCE + per-event SCHEMA grammar (GPT-5.5 finding #1, both halves; Codex
+    # #1000 BLOCKER-2). Order alone is not a contract: the grammar enforces claim -> (attempt ->
+    # generated -> recorded)* -> sealing? -> terminal?, AND binds each cycle's identity
+    # (attempt_id, ordinal, probe_id) so a well-ordered cycle whose three frames disagree on their
+    # ids/ordinal is rejected. A pre-commit 'failed' may interrupt a partial cycle; a committed
+    # terminal may not. Catches double 'sealing', 'generated'-before-'attempt', interleaved
+    # probes, and id/ordinal-forged cycles that name-only ordering misses.
     cycle_pos = 0                     # 0 = between cycles; 1 = expect 'generated'; 2 = expect 'recorded'
+    expected_ordinal = 0              # ordinals must run 0,1,2,.. across cycles (matches enumerate)
+    cycle_key: tuple[Any, Any, Any] | None = None   # (attempt_id, ordinal, probe_id) of this cycle
     grammar_sealing = False
     grammar_terminal = False
     for idx, e in enumerate(events):
@@ -1055,7 +1067,27 @@ def verify_terminal_frames(journal_path: Path, *,
         if ev != _PROBE_CYCLE[cycle_pos]:
             return {"ok": False,
                     "reason": f"out-of-order probe frame {ev!r} (expected {_PROBE_CYCLE[cycle_pos]!r})"}
+        # Per-event schema: the identity trio is required and typed on every cycle frame.
+        aid, ordv, pid = e.get("attempt_id"), e.get("ordinal"), e.get("probe_id")
+        if not isinstance(aid, str) or not aid:
+            return {"ok": False, "reason": f"{ev} frame attempt_id missing or not a non-empty string"}
+        if not isinstance(ordv, int) or isinstance(ordv, bool):
+            return {"ok": False, "reason": f"{ev} frame ordinal missing or not an int"}
+        if not isinstance(pid, str) or not pid:
+            return {"ok": False, "reason": f"{ev} frame probe_id missing or not a non-empty string"}
+        if ev == "generated" and not isinstance(e.get("generation_sha256"), str):
+            return {"ok": False, "reason": "generated frame missing generation_sha256"}
+        if ev == "attempt":
+            if ordv != expected_ordinal:
+                return {"ok": False,
+                        "reason": f"attempt ordinal {ordv} != expected {expected_ordinal} (non-monotonic)"}
+            cycle_key = (aid, ordv, pid)
+        elif (aid, ordv, pid) != cycle_key:
+            return {"ok": False,
+                    "reason": f"{ev} frame identity {(aid, ordv, pid)} != its cycle {cycle_key}"}
         cycle_pos = (cycle_pos + 1) % 3
+        if cycle_pos == 0:            # cycle complete: advance the expected ordinal
+            expected_ordinal += 1
 
     last_event = events[-1].get("event")
     if truncated_tail:
@@ -1099,7 +1131,6 @@ def run_b0(
     decoding_hash: str | None = None,
     runtime_hash: str | None = None,
     report_path: Path | None = None,
-    allowlist_path: Path | None = None,
 ) -> B0RunResult:
     """Run a read-only B0 baseline. Refuses (zero forwards) on ANY gate violation."""
     decision = authorize_b0_launch(manifest)
@@ -1131,9 +1162,9 @@ def run_b0(
             refusals.append("component IMPORTED during backend.assert_sterile lookup: "
                             + "; ".join(lookup_imports))
     if not refusals:
-        # Content-first load of the reviewed scorer from the committed allowlist (the loader
-        # accounts for any import its exec triggers and refuses it — see load_allowlisted_scorer).
-        scorer_fn, scorer_binding, load_refusals = load_allowlisted_scorer(manifest, allowlist_path)
+        # Content-first load of the reviewed scorer from the COMMITTED allowlist (fixed path; no
+        # caller override — the loader accounts for any import its exec triggers and refuses it).
+        scorer_fn, scorer_binding, load_refusals = load_allowlisted_scorer(manifest)
         refusals.extend(load_refusals)
     if not refusals:
         descriptor = dict(backend.descriptor())
