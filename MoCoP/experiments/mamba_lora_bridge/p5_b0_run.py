@@ -240,9 +240,19 @@ def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-# The only global types a scorer may reference: exactly what _callable_digest binds by value.
-_BINDABLE_GLOBAL_TYPES = (int, float, bool, str, bytes, list, tuple, dict, set, frozenset,
-                          type(None))
+# A B0 scorer may capture/reference only DEEPLY IMMUTABLE values (#980 scorer BLOCKER).
+# repr() is NOT identity: a mutable object with the default address-based repr (or a mutable
+# container holding such an object) keeps a stable repr while its state changes, so binding by
+# repr is blind to the mutation. Immutable values have no such gap — their repr IS their value.
+_IMMUTABLE_ATOMS = (bool, int, float, str, bytes, type(None))
+
+
+def _is_deeply_immutable(value: Any) -> bool:
+    if isinstance(value, _IMMUTABLE_ATOMS):
+        return True
+    if isinstance(value, (frozenset, tuple)):
+        return all(_is_deeply_immutable(v) for v in value)
+    return False                                            # list/dict/set/instance/module/etc
 
 
 def _callable_digest(fn: Callable[..., Any]) -> str:
@@ -281,11 +291,8 @@ def _callable_digest(fn: Callable[..., Any]) -> str:
     if code is not None:
         referenced: dict[str, str] = {}
         for name in getattr(code, "co_names", ()):
-            if name in g and isinstance(g[name], _BINDABLE_GLOBAL_TYPES):
-                try:
-                    referenced[name] = repr(g[name])
-                except Exception:  # pragma: no cover - defensive
-                    referenced[name] = "<unreprable>"
+            if name in g and _is_deeply_immutable(g[name]):     # repr of an immutable IS its value
+                referenced[name] = repr(g[name])
         if referenced:
             parts["referenced_globals"] = referenced
     return canonical_digest(parts)
@@ -299,31 +306,53 @@ def _runner_digest() -> str:
 
 
 def _scorer_selfcontained_refusals(fn: Callable[..., Any]) -> list[str]:
-    """Refuse a scorer that reaches state the digest cannot bind (#966 round-6 B).
+    """Refuse a scorer that captures/reaches state the digest cannot soundly bind (#980).
 
-    ``_callable_digest`` binds the scorer's own source, closure, defaults, and its DIRECT data
-    globals (``_BINDABLE_GLOBAL_TYPES``) — but is blind to state reached through anything else:
-    a helper function's globals, a class/module attribute, or a module-level INSTANCE's mutable
-    attribute (scorer()->helper()->global, or CFG.attr). So a B0 scorer must be SELF-CONTAINED:
-    every module-level name it references must resolve to a BINDABLE data type (exactly what the
-    digest captures). Any other global — function/method/class/module/instance — is refused
-    (pre-attested pure helpers would need an explicit allowlist). Builtins (``len``) live in
-    ``builtins``, not the module ``__globals__``, so they are unaffected.
+    A B0 scorer must be SELF-CONTAINED over DEEPLY IMMUTABLE state: every module-level name it
+    references, every closure cell it captures, and every default argument must be deeply
+    immutable. Mutable containers, class/module/instance references, and helpers are refused —
+    they carry state a ``repr`` digest cannot detect a change in (repr is not identity). With
+    only immutable captured state there is nothing to mutate mid-run, so the digest binding is
+    sound. Builtins (``len``) live in ``builtins``, not the module ``__globals__``, so they are
+    unaffected. Pre-attested pure helpers would need an explicit allowlist.
     """
     code = getattr(fn, "__code__", None)
     g = getattr(fn, "__globals__", {})
     if code is None:
         return ["scorer has no __code__ (cannot bind its behavior)"]
-    unbindable = sorted({
-        name for name in code.co_names
-        if name in g and not isinstance(g[name], _BINDABLE_GLOBAL_TYPES)
-    })
-    if unbindable:
-        return [f"scorer references module-level name(s) {unbindable} whose value is not a "
-                "bindable data type; a B0 scorer must be self-contained (reference only builtins "
-                "and its own data globals, which the digest binds). Helpers / classes / modules "
-                "/ instances carry unbindable state; pre-attested pure helpers need an allowlist."]
-    return []
+    refusals: list[str] = []
+
+    bad_globals = sorted({name for name in code.co_names
+                          if name in g and not _is_deeply_immutable(g[name])})
+    if bad_globals:
+        refusals.append(
+            f"scorer references module-level name(s) {bad_globals} whose value is not deeply "
+            "immutable; a B0 scorer may reference only builtins and immutable own data "
+            "(mutable containers / helpers / classes / modules / instances carry unbindable "
+            "state — repr is not identity).")
+
+    bad_cells = [i for i, cell in enumerate(getattr(fn, "__closure__", None) or ())
+                 if _cell_is_mutable(cell)]
+    if bad_cells:
+        refusals.append(
+            f"scorer closure captures mutable/unbindable state at cell(s) {bad_cells}; a B0 "
+            "scorer may close over only deeply-immutable values.")
+
+    defaults = list(getattr(fn, "__defaults__", None) or ())
+    defaults += list((getattr(fn, "__kwdefaults__", None) or {}).values())
+    if any(not _is_deeply_immutable(d) for d in defaults):
+        refusals.append(
+            "scorer has a non-immutable default argument; use only immutable defaults so "
+            "captured state cannot mutate mid-run.")
+
+    return refusals
+
+
+def _cell_is_mutable(cell: Any) -> bool:
+    try:
+        return not _is_deeply_immutable(cell.cell_contents)
+    except ValueError:                                          # empty cell: nothing captured
+        return False
 
 
 # --------------------------------------------------------------------------- #
@@ -374,11 +403,33 @@ def check_protected_sink_attestation(manifest: Mapping[str, Any]) -> list[str]:
     against the real filesystem ACL/inode is the deployment contract, not model-free-closable.
     """
     sink = manifest.get("evidence_sink", {})
-    att = sink.get("protected_sink_attestation") if isinstance(sink, Mapping) else None
-    if not isinstance(att, Mapping) or _is_unset(att.get("signer")) or _is_unset(att.get("review_ref")):
-        return ["evidence_sink.protected_sink_attestation missing/placeholder signer/review_ref; "
-                "the protected-sink OS contract must be attested before a governed B0 run"]
-    return []
+    if not isinstance(sink, Mapping):
+        return ["evidence_sink missing or not a mapping"]
+    att = sink.get("protected_sink_attestation")
+    if not isinstance(att, Mapping):
+        return ["evidence_sink.protected_sink_attestation missing; the protected-sink OS contract "
+                "must be attested before a governed B0 run"]
+    refusals: list[str] = []
+    if _is_unset(att.get("signer")):
+        refusals.append("protected_sink_attestation.signer missing/placeholder")
+    if _is_unset(att.get("review_ref")):
+        refusals.append("protected_sink_attestation.review_ref missing/placeholder")
+    if not _is_sha256(att.get("digest")):
+        # #980: an arbitrary non-placeholder string ('x') is not an attestation. Require at least
+        # a sha256-format content digest and a binding to the actual sink path — a structural bar
+        # only. Whether the signer/digest is genuinely RESOLVABLE (a real reviewer, a verifiable
+        # signature) is a THIRD launch hold owned by a separate reviewed attestation contract,
+        # alongside #149 and the HF audit; it does not fold behind them.
+        refusals.append("protected_sink_attestation.digest missing or not a sha256 (a resolvable "
+                        "signed/digested attestation is required, not an arbitrary string)")
+    if att.get("bound_path") != sink.get("path"):
+        refusals.append("protected_sink_attestation.bound_path does not bind evidence_sink.path")
+    return refusals
+
+
+def _is_sha256(value: Any) -> bool:
+    return (isinstance(value, str) and len(value) == 64
+            and all(c in "0123456789abcdef" for c in value.lower()))
 
 
 def _bind_execution_to_manifest(
@@ -888,6 +939,8 @@ _TERMINAL_DISPOSITION = {
     COMMITTED_INTEGRITY_FAILED: COMMITTED_INTEGRITY_FAILED,
     COMMITTED_INDETERMINATE: COMMITTED_INDETERMINATE,
 }
+# The ONLY event names a governed B0 journal may contain — reject arbitrary/injected names (#980).
+_KNOWN_EVENTS = frozenset({"claim", "attempt", "generated", "recorded", "sealing"}) | _TERMINAL_EVENTS
 
 
 def verify_terminal_frames(journal_path: Path, *,
@@ -901,26 +954,38 @@ def verify_terminal_frames(journal_path: Path, *,
     ``sealing`` or a terminal; and (when given) the sealing frame's ``published_digest``
     cross-binds the report. Returns {ok, reason?, terminal, disposition, truncated_tail}.
     """
-    raw = Path(journal_path).read_text(encoding="utf-8").splitlines()
+    raw_text = Path(journal_path).read_text(encoding="utf-8")
+    has_final_newline = raw_text == "" or raw_text.endswith("\n")
+    lines = raw_text.splitlines()
     events: list[dict[str, Any]] = []
     truncated_tail = False
-    for i, line in enumerate(raw):
+    for i, line in enumerate(lines):
+        is_last = i == len(lines) - 1
         try:
-            events.append(json.loads(line))
+            obj = json.loads(line)
         except json.JSONDecodeError:
-            if i == len(raw) - 1:
+            if is_last:
                 truncated_tail = True
-            else:
-                return {"ok": False, "reason": "corruption", "corruption_at": i}
+                continue
+            return {"ok": False, "reason": "corruption", "corruption_at": i}
+        if not isinstance(obj, dict):                        # a frame MUST be a JSON object (#980)
+            return {"ok": False, "reason": f"non-object journal frame at line {i}"}
+        if is_last and not has_final_newline:                # torn write: valid JSON, no newline
+            truncated_tail = True
+            continue
+        events.append(obj)
+
     if not events:
         return {"ok": False, "reason": "empty journal"}
     if events[0].get("event") != "claim":
         return {"ok": False, "reason": "first event is not 'claim'"}
+    unknown = next((e.get("event") for e in events if e.get("event") not in _KNOWN_EVENTS), None)
+    if unknown is not None:                                   # no arbitrary/injected events (#980)
+        return {"ok": False, "reason": f"unknown journal event {unknown!r}"}
     run_id = events[0].get("run_id")
-    if not run_id:                                       # claim MUST carry a run_id (#975)
+    if not run_id:                                           # claim MUST carry a run_id (#975)
         return {"ok": False, "reason": "claim frame missing run_id"}
-    # attempt/generated/recorded frames carry attempt_id, not run_id, so a missing run_id is
-    # allowed there; claim/sealing/terminal are required to carry it (checked explicitly).
+    # attempt/generated/recorded frames carry attempt_id, not run_id; claim/sealing/terminal MUST.
     if any(e.get("run_id", run_id) != run_id for e in events):
         return {"ok": False, "reason": "run_id inconsistent across frames"}
 
@@ -932,19 +997,12 @@ def verify_terminal_frames(journal_path: Path, *,
 
     sealing_idx = next((i for i, e in enumerate(events) if e.get("event") == "sealing"), None)
     if sealing_idx is not None:
-        if not events[sealing_idx].get("run_id"):        # sealing MUST carry a run_id (#975)
+        if not events[sealing_idx].get("run_id"):            # sealing MUST carry a run_id (#975)
             return {"ok": False, "reason": "sealing frame missing run_id"}
-        # The ONLY event permitted strictly after the sealing frame is the single terminal
-        # frame — reject an injected non-terminal frame between sealing and the terminal, which
-        # the prefix digest (pre-sealing only) cannot see (#966 round-7 RESIDUAL-A).
-        for i in range(sealing_idx + 1, len(events)):
+        for i in range(sealing_idx + 1, len(events)):        # only the terminal may follow sealing
             if events[i].get("event") not in _TERMINAL_EVENTS:
                 return {"ok": False, "reason": "non-terminal event recorded after the sealing frame"}
 
-    # Enforce the terminal event <-> disposition mapping and require a run_id on the terminal
-    # frame (#975): recognizing a terminal event NAME is not enough — a 'failed' frame carrying
-    # a committed disposition, or a committed terminal whose disposition disagrees with its
-    # event, is malformed/tampered and must fail closed.
     if terminal_idxs:
         term = events[terminal_idxs[0]]
         tevent, tdisp = term.get("event"), term.get("disposition")
@@ -957,6 +1015,9 @@ def verify_terminal_frames(journal_path: Path, *,
             return {"ok": False,
                     "reason": f"terminal {tevent!r} disposition must be "
                               f"{_TERMINAL_DISPOSITION.get(tevent)!r}, got {tdisp!r}"}
+        # EVERY committed terminal (not just 'completed') requires a preceding sealing (#980).
+        if tevent in _TERMINAL_DISPOSITION and (sealing_idx is None or sealing_idx > terminal_idxs[0]):
+            return {"ok": False, "reason": f"committed terminal {tevent!r} without a preceding 'sealing'"}
 
     last_event = events[-1].get("event")
     if truncated_tail:
@@ -965,13 +1026,13 @@ def verify_terminal_frames(journal_path: Path, *,
     elif last_event not in _TERMINAL_EVENTS:
         return {"ok": False, "reason": f"journal ends without a terminal event (last={last_event})"}
 
-    if terminal_idxs and events[terminal_idxs[0]].get("event") == "completed":
-        if sealing_idx is None or sealing_idx > terminal_idxs[0]:
-            return {"ok": False, "reason": "'completed' without a preceding 'sealing'"}
-
-    if report_published_digest is not None and sealing_idx is not None:
-        if events[sealing_idx].get("published_digest") != report_published_digest:
+    if report_published_digest is not None:
+        if sealing_idx is not None and events[sealing_idx].get("published_digest") != report_published_digest:
             return {"ok": False, "reason": "sealing published_digest does not match report"}
+        if terminal_idxs:                                    # a committed terminal binds it too (#980)
+            te = events[terminal_idxs[0]]
+            if te.get("event") in _TERMINAL_DISPOSITION and te.get("published_digest") != report_published_digest:
+                return {"ok": False, "reason": "terminal published_digest does not match report"}
 
     terminal = events[terminal_idxs[0]].get("event") if terminal_idxs else last_event
     disposition = events[terminal_idxs[0]].get("disposition") if terminal_idxs else None
@@ -1006,16 +1067,21 @@ def run_b0(
             refusals.append("import-audit sentinel dirty at run entry (a prior run leaked "
                             f"forbidden import(s) {entry_residue}); refusing fail-closed")
 
-    sterile_bound = callable(getattr(backend, "assert_sterile", None))
     effective_decoding = derive_effective_decoding(manifest)
 
-    # Touch untrusted code (scorer __repr__ during its digest, backend.descriptor) ONLY after
-    # the cheap gates pass (#966 HIGH-4: no such call on a refused launch), and ACCOUNT for any
-    # import it triggers rather than erasing it unexamined (round-6 D).
+    # Touch ANY backend code (even the assert_sterile lookup, whose __getattribute__ can import)
+    # ONLY after the cheap gates pass (#966 HIGH-4), and ACCOUNT for every import it triggers
+    # rather than erasing it with a bare baseline drain (#980 import-audit BLOCKER).
     descriptor: dict[str, Any] = {}
     scorer_digest: str | None = None
+    sterile_bound = False
     if not refusals:
-        _drain_import_sentinel()                                   # baseline
+        sterile_bound = callable(getattr(backend, "assert_sterile", None))
+        lookup_imports = _drain_import_sentinel()
+        if lookup_imports:
+            refusals.append("component IMPORTED during backend.assert_sterile lookup: "
+                            + "; ".join(lookup_imports))
+    if not refusals:
         scorer_digest = _callable_digest(scorer) if scorer is not None else None
         digest_imports = _drain_import_sentinel()
         if digest_imports:
@@ -1189,8 +1255,10 @@ def run_b0(
         try:
             tv = verify_terminal_frames(journal.path,
                                         report_published_digest=report["published_digest"])
-        except (OSError, B0RunError, ValueError) as exc:
-            warnings.append(f"terminal-frame verification read failed post-commit: {exc}")
+        except Exception as exc:                               # noqa: BLE001 - post-commit MUST NOT escape
+            # ANY verifier fault post-commit (UnicodeDecodeError, a malformed frame that slips a
+            # raise, ...) becomes indeterminate — it can never propagate on a committed run (#980).
+            warnings.append(f"terminal-frame verification read failed post-commit: {exc!r}")
             disposition = COMMITTED_INDETERMINATE
         else:
             # The on-disk journal is authoritative: if it does not form a valid terminal, or its
@@ -1210,7 +1278,9 @@ def run_b0(
                     "event": "failed", "run_id": run_id,
                     "error_type": type(exc).__name__, "error": str(exc)[:500], "utc": _now(),
                 })
-            except OSError:
+            except (OSError, B0RunError):
+                # A zero-progress write of the failed-event must NOT mask the original backend
+                # exception (#980 HIGH): swallow it and re-raise the real cause below.
                 pass
         raise
     finally:

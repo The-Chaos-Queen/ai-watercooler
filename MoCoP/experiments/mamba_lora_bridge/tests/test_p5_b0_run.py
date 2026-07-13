@@ -88,7 +88,9 @@ def _manifest(panel, report_path, *, model=None, panel_hash=None,
         "components": {r: "disabled" for r in COMPONENT_ROUTES},
         "sev_ids": {"geometry_holdout": ["a1"], "behavioral_probe": ["b1"]},
         "evidence_sink": {"path": str(report_path), "mode": "append_only", "present": False,
-                          "protected_sink_attestation": {"signer": "keeper", "review_ref": "wc#971"}},
+                          "protected_sink_attestation": {
+                              "signer": "keeper", "review_ref": "wc#971",
+                              "digest": "a" * 64, "bound_path": str(report_path)}},
     }
 
 
@@ -744,18 +746,21 @@ def test_run_b0_refuses_without_protected_sink_attestation(tmp_path):
     assert res.ok is False and any("protected_sink_attestation" in r for r in res.refusals)
 
 
-# --- scorer state mutated mid-run (HIGH-3) ---
-_MUT_STATE = {"v": 1}
+# --- scorer captured/referenced state must be immutable (#980); H3 mid-run reassignment ---
+_IMMUT_SCORER_INT = 1
 
 
-def _mut_reading_scorer(probe_id, generation):
-    return ({}, {"v": _MUT_STATE["v"]})
+def _immutable_reading_scorer(probe_id, generation):
+    return ({}, {"v": _IMMUT_SCORER_INT})
 
 
-def test_run_b0_refuses_scorer_state_mutated_during_forward(tmp_path):
+def test_run_b0_catches_immutable_global_reassigned_mid_run(tmp_path):
+    # An IMMUTABLE global reference is allowed and BOUND; if the backend reassigns it during the
+    # forward, the before/after digest re-verification catches it (round-5 H3 preserved).
     out = tmp_path / "b0_report.json"
-    _MUT_STATE["v"] = 1
-    code_digest = _callable_digest(_mut_reading_scorer)
+    global _IMMUT_SCORER_INT
+    _IMMUT_SCORER_INT = 1
+    code_digest = _callable_digest(_immutable_reading_scorer)
 
     class _Mutator:
         def descriptor(self):
@@ -765,17 +770,49 @@ def test_run_b0_refuses_scorer_state_mutated_during_forward(tmp_path):
             return None
 
         def generate(self, prompt, decoding):
-            _MUT_STATE["v"] = 2                # mutate the scorer's bound global mid-forward
+            global _IMMUT_SCORER_INT
+            _IMMUT_SCORER_INT = 2             # reassign the bound immutable global mid-forward
             return "gen"
 
     m = _manifest(PANEL, out, scorer_code_digest=code_digest)
     try:
         with pytest.raises(B0RunError) as ei:
-            _run(m, PANEL, _Mutator(), out, scorer=_mut_reading_scorer)
+            _run(m, PANEL, _Mutator(), out, scorer=_immutable_reading_scorer)
         assert "scorer identity changed" in str(ei.value)
         assert not out.exists()
     finally:
-        _MUT_STATE["v"] = 1
+        _IMMUT_SCORER_INT = 1
+
+
+_MUT_STATE = {"v": 1}
+
+
+def _mut_reading_scorer(probe_id, generation):
+    return ({}, {"v": _MUT_STATE["v"]})
+
+
+def test_run_b0_refuses_scorer_with_mutable_global(tmp_path):
+    # #980: a scorer referencing a MUTABLE global (dict) is refused at bind — repr is not identity.
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(_mut_reading_scorer))
+    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_mut_reading_scorer)
+    assert res.ok is False and any("deeply immutable" in r for r in res.refusals)
+
+
+def _make_closure_scorer(captured):
+    def scorer(probe_id, generation):
+        return ({}, {"v": len(captured)})
+    return scorer
+
+
+def test_run_b0_refuses_scorer_capturing_mutable_object(tmp_path):
+    # #980 core: a scorer closing over a MUTABLE object (stable address-repr) is refused — its
+    # state could change mid-run without the repr digest ever noticing.
+    out = tmp_path / "b0_report.json"
+    scorer = _make_closure_scorer([1, 2, 3])             # closes over a list
+    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(scorer))
+    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=scorer)
+    assert res.ok is False and any("closure captures" in r for r in res.refusals)
 
 
 # --- sterility-call imports are drained (HIGH-5) ---
@@ -950,7 +987,7 @@ def test_run_b0_refuses_scorer_with_module_helper(tmp_path):
     out = tmp_path / "b0_report.json"
     m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(_helper_using_scorer))
     res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_helper_using_scorer)
-    assert res.ok is False and any("self-contained" in r for r in res.refusals)
+    assert res.ok is False and any("deeply immutable" in r for r in res.refusals)
 
 
 def test_run_b0_refuses_dirty_sentinel_at_entry(tmp_path):
@@ -966,27 +1003,102 @@ def test_run_b0_refuses_dirty_sentinel_at_entry(tmp_path):
         mod._forbidden_imports.clear()
 
 
-class _EvilRepr:
-    def __repr__(self):
-        sys.audit("import", "qdrant_client", None, None, None, None)
-        return "evil"
+_MUTABLE_CONTAINER = [1, 2, 3]
 
 
-_EVIL_CONTAINER = [_EvilRepr()]
+def _container_reading_scorer(probe_id, generation):
+    return ({}, {"n": len(_MUTABLE_CONTAINER)})
 
 
-def _evil_repr_scorer(probe_id, generation):
-    return ({}, {"n": len(_EVIL_CONTAINER)})
-
-
-def test_run_b0_accounts_for_import_during_scorer_digest(tmp_path):
-    # #966 round-6 D: a forbidden import triggered by __repr__ during the scorer digest is
-    # ACCOUNTED (refused), not erased unexamined by a bare clear.
+def test_run_b0_refuses_scorer_with_mutable_container(tmp_path):
+    # #980: a mutable container global is refused (its contents could change mid-run; a repr
+    # digest cannot bind a stable-repr element). The old __repr__-during-digest import vector is
+    # thereby closed structurally — the container is never repr'd.
     out = tmp_path / "b0_report.json"
-    m = _manifest(PANEL, out, scorer_code_digest="unused")
-    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_evil_repr_scorer)
-    assert res.ok is False and any("IMPORTED during scorer digest" in r for r in res.refusals)
+    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(_container_reading_scorer))
+    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_container_reading_scorer)
+    assert res.ok is False and any("deeply immutable" in r for r in res.refusals)
     assert not out.exists()
+
+
+def test_run_b0_accounts_for_import_during_sterile_lookup(tmp_path):
+    # #980 import-audit BLOCKER: a forbidden import fired by the assert_sterile ATTRIBUTE lookup
+    # (malicious __getattribute__) at run entry must be accounted, not discarded by a baseline drain.
+    out = tmp_path / "b0_report.json"
+
+    class _LookupImports:
+        def __getattribute__(self, name):
+            if name == "assert_sterile":
+                sys.audit("import", "qdrant_client", None, None, None, None)
+            return object.__getattribute__(self, name)
+
+        def descriptor(self):
+            return dict(MODEL)
+
+        def assert_sterile(self):
+            return None
+
+        def generate(self, prompt, decoding):
+            raise AssertionError("must not generate")
+
+    res = _run(_manifest(PANEL, out), PANEL, _LookupImports(), out)
+    assert res.ok is False and any("assert_sterile lookup" in r for r in res.refusals)
+    assert not out.exists()
+
+
+def test_verify_terminal_frames_rejects_non_object_frame(tmp_path):
+    # #980: a JSON array/scalar frame ('[]') must be rejected, not crash with AttributeError.
+    j = tmp_path / "x.journal"
+    j.write_text('{"event":"claim","run_id":"r"}\n[]\n', encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and "non-object" in r["reason"]
+
+
+def test_verify_terminal_frames_torn_no_newline_tail(tmp_path):
+    # #980: a complete terminal JSON WITHOUT its trailing newline is a torn write -> truncated,
+    # not a clean 'completed' terminal.
+    j = tmp_path / "x.journal"
+    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
+                 '{"event":"completed","run_id":"r","disposition":"integrity_verified"}',  # no \n
+                 encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["truncated_tail"] is True and r["terminal"] == "sealing"
+
+
+def test_verify_terminal_frames_rejects_committed_terminal_without_sealing(tmp_path):
+    # #980: EVERY committed terminal (not just 'completed') needs a preceding sealing.
+    j = tmp_path / "x.journal"
+    j.write_text('{"event":"claim","run_id":"r"}\n'
+                 '{"event":"committed_integrity_failed","run_id":"r",'
+                 '"disposition":"committed_integrity_failed"}\n', encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and "without a preceding 'sealing'" in r["reason"]
+
+
+def test_verify_terminal_frames_rejects_unknown_event(tmp_path):
+    # #980: arbitrary/injected event names are rejected.
+    j = tmp_path / "x.journal"
+    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sneaky","run_id":"r"}\n'
+                 '{"event":"sealing","run_id":"r"}\n', encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and "unknown journal event" in r["reason"]
+
+
+@pytest.mark.parametrize("att,reason_sub", [
+    ({"signer": "x", "review_ref": "x"}, "digest"),
+    ({"signer": "x", "review_ref": "x", "digest": "a" * 64}, "bound_path"),
+    ({"signer": "x", "review_ref": "x", "digest": "nothex", "bound_path": None}, "digest"),
+])
+def test_run_b0_refuses_weak_attestation(tmp_path, att, reason_sub):
+    # #980: an arbitrary non-placeholder string is not an attestation — require a sha256 digest
+    # and a binding to the actual sink path.
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out)
+    if "bound_path" in att and att["bound_path"] is None:
+        att = {**att, "bound_path": str(out)}                # isolate the digest-format refusal
+    m["evidence_sink"]["protected_sink_attestation"] = att
+    res = _run(m, PANEL, _ExplodingBackend(), out)
+    assert res.ok is False and any(reason_sub in r for r in res.refusals)
 
 
 def test_verify_terminal_frames_raises_on_non_utf8(tmp_path):
@@ -1051,7 +1163,7 @@ def test_run_b0_refuses_scorer_with_module_instance(tmp_path):
     out = tmp_path / "b0_report.json"
     m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(_instance_reading_scorer))
     res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_instance_reading_scorer)
-    assert res.ok is False and any("self-contained" in r for r in res.refusals)
+    assert res.ok is False and any("deeply immutable" in r for r in res.refusals)
 
 
 def test_reserve_reports_uncleaned_collision(tmp_path, monkeypatch):
@@ -1078,22 +1190,23 @@ def test_reserve_refuses_symlinked_parent(tmp_path):
     assert "symlink" in str(ei.value)
 
 
-_SCORER_GLOBAL_STATE = {"v": 1}
+_SCORER_IMMUT_GLOBAL = "v1"
 
 
-def _global_reading_scorer(probe_id, generation):
-    return ({}, {"v": _SCORER_GLOBAL_STATE["v"]})
+def _immut_global_scorer(probe_id, generation):
+    return ({}, {"v": _SCORER_IMMUT_GLOBAL})
 
 
-def test_scorer_digest_binds_referenced_mutable_global():
-    # #966 BLOCKER-3 residual: a plain function reading a mutable module global must NOT
-    # collide on digest when that global changes value.
-    d1 = _callable_digest(_global_reading_scorer)
-    _SCORER_GLOBAL_STATE["v"] = 2
+def test_scorer_digest_binds_referenced_immutable_global():
+    # #980: an IMMUTABLE global reference IS bound by value; reassigning it changes the digest
+    # (a mutable global is refused entirely by _scorer_selfcontained_refusals instead).
+    global _SCORER_IMMUT_GLOBAL
+    d1 = _callable_digest(_immut_global_scorer)
+    _SCORER_IMMUT_GLOBAL = "v2"
     try:
-        d2 = _callable_digest(_global_reading_scorer)
+        d2 = _callable_digest(_immut_global_scorer)
     finally:
-        _SCORER_GLOBAL_STATE["v"] = 1
+        _SCORER_IMMUT_GLOBAL = "v1"
     assert d1 != d2
 
 
