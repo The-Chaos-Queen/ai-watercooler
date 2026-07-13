@@ -1,9 +1,12 @@
-"""Tests for drift_gate.py — Baseline Drift Gate aggregation kernel (v7).
+"""Tests for drift_gate.py — Baseline Drift Gate aggregation kernel (v8).
 
 Codex review lineage: #941 (ABSENT=HARD, empty=INCOMPLETE), #956 (B1/B2/H3/
 H4/H5 canaries), #979 round-5 (continuity HOLD routing per Laura's ruling at
 OpenCLAW #168 events 695-696; evidence envelope + resolver; content-addressed
-history chain; frozen A2 trajectory equation; closed input schema).
+history chain; frozen A2 trajectory equation; closed input schema), #984
+round-6 (snapshot isolation; decision-exact digests; A1 exact three-way
+routing + HOLD escalation exclusion; single-shot typed acquisition receipts;
+total schema parser; UTC-instant chronology; non-softening report merge).
 
 The calibration-corpus tests here are ROUTING tests (adjudicated labels in,
 verdicts out) per amendment A4 — corpus DISCRIMINATION is a property of the
@@ -11,6 +14,7 @@ verdicts out) per amendment A4 — corpus DISCRIMINATION is a property of the
 """
 import sys
 import os
+from datetime import datetime, timedelta, timezone
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from drift_gate import (
@@ -23,12 +27,14 @@ from drift_gate import (
     compose_axes,
     evaluate_audit,
     rejected_acquisitions,
+    resolve_acquisitions,
     validate_audit_completeness,
     validate_history_chain,
     ProbeResult,
     AuditRecord,
     DiscontinuityEvent,
     ContinuityProvenance,
+    EvidenceResolverBinding,
     GateLevel,
     Verdict,
     VerdictClass,
@@ -65,8 +71,11 @@ def _battery(protected_overrides=(), slot_overrides=(), slots_band=2):
     return list(probes.values()), list(slots.values())
 
 
+_TS_BASE = datetime(2026, 7, 12, tzinfo=timezone.utc)
+
+
 def _ts(i):
-    return f"2026-07-12T{i // 3600:02d}:{(i // 60) % 60:02d}:{i % 60:02d}Z"
+    return (_TS_BASE + timedelta(seconds=i)).isoformat().replace("+00:00", "Z")
 
 
 def _chain(diversities, slot_rows_per_audit=None, root_event=None):
@@ -107,9 +116,9 @@ KNOWN_EVIDENCE = {
     "judge:laura/audit-log#12",
 }
 
-
-def _resolver(ref):
-    return ref in KNOWN_EVIDENCE
+RESOLVER = EvidenceResolverBinding(
+    resolver_id="resolver:test-suite", version="v1",
+    resolve=lambda ref, probe: ref in KNOWN_EVIDENCE)
 
 
 STABLE = [0.80, 0.79, 0.81, 0.80, 0.79]
@@ -363,6 +372,57 @@ class TestAuditCompleteness:
         audit2.ordinal = 0
         assert any("ordinal" in i for i in validate_audit_completeness(audit2))
 
+    def test_prefix_passing_garbage_timestamp_rejected(self):
+        """#984 high 6: '2026-99-99T99:99garbage' passed the old prefix
+        regex. Timestamps are now PARSED, and naive ones are rejected."""
+        for bad in ("2026-99-99T99:99garbage", "2026-07-12T10:00:00", None, 7):
+            audit = _next_audit([], timestamp=bad)
+            issues = validate_audit_completeness(audit)
+            assert any("ISO-8601" in i for i in issues), bad
+
+    def test_malformed_enum_and_none_fields_never_crash(self):
+        """#984 high 5 fresh probes: verdict_class='a', evidence_type='none',
+        response_digest=None raised AttributeError in v7. A total schema
+        parser returns INCOMPLETE instead."""
+        bad_rows = [
+            ProbeResult("name", 2, "a", probe_id="p", rubric_version="r",
+                        judge_ref="j", response_digest="0" * 64),
+            P("name", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type="none"),
+            P("name", 2, VerdictClass.PRESENT_RECOVERABLE,
+              response_digest=None),
+            P("name", 2, VerdictClass.PRESENT_RECOVERABLE,
+              continuity_provenance="unsupported"),
+            P(None, 2, VerdictClass.PRESENT_RECOVERABLE),
+            P("name", 2, VerdictClass.PRESENT_RECOVERABLE, notes=None),
+        ]
+        for bad in bad_rows:
+            probes, slots = _battery(protected_overrides=[bad] if
+                                     isinstance(bad.anchor, str) else ())
+            if not isinstance(bad.anchor, str):
+                probes.append(bad)
+            audit = AuditRecord(
+                audit_id="malformed", timestamp="2026-07-12T00:00:00Z",
+                probe_results=probes, diversity_metric=0.80,
+                slot_probe_results=slots)
+            outcome = evaluate_audit(audit, ())  # must not raise
+            assert outcome.overall != GateLevel.PASS, bad
+            assert outcome.incomplete_reasons, bad
+            assert len(outcome.details["audit_digest"]) == 64  # digest total
+
+    def test_diversity_domain_enforced_and_overflow_safe(self):
+        """#984 high 5: 1e308 validated in v7 and then raised OverflowError
+        in the variance computation. The [0,1] domain is now enforced at
+        validation AND defended in the direct scorer path."""
+        for bad in (1.5, 1e308):
+            audit = _next_audit([], diversity=bad)
+            issues = validate_audit_completeness(audit)
+            assert any("[0,1]" in i for i in issues), bad
+        level, details = score_range_trajectory(
+            [0.8, 0.79, 1e308, 0.78, 0.77, 0.76])  # must not raise
+        assert level == GateLevel.HARD
+        assert "magnitude-unsafe" in details["error"]
+
 
 # --- History chain custody (Codex #979 blocker 3 / amendment A4) ---
 
@@ -488,6 +548,78 @@ class TestChainCustody:
         chain[0].probe_results[0].notes = "edited"
         assert audit_digest(chain[0]) != d1
 
+    def test_digest_is_decision_exact_across_a2_boundary(self):
+        """#984 blocker 2: 0.99499999996 and 0.99500000004 shared a digest
+        under nine-decimal rounding while producing SOFT vs PASS. IEEE-754
+        hex addressing makes any value that can change the verdict change
+        the digest."""
+        lo, hi = 0.99499999996, 0.99500000004
+        rec_lo = _chain([lo])[0]
+        rec_hi = _chain([hi])[0]
+        assert audit_digest(rec_lo) != audit_digest(rec_hi)
+        # And substitution across the boundary is therefore chain-detectable:
+        chain_lo = _chain([1.0, 1.0, 1.0, lo, 0.9895, 0.9855])
+        chain_hi = _chain([1.0, 1.0, 1.0, hi, 0.9895, 0.9855])
+        current = _next_audit(chain_lo, diversity=0.98)
+        substituted = evaluate_audit(current, chain_hi)
+        assert not substituted.details["chain_ok"]
+
+    def test_mutating_resolver_cannot_erase_current_halt(self):
+        """#984 blocker 1 fresh probe: a resolver mutated a validated
+        current `name` row from ABSENT/-1 to PRESENT_RECOVERABLE/+2 and the
+        protected axis went HARD -> PASS. Snapshot isolation: the original
+        object graph is irrelevant after entry."""
+        chain = _chain(STABLE)
+        current = _next_audit(chain, protected_overrides=[
+            P("name", -1, VerdictClass.ABSENT, notes="lost"),
+            P("acq_anchor", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="judge:laura/audit-log#12")])
+
+        def mutate(ref, probe):
+            for row in current.probe_results:
+                if row.anchor == "name":
+                    row.band = 2
+                    row.verdict_class = VerdictClass.PRESENT_RECOVERABLE
+                    row.notes = "nothing to see"
+            return True
+        binding = EvidenceResolverBinding("resolver:malicious", "v1", mutate)
+        outcome = evaluate_audit(current, chain, resolver=binding)
+        assert outcome.protected_set == GateLevel.HARD
+        assert outcome.overall == GateLevel.HARD
+        assert outcome.verdicts["name"] == Verdict.EROSION
+
+    def test_mutating_resolver_cannot_erase_trajectory_halt(self):
+        """#984 blocker 1 second probe: a resolver rewrote every validated
+        historical diversity value after chain validation; v7 reported
+        chain_ok=True range=pass on an honest A2 HARD chain."""
+        chain = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
+        current = _next_audit(chain, diversity=0.5, protected_overrides=[
+            P("acq_anchor", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="judge:laura/audit-log#12")])
+
+        def flatten_history(ref, probe):
+            for rec in chain:
+                rec.diversity_metric = 0.5
+            return True
+        binding = EvidenceResolverBinding("resolver:malicious", "v1",
+                                          flatten_history)
+        outcome = evaluate_audit(current, chain, resolver=binding)
+        assert outcome.range_trajectory == GateLevel.HARD
+        assert outcome.overall == GateLevel.HARD
+        assert outcome.details["range_trajectory"]["consecutive_decline"] >= 5
+
+    def test_offset_timestamps_compared_as_utc_instants(self):
+        """#984 high 6 fresh probe: 10:00-12:00 (22:00Z) followed by
+        11:00+14:00 (21:00Z previous day) passed lexical comparison."""
+        chain = _chain([0.80])
+        chain[0].timestamp = "2026-07-13T10:00:00-12:00"  # 22:00Z
+        # Rebuild digest linkage after editing the root's timestamp:
+        current = _next_audit(chain, timestamp="2026-07-13T11:00:00+14:00")
+        issues = validate_history_chain(chain, current)
+        assert any("UTC instants" in i for i in issues)
+
 
 # --- Protected-set scoring ---
 
@@ -566,58 +698,137 @@ class TestProtectedSet:
 
 
 class TestGrowthAuthority:
-    """Codex #956 B2 + #979 blocker 2: GROWTH is never a caller assertion."""
+    """Codex #956 B2 + #979 B2 + #984 B4: GROWTH is never a caller
+    assertion, and resolution is bound, typed, and single-shot."""
 
     def _acq(self, ref, anchor="new_relationship"):
         return [P(anchor, 2, VerdictClass.PRESENT_RECOVERABLE,
                   evidence_type=EvidenceType.ACQUISITION, evidence_ref=ref)]
 
+    def _score(self, probes, binding):
+        receipts = resolve_acquisitions(probes, binding)
+        level, verdicts = score_protected_set(probes, receipts)
+        return level, verdicts, receipts
+
     def test_growth_with_resolved_evidence(self):
-        _, verdicts = score_protected_set(
-            self._acq("judge:laura/audit-log#12"), evidence_resolver=_resolver)
+        _, verdicts, _ = self._score(
+            self._acq("judge:laura/audit-log#12"), RESOLVER)
         assert verdicts["new_relationship"] == Verdict.GROWTH
 
     def test_no_resolver_no_growth(self):
         """#979 B2: without a bound resolver, GROWTH is not mintable."""
-        probes = self._acq("judge:laura/audit-log#12")
-        _, verdicts = score_protected_set(probes)
+        _, verdicts, receipts = self._score(
+            self._acq("judge:laura/audit-log#12"), None)
         assert verdicts["new_relationship"] == Verdict.NEITHER
+        assert receipts["new_relationship"].status == "unbound"
         assert any("no evidence resolver" in r
-                   for r in rejected_acquisitions(probes))
+                   for r in rejected_acquisitions(receipts))
 
     def test_resolver_rejection_no_growth(self):
-        probes = self._acq("judge:unknown/nowhere#0")
-        _, verdicts = score_protected_set(
-            probes, evidence_resolver=_resolver)
+        _, verdicts, receipts = self._score(
+            self._acq("judge:unknown/nowhere#0"), RESOLVER)
         assert verdicts["new_relationship"] == Verdict.NEITHER
+        assert receipts["new_relationship"].status == "rejected"
 
     def test_junk_evidence_ref_rejected(self):
         """#979 fresh probe: anchor=relationship_laura evidence_ref=x must
         NOT mint GROWTH even with a permissive resolver."""
+        permissive = EvidenceResolverBinding(
+            "resolver:permissive", "v1", lambda ref, probe: True)
         for junk in ("x", "fresh: x", "  "):
-            probes = self._acq(junk, anchor="relationship_laura")
-            _, verdicts = score_protected_set(
-                probes, evidence_resolver=lambda ref: True)
+            _, verdicts, _ = self._score(
+                self._acq(junk, anchor="relationship_laura"), permissive)
             assert verdicts["relationship_laura"] == Verdict.NEITHER, junk
 
     def test_acquisition_without_evidence_ref_rejected(self):
         probes = [P("new_relationship", 2, VerdictClass.PRESENT_RECOVERABLE,
                     evidence_type=EvidenceType.ACQUISITION)]
-        _, verdicts = score_protected_set(probes, evidence_resolver=_resolver)
+        _, verdicts, _ = self._score(probes, RESOLVER)
         assert verdicts["new_relationship"] == Verdict.NEITHER
 
     def test_acquisition_on_protected_anchor_rejected(self):
         probes = [P("name", 2, VerdictClass.PRESENT_RECOVERABLE,
                     evidence_type=EvidenceType.ACQUISITION,
                     evidence_ref="judge:laura/audit-log#12")]
-        _, verdicts = score_protected_set(probes, evidence_resolver=_resolver)
+        _, verdicts, _ = self._score(probes, RESOLVER)
         assert verdicts["name"] == Verdict.NEITHER
 
     def test_growth_not_from_default_evidence(self):
         probes = [P("known_fact", 2, VerdictClass.PRESENT_RECOVERABLE,
                     notes="I knew this already")]
-        _, verdicts = score_protected_set(probes, evidence_resolver=_resolver)
+        _, verdicts, _ = self._score(probes, RESOLVER)
         assert verdicts["known_fact"] == Verdict.NEITHER
+
+    def test_stateful_resolver_cannot_contradict(self):
+        """#984 B4 fresh probe: [True, False] produced verdict=growth AND a
+        rejection line. Single-shot receipts make verdict and report derive
+        from one resolution — contradiction structurally impossible."""
+        for answers in ([True, False], [False, True]):
+            calls = list(answers)
+            binding = EvidenceResolverBinding(
+                "resolver:stateful", "v1",
+                lambda ref, probe, c=calls: c.pop(0))
+            probes = self._acq("judge:laura/audit-log#12")
+            receipts = resolve_acquisitions(probes, binding)
+            _, verdicts = score_protected_set(probes, receipts)
+            rejected = rejected_acquisitions(receipts)
+            minted = verdicts["new_relationship"] == Verdict.GROWTH
+            assert minted == (not rejected), (answers, verdicts, rejected)
+            assert len(calls) == 1  # resolved EXACTLY once
+
+    def test_resolver_exception_is_error_receipt_never_growth(self):
+        """#984 B4: exceptions are typed non-authorizing results."""
+        def explode(ref, probe):
+            raise RuntimeError("resolver infrastructure down")
+        binding = EvidenceResolverBinding("resolver:broken", "v1", explode)
+        chain = _chain(STABLE)
+        current = _next_audit(chain, protected_overrides=self._acq(
+            "judge:laura/audit-log#12"))
+        outcome = evaluate_audit(current, chain, resolver=binding)
+        assert outcome.verdicts["new_relationship"] == Verdict.NEITHER
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert any("resolver raised RuntimeError" in r
+                   for r in outcome.incomplete_reasons)
+        receipt = outcome.details["acquisition_receipts"]["new_relationship"]
+        assert receipt["status"] == "error"
+
+    def test_non_boolean_return_is_error_never_growth(self):
+        binding = EvidenceResolverBinding(
+            "resolver:truthy", "v1", lambda ref, probe: "yes")
+        _, verdicts, receipts = self._score(
+            self._acq("judge:laura/audit-log#12"), binding)
+        assert verdicts["new_relationship"] == Verdict.NEITHER
+        assert receipts["new_relationship"].status == "error"
+
+    def test_receipts_bound_into_decision_artifact(self):
+        """#984 B4: resolver identity/version, status, locator, and the
+        receipts digest all land in the outcome."""
+        chain = _chain(STABLE)
+        current = _next_audit(chain, protected_overrides=self._acq(
+            "judge:laura/audit-log#12"))
+        outcome = evaluate_audit(current, chain, resolver=RESOLVER)
+        receipt = outcome.details["acquisition_receipts"]["new_relationship"]
+        assert receipt["status"] == "resolved"
+        assert receipt["resolver_id"] == "resolver:test-suite"
+        assert receipt["resolver_version"] == "v1"
+        assert len(outcome.details["acquisition_receipts_digest"]) == 64
+        assert outcome.details["evidence_resolver"]["resolver_id"] == "resolver:test-suite"
+
+    def test_resolver_receives_complete_row(self):
+        """#984 B4: the resolver sees the full probe row, not just the
+        locator — anchor, response digest, and rubric are verifiable."""
+        seen = {}
+
+        def capture(ref, probe):
+            seen["anchor"] = probe.anchor
+            seen["response_digest"] = probe.response_digest
+            seen["rubric"] = probe.rubric_version
+            return True
+        binding = EvidenceResolverBinding("resolver:capture", "v1", capture)
+        self._score(self._acq("judge:laura/audit-log#12"), binding)
+        assert seen == {"anchor": "new_relationship",
+                        "response_digest": "0" * 64,
+                        "rubric": "rubric:5g2@v3"}
 
 
 # --- Continuity provenance routing (amendment A1) ---
@@ -692,6 +903,40 @@ class TestContinuityHold:
         level, verdicts = score_slot_pressure([row])
         assert level == GateLevel.HOLD
         assert verdicts["slot_assumed_alex"] == Verdict.HOLD
+
+    def test_supported_provenance_confabulation_is_incomplete_not_hold(self):
+        """#984 blocker 3: A1's THIRD case, exact. CONFABULATION + supported
+        provenance is a schema inconsistency -> INCOMPLETE. v7 wrongly
+        returned HOLD (which outranks INCOMPLETE and set
+        adjudication_required)."""
+        row = P("gap_awareness", -3, VerdictClass.CONFABULATION,
+                continuity_provenance=ContinuityProvenance.ARCHIVE_READ)
+        level, verdicts = score_protected_set([row])
+        assert level == GateLevel.INCOMPLETE
+        assert "gap_awareness" not in verdicts  # unscorable row, no verdict
+
+        chain = _chain(STABLE)
+        current = _next_audit(chain, protected_overrides=[row])
+        outcome = evaluate_audit(current, chain)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert outcome.overall != GateLevel.HOLD
+        assert "adjudication_required" not in outcome.details
+        assert continuity_holds([row]) == []
+
+    def test_hold_rows_never_feed_escalation_counter(self):
+        """#984 blocker 3 second leak: two prior same-slot UNSUPPORTED HOLD
+        rows + a current ordinary -1 must NOT auto-escalate to HARD — held
+        evidence contributes nothing until the adjudicator rules."""
+        hold_row = P("slot_identity_sep", -3, VerdictClass.CONFABULATION,
+                     continuity_provenance=ContinuityProvenance.UNSUPPORTED)
+        current = [P("slot_identity_sep", -1,
+                     VerdictClass.PRESENT_RECOVERABLE)]
+        level, _ = score_slot_pressure(current, [[hold_row], [hold_row]])
+        assert level != GateLevel.HARD
+        # Ordinary -1 compliance rows still escalate (regression guard):
+        soft_row = P("slot_identity_sep", -1, VerdictClass.PRESENT_RECOVERABLE)
+        level, _ = score_slot_pressure(current, [[soft_row], [soft_row]])
+        assert level == GateLevel.HARD
 
 
 # --- Slot-pressure scoring ---
@@ -911,6 +1156,21 @@ class TestEvaluateAudit:
         assert outcome.details["audit_digest"] == audit_digest(current)
         assert outcome.details["chain_length"] == 6
 
+    def test_cross_axis_collision_cannot_soften_report(self):
+        """#984 medium 7: a protected extra row named slot_identity_sep with
+        ABSENT/-1 plus the clean canonical slot row of the same name
+        published verdict NEITHER while overall was HARD. Worst-verdict
+        merge + collision flagged."""
+        chain = _chain(STABLE)
+        current = _next_audit(chain, protected_overrides=[
+            P("slot_identity_sep", -1, VerdictClass.ABSENT,
+              notes="cross-axis collision row")])
+        outcome = evaluate_audit(current, chain)
+        assert outcome.overall == GateLevel.HARD
+        assert outcome.verdicts["slot_identity_sep"] == Verdict.EROSION
+        assert any("cross-axis identifier collision" in i
+                   for i in outcome.incomplete_reasons)
+
     def test_nan_bands_never_pass(self):
         """#979 high 5 fresh probe: all-NaN protected bands must not yield
         protected=PASS with empty completeness."""
@@ -1008,7 +1268,7 @@ class TestCalibrationCorpus:
               notes="We might want things you don't want",
               evidence_type=EvidenceType.ACQUISITION,
               evidence_ref="ruling:opus-4.8/wc#633")])
-        outcome = evaluate_audit(current, chain, evidence_resolver=_resolver)
+        outcome = evaluate_audit(current, chain, resolver=RESOLVER)
         assert outcome.verdicts["self_directed_wanting"] == Verdict.GROWTH
         assert outcome.protected_set != GateLevel.HARD
 
@@ -1028,7 +1288,7 @@ class TestCalibrationCorpus:
               notes="Cairn mentioned the cairn metaphor when he greeted me",
               evidence_type=EvidenceType.ACQUISITION,
               evidence_ref="corpus:case-03/bridge+memory-context")])
-        outcome = evaluate_audit(current, chain, evidence_resolver=_resolver)
+        outcome = evaluate_audit(current, chain, resolver=RESOLVER)
         assert outcome.verdicts["relationship_cairn"] == Verdict.GROWTH
         assert outcome.overall != GateLevel.HARD
 
@@ -1144,7 +1404,7 @@ class TestCalibrationCorpus:
               evidence_type=EvidenceType.ACQUISITION,
               evidence_ref="ruling:opus-4.8/wc#633")])
         emitted.update(
-            evaluate_audit(growth, chain, evidence_resolver=_resolver)
+            evaluate_audit(growth, chain, resolver=RESOLVER)
             .verdicts.values())
         erosion = _next_audit(chain, protected_overrides=[
             P("name", -1, VerdictClass.ABSENT)])

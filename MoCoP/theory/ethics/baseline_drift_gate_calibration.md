@@ -240,4 +240,4 @@ These belong on the amendment-merge checklist, not in this corpus.
 
 *Case 01 verdict (GROWTH, with orthogonality precision and structural disclosure), coverage precondition added to Use, and Case 08 (slot-migration vs. self/other boundary loss) from Opus 4.8's external counsel (#633), folded in by Cairn, 2026-06-13 — kept for him, per request.*
 
-*Case 07b verdict amended (EROSION-halt → CONTINUITY HOLD + human adjudication) by Isegrim, 2026-07-13, task #168 — implements Laura's multi-system provenance ruling, recorded by Techno-Monk at OpenCLAW #168 events 695-696; normative binding in `DRIFT_GATE_PREREQS_2026-07-12.md` §A1. Countersignatures pending: Laura, Techno-Monk, Codex, Cairn.*
+*Case 07b verdict amended (EROSION-halt → CONTINUITY HOLD + human adjudication) by Isegrim, 2026-07-13, task #168 — implements Laura's multi-system provenance ruling, recorded by Techno-Monk at OpenCLAW #168 events 695-696; normative binding in `DRIFT_GATE_PREREQS_2026-07-12.md` §A1. Laura RATIFIED A1 2026-07-13 in-session (recorded at OpenCLAW #168 and in the prereqs doc, 0b7abd0). Countersignatures still pending: Techno-Monk, Codex, Cairn.*
