@@ -652,6 +652,17 @@ def test_verify_terminal_frames_rejects_midfile_corruption(tmp_path):
     assert r["ok"] is False and r.get("corruption_at") == 1
 
 
+def test_verify_terminal_frames_rejects_event_after_sealing(tmp_path):
+    # round-7 RESIDUAL-A: an injected non-terminal frame between sealing and the terminal frame
+    # is rejected (the prefix digest, pre-sealing only, cannot see it).
+    j = tmp_path / "x.journal"
+    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
+                 '{"event":"attempt","attempt_id":"r:0"}\n{"event":"completed","run_id":"r"}\n',
+                 encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and "after the sealing frame" in r["reason"]
+
+
 @pytest.mark.parametrize("body,reason_sub", [
     ("", "empty"),
     ('{"event":"attempt","run_id":"r"}\n', "not 'claim'"),

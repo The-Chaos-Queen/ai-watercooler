@@ -922,6 +922,13 @@ def verify_terminal_frames(journal_path: Path, *,
         return {"ok": False, "reason": "events recorded after the terminal event"}
 
     sealing_idx = next((i for i, e in enumerate(events) if e.get("event") == "sealing"), None)
+    if sealing_idx is not None:
+        # The ONLY event permitted strictly after the sealing frame is the single terminal
+        # frame — reject an injected non-terminal frame between sealing and the terminal, which
+        # the prefix digest (pre-sealing only) cannot see (#966 round-7 RESIDUAL-A).
+        for i in range(sealing_idx + 1, len(events)):
+            if events[i].get("event") not in _TERMINAL_EVENTS:
+                return {"ok": False, "reason": "non-terminal event recorded after the sealing frame"}
     last_event = events[-1].get("event")
     if truncated_tail:
         if last_event not in (_TERMINAL_EVENTS | {"sealing"}):
