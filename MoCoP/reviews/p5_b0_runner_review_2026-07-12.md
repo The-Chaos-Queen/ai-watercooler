@@ -763,3 +763,143 @@ A later model-free runner GREEN may remain explicitly conditional on three separ
 reviewed launch holds: a manifest-bound protected-sink preflight/attestation, the real HF
 read-only audit, and #149 schema reconciliation. `3222f52` itself is not runner GREEN and
 does not authorize #155.
+
+## Post-closeout audit of `99f7bd1` / Watercooler #977
+
+- **Reviewed commit:** `99f7bd107e8889f03bfdf2876d428feb1a3bab5c`
+- **Runner blob:** `f5efe896499c8090635b57b8f9897a217920886b`
+- **Verdict:** `CHANGES`
+- **Scope:** current model-free B0 runner after the `b8d4b40` review target was
+  superseded. This audits the full unresolved canary set, not only the final
+  terminal-event/disposition patch reviewed in #977.
+
+### Accepted repairs since `b8d4b40`
+
+The later sequence closes important terminal defects:
+
+- terminal-frame `fsync` failure now returns `committed_indeterminate`, not normal
+  success;
+- the actual pre-sealing journal-prefix digest is reconciled after publication;
+- non-terminal frames after sealing are rejected;
+- claim, sealing, and terminal frames require nonempty run IDs; and
+- terminal event names are checked against their permitted dispositions.
+
+Those fixes and the clean focused test result should be preserved. They do not exercise
+or close the independent scorer, import, attestation, framing, and failure-path findings
+below. The #977 review was explicitly bounded to the last terminal mapping patch, so it
+cannot establish full-runner convergence.
+
+### Blocker 1: mutable scorer dependencies still execute outside the digest
+
+`_callable_digest` at `p5_b0_run.py:248-291` serializes closure cells, defaults, and
+allowed data globals with `repr`. `_scorer_selfcontained_refusals` at lines 301-326
+checks direct module globals only. It neither recursively validates closure/default
+values nor rejects custom objects nested inside otherwise allowed containers.
+
+A plain scorer captured a mutable object whose `repr` was constant. The backend changed
+that object's value during `generate`. Both pre/post scorer digests remained identical,
+the self-contained check returned no refusals, and the run published the changed result:
+
+```text
+selfcontained_refusals=[]
+digest_same=True
+ok=True
+recorded_value=2
+```
+
+Recursively canonicalize only inert, closed dependency values (strict JSON is the
+simplest contract), and reject custom objects in closures, defaults, keyword defaults,
+or nested global containers. `repr` is not a behavioral binding.
+
+### Blocker 2: an unguarded backend attribute lookup can erase a forbidden import
+
+`run_b0` calls `getattr(backend, "assert_sterile", None)` at line 1009. A custom
+`__getattribute__` can execute there. Line 1018 then drains and discards the sentinel as
+a supposed baseline before the guarded scorer/descriptor phase.
+
+A backend emitted a one-shot `qdrant_client` import audit event during that exact lookup,
+removed no persistent module because none was needed, and did not repeat the import on
+later sterility calls. Fresh result:
+
+```text
+lookup_import_fired=True
+ok=True
+terminal_state=integrity_verified
+```
+
+Account for the attribute-resolution window before any drain. No unexamined sentinel
+clear/drain may sit after attacker-influenceable backend or scorer access.
+
+### Blocker 3: the terminal verifier still accepts split or malformed authority
+
+The event/disposition mapping repair is necessary but not a complete terminal grammar.
+Fresh current-head probes reproduced all of the following:
+
+```text
+complete terminal JSON written without final newline, then write error:
+  result=committed_indeterminate
+  verifier=ok / completed / integrity_verified
+
+JSON [] terminal written and fsynced:
+  AttributeError escapes after commit; report_exists=True
+
+claim -> committed_integrity_failed, no sealing:
+  verifier ok=True
+
+claim -> unknown event -> sealing -> completed with wrong terminal digest:
+  verifier ok=True
+```
+
+`verify_terminal_frames` at lines 893-979 assumes every decoded frame is a mapping,
+forgets whether the final line was newline-terminated, requires sealing only for
+`completed`, accepts arbitrary pre-sealing lifecycle events, and checks the sealing
+digest but not the terminal report binding. `run_b0` catches `ValueError` but not the
+resulting `AttributeError` at lines 1189-1194.
+
+Use an explicitly framed/checksummed terminal append or otherwise bind terminal length
+and durability. Validate each decoded frame's type and exact schema/order; require
+sealing for every committed terminal; bind terminal report bytes/digest; and route every
+post-commit verifier exception to `committed_indeterminate` without an uncaught raise.
+
+### Blocker 4: the protected-sink prerequisite is still only two strings
+
+`check_protected_sink_attestation` at lines 363-381 accepts any two non-placeholder
+strings. `signer="x", review_ref="x"` returned `ok=True/integrity_verified`. It verifies
+no attestation schema, signature/digest, subject sink path, expiry/status, authorized
+signer, or deployment preflight result.
+
+Actual same-UID mutation prevention remains an external OS responsibility, but a
+manifest-bound, resolvable passing attestation is still a launch prerequisite under the
+previous boundary ruling. It has not become one of only two remaining holds: the real HF
+audit and #149 are separate, while protected-sink deployment verification remains a
+third hold unless explicitly folded into a reviewed task/artifact contract.
+
+### High 5: failed-event journaling can mask the original exception
+
+The pre-commit failure handler at lines 1206-1215 catches only `OSError` around
+`journal.event`. `_write_all` raises `B0RunError` on zero progress. A backend
+`ValueError("original backend failure")` plus a zero-progress failed frame surfaced only:
+
+```text
+B0RunError: os.write made no progress
+```
+
+Catch the journal failure classes while preserving and re-raising the original exception;
+record the secondary custody failure separately where possible.
+
+### `99f7bd1` verification
+
+- Current runner/test blobs match exact `99f7bd1`.
+- Four focused P5 modules: `208 passed, 1 skipped in 1.43s`.
+- Changed runner/test Ruff: clean.
+- Fresh model-free probes reproduced every counterexample above.
+- No model/GPU load, Qdrant access, injection, B0 launch, or reviewer implementation edit.
+
+### `99f7bd1` disposition
+
+`CHANGES`. Watercooler #977 is valid credit for its bounded terminal-mapping patch, but
+not a full model-free runner closeout. Keep #156 open. Supersede with recursive scorer
+dependency validation, fully accounted import windows, strict terminal framing/grammar
+and exception containment, a verifiable protected-sink attestation contract, and
+original-exception-preserving failure journaling. #149 and the real HF audit remain
+independent holds; no #155 launch follows.
