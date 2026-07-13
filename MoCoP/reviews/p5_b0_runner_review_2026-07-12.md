@@ -384,3 +384,184 @@ that closes actual execution identity, journal/report terminal atomicity, full-w
 durability handling, sterile reachability, protected-sink verification, and strict
 canonicalization. #149 schema reconciliation and a separate real HF read-only audit
 remain mandatory before #155 even if the model-free slice later receives GREEN.
+
+## Re-review of `e96c7d2` / Watercooler #968
+
+- **Reviewed commit:** `e96c7d29e41592f8e28ebe4384482d091c04d6e2`
+- **Runner source commit:** `139e5a31235d79517405b5590ba4ce87e0d6190d`
+- **Runner blob:** `e73434329e3bcf07f10ef37717d18e131979634e`
+- **Verdict:** `CHANGES`
+- **Scope:** B0 runner slice only; not #149 closure, full #156 closure, the real HF audit,
+  or #155 launch.
+
+### Accepted repairs
+
+The superseding state closes several exact `e2a79e6` counterexamples:
+
+- `runtime.runner_digest` is now authorized before reservation;
+- ordinary Python closure cells and defaults contribute to the scorer digest;
+- backend descriptors add backend/device/attention/use-cache names;
+- `assert_sterile` is mandatory, the real module inventory includes
+  `memory_engine`, and the HF check includes PyTorch global hook registries;
+- publication no longer downgrades from `os.link` to an in-place final write;
+- journal writes loop over short writes, the failure path keeps the owned fd, and an
+  absent sink parent is refused instead of created;
+- strict canonicalization now rejects non-string keys and tuples; and
+- the supplied four-module suite passes `164` tests.
+
+These are material improvements. They do not establish the claimed closed terminal,
+execution-identity, or sterile-runtime contracts.
+
+### Blocker 1: a post-link failure still creates contradictory terminal records
+
+`publish_report_atomic` makes the final report visible with `os.link` at
+`p5_b0_run.py:535`, then performs the fallible parent-directory `fsync` and byte readback
+at lines 547-550. `run_b0` does not set `published_ok=True` until that entire function
+returns at line 711. Therefore any failure after the link enters the exception path with
+`published_ok=False` and appends `failed` at lines 723-731, although the visible report
+already says `terminal_state=completed`.
+
+Fresh fault injection at the second parent `fsync` reproduced:
+
+```text
+postlink_fsync_error=OSError
+report_exists=True
+report_terminal=completed
+journal_terminal=failed
+```
+
+This is the same class of terminal disagreement rejected in #966. Propagating the
+durability error is necessary but insufficient: the state machine must distinguish
+"final leaf became visible" from "publication returned normally" and must never record
+the former as a failed, unpublished run.
+
+The best-effort completion path at lines 715-722 is also not safely framed. A partial
+write followed by `OSError` is swallowed, returns `ok=True`, and leaves an invalid JSONL
+tail:
+
+```text
+completed_partial_write_ok=True
+report_exists=True
+journal_tail=invalid
+```
+
+A missing optional completion note may be a declared recovery state; a corrupt audit
+tail is not. The terminal protocol needs an executable verifier and an explicit rule for
+truncated terminal frames.
+
+### Blocker 2: the report authenticates intended journal writes, not actual bytes
+
+`_Journal` updates an in-memory hash only for writes through its owned descriptor at
+`p5_b0_run.py:434-463`. `verify_identity()` checks only device/inode equality. Another
+descriptor or hard link can therefore alter bytes on that same inode without changing
+identity or the in-memory digest. An independent full-run probe overwrote byte zero of
+the live journal through a second descriptor; the runner returned `ok=True`, but the
+report's `journal_digest` did not equal SHA-256 of the actual journal prefix.
+
+The report must authenticate bytes re-read from the stable owned object, and the
+protected sink must prevent or detect same-inode mutation. Inode equality alone proves
+pathname aliasing, not content custody.
+
+### Blocker 3: execution identity still admits behaviorally different objects
+
+`_callable_digest` at `p5_b0_run.py:238-263` covers function source, qualname, defaults,
+and closure cells. It does not bind callable-instance state, `functools.partial`
+arguments, referenced mutable globals, or scorer data dependencies. Two callable
+instances with identical `__call__` code and different state still collide; a manifest
+authorized with the first digest accepted the second and published its different score:
+
+```text
+stateful_digest_equal=True
+different_state_accepted=True
+value=2
+```
+
+The extended model descriptor is likewise presence-and-equality only at lines 326-333.
+The harness still pins only model `id/revision/dtype` at
+`p5_b0_harness.py:71-79`; setting backend, device, attention, and use-cache to `null` in
+both manifest and descriptor produced `ok=True`. Rubric, processor, and runtime remain
+caller strings at `p5_b0_run.py:387-396`, and no backend implementation digest is bound.
+The real HF path also reports `config.use_cache` in its descriptor at lines 796-805 but
+always executes `use_cache=True` at lines 821-834, so a false configured value can bind
+while the governed forward consumes true.
+
+The separate real-HF audit is an honest and necessary dependency, but it does not close
+these model-free identity collisions. The runner must reject unset extended fields and
+bind the concrete scorer/backend configuration and data it actually executes.
+
+### High 4: the component and sterility boundary does not surround all executed code
+
+`run_b0` calls `backend.descriptor()` unconditionally at `p5_b0_run.py:593-595`, even
+when manifest/reachability/panel refusals already exist. A descriptor can therefore run
+external code on a refused launch. More specifically, a transient forbidden import in
+`descriptor()` enters the audit sentinel but is erased by `_clear_import_sentinel()` at
+line 658 without inspection. The run completed successfully in a fresh probe:
+
+```text
+descriptor_transient_import_ok=True
+```
+
+Sterility is checked only before `generate` at line 657. The post-forward block at lines
+662-667 checks module reachability, not the mandatory sterility contract. A one-probe
+backend that became dirty during `generate` returned `ok=True` and published:
+
+```text
+post_forward_sterility_ok=True
+backend_dirty=True
+```
+
+Drain/check the audit sentinel around descriptor and sterility calls, perform no backend
+call after an initial refusal, and re-run the bound sterility check after every forward
+and scorer. Also make audit-hook installation fail closed; `_ensure_import_audit` currently
+swallows installation failure at lines 168-175 while marking the hook installed.
+
+### High 5: reservation and protected-sink custody are incomplete
+
+`reserve_report_slot` creates the O_EXCL journal at `p5_b0_run.py:502`, then calls the
+fallible parent `fsync` at line 505 outside a cleanup block. Injecting that failure left
+the journal present and its descriptor locked:
+
+```text
+reserve_error=OSError
+journal_exists_after_error=True
+unlink_while_leaked=PermissionError
+```
+
+`uuid.uuid4()` at line 622 is also fallible after reservation but before the `try` at
+line 625, so the cleanup guarantee is not yet structurally complete.
+
+The inode check at line 704 is also only a pre-publication snapshot. There is no identity
+verification after the sealing event, report link, or completion event, leaving a
+check-to-publication window for pathname replacement on the Linux target. Finally,
+`parent.is_dir()` proves existence only; it does not bind canonical parent identity,
+ownership/permissions, or reject a symlinked parent. Those attributes must come from the
+frozen protected-sink contract rather than from the path string alone.
+
+### Launch dependency: #149 schema reconciliation remains open
+
+The current DQ1b contract requires a stage-neutral base manifest and a separately bound
+per-attempt run kind. The B0 harness still includes `run_kind` in `REQUIRED_B0_KEYS` at
+`p5_b0_harness.py:54-68`, while the per-probe attempt event at
+`p5_b0_run.py:649-652` omits run kind, model/runtime/runner digests, token hash, and the
+other DQ1b section 6.8 fields. #968 explicitly acknowledges this as a separate launch
+block. That acknowledgment is correct: it remains unresolved and #155 must not launch.
+
+### `e96c7d2` verification
+
+- Requested runner blob matches both `e96c7d2` and current HEAD:
+  `e73434329e3bcf07f10ef37717d18e131979634e`.
+- Four focused P5 modules: `164 passed in 0.58s`.
+- `git diff --check` on the three reviewed files: clean.
+- The claimed focused Ruff result did not reproduce:
+  `tests/test_p5_b0_run.py:19` has unused import `DESCRIPTOR_KEYS` (`F401`).
+- Fresh model-free probes reproduced all counterexamples above. No model/GPU load,
+  Qdrant access, injection, birth, or reviewer implementation edit occurred.
+
+### `e96c7d2` disposition
+
+`CHANGES`. Preserve the accepted repairs. Supersede with adversarial tests for the
+post-link durability state, truncated completion frames, generic callable/config state,
+non-null descriptor binding, descriptor-time imports, post-forward sterility, reservation
+cleanup, and post-publication journal identity. #149 reconciliation and the real HF audit
+remain independent launch holds; passing this runner re-review alone will not authorize
+#155.
