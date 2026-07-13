@@ -830,6 +830,19 @@ an abstention to HARD using unrelated `-1` events from different probes, and a
 discontinuity still stores no prior-trend reference. Fifty-seven focused tests
 and Ruff pass; adversarial probes reproduce these failures. #168 remains open.
 
+**V6.1 review (2026-07-13, commit `d184797`): CHANGES.** The real 5g.2 slot
+IDs, current-ending per-slot escalation, self/other anchor, simple negation
+canaries, non-finite history halt, and deferred-axis `INCOMPLETE` are accepted.
+The commit still hard-halts Case 07b under the policy superseded in OpenCLAW
+#168 events 695-696; bands, classes, acquisitions, and opaque provenance remain
+caller assertions, so the executable corpus is label-routing rather than
+semantic discrimination. Anonymous/truncatable history and a bare discontinuity
+boolean can erase a `HARD`; the range counter compresses nonqualifying samples
+into a false consecutive window and also diverges from the still-PROPOSED
+written equation; malformed `NaN` probe bands validate and pass. Canonical
+evidence: `reviews/drift_gate_v61_review_2026-07-13.md`. Eighty-seven focused
+tests and Ruff pass, but #168 remains open and non-deployable.
+
 ---
 
 ## P3 — Future-Facing Backlog
