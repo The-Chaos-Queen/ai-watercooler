@@ -44,6 +44,7 @@ from typing import Any, Callable, Mapping, Protocol, Sequence
 from p5_b0_harness import (
     COMPONENT_ROUTES,
     B0EvidenceBundle,
+    _is_unset,  # the placeholder-aware unset check (rejects "tbd"/"none"/"[tbd:"/...)
     assert_strict_json,
     authorize_b0_launch,
     canonical_digest,
@@ -239,6 +240,11 @@ def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+# The only global types a scorer may reference: exactly what _callable_digest binds by value.
+_BINDABLE_GLOBAL_TYPES = (int, float, bool, str, bytes, list, tuple, dict, set, frozenset,
+                          type(None))
+
+
 def _callable_digest(fn: Callable[..., Any]) -> str:
     """Derive a scorer identity from source + closure + defaults + referenced DATA globals.
 
@@ -275,8 +281,7 @@ def _callable_digest(fn: Callable[..., Any]) -> str:
     if code is not None:
         referenced: dict[str, str] = {}
         for name in getattr(code, "co_names", ()):
-            if name in g and isinstance(g[name], (int, float, bool, str, bytes, list,
-                                                  tuple, dict, set, frozenset, type(None))):
+            if name in g and isinstance(g[name], _BINDABLE_GLOBAL_TYPES):
                 try:
                     referenced[name] = repr(g[name])
                 except Exception:  # pragma: no cover - defensive
@@ -291,6 +296,34 @@ def _runner_digest() -> str:
         return canonical_digest(Path(__file__).read_text(encoding="utf-8"))
     except OSError:  # pragma: no cover - source always present in practice
         return "unknown"
+
+
+def _scorer_selfcontained_refusals(fn: Callable[..., Any]) -> list[str]:
+    """Refuse a scorer that reaches state the digest cannot bind (#966 round-6 B).
+
+    ``_callable_digest`` binds the scorer's own source, closure, defaults, and its DIRECT data
+    globals (``_BINDABLE_GLOBAL_TYPES``) — but is blind to state reached through anything else:
+    a helper function's globals, a class/module attribute, or a module-level INSTANCE's mutable
+    attribute (scorer()->helper()->global, or CFG.attr). So a B0 scorer must be SELF-CONTAINED:
+    every module-level name it references must resolve to a BINDABLE data type (exactly what the
+    digest captures). Any other global — function/method/class/module/instance — is refused
+    (pre-attested pure helpers would need an explicit allowlist). Builtins (``len``) live in
+    ``builtins``, not the module ``__globals__``, so they are unaffected.
+    """
+    code = getattr(fn, "__code__", None)
+    g = getattr(fn, "__globals__", {})
+    if code is None:
+        return ["scorer has no __code__ (cannot bind its behavior)"]
+    unbindable = sorted({
+        name for name in code.co_names
+        if name in g and not isinstance(g[name], _BINDABLE_GLOBAL_TYPES)
+    })
+    if unbindable:
+        return [f"scorer references module-level name(s) {unbindable} whose value is not a "
+                "bindable data type; a B0 scorer must be self-contained (reference only builtins "
+                "and its own data globals, which the digest binds). Helpers / classes / modules "
+                "/ instances carry unbindable state; pre-attested pure helpers need an allowlist."]
+    return []
 
 
 # --------------------------------------------------------------------------- #
@@ -327,23 +360,24 @@ def derive_effective_decoding(manifest: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _unset(value: Any) -> bool:
-    return not isinstance(value, str) or not value.strip()
-
-
 def check_protected_sink_attestation(manifest: Mapping[str, Any]) -> list[str]:
     """Refuse pre-run unless the protected-sink OS contract is ATTESTED in the manifest.
 
     Codex boundary ruling (#971): the runner may rely on an OS protected-sink contract
     (append-only/immutable file + locked-down dir) to PREVENT hostile same-UID mutation,
     but its absence must be a pre-run refusal, not a silent assumption. The manifest must
-    carry a signed, reviewed attestation that the contract is provisioned.
+    carry a signed, reviewed attestation that the contract is provisioned. Placeholder tokens
+    ("TBD"/"none"/"[tbd: ...]") are rejected via the harness's ``_is_unset`` (#966 round-6).
+
+    NOTE (trust boundary): this binds PRESENCE of a non-placeholder signer/review_ref, not
+    the identity of the sink path / ACL / immutability. Cross-checking the attestation
+    against the real filesystem ACL/inode is the deployment contract, not model-free-closable.
     """
     sink = manifest.get("evidence_sink", {})
     att = sink.get("protected_sink_attestation") if isinstance(sink, Mapping) else None
-    if not isinstance(att, Mapping) or _unset(att.get("signer")) or _unset(att.get("review_ref")):
-        return ["evidence_sink.protected_sink_attestation missing signer/review_ref; the "
-                "protected-sink OS contract must be attested before a governed B0 run"]
+    if not isinstance(att, Mapping) or _is_unset(att.get("signer")) or _is_unset(att.get("review_ref")):
+        return ["evidence_sink.protected_sink_attestation missing/placeholder signer/review_ref; "
+                "the protected-sink OS contract must be attested before a governed B0 run"]
     return []
 
 
@@ -407,6 +441,7 @@ def _bind_execution_to_manifest(
             "bound methods carry runtime state a code digest cannot bind)"
         )
     else:
+        refusals.extend(_scorer_selfcontained_refusals(scorer))   # no transitive-state helpers
         if scorer_version != scorer_block.get("version"):
             refusals.append(
                 f"scorer_version {scorer_version!r} != manifest scorer.version "
@@ -501,17 +536,25 @@ def _try_unlink(path: Path) -> bool:
         return False
 
 
-def _assert_sterile_guarded(backend: GenerationBackend) -> None:
-    """Call the backend's sterility contract with the import sentinel wrapped AROUND it, so
-    a transient forbidden import produced by the sterility check itself is not lost (#966
-    round-5 HIGH-5). Do not clear imports produced by the code that proves sterility.
+def _drain_and_check(context: str) -> None:
+    """Drain the import sentinel and REFUSE if a forbidden module was imported since the last
+    checkpoint (#966 round-6 D). Replaces every bare ``_clear``: a window boundary must ACCOUNT
+    for imports (drain + raise on non-empty), never erase them unexamined. ``context`` names
+    the window whose code just ran.
     """
-    _clear_import_sentinel()
-    backend.assert_sterile()
     imported = _drain_import_sentinel()
-    reach = assert_no_component_reachable()
     if imported:
-        raise B0RunError("component IMPORTED during assert_sterile(): " + "; ".join(imported))
+        raise B0RunError(f"component IMPORTED during {context}: " + "; ".join(imported))
+
+
+def _assert_sterile_guarded(backend: GenerationBackend, *, preceding: str) -> None:
+    """Account for the PRECEDING window, run the sterility contract, then account for the
+    imports IT produced — never clearing either unexamined (#966 round-5 H5 + round-6 D).
+    """
+    _drain_and_check(preceding)
+    backend.assert_sterile()
+    _drain_and_check("assert_sterile()")
+    reach = assert_no_component_reachable()
     if reach:
         raise B0RunError("component REACHABLE around assert_sterile(): " + "; ".join(reach))
 
@@ -534,6 +577,24 @@ class _Journal:
         _write_all(self._fd, line)
         os.fsync(self._fd)
         self._hash.update(line)
+
+    def write_terminal_frame(self, obj: Mapping[str, Any]) -> str:
+        """Append a terminal frame, distinguishing 'written' from 'durable' (#966 round-6 A).
+
+        Returns 'synced' if fsync succeeded, 'written_unsynced' if the bytes landed but fsync
+        raised. Raises only if the os.write itself failed (the frame is NOT on disk). This lets
+        the caller keep the RESULT consistent with what an auditor reading the on-disk journal
+        would see: a written frame is recorded (fsync failure is a durability warning), while a
+        failed write means the journal has no terminal frame and the run is indeterminate.
+        """
+        line = (json.dumps(dict(obj), sort_keys=True, allow_nan=False,
+                           ensure_ascii=True) + "\n").encode("utf-8")
+        _write_all(self._fd, line)                          # raises -> frame not on disk
+        try:
+            os.fsync(self._fd)
+            return "synced"
+        except OSError:
+            return "written_unsynced"
 
     def verify_identity(self) -> None:
         """Refuse if the pathname no longer refers to our owned inode (swap detected).
@@ -713,12 +774,6 @@ def finalize_publication(report_path: Path, committed: bytes, staging_alias: Pat
     indeterminate = False
 
     try:
-        _fsync_parent(Path(report_path).parent)                  # durability (best-effort)
-    except OSError as exc:
-        warnings.append(f"parent fsync failed post-commit: {exc}")
-        indeterminate = True
-
-    try:
         if Path(report_path).read_bytes() != committed:          # integrity: report bytes
             warnings.append("post-commit readback mismatch: advertised report bytes corrupted")
             integrity_failed = True
@@ -731,6 +786,14 @@ def finalize_publication(report_path: Path, committed: bytes, staging_alias: Pat
             warnings.append("staging alias could not be removed: a writable second name to "
                             "the committed report inode survives")
             integrity_failed = True
+
+    # Durability LAST — the parent fsync must follow the alias unlink so that BOTH the report
+    # hard-link creation AND the alias removal are persisted, not just the link (#966 round-6 C2).
+    try:
+        _fsync_parent(Path(report_path).parent)
+    except OSError as exc:
+        warnings.append(f"parent fsync failed post-commit: {exc}")
+        indeterminate = True
 
     try:
         journal.verify_identity()                                # integrity: journal custody
@@ -846,21 +909,31 @@ def run_b0(
     refusals.extend(check_protected_sink_attestation(manifest))    # OS-contract prereq (#966 r5)
     if not _ensure_import_audit():                                 # fail-CLOSED sentinel (#966)
         refusals.append("transient-import audit sentinel could not be armed (fail-closed)")
+    else:
+        entry_residue = _drain_import_sentinel()                   # run-entry invariant (round-6 D)
+        if entry_residue:
+            refusals.append("import-audit sentinel dirty at run entry (a prior run leaked "
+                            f"forbidden import(s) {entry_residue}); refusing fail-closed")
 
     sterile_bound = callable(getattr(backend, "assert_sterile", None))
     effective_decoding = derive_effective_decoding(manifest)
-    scorer_digest = _callable_digest(scorer) if scorer is not None else None
 
-    # Touch backend code ONLY after the cheap gates pass (#966 HIGH-4: no descriptor() on a
-    # refused launch), and inspect descriptor-time imports rather than erasing them.
+    # Touch untrusted code (scorer __repr__ during its digest, backend.descriptor) ONLY after
+    # the cheap gates pass (#966 HIGH-4: no such call on a refused launch), and ACCOUNT for any
+    # import it triggers rather than erasing it unexamined (round-6 D).
     descriptor: dict[str, Any] = {}
+    scorer_digest: str | None = None
     if not refusals:
-        _clear_import_sentinel()
+        _drain_import_sentinel()                                   # baseline
+        scorer_digest = _callable_digest(scorer) if scorer is not None else None
+        digest_imports = _drain_import_sentinel()
+        if digest_imports:
+            refusals.append("component IMPORTED during scorer digest: " + "; ".join(digest_imports))
         descriptor = dict(backend.descriptor())
-        desc_transient = _drain_import_sentinel()
-        if desc_transient:
+        desc_imports = _drain_import_sentinel()
+        if desc_imports:
             refusals.append("component IMPORTED during backend.descriptor(): "
-                            + "; ".join(desc_transient))
+                            + "; ".join(desc_imports))
         refusals.extend(assert_no_component_reachable())
     if not refusals:
         refusals.extend(
@@ -923,18 +996,16 @@ def run_b0(
             pre = assert_no_component_reachable()
             if pre:
                 raise B0RunError("component REACHABLE before governed forward: " + "; ".join(pre))
-            _assert_sterile_guarded(backend)                       # sentinel-wrapped (#966 r5 H5)
-            _clear_import_sentinel()
+            _assert_sterile_guarded(backend, preceding="attempt setup")
+            _drain_and_check("pre-forward baseline")               # was bare _clear (round-6 D)
 
             generation = backend.generate(prompt, dict(effective_decoding))  # governed forward
 
-            transient = _drain_import_sentinel()
+            _drain_and_check("governed forward")                   # transient-import accounting
             post = assert_no_component_reachable()
-            if transient:
-                raise B0RunError("component IMPORTED during governed forward: " + "; ".join(transient))
             if post:
                 raise B0RunError("component REACHABLE after governed forward: " + "; ".join(post))
-            _assert_sterile_guarded(backend)                       # sterile AFTER forward
+            _assert_sterile_guarded(backend, preceding="post-forward reachability")
             journal.event({
                 "event": "generated", "attempt_id": attempt_id, "ordinal": ordinal,
                 "probe_id": probe_id, "generation_sha256": canonical_digest(generation),
@@ -943,21 +1014,22 @@ def run_b0(
 
             scorer_input, scorer_output = (None, None)
             if scorer is not None:
-                # Re-verify scorer identity BEFORE and AFTER the call — a backend may have
-                # mutated a bound global during the forward (#966 round-5 HIGH-3).
+                # Re-verify scorer identity BEFORE and AFTER the call, accounting for imports
+                # triggered by the digest recompute itself (attacker-influenceable __repr__,
+                # round-6 D) as well as the forward possibly mutating a bound global (round-5 H3).
+                _drain_and_check("pre-scorer-digest baseline")
                 if _callable_digest(scorer) != scorer_digest:
                     raise B0RunError("scorer identity changed before invocation (state mutated mid-run)")
-                _clear_import_sentinel()
+                _drain_and_check("scorer-identity recompute (pre)")
                 scorer_input, scorer_output = scorer(probe_id, generation)
-                scorer_transient = _drain_import_sentinel()
-                if scorer_transient:
-                    raise B0RunError("component IMPORTED during scorer: " + "; ".join(scorer_transient))
+                _drain_and_check("scorer call")
                 if _callable_digest(scorer) != scorer_digest:
                     raise B0RunError("scorer identity changed across invocation (state mutated mid-run)")
+                _drain_and_check("scorer-identity recompute (post)")
             scorer_post = assert_no_component_reachable()
             if scorer_post:
                 raise B0RunError("component reachable via scorer: " + "; ".join(scorer_post))
-            _assert_sterile_guarded(backend)                       # sterile AFTER scorer
+            _assert_sterile_guarded(backend, preceding="post-scorer reachability")
             bundle.record(                                         # strict-JSON enforced here
                 probe_id, generation,
                 scorer_input=scorer_input, scorer_output=scorer_output,
@@ -992,23 +1064,46 @@ def run_b0(
         # a normal ok=True (#966 round-5 B1); it is also never `failed` (report is visible).
         disposition, warnings = finalize_publication(resolved_path, committed, staging_alias, journal)
         terminal_event = "completed" if disposition == INTEGRITY_VERIFIED else disposition
+        frame = {
+            "event": terminal_event, "run_id": run_id, "disposition": disposition,
+            "published_digest": report["published_digest"],
+            "report_bytes_sha256": _sha256_bytes(committed),
+            "durability_warnings": warnings, "utc": _now(),
+        }
         try:
-            journal.event({
-                "event": terminal_event, "run_id": run_id, "disposition": disposition,
-                "published_digest": report["published_digest"],
-                "report_bytes_sha256": _sha256_bytes(committed),
-                "durability_warnings": warnings, "utc": _now(),
-            })
-        except (OSError, B0RunError):                              # zero-progress write post-commit
-            if disposition == INTEGRITY_VERIFIED:
+            sync_state = journal.write_terminal_frame(frame)       # written vs fsync-durable
+        except (OSError, B0RunError):
+            # The frame is NOT on disk -> the journal has no terminal frame, so the finalize
+            # verdict could not be durably recorded. The result must match what an auditor
+            # reading the journal would conclude: indeterminate — REGARDLESS of the finalize
+            # disposition, whose detail is preserved in warnings (round-6 A2).
+            warnings.append(f"terminal frame write failed post-commit; recorded disposition was "
+                            f"{disposition} but could not be journaled -> committed-indeterminate")
+            disposition = COMMITTED_INDETERMINATE
+        else:
+            if sync_state == "written_unsynced":
+                warnings.append("terminal frame written but not fsync-durable")
+
+        # Reconcile the RESULT with the ACTUAL on-disk journal, the source of truth (round-6 A).
+        # Catch ValueError too: read_text raises UnicodeDecodeError on a mutated (non-UTF-8)
+        # inode, which must not escape as an uncaught raise on a committed run (round-6 A2b).
+        try:
+            tv = verify_terminal_frames(journal.path,
+                                        report_published_digest=report["published_digest"])
+        except (OSError, B0RunError, ValueError) as exc:
+            warnings.append(f"terminal-frame verification read failed post-commit: {exc}")
+            disposition = COMMITTED_INDETERMINATE
+        else:
+            # The on-disk journal is authoritative: if it does not form a valid terminal, or its
+            # terminal disposition disagrees with ours, the result becomes indeterminate so the
+            # two can never silently diverge (round-6 A1/A2), for ANY starting disposition.
+            if not tv.get("ok"):
+                warnings.append(f"terminal-frame verification failed: {tv.get('reason')}")
                 disposition = COMMITTED_INDETERMINATE
-            warnings.append("terminal-event append failed post-commit (committed-indeterminate)")
-        tv = verify_terminal_frames(journal.path,                  # full terminal-protocol check
-                                    report_published_digest=report["published_digest"])
-        if not tv.get("ok"):
-            if disposition == INTEGRITY_VERIFIED:
+            elif tv.get("disposition") != disposition:
+                warnings.append(f"result/journal disposition disagree (journal={tv.get('disposition')}, "
+                                f"result={disposition}); forcing indeterminate")
                 disposition = COMMITTED_INDETERMINATE
-            warnings.append(f"terminal-frame verification failed: {tv.get('reason')}")
     except BaseException as exc:
         if not published_ok and journal.fd_open:
             try:                                                   # via the OWNED fd (no reopen)
@@ -1020,6 +1115,7 @@ def run_b0(
                 pass
         raise
     finally:
+        _clear_import_sentinel()                                   # no cross-run residue (round-6 D)
         journal.close()
 
     assert report is not None

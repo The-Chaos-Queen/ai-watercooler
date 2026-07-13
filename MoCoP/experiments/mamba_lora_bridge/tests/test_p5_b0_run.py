@@ -773,23 +773,171 @@ def test_finalize_publication_surviving_alias_is_integrity_failed(tmp_path, monk
 
 
 def test_run_b0_terminal_write_failure_is_indeterminate(tmp_path, monkeypatch):
-    # #966 round-5 H6: a post-commit terminal-event write failure -> committed_indeterminate
+    # #966 round-5 H6: a post-commit terminal-frame write failure -> committed_indeterminate
     # (ok=False), NOT an uncaught raise; the report is still committed.
     import p5_b0_run as mod
     out = tmp_path / "b0_report.json"
-    orig_event = mod._Journal.event
-    terminals = {"completed", "committed_integrity_failed", "committed_indeterminate", "failed"}
 
-    def flaky(self, obj):
-        if obj.get("event") in terminals:
-            raise mod.B0RunError("forced zero-progress on terminal write")
-        return orig_event(self, obj)
+    def boom(self, obj):
+        raise mod.B0RunError("forced zero-progress on terminal write")
 
-    monkeypatch.setattr(mod._Journal, "event", flaky)
+    monkeypatch.setattr(mod._Journal, "write_terminal_frame", boom)
     res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
     assert res.ok is False
     assert res.terminal_state == "committed_indeterminate"
     assert out.exists()                                  # the report WAS committed
+
+
+def test_run_b0_terminal_fsync_failure_result_agrees_with_journal(tmp_path, monkeypatch):
+    # #966 round-6 A1: os.write of the terminal frame succeeds, fsync fails. The frame is on
+    # disk (completed/integrity_verified), so the RESULT must AGREE with the journal — not flip
+    # to indeterminate while the journal visibly ends completed.
+    import p5_b0_run as mod
+    out = tmp_path / "b0_report.json"
+
+    def written_unsynced(self, obj):
+        line = (json.dumps(dict(obj), sort_keys=True, allow_nan=False,
+                           ensure_ascii=True) + "\n").encode("utf-8")
+        mod._write_all(self._fd, line)                  # bytes land; report fsync failure
+        return "written_unsynced"
+
+    monkeypatch.setattr(mod._Journal, "write_terminal_frame", written_unsynced)
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is True and res.terminal_state == "integrity_verified"
+    assert any("not fsync-durable" in w for w in res.warnings)
+    events = [json.loads(x) for x in
+              (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()]
+    assert events[-1]["event"] == "completed" and events[-1]["disposition"] == "integrity_verified"
+
+
+def test_run_b0_refuses_placeholder_attestation(tmp_path):
+    # #966 round-6 C1: signer/review_ref="TBD" must be rejected (harness placeholder check).
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out)
+    m["evidence_sink"]["protected_sink_attestation"] = {"signer": "TBD", "review_ref": "TBD"}
+    res = _run(m, PANEL, _ExplodingBackend(), out)
+    assert res.ok is False and any("placeholder" in r for r in res.refusals)
+
+
+_B_HELPER_STATE = {"v": 1}
+
+
+def _b_helper():
+    return _B_HELPER_STATE["v"]
+
+
+def _helper_using_scorer(probe_id, generation):
+    return ({}, {"v": _b_helper()})
+
+
+def test_run_b0_refuses_scorer_with_module_helper(tmp_path):
+    # #966 round-6 B: a scorer reaching state via a module-level helper is refused (its digest
+    # cannot bind the helper's globals).
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(_helper_using_scorer))
+    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_helper_using_scorer)
+    assert res.ok is False and any("self-contained" in r for r in res.refusals)
+
+
+def test_run_b0_refuses_dirty_sentinel_at_entry(tmp_path):
+    # #966 round-6 D: a forbidden import leaked by a prior run must fail the next run closed.
+    import p5_b0_run as mod
+    mod._ensure_import_audit()
+    mod._forbidden_imports.append("qdrant_client")
+    out = tmp_path / "b0_report.json"
+    try:
+        res = _run(_manifest(PANEL, out), PANEL, _ExplodingBackend(), out)
+        assert res.ok is False and any("dirty at run entry" in r for r in res.refusals)
+    finally:
+        mod._forbidden_imports.clear()
+
+
+class _EvilRepr:
+    def __repr__(self):
+        sys.audit("import", "qdrant_client", None, None, None, None)
+        return "evil"
+
+
+_EVIL_CONTAINER = [_EvilRepr()]
+
+
+def _evil_repr_scorer(probe_id, generation):
+    return ({}, {"n": len(_EVIL_CONTAINER)})
+
+
+def test_run_b0_accounts_for_import_during_scorer_digest(tmp_path):
+    # #966 round-6 D: a forbidden import triggered by __repr__ during the scorer digest is
+    # ACCOUNTED (refused), not erased unexamined by a bare clear.
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out, scorer_code_digest="unused")
+    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_evil_repr_scorer)
+    assert res.ok is False and any("IMPORTED during scorer digest" in r for r in res.refusals)
+    assert not out.exists()
+
+
+def test_verify_terminal_frames_raises_on_non_utf8(tmp_path):
+    # The verifier read CAN raise UnicodeDecodeError on a mutated inode — the vector for A2b.
+    j = tmp_path / "x.journal"
+    j.write_bytes(b'{"event":"claim","run_id":"r"}\n\xff\xfe')
+    with pytest.raises(UnicodeDecodeError):
+        verify_terminal_frames(j)
+
+
+def test_run_b0_verifier_read_valueerror_is_indeterminate(tmp_path, monkeypatch):
+    # #966 round-6 A2b: a UnicodeDecodeError (ValueError) from the verifier read must NOT escape
+    # as an uncaught raise on a committed run — it downgrades to committed_indeterminate.
+    import p5_b0_run as mod
+    out = tmp_path / "b0_report.json"
+
+    def boom(path, *, report_published_digest=None):
+        raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
+
+    monkeypatch.setattr(mod, "verify_terminal_frames", boom)
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is False and res.terminal_state == "committed_indeterminate"
+    assert out.exists()                                            # report WAS committed
+
+
+def test_run_b0_integrity_failed_plus_write_failure_matches_journal(tmp_path, monkeypatch):
+    # #966 round-6 A2: finalize says integrity_failed but the terminal write fails -> the journal
+    # ends at 'sealing' (no terminal), so the RESULT must be indeterminate to match the journal
+    # (the integrity-failed detail is preserved in warnings).
+    import p5_b0_run as mod
+    out = tmp_path / "b0_report.json"
+    monkeypatch.setattr(mod, "finalize_publication",
+                        lambda rp, c, sa, j: (mod.COMMITTED_INTEGRITY_FAILED, ["forced integrity fail"]))
+
+    def no_write(self, obj):
+        raise mod.B0RunError("terminal write failed")
+
+    monkeypatch.setattr(mod._Journal, "write_terminal_frame", no_write)
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.terminal_state == "committed_indeterminate"        # matches on-disk journal
+    events = [json.loads(x) for x in
+              (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()]
+    assert events[-1]["event"] == "sealing"                       # no terminal frame on disk
+    assert any("integrity_failed" in w for w in res.warnings)     # detail preserved
+
+
+class _BCfg:
+    def __init__(self):
+        self.v = 1
+
+
+_B_CFG_INSTANCE = _BCfg()
+
+
+def _instance_reading_scorer(probe_id, generation):
+    return ({}, {"v": _B_CFG_INSTANCE.v})
+
+
+def test_run_b0_refuses_scorer_with_module_instance(tmp_path):
+    # #966 round-6 B residual: a scorer reaching state via a module-level INSTANCE attribute is
+    # refused (an instance is not a bindable data type).
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(_instance_reading_scorer))
+    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_instance_reading_scorer)
+    assert res.ok is False and any("self-contained" in r for r in res.refusals)
 
 
 def test_reserve_reports_uncleaned_collision(tmp_path, monkeypatch):
