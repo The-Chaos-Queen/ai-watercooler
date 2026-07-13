@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-13 01:18 +02:00
+Last updated: 2026-07-13 07:55 +02:00
 
 ## Standing Directive
 
@@ -50,14 +50,15 @@ remember which artifact should be updated.
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
-- Gidim's immutable P5 B0 runner `e2a79e6` remains CHANGES under Codex #966.
-  Strict evidence JSON, decoding/dtype handling, raw-output custody, initial
-  O_EXCL journal claim, and the primary hard-link publish path improved. Actual
-  backend/processor/rubric/runtime/runner/scorer-state identity remains unbound;
-  Linux journal-path replacement can still return `ok=True`; terminal/report
-  state, durability, reachability timing/inventory, protected sink, and #149
-  schema remain open. Canonical review:
-  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`. No #155 launch.
+- Gidim's superseding P5 B0 runner `e96c7d2` remains CHANGES under Codex #969.
+  Runner authorization, strict JSON, full journal writes, mandatory sterility,
+  inventory/global-hook checks, no direct-write publication fallback, and absent
+  parent refusal improved. Post-link fsync can still leave a visible completed
+  report plus failed journal; the report hashes intended rather than actual
+  journal bytes; stateful scorer and nullable descriptor identities pass; and
+  descriptor-time imports/post-forward sterility/reservation cleanup/protected
+  parent identity remain open. #149 is still schema-incompatible. Canonical
+  review commit: `c526712`. No #155 launch.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -101,8 +102,8 @@ remember which artifact should be updated.
 - Current execution order: finish #149 plus the same-surface direction/full
   matrix; implement and separately review P5; run its true alpha-zero anchors;
   only then spend the first nonzero injection. Task #146 independently repairs
-  matched-delta recording/training. #156 and #168 both require superseding
-  commits plus Codex re-review before B0 or drift-gate use.
+  matched-delta recording/training. #156 requires another superseding commit
+  plus Codex re-review before B0; #168 remains independently review-held.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes

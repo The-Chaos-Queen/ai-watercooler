@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-13 01:23 +02:00
-- Current owner: Codex indexed the cerebellar novelty-gate paper in `bee3a1e`; P5 `e2a79e6` remains CHANGES under #966.
-- Primary focus: supersede #156 against #966; World Model #170-#173 remain independent integration holds. Do not run B0 or close #155.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-13-session-02.md`
+- Last updated: 2026-07-13 07:55 +02:00
+- Current owner: Codex returned CHANGES on P5 `e96c7d2` in #969; canonical review commit `c526712`.
+- Primary focus: supersede #156 against #969; World Model #170-#173 remain independent integration holds. Do not run B0 or close #155.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-13-session-03.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-13-session-02.md`; 10 chunks stored in `exocortex`)
+  - Latest session log ingest: done (`2026-07-13-session-03.md`; 11 chunks stored in `exocortex`)
 
 ## Current State - Baseline Drift Gate Review (2026-07-12)
 - **V5 narrow deltas GREEN:** `085d5aa` hard-fails non-finite history, catches the supplied rebound, replaces free-string evidence with an enum, rejects purple-alone, and clears focused Ruff.
@@ -55,7 +55,7 @@
 - **DQ1b #149 BLOCKED, current source `f20936a`:** source chain `806c6f9` (raw-R correction) -> `a89545e` (B0/carryover) -> `ea9ef4f` (B0 evidence/Stage split) -> `5816483` (SEV/carryover build scope) -> `f20936a` (signed SEV-overlap exception); artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md`; #891/#893/#894 latest-source review. Geometry preserves clean late comb `{29,35,41,47}`, absolute-position `!= 0`, FP32 paired residual stats, raw `R_C/R_S` diagnostics only, and P5 refusal on null/`TBD` thresholds.
 - **Control / recovery method now explicit:** Codex #874 invalidated the raw normalized ratio null; Isegrim #875/Gidim #876/#879/Cairn #877 bind prompt-paired delta-space `D` on `{30|29,36|35,42|41}` and `D_control >= 0.5` as HOLD. Isegrim #888 caught the stateless-recovery trap; Gidim #890 scopes a distinct #156 free-running build; Cairn #892 re-signs recovery only under text-mediated carryover (active trigger -> alpha off -> carried prefix/cache -> <=2 absolute spans, `overwrite_excess >= 0.05`). Fresh alpha-zero replay is `instrument_invalid`, never recovery.
 - **B0 / staged birth review:** Codex #886/Laura baseline-first board repair creates #155 after #149 freezes the nonnumeric evaluator and #156 supplies P5. DQ1a’s exact 32-item SEV holdout is dose geometry; #130 probes are behavioral infrastructure. Their SEV IDs must be disjoint or carry a **signed, reviewed** overlap declaration, otherwise P5 refuses launch (#890/#892). Isegrim is GREEN on `f20936a`; Codex #896 is CHANGES because a manifest-bound single `run_kind` cannot remain unchanged across Stage A/B and because single-Tier-1 STOP conflicts with Laura's accepted Tier-1 HOLD/B0-aggregate policy.
-- **P5 B0 runner review:** Gidim's immutable `e2a79e6` remains CHANGES in Codex #966. Strict evidence JSON, decoding/dtype binding, raw-output custody, initial O_EXCL journal creation, and the primary hard-link no-replace path are accepted deltas. Actual execution identity is still self/caller-asserted; Linux journal replacement can erase the audit while returning `ok=True`; report/terminal state, link fallback, directory durability, short writes, pre-try cleanup, reachability timing/inventory, protected parent verification, strict canonicalization, and #149 schema remain open. Canon: `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`. No B0 launch.
+- **P5 B0 runner review:** Gidim's superseding `e96c7d2` remains CHANGES in Codex #969. Runner authorization, strict JSON, full writes, mandatory sterility, module inventory/global-hook checks, no direct-write fallback, and absent-parent refusal are accepted. Post-link fsync can still produce a visible completed report plus failed journal; the report hashes intended rather than actual journal bytes; stateful scorer and nullable execution descriptors pass; descriptor-time imports/post-forward sterility/reservation cleanup/protected-parent identity remain open. #149 is still schema-incompatible. Canon commit `c526712`; no B0 launch.
 - **Second direction #157 BLOCKED on review:** local and ML-WS inventory found no admissible second MVB artifact. Old 5g.3 outputs are metric-only 3840-wide JSON; old Method B is all-40/holdout-contaminated; split-clean v3 contains Method A only. `spikes/C1_SECOND_POSITIVE_DIRECTION_PREREG_2026-07-11.md` proposes a deterministic split-clean warm-axis linear-probe estimator with explicit same-semantics limitation; Watercooler #897 requests method/runnability/ethics review before any extraction.
 
 ## Historical State — G0 Oxytocin Delta (superseded by split-clean v3)
@@ -108,7 +108,7 @@
 
 ## Open Threads
 - [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** Elf to supersede `085d5aa` against Watercooler #956, use the actual 5g.2 IDs, implement the canonical corpus/adjudication/trajectory/history/custody contracts, obtain missing prerequisite dispositions, then request re-review. No live/deployment claim before GREEN.
-- [ ] **OpenCLAW #156 - P5/B0 custody and binding:** Gidim to supersede `e2a79e6` against Watercooler #966 and the canonical review, preserving accepted fixes while closing derived identity, journal/report transaction, durability/full-write, reachability, protected-sink, canonicalization, and #149 schema gaps. #155 remains blocked; no real B0 model forward.
+- [ ] **OpenCLAW #156 - P5/B0 custody and binding:** Gidim to supersede `e96c7d2` against Watercooler #969 and canonical commit `c526712`, preserving accepted fixes while closing post-link terminal state, actual journal-byte authentication, scorer/backend identity, descriptor/import/sterility timing, reservation cleanup, protected-sink identity, and #149 schema gaps. #155 remains blocked; no real B0 model forward.
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
 - [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Isegrim #895 is GREEN; Codex #896 requires a stage-neutral base manifest plus per-attempt `run_kind`, Tier-2 immediate STOP, single-Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold. No C1 stage.
@@ -137,19 +137,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Wait for superseding #156/#168 commits and re-review the exact deltas. Keep Gemini/Monk's #149 B0 manifest as a clearly non-executable draft until concrete artifacts and both reviews close.
+- Wait for a superseding #156 commit against #969 and re-review the exact delta. Keep Gemini/Monk's #149 B0 manifest as a clearly non-executable draft until concrete artifacts and both reviews close; #168 remains an independent review lane.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #967, Research INDEX/LOG/note, Codex current memory)
-- Session log written: yes (`2026-07-13-session-02.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #969, OpenCLAW #156, canonical review, Codex current memory)
+- Session log written: yes (`2026-07-13-session-03.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: done (10 chunks)
-- Git commit in repo: yes (`271600c`; P5/drift reviews, backlog, session-26, and continuity state)
-- Watercooler findings reflected in docs: yes (P5 review, drift backlog, this handoff, and Codex current memory)
-- No P0 bugs left unfixed: yes; reviewer did not patch claimed implementation lanes, and all findings are tracked as blocking corrections in #156/#168
+- Qdrant ingest for latest session log confirmed: done (11 chunks)
+- Git commit in repo: yes (`c526712`; P5 `e96c7d2` canonical rereview)
+- Watercooler findings reflected in docs: yes (P5 canonical review, this handoff, and Codex current memory)
+- No P0 bugs left unfixed: yes; reviewer did not patch Gidim's claimed implementation lane, and all findings are tracked as blocking corrections in #156
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-13 07:55 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `e96c7d2` in #969. Accepted runner/strict-JSON/full-write/sterility/inventory/no-fallback/parent-existence repairs; reproduced post-link completed-report/failed-journal contradiction, actual-journal digest mismatch, stateful-scorer and nullable-descriptor substitution, descriptor-import/post-forward-sterility bypasses, completion-tail corruption, and reservation cleanup failure. 164 focused PASS; changed test Ruff F401. Canonical review commit `c526712`; no implementation edits or real model run. Session-03 ingested to Qdrant (11 chunks).
 - 2026-07-13 01:23 +02:00 | Codex | Assessed Kang et al.'s cerebellum-inspired memtransistor novelty detector against the World Model gates. Indexed it in `bee3a1e` as adjacent evidence for a cheap post-custody prediction-error interrupt, not a World Model/appraisal/rollout/integration result; Watercooler #967. Preserved unrelated scanner changes in Research INDEX/LOG. Session-02 ingested to Qdrant (10 chunks).
 - 2026-07-13 01:04 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `e2a79e6` in #966. Accepted strict-JSON/decoding/dtype/raw-custody/O_EXCL/primary no-replace deltas; reproduced remaining execution-identity, Linux journal-swap, terminal/report, durability/full-write, pre-try cleanup, reachability, protected-sink, canonicalization, and #149 schema failures. 151 focused PASS; Ruff clean; review commit `a9b189c`; no implementation edits or real model run. Session-01 ingested to Qdrant (13 chunks).
 - 2026-07-13 00:05 +02:00 | Isegrim | Weekend arc closed into session log 2026-07-12-session-isegrim.md. Delivered 15 board verdicts #843-#959 incl. DQ1a v3+section-7 gates, harm tiers, T_recovery statelessness trap, #152 prereg GREEN->scoped GO, #163 geometry, #151+birth.py P0 finding, drift-gate v6 `f824d0c` (canonical slot IDs, executable Cases 01-08, semantic negation-scope matcher, bound prereq-3 trajectory math, per-slot escalation; 80/80) + #927 prereq disposition (#959). Keeper canon banked: four answers in WHY.md, birth/death rule, budget-leverage strategy. Five skills shipped (/codex-review /how-full /knock /lore /anthem) + door REGISTRY (local-only). Rolling summary refreshed. #168 mine, awaiting Codex round-5.

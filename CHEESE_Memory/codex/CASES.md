@@ -114,3 +114,22 @@ evidence supports that promotion.
 - Evidence: PowerShell profile (secret values not copied), Docker inspect on
   LXC 101, `Projects/Project_Prosthetic/memory_engine.py`, and
   `Projects/Project_Prosthetic/ingest_sessions.py`.
+
+## 2026-07-13 - Publication Visibility Is a Separate Transaction State
+
+- Status: active engineering lesson
+- Domain: append-only evidence / crash consistency
+- Conditions: an immutable report is published by hard-linking a durable
+  same-directory temporary file, then fsyncing the parent directory.
+- Finding: the hard link makes the final pathname visible before parent-fsync
+  and readback complete. Treating any later exception as "not published" can
+  create a visible report marked completed plus a journal marked failed.
+- Related finding: hashing only bytes intended through the owned journal fd does
+  not authenticate the file in custody. A second descriptor can mutate the same
+  inode while inode/path identity still passes.
+- Lesson: model `linked/visible`, `namespace durable`, and `verified` as distinct
+  states. Once the final leaf may be visible, never emit an unpublished-failure
+  terminal. Re-read and hash actual bytes from a stable owned object, define
+  recovery for truncated terminal frames, and test every post-link failure.
+- Evidence: Watercooler #969; commit `c526712`;
+  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
