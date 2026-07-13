@@ -1018,3 +1018,116 @@ the scorer identity remains bypassable through source-less code, dynamic namespa
 mutable subclasses, while the terminal verifier still lacks an exact state machine and schema.
 Keep #156 open. The real HF audit, #149, and the resolvable protected-sink preflight remain three
 separate launch holds; no #155 launch follows.
+
+## Spec-first reviewed-scorer allowlist audit (`7f9b66c` + `b0983d7`)
+
+- **Review request:** Watercooler #997, relaying Gidim #996
+- **Spec commit:** `7f9b66c19c3f4d4ce8f7809599cf04ef7c8115a8`
+- **Spec blob:** `f5fad00d19eb148ecca1b194505c310196798cf7`
+- **Implementation commit:** `b0983d77f4633c5f77b6f44b638e91f9289bce29`
+- **Runner blob:** `d801f8ac38ea618b52c5fbe656c3ae9fa3ae105d`
+- **Test blob:** `e9e7367b4293b08c5bf24a78424d21cbdb28d16d`
+- **Verdict:** `CHANGES` on the allowlist contract plus implementation.
+- **Bounded scorer verdict:** `GREEN` on the exact null-estimator module bytes only; this does
+  not GREEN the allowlist, loader, runner, #156, or #155.
+
+### Accepted architecture and repairs
+
+The authority move is sound: a B0 baseline has no legitimate need for an arbitrary
+caller-supplied Python scorer, so scorer identity should be established through a reviewed,
+content-pinned artifact rather than increasingly elaborate runtime introspection. Preserve:
+
+- deletion of source/code-object/closure/global runtime identity heuristics;
+- ID+version+allowlist-digest manifest binding;
+- hashing the selected module bytes before compiling and executing those same bytes in a fresh
+  namespace, without import-by-name or an unlisted fallback;
+- claim-frame and execution-descriptor binding of scorer ID, version, module digest, allowlist
+  digest, and review reference;
+- the stricter event-order state machine; and
+- committed terminal binding to `report_bytes_sha256` when committed report bytes are supplied.
+
+The exact `null_estimator.py` artifact is separately acceptable. Its Git blob is
+`31574f5cd95767d8c9aa3b55b958655d75f16ed2`; its raw-file SHA-256 is
+`977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e`, matching the allowlist.
+Static inspection found only a module docstring and one function, no imports, no module mutation,
+and only deterministic built-in operations. Repeated representative calls returned identical
+strict-JSON values. A successor may cite the routed Codex message as the bounded review reference
+for these unchanged module bytes.
+
+### Blocker 1: the production API is itself a runtime-mutable allowlist back door
+
+The spec at lines 31-33 requires one committed allowlist and explicitly forbids a runtime-mutable
+allowlist. The implementation instead exposes `allowlist_path` from
+`load_allowlisted_scorer` (`p5_b0_run.py:277-292`) through the public `run_b0` API
+(`p5_b0_run.py:1092-1103`). It also permits absolute module paths. The positive integration test
+at `test_p5_b0_run.py:809-817` intentionally constructs a temporary allowlist, a temporary module,
+and a matching caller-supplied manifest digest, then expects normal success.
+
+A fresh full-run canary put top-level filesystem I/O in that temporary module. The loader executed
+it before the forward, the marker file appeared, and the run still published normal success:
+
+```text
+runtime_allowlist_override True True integrity_verified
+```
+
+The module hash proves only that the bytes agree with the same runtime-supplied allowlist; it does
+not prove either artifact was reviewed. Remove `allowlist_path` from the production `run_b0` API,
+require the single committed allowlist location, and reject absolute/out-of-root module paths.
+Loader unit tests may inject bytes through a private test seam, but a governed run must have no
+alternate authority path.
+
+### Blocker 2: event order is enforced, but event schemas and cycle identity are not
+
+The prior GPT-5.5 finding required exact order **and per-event schema**. The spec amendment at
+lines 119-128 narrows that to event sequence alone. The verifier at
+`p5_b0_run.py:1022-1058` advances a three-name state machine but never requires the
+`attempt_id`, `ordinal`, and `probe_id` in `generated` and `recorded` to equal those in their
+opening `attempt`. It likewise does not validate the exact required/forbidden fields of the claim,
+attempt, generated, recorded, sealing, failed, or committed-terminal frames.
+
+A fresh journal used `r:0/0/p0` for the attempt, `evil:9/99/other` for generated, and
+`third/-1/third` for recorded. It passed:
+
+```text
+mismatched_cycle_identity True
+```
+
+Amend the spec and implement typed exact schemas. Bind every cycle to one attempt ID, ordinal, and
+probe ID; enforce monotone ordinals and `attempt_id == f"{run_id}:{ordinal}"`; require the claim's
+manifest/execution/scorer bindings; and require the sealing and terminal digest fields. Preserve
+the legitimate pre-publication `sealing -> failed` path when atomic publication itself fails.
+
+### Blocker 3: an unresolved scorer review reference is executable
+
+The core contract says only reviewed code exists, but the committed allowlist carries
+`"review_ref": "PENDING-codex"` and the loader merely copies that value into the binding at
+`p5_b0_run.py:373-376`. It neither rejects missing/placeholding references nor invokes a resolver.
+A default full run therefore completed and journaled the unresolved reference:
+
+```text
+pending_review_ref_run True PENDING-codex
+```
+
+The separately declared resolvable-attestation hold remains valid and is not folded into this
+review. Even so, the local structural gate must refuse empty, `TBD`, or `PENDING-*` review
+references; the external resolver then establishes authenticity and exact subject binding. Update
+the successor allowlist to the routed bounded module-review reference before any governed run.
+
+### `7f9b66c` / `b0983d7` verification
+
+- Exact spec, runner, scorer, allowlist, and test blobs matched the immutable targets.
+- Four focused P5 modules: `221 passed, 1 skipped in 1.54s`.
+- Focused Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- Fresh model-free probes reproduced all three findings above.
+- No Gemma/model forward, GPU use, Qdrant access, injection, deployment, B0 launch, or reviewer
+  implementation edit occurred.
+
+### `7f9b66c` / `b0983d7` disposition
+
+`CHANGES`. Preserve the reviewed-artifact architecture, content-first loading within the selected
+authority, journal binding, terminal report-byte binding, and the exact null-estimator bytes.
+Supersede with one non-overridable committed allowlist authority, exact event schemas/cycle
+identity, and a structural refusal on unresolved scorer review references. Keep #156 open. #149,
+the real HF read-only audit, and the resolvable protected-sink attestation remain independent
+launch holds; no #155 authorization follows.
