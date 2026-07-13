@@ -903,3 +903,118 @@ dependency validation, fully accounted import windows, strict terminal framing/g
 and exception containment, a verifiable protected-sink attestation contract, and
 original-exception-preserving failure journaling. #149 and the real HF audit remain
 independent holds; no #155 launch follows.
+
+## Re-review of `46765b8` / Watercooler #985
+
+- **Reviewed commit:** `46765b8d41ef587bbfdd318bb319f0c7efa6a5a0`
+- **Parent:** `99f7bd107e8889f03bfdf2876d428feb1a3bab5c`
+- **Runner blob:** `414d57845aafe958e3df8ebd14df6abfbf583479`
+- **Test blob:** `e32a3a9131125ac2b8eaab5351e2210b053359fd`
+- **Verdict:** `CHANGES`
+- **Scope:** full model-free re-review of the claimed #980 repairs. Codex reviewed and
+  reproduced the ordinary scorer-binding slice. At Laura's request, GPT-5.5 independently
+  reviewed the content-filter-blocked integrity slice read-only; its analysis is supporting
+  evidence, while this section is the Codex verdict of record.
+
+### Accepted repairs in `46765b8`
+
+Preserve these repairs:
+
+- direct closure/default/keyword-default/global scorer dependencies now receive structured
+  recursive handling for the exact built-in inert types the implementation recognizes;
+- forbidden imports emitted while resolving `backend.assert_sterile` are examined before the
+  sentinel baseline is drained;
+- the terminal verifier rejects non-object frames, a valid-JSON tail without a final newline,
+  committed terminals without sealing, unknown event names, and a terminal
+  `published_digest` that disagrees with the report;
+- post-commit verifier exceptions are contained as `committed_indeterminate`;
+- protected-sink metadata now structurally requires a signer, review reference, SHA-256-shaped
+  attestation digest, and a path equal to the manifest evidence sink; and
+- failed-event journaling catches `B0RunError` as well as `OSError`, preserving the original
+  backend exception. The real resolvable protected-sink attestation/preflight remains an
+  explicitly separate launch hold, as the implementation comments state.
+
+### Blocker 1: source-unavailable callables still collide
+
+`_callable_digest` at `p5_b0_run.py:258-298` records `source=None` when
+`inspect.getsource` fails. It does not then bind the code object's bytecode, constants, names,
+or nested code objects. Two `eval`-created lambdas differing only in the returned value had the
+same digest and no self-contained refusal. A manifest pinned to the first callable accepted the
+second and published its different result:
+
+```text
+eval_collision True [] []
+eval_run True () {'value': 2}
+```
+
+Fail closed when source is unavailable, or canonically bind the complete executable code object
+including nested constants. `source=None` cannot be an executable identity.
+
+### Blocker 2: dynamic namespace access bypasses direct-global binding
+
+`_scorer_selfcontained_refusals` at `p5_b0_run.py:308-348` examines direct names in
+`code.co_names` and permits built-ins. A scorer using `globals()['STATE'].value` exposes only
+the built-in `globals` to that scan. The backend changed `STATE.value` during generation; the
+scorer digest remained stable, the refusal list stayed empty, and the changed value was
+published:
+
+```text
+dynamic_refusals [] digest_before 6321ffed4275
+dynamic_run True () {'value': 2} digest_same True
+```
+
+Reject dynamic namespace, evaluation, import, and reflection primitives under a strict
+AST/bytecode policy, or replace arbitrary executable scorers with a declarative reviewed
+scoring substrate.
+
+### Blocker 3: mutable subclasses masquerade as inert dependencies
+
+`_is_deeply_immutable` at `p5_b0_run.py:250-255` uses `isinstance`. Subclasses of tuple,
+integer, string, bytes, and frozenset can carry mutable attributes or override behavior while
+passing the check. A `TupleState(tuple)` with mutable `.value` was accepted:
+
+```text
+tuple_subclass True []
+```
+
+Use exact built-in types and canonical recursive serialization. An `isinstance` admission rule
+does not establish behavioral immutability.
+
+### Blocker 4: terminal event names are not an exact journal grammar
+
+The delegated GPT-5.5 review found that `_KNOWN_EVENTS` and
+`verify_terminal_frames` at `p5_b0_run.py:942-1035` validate known names, run-ID consistency,
+sealing placement, disposition, and published digest, but do not enforce the exact pre-sealing
+state machine or per-event schemas. A journal such as
+`claim -> generated -> claim -> sealing -> completed` can pass if its digest fields agree.
+The verifier also does not require the committed terminal to carry and bind
+`report_bytes_sha256`.
+
+Implement an explicit event grammar with exact cardinality, order, required/forbidden fields,
+and terminal binding to the immutable report bytes. Add canaries for missing `attempt`, duplicate
+`claim`, reversed `recorded`/`generated`, missing required fields, and missing or false terminal
+`report_bytes_sha256`.
+
+The original-exception repair is also missing a direct regression that combines a backend
+`ValueError` with a zero-progress failed-frame write and asserts that the backend error remains
+the surfaced exception. This is a coverage gap, not a separate reproduced implementation defect.
+
+### `46765b8` verification
+
+- Exact runner/test blobs match the reviewed commit.
+- Four focused P5 modules: `218 passed, 1 skipped in 1.37s`.
+- Focused runner/test Ruff: clean.
+- `git diff --check 99f7bd1..46765b8`: clean.
+- Fresh model-free probes reproduced all three scorer-binding counterexamples above.
+- GPT-5.5 reviewed only the delegated integrity slice read-only and returned `CHANGES` for the
+  terminal-grammar blocker; it made no edits, posts, network calls, model loads, or Qdrant calls.
+- No Gemma forward, GPU use, Qdrant access, injection, B0 launch, or reviewer implementation edit
+  occurred in the Codex slice.
+
+### `46765b8` disposition
+
+`CHANGES`. The claimed #980 repairs are materially improved and should be preserved, but
+the scorer identity remains bypassable through source-less code, dynamic namespace access, and
+mutable subclasses, while the terminal verifier still lacks an exact state machine and schema.
+Keep #156 open. The real HF audit, #149, and the resolvable protected-sink preflight remain three
+separate launch holds; no #155 launch follows.
