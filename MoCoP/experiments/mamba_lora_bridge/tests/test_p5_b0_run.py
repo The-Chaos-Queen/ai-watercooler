@@ -7,6 +7,7 @@ durability, the exact reachability inventory + import-audit sentinel for transie
 protected-parent verification, and strict canonicalization. Each #966 counterexample has
 an adversarial test here.
 """
+import hashlib
 import json
 import os
 import sys
@@ -16,7 +17,6 @@ import pytest
 
 from p5_b0_harness import COMPONENT_ROUTES, EvidenceBundleError, canonical_digest
 from p5_b0_run import (
-    DESCRIPTOR_KEYS,
     FORBIDDEN_ROUTE_MODULES,
     B0RunError,
     ScriptedGenerationBackend,
@@ -24,6 +24,7 @@ from p5_b0_run import (
     _callable_digest,
     _clear_import_sentinel,
     _drain_import_sentinel,
+    _ensure_import_audit,
     _forbidden_route_for,
     _import_audit_hook,
     _normalize_dtype,
@@ -35,6 +36,7 @@ from p5_b0_run import (
     reachable_components,
     reserve_report_slot,
     run_b0,
+    verify_terminal_frames,
 )
 
 MODEL = {
@@ -525,3 +527,165 @@ def test_normalize_dtype(raw, norm):
 def test_derive_effective_decoding_drops_extras():
     m = {"decoding": {"do_sample": False, "max_new_tokens": 32, "hash": "x", "temperature": 0.7}}
     assert derive_effective_decoding(m) == {"do_sample": False, "max_new_tokens": 32}
+
+
+# --------------------------------------------------------------------------- #
+# Round 4 (#966): boundary around all executed code + terminal/journal custody. #
+# --------------------------------------------------------------------------- #
+def test_audit_sentinel_arms_and_is_fail_closed_signal():
+    assert _ensure_import_audit() is True     # once armed it reports armed (fail-open guard)
+
+
+def test_run_b0_refuses_backend_dirty_after_forward(tmp_path):
+    # #966 HIGH-4: sterility must be re-checked AFTER the forward, not only before.
+    out = tmp_path / "b0_report.json"
+
+    class _DirtyAfter:
+        def __init__(self):
+            self.calls = 0
+
+        def descriptor(self):
+            return dict(MODEL)
+
+        def assert_sterile(self):
+            self.calls += 1
+            if self.calls > 1:                # clean pre-forward, dirty after generate
+                raise B0RunError("backend became dirty during generate")
+
+        def generate(self, prompt, decoding):
+            return "gen"
+
+    with pytest.raises(B0RunError) as ei:
+        _run(_manifest(PANEL, out), PANEL, _DirtyAfter(), out)
+    assert "dirty" in str(ei.value)
+    assert not out.exists()
+
+
+def test_run_b0_refuses_descriptor_time_transient_import(tmp_path):
+    # #966 HIGH-4: a transient forbidden import inside descriptor() must not be erased.
+    out = tmp_path / "b0_report.json"
+
+    class _DescImport:
+        def descriptor(self):
+            sys.audit("import", "qdrant_client", None, None, None, None)
+            return dict(MODEL)
+
+        def assert_sterile(self):
+            return None
+
+        def generate(self, prompt, decoding):
+            raise AssertionError("must not generate")
+
+    res = _run(_manifest(PANEL, out), PANEL, _DescImport(), out)
+    assert res.ok is False
+    assert any("during backend.descriptor()" in r for r in res.refusals)
+    assert not out.exists()
+
+
+def test_run_b0_does_not_call_backend_on_refused_launch(tmp_path, monkeypatch):
+    # #966 HIGH-4: no backend.descriptor() when the cheap gates already refuse.
+    monkeypatch.setitem(sys.modules, "mamba_ssm", types.ModuleType("mamba_ssm"))
+    out = tmp_path / "b0_report.json"
+
+    class _Tripwire:
+        def descriptor(self):
+            raise AssertionError("descriptor() must not run on a refused launch")
+
+        def assert_sterile(self):
+            return None
+
+        def generate(self, prompt, decoding):
+            raise AssertionError("generate() must not run")
+
+    res = _run(_manifest(PANEL, out), PANEL, _Tripwire(), out)
+    assert res.ok is False and any("REACHABLE" in r and "mamba" in r for r in res.refusals)
+
+
+def test_run_b0_refuses_callable_instance_scorer(tmp_path):
+    # #966 BLOCKER-3: only a plain function is bindable; a stateful callable is refused.
+    out = tmp_path / "b0_report.json"
+
+    class _CallableScorer:
+        def __call__(self, probe_id, generation):
+            return ({}, {"v": 1})
+
+    res = _run(_manifest(PANEL, out), PANEL, _ExplodingBackend(), out, scorer=_CallableScorer())
+    assert res.ok is False and any("plain function" in r for r in res.refusals)
+
+
+@pytest.mark.parametrize("field", ["backend", "device", "attention"])
+def test_run_b0_refuses_null_descriptor_field(tmp_path, field):
+    # #966 BLOCKER-3: extended fields cannot be null on both sides and pass.
+    out = tmp_path / "b0_report.json"
+    model = {**MODEL, field: None}
+    res = _run(_manifest(PANEL, out, model=model), PANEL, _backend(model), out)
+    assert res.ok is False and any(field in r and "null" in r for r in res.refusals)
+
+
+def test_run_b0_report_binds_actual_journal_bytes(tmp_path):
+    # #966 BLOCKER-2: report.journal_digest == SHA-256 of the ACTUAL journal prefix bytes.
+    out = tmp_path / "b0_report.json"
+    _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    published = json.loads(out.read_text(encoding="utf-8"))
+    lines = (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines(keepends=True)
+    seal_idx = next(i for i, ln in enumerate(lines) if json.loads(ln)["event"] == "sealing")
+    prefix = "".join(lines[:seal_idx]).encode("utf-8")
+    assert hashlib.sha256(prefix).hexdigest() == published["journal_digest"]
+
+
+def test_verify_terminal_frames_tolerates_truncated_tail(tmp_path):
+    j = tmp_path / "x.journal"
+    j.write_text('{"event":"claim"}\n{"event":"completed"}\n{"event":"trun', encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is True and r["truncated_tail"] is True
+
+
+def test_verify_terminal_frames_rejects_midfile_corruption(tmp_path):
+    j = tmp_path / "x.journal"
+    j.write_text('{"event":"claim"}\nNOT JSON\n{"event":"completed"}\n', encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and r.get("corruption_at") == 1
+
+
+def test_reserve_refuses_symlinked_parent(tmp_path):
+    real = tmp_path / "real"
+    real.mkdir()
+    link = tmp_path / "link"
+    try:
+        os.symlink(real, link, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink not permitted on this platform")
+    with pytest.raises(B0RunError) as ei:
+        reserve_report_slot(link / "b0_report.json")
+    assert "symlink" in str(ei.value)
+
+
+_SCORER_GLOBAL_STATE = {"v": 1}
+
+
+def _global_reading_scorer(probe_id, generation):
+    return ({}, {"v": _SCORER_GLOBAL_STATE["v"]})
+
+
+def test_scorer_digest_binds_referenced_mutable_global():
+    # #966 BLOCKER-3 residual: a plain function reading a mutable module global must NOT
+    # collide on digest when that global changes value.
+    d1 = _callable_digest(_global_reading_scorer)
+    _SCORER_GLOBAL_STATE["v"] = 2
+    try:
+        d2 = _callable_digest(_global_reading_scorer)
+    finally:
+        _SCORER_GLOBAL_STATE["v"] = 1
+    assert d1 != d2
+
+
+def test_ensure_import_audit_fails_closed(monkeypatch):
+    # #966 HIGH-4: an install failure must report False (fail-closed), never mark installed.
+    import p5_b0_run as mod
+
+    def _boom(hook):
+        raise RuntimeError("cannot install audit hook")
+
+    monkeypatch.setattr(mod, "_audit_installed", False)
+    monkeypatch.setattr(mod.sys, "addaudithook", _boom)
+    assert mod._ensure_import_audit() is False
