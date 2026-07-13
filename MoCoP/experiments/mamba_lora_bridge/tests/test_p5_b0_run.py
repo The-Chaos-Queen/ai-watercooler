@@ -32,6 +32,7 @@ from p5_b0_run import (
     assert_no_component_reachable,
     canonical_panel_hash,
     derive_effective_decoding,
+    finalize_publication,
     publish_report_atomic,
     reachable_components,
     reserve_report_slot,
@@ -86,7 +87,8 @@ def _manifest(panel, report_path, *, model=None, panel_hash=None,
                     "runner_digest": runner_digest if runner_digest is not None else RUNNER_DIGEST},
         "components": {r: "disabled" for r in COMPONENT_ROUTES},
         "sev_ids": {"geometry_holdout": ["a1"], "behavioral_probe": ["b1"]},
-        "evidence_sink": {"path": str(report_path), "mode": "append_only", "present": False},
+        "evidence_sink": {"path": str(report_path), "mode": "append_only", "present": False,
+                          "protected_sink_attestation": {"signer": "keeper", "review_ref": "wc#971"}},
     }
 
 
@@ -173,8 +175,9 @@ def test_run_b0_happy_path(tmp_path):
     out = tmp_path / "b0_report.json"
     res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
     assert res.ok is True
+    assert res.terminal_state == "integrity_verified"
     assert res.report["record_count"] == 2
-    assert res.report["terminal_state"] == "completed"
+    assert res.report["terminal_state"] == "committed"     # report authority; disposition in journal
     assert out.exists()
     published = json.loads(out.read_text(encoding="utf-8"))
     recomputed = canonical_digest({k: v for k, v in published.items() if k != "published_digest"})
@@ -633,18 +636,171 @@ def test_run_b0_report_binds_actual_journal_bytes(tmp_path):
     assert hashlib.sha256(prefix).hexdigest() == published["journal_digest"]
 
 
-def test_verify_terminal_frames_tolerates_truncated_tail(tmp_path):
+def test_verify_terminal_frames_tolerates_truncated_tail_after_sealing(tmp_path):
     j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim"}\n{"event":"completed"}\n{"event":"trun', encoding="utf-8")
+    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
+                 '{"event":"comp', encoding="utf-8")
     r = verify_terminal_frames(j)
     assert r["ok"] is True and r["truncated_tail"] is True
 
 
 def test_verify_terminal_frames_rejects_midfile_corruption(tmp_path):
     j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim"}\nNOT JSON\n{"event":"completed"}\n', encoding="utf-8")
+    j.write_text('{"event":"claim","run_id":"r"}\nNOT JSON\n{"event":"completed","run_id":"r"}\n',
+                 encoding="utf-8")
     r = verify_terminal_frames(j)
     assert r["ok"] is False and r.get("corruption_at") == 1
+
+
+@pytest.mark.parametrize("body,reason_sub", [
+    ("", "empty"),
+    ('{"event":"attempt","run_id":"r"}\n', "not 'claim'"),
+    ('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n', "without a terminal"),
+    ('{"event":"claim","run_id":"r"}\n{"event":"failed","run_id":"r"}\n'
+     '{"event":"completed","run_id":"r"}\n', "more than one terminal"),
+    ('{"event":"claim","run_id":"r"}\n{"event":"completed","run_id":"r"}\n', "without a preceding 'sealing'"),
+    ('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"x"}\n'
+     '{"event":"completed","run_id":"r"}\n', "run_id inconsistent"),
+])
+def test_verify_terminal_frames_contract_violations(tmp_path, body, reason_sub):
+    j = tmp_path / "x.journal"
+    j.write_text(body, encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and reason_sub in r["reason"]
+
+
+# --- protected-sink attestation (item-1a pre-run refusal) ---
+def test_run_b0_refuses_without_protected_sink_attestation(tmp_path):
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out)
+    del m["evidence_sink"]["protected_sink_attestation"]
+    res = _run(m, PANEL, _ExplodingBackend(), out)
+    assert res.ok is False and any("protected_sink_attestation" in r for r in res.refusals)
+
+
+# --- scorer state mutated mid-run (HIGH-3) ---
+_MUT_STATE = {"v": 1}
+
+
+def _mut_reading_scorer(probe_id, generation):
+    return ({}, {"v": _MUT_STATE["v"]})
+
+
+def test_run_b0_refuses_scorer_state_mutated_during_forward(tmp_path):
+    out = tmp_path / "b0_report.json"
+    _MUT_STATE["v"] = 1
+    code_digest = _callable_digest(_mut_reading_scorer)
+
+    class _Mutator:
+        def descriptor(self):
+            return dict(MODEL)
+
+        def assert_sterile(self):
+            return None
+
+        def generate(self, prompt, decoding):
+            _MUT_STATE["v"] = 2                # mutate the scorer's bound global mid-forward
+            return "gen"
+
+    m = _manifest(PANEL, out, scorer_code_digest=code_digest)
+    try:
+        with pytest.raises(B0RunError) as ei:
+            _run(m, PANEL, _Mutator(), out, scorer=_mut_reading_scorer)
+        assert "scorer identity changed" in str(ei.value)
+        assert not out.exists()
+    finally:
+        _MUT_STATE["v"] = 1
+
+
+# --- sterility-call imports are drained (HIGH-5) ---
+def test_run_b0_refuses_import_inside_sterility_call(tmp_path):
+    out = tmp_path / "b0_report.json"
+
+    class _SterileImports:
+        def descriptor(self):
+            return dict(MODEL)
+
+        def assert_sterile(self):
+            sys.audit("import", "qdrant_client", None, None, None, None)
+
+        def generate(self, prompt, decoding):
+            return "gen"
+
+    with pytest.raises(B0RunError) as ei:
+        _run(_manifest(PANEL, out), PANEL, _SterileImports(), out)
+    assert "assert_sterile" in str(ei.value)
+    assert not out.exists()
+
+
+# --- finalize_publication disposition machine (BLOCKER-1/2) ---
+def test_finalize_publication_verified(tmp_path):
+    rp = tmp_path / "r.json"
+    rp.write_bytes(b"DATA")
+    j = reserve_report_slot(tmp_path / "other.json")
+    try:
+        disp, warns = finalize_publication(rp, b"DATA", tmp_path / "r.json.tmp", j)
+        assert disp == "integrity_verified"
+    finally:
+        j.close()
+
+
+def test_finalize_publication_readback_mismatch_is_integrity_failed(tmp_path):
+    rp = tmp_path / "r.json"
+    rp.write_bytes(b"DATA")
+    j = reserve_report_slot(tmp_path / "other.json")
+    try:
+        disp, warns = finalize_publication(rp, b"DIFFERENT", tmp_path / "r.json.tmp", j)
+        assert disp == "committed_integrity_failed"
+        assert any("readback mismatch" in w for w in warns)
+    finally:
+        j.close()
+
+
+def test_finalize_publication_surviving_alias_is_integrity_failed(tmp_path, monkeypatch):
+    import p5_b0_run as mod
+    rp = tmp_path / "r.json"
+    rp.write_bytes(b"DATA")
+    alias = tmp_path / "r.json.tmp"
+    alias.write_bytes(b"DATA")
+    monkeypatch.setattr(mod, "_try_unlink", lambda p: False)
+    j = reserve_report_slot(tmp_path / "other.json")
+    try:
+        disp, warns = finalize_publication(rp, b"DATA", alias, j)
+        assert disp == "committed_integrity_failed"
+        assert any("staging alias" in w for w in warns)
+    finally:
+        j.close()
+
+
+def test_run_b0_terminal_write_failure_is_indeterminate(tmp_path, monkeypatch):
+    # #966 round-5 H6: a post-commit terminal-event write failure -> committed_indeterminate
+    # (ok=False), NOT an uncaught raise; the report is still committed.
+    import p5_b0_run as mod
+    out = tmp_path / "b0_report.json"
+    orig_event = mod._Journal.event
+    terminals = {"completed", "committed_integrity_failed", "committed_indeterminate", "failed"}
+
+    def flaky(self, obj):
+        if obj.get("event") in terminals:
+            raise mod.B0RunError("forced zero-progress on terminal write")
+        return orig_event(self, obj)
+
+    monkeypatch.setattr(mod._Journal, "event", flaky)
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is False
+    assert res.terminal_state == "committed_indeterminate"
+    assert out.exists()                                  # the report WAS committed
+
+
+def test_reserve_reports_uncleaned_collision(tmp_path, monkeypatch):
+    # #966 round-5 MED-7: on fsync failure with a failed cleanup, report the surviving path.
+    import p5_b0_run as mod
+    monkeypatch.setattr(mod, "_fsync_parent",
+                        lambda p: (_ for _ in ()).throw(OSError("forced fsync failure")))
+    monkeypatch.setattr(mod, "_try_unlink", lambda p: False)
+    with pytest.raises(B0RunError) as ei:
+        reserve_report_slot(tmp_path / "b0_report.json")
+    assert "NOT REMOVED" in str(ei.value)
 
 
 def test_reserve_refuses_symlinked_parent(tmp_path):

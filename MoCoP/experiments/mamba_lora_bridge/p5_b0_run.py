@@ -327,6 +327,26 @@ def derive_effective_decoding(manifest: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _unset(value: Any) -> bool:
+    return not isinstance(value, str) or not value.strip()
+
+
+def check_protected_sink_attestation(manifest: Mapping[str, Any]) -> list[str]:
+    """Refuse pre-run unless the protected-sink OS contract is ATTESTED in the manifest.
+
+    Codex boundary ruling (#971): the runner may rely on an OS protected-sink contract
+    (append-only/immutable file + locked-down dir) to PREVENT hostile same-UID mutation,
+    but its absence must be a pre-run refusal, not a silent assumption. The manifest must
+    carry a signed, reviewed attestation that the contract is provisioned.
+    """
+    sink = manifest.get("evidence_sink", {})
+    att = sink.get("protected_sink_attestation") if isinstance(sink, Mapping) else None
+    if not isinstance(att, Mapping) or _unset(att.get("signer")) or _unset(att.get("review_ref")):
+        return ["evidence_sink.protected_sink_attestation missing signer/review_ref; the "
+                "protected-sink OS contract must be attested before a governed B0 run"]
+    return []
+
+
 def _bind_execution_to_manifest(
     manifest: Mapping[str, Any], panel: Sequence[tuple[str, str]],
     descriptor: Mapping[str, Any], scorer: Scorer | None, scorer_version: str | None,
@@ -466,6 +486,36 @@ def _safe_unlink(path: Path) -> None:
         pass
 
 
+def _try_unlink(path: Path) -> bool:
+    """Unlink and REPORT whether the name is gone (unlike _safe_unlink, which swallows).
+
+    Used where a surviving name is a custody problem (a post-commit staging alias, a failed
+    reservation-collision cleanup) and must be surfaced, not silently ignored (#966 round-5).
+    """
+    try:
+        os.unlink(path)
+        return True
+    except FileNotFoundError:
+        return True
+    except OSError:
+        return False
+
+
+def _assert_sterile_guarded(backend: GenerationBackend) -> None:
+    """Call the backend's sterility contract with the import sentinel wrapped AROUND it, so
+    a transient forbidden import produced by the sterility check itself is not lost (#966
+    round-5 HIGH-5). Do not clear imports produced by the code that proves sterility.
+    """
+    _clear_import_sentinel()
+    backend.assert_sterile()
+    imported = _drain_import_sentinel()
+    reach = assert_no_component_reachable()
+    if imported:
+        raise B0RunError("component IMPORTED during assert_sterile(): " + "; ".join(imported))
+    if reach:
+        raise B0RunError("component REACHABLE around assert_sterile(): " + "; ".join(reach))
+
+
 # --------------------------------------------------------------------------- #
 # The owned append-only journal (exclusive claim + inode-verified custody).     #
 # --------------------------------------------------------------------------- #
@@ -514,12 +564,21 @@ class _Journal:
         size = os.fstat(self._fd).st_size
         if not size:
             return hashlib.sha256(b"").hexdigest()
-        if hasattr(os, "pread"):
-            data = os.pread(self._fd, size, 0)
-        else:  # Windows: O_APPEND keeps writes at EOF, so a read seek is safe.
-            os.lseek(self._fd, 0, os.SEEK_SET)
-            data = os.read(self._fd, size)
-        return hashlib.sha256(data).hexdigest()
+        buf = bytearray()
+        off = 0
+        while off < size:                                   # loop full reads (#966 round-5 H6)
+            if hasattr(os, "pread"):
+                chunk = os.pread(self._fd, size - off, off)
+            else:  # Windows: O_APPEND keeps writes at EOF, so a read seek is safe.
+                os.lseek(self._fd, off, os.SEEK_SET)
+                chunk = os.read(self._fd, size - off)
+            if not chunk:
+                raise B0RunError("journal short read: file shrank during digest")
+            buf += chunk
+            off += len(chunk)
+        if os.fstat(self._fd).st_size != size:
+            raise B0RunError("journal size changed during digest read")
+        return hashlib.sha256(bytes(buf)).hexdigest()
 
     def digest(self) -> str:
         return self._hash.hexdigest()
@@ -527,6 +586,10 @@ class _Journal:
     @property
     def fd_open(self) -> bool:
         return not self._closed
+
+    @property
+    def path(self) -> Path:
+        return self._path
 
     def close(self) -> None:
         if not self._closed:
@@ -560,9 +623,13 @@ def reserve_report_slot(report_path: Path) -> _Journal:
     if journal_path.is_symlink():
         raise B0RunError(f"journal path is a symlink (refused): {journal_path}")
     # O_RDWR (not WRONLY) so the report can bind the ACTUAL journal bytes via the owned fd.
+    # O_BINARY on Windows: raw os.write/os.read must NOT do CRT \n<->\r\n translation, or the
+    # digest of the read-back bytes would differ from the on-disk bytes.
     flags = os.O_CREAT | os.O_EXCL | os.O_RDWR | os.O_APPEND
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
+    if hasattr(os, "O_BINARY"):
+        flags |= os.O_BINARY
     try:
         fd = os.open(journal_path, flags, 0o600)
     except FileExistsError as exc:
@@ -571,20 +638,36 @@ def reserve_report_slot(report_path: Path) -> _Journal:
         _fsync_parent(parent)                # propagates; must not leak the fd (#966 HIGH-5)
     except OSError as exc:
         os.close(fd)
-        _safe_unlink(journal_path)
-        raise B0RunError(f"reservation parent fsync failed; journal cleaned up: {exc}") from exc
+        removed = _try_unlink(journal_path)  # truthful cleanup report (#966 round-5 MED-7)
+        if removed:
+            try:
+                _fsync_parent(parent)
+            except OSError:
+                pass
+            detail = "journal removed"
+        else:
+            detail = f"JOURNAL NOT REMOVED — collision remains at {journal_path}"
+        raise B0RunError(f"reservation parent fsync failed; {detail}: {exc}") from exc
     return _Journal(fd, journal_path)
 
 
-def publish_report_atomic(report: Mapping[str, Any], report_path: Path) -> bytes:
-    """Atomically COMMIT the report with a no-replace primitive; return the committed bytes.
+# Terminal dispositions (#966 round-5 BLOCKER-1). A run that reaches the commit point is
+# published; only INTEGRITY_VERIFIED is a normal ok=True success. A detected custody
+# violation is committed-but-integrity-failed; an unverifiable check is indeterminate.
+INTEGRITY_VERIFIED = "integrity_verified"
+COMMITTED_INTEGRITY_FAILED = "committed_integrity_failed"
+COMMITTED_INDETERMINATE = "committed_indeterminate"
+
+
+def publish_report_atomic(report: Mapping[str, Any], report_path: Path) -> tuple[bytes, Path]:
+    """Atomically COMMIT the report with a no-replace primitive.
 
     Strict-encode → same-dir O_EXCL temp → flush/fsync → verify the TEMP bytes → ``os.link``
-    (atomic, raises if the target exists). NO in-place fallback. This function raises ONLY on
-    PRE-COMMIT failure; a successful return marks the point of no return (the leaf is visible).
-    Post-commit durability (parent fsync, readback) is ``finalize_publication`` — its failure
-    is a warning, never a run failure, so a visible ``completed`` report can never be recorded
-    as ``failed`` (#966 BLOCKER-1). Descriptors close in ``finally``.
+    (atomic, raises if the target exists). NO in-place fallback. Raises ONLY on PRE-COMMIT
+    failure; a successful return marks the point of no return. Returns ``(committed_bytes,
+    staging_alias_path)`` — the staging temp is a hard-link ALIAS to the committed inode, so
+    the caller MUST remove it via ``finalize_publication`` and treat a failure to do so as a
+    custody violation (#966 round-5 BLOCKER-2), not a swallowed cleanup.
     """
     report_path = Path(report_path)
     assert_strict_json(dict(report))
@@ -593,50 +676,72 @@ def publish_report_atomic(report: Mapping[str, Any], report_path: Path) -> bytes
     tmp_path = Path(str(report_path) + f".tmp.{os.getpid()}.{uuid.uuid4().hex}")
 
     fd = os.open(tmp_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    committed = False
     try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if tmp_path.read_bytes() != data:                        # verify staged bytes PRE-commit
+            raise B0RunError("staged report bytes differ from intended report before publish")
         try:
-            with os.fdopen(fd, "wb") as handle:
-                handle.write(data)
-                handle.flush()
-                os.fsync(handle.fileno())
-            if tmp_path.read_bytes() != data:                    # verify staged bytes PRE-commit
-                raise B0RunError("staged report bytes differ from intended report before publish")
-            try:
-                os.link(tmp_path, report_path)                   # atomic no-replace COMMIT
-            except FileExistsError as exc:
-                raise B0RunError(
-                    f"report path appeared before publish (no-replace refused): {report_path}"
-                ) from exc
-            except OSError as exc:
-                raise B0RunError(
-                    f"atomic no-replace publication unavailable, refusing in-place downgrade: {exc}"
-                ) from exc
-        finally:
-            _safe_unlink(tmp_path)
-    except BaseException:
-        raise
-    return data
+            os.link(tmp_path, report_path)                       # atomic no-replace COMMIT
+        except FileExistsError as exc:
+            raise B0RunError(
+                f"report path appeared before publish (no-replace refused): {report_path}"
+            ) from exc
+        except OSError as exc:
+            raise B0RunError(
+                f"atomic no-replace publication unavailable, refusing in-place downgrade: {exc}"
+            ) from exc
+        committed = True
+    finally:
+        if not committed:
+            _safe_unlink(tmp_path)                               # pre-commit: nothing published
+    return data, tmp_path
 
 
-def finalize_publication(report_path: Path, committed: bytes) -> list[str]:
-    """Post-COMMIT durability. Best-effort: failures are WARNINGS, never a run failure — the
-    report is already atomically visible, so it must never be reclassified as failed (#966 B1).
-
-    NOTE (trust boundary): a post-commit readback mismatch means the protected sink was
-    mutated after our atomic link. Preventing that is the protected-sink OS contract, not
-    something this in-process check can undo.
+def finalize_publication(report_path: Path, committed: bytes, staging_alias: Path,
+                         journal: "_Journal") -> tuple[str, list[str]]:
+    """Post-COMMIT verification -> (disposition, warnings). The report is already visible, so
+    a detected violation is NEVER ``failed``; it is committed-but-integrity-failed/
+    indeterminate (#966 round-5 BLOCKER-1). Removes the runner's staging alias and treats a
+    surviving writable alias as a custody violation (BLOCKER-2).
     """
     warnings: list[str] = []
+    integrity_failed = False
+    indeterminate = False
+
     try:
-        _fsync_parent(Path(report_path).parent)
+        _fsync_parent(Path(report_path).parent)                  # durability (best-effort)
     except OSError as exc:
         warnings.append(f"parent fsync failed post-commit: {exc}")
+        indeterminate = True
+
     try:
-        if Path(report_path).read_bytes() != committed:
-            warnings.append("post-commit readback mismatch (protected-sink mutation; OS contract)")
+        if Path(report_path).read_bytes() != committed:          # integrity: report bytes
+            warnings.append("post-commit readback mismatch: advertised report bytes corrupted")
+            integrity_failed = True
     except OSError as exc:
         warnings.append(f"post-commit readback failed: {exc}")
-    return warnings
+        indeterminate = True
+
+    if not _try_unlink(staging_alias):                           # integrity: staging alias
+        if Path(staging_alias).exists():
+            warnings.append("staging alias could not be removed: a writable second name to "
+                            "the committed report inode survives")
+            integrity_failed = True
+
+    try:
+        journal.verify_identity()                                # integrity: journal custody
+    except B0RunError as exc:
+        warnings.append(str(exc))
+        integrity_failed = True
+
+    disposition = (COMMITTED_INTEGRITY_FAILED if integrity_failed
+                   else COMMITTED_INDETERMINATE if indeterminate
+                   else INTEGRITY_VERIFIED)
+    return disposition, warnings
 
 
 # --------------------------------------------------------------------------- #
@@ -649,19 +754,29 @@ class B0RunResult:
     report: dict[str, Any] | None
     report_path: str | None
     published_digest: str | None
-    warnings: tuple[str, ...] = ()          # post-commit durability notes (never failures)
+    warnings: tuple[str, ...] = ()          # post-commit durability/integrity notes
+    terminal_state: str = "refused"         # refused | integrity_verified | committed_* (#966 r5)
 
 
 def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
-def verify_terminal_frames(journal_path: Path) -> dict[str, Any]:
-    """Executable terminal-frame verifier (#966 BLOCKER-1).
+_TERMINAL_EVENTS = frozenset({
+    "completed", COMMITTED_INTEGRITY_FAILED, COMMITTED_INDETERMINATE, "failed",
+})
 
-    Explicit rule: every journal line MUST be valid JSON EXCEPT possibly the final line,
-    which may be a truncated terminal frame (an interrupted append) and is tolerated. A
-    non-final unparseable line is corruption. Returns {ok, events, terminal, truncated_tail}.
+
+def verify_terminal_frames(journal_path: Path, *,
+                           report_published_digest: str | None = None) -> dict[str, Any]:
+    """Executable terminal-PROTOCOL verifier (#966 round-5 HIGH-4) — not JSON syntax alone.
+
+    Requires: non-empty; first event is ``claim``; a single ``run_id`` throughout; at most
+    one terminal event and it must be LAST (rejects failed-then-completed and events after a
+    terminal); ``completed`` needs a preceding ``sealing``; a non-truncated journal MUST end
+    in a terminal; a truncated FINAL line is tolerated ONLY when the last complete event is
+    ``sealing`` or a terminal; and (when given) the sealing frame's ``published_digest``
+    cross-binds the report. Returns {ok, reason?, terminal, disposition, truncated_tail}.
     """
     raw = Path(journal_path).read_text(encoding="utf-8").splitlines()
     events: list[dict[str, Any]] = []
@@ -671,12 +786,43 @@ def verify_terminal_frames(journal_path: Path) -> dict[str, Any]:
             events.append(json.loads(line))
         except json.JSONDecodeError:
             if i == len(raw) - 1:
-                truncated_tail = True            # tolerated: interrupted final frame
+                truncated_tail = True
             else:
-                return {"ok": False, "events": events, "terminal": None,
-                        "truncated_tail": False, "corruption_at": i}
-    terminal = events[-1]["event"] if events else None
-    return {"ok": True, "events": events, "terminal": terminal, "truncated_tail": truncated_tail}
+                return {"ok": False, "reason": "corruption", "corruption_at": i}
+    if not events:
+        return {"ok": False, "reason": "empty journal"}
+    if events[0].get("event") != "claim":
+        return {"ok": False, "reason": "first event is not 'claim'"}
+    run_id = events[0].get("run_id")
+    if any(e.get("run_id", run_id) != run_id for e in events):
+        return {"ok": False, "reason": "run_id inconsistent across frames"}
+
+    terminal_idxs = [i for i, e in enumerate(events) if e.get("event") in _TERMINAL_EVENTS]
+    if len(terminal_idxs) > 1:
+        return {"ok": False, "reason": "more than one terminal event"}
+    if terminal_idxs and terminal_idxs[0] != len(events) - 1:
+        return {"ok": False, "reason": "events recorded after the terminal event"}
+
+    sealing_idx = next((i for i, e in enumerate(events) if e.get("event") == "sealing"), None)
+    last_event = events[-1].get("event")
+    if truncated_tail:
+        if last_event not in (_TERMINAL_EVENTS | {"sealing"}):
+            return {"ok": False, "reason": "truncated tail not preceded by sealing/terminal"}
+    elif last_event not in _TERMINAL_EVENTS:
+        return {"ok": False, "reason": f"journal ends without a terminal event (last={last_event})"}
+
+    if terminal_idxs and events[terminal_idxs[0]].get("event") == "completed":
+        if sealing_idx is None or sealing_idx > terminal_idxs[0]:
+            return {"ok": False, "reason": "'completed' without a preceding 'sealing'"}
+
+    if report_published_digest is not None and sealing_idx is not None:
+        if events[sealing_idx].get("published_digest") != report_published_digest:
+            return {"ok": False, "reason": "sealing published_digest does not match report"}
+
+    terminal = events[terminal_idxs[0]].get("event") if terminal_idxs else last_event
+    disposition = events[terminal_idxs[0]].get("disposition") if terminal_idxs else None
+    return {"ok": True, "events": events, "terminal": terminal, "disposition": disposition,
+            "truncated_tail": truncated_tail, "run_id": run_id}
 
 
 def run_b0(
@@ -697,6 +843,7 @@ def run_b0(
     refusals = list(decision.refusals)
     refusals.extend(assert_no_component_reachable())               # live sys.modules
     refusals.extend(_validate_panel(panel))
+    refusals.extend(check_protected_sink_attestation(manifest))    # OS-contract prereq (#966 r5)
     if not _ensure_import_audit():                                 # fail-CLOSED sentinel (#966)
         refusals.append("transient-import audit sentinel could not be armed (fail-closed)")
 
@@ -776,18 +923,18 @@ def run_b0(
             pre = assert_no_component_reachable()
             if pre:
                 raise B0RunError("component REACHABLE before governed forward: " + "; ".join(pre))
-            backend.assert_sterile()
+            _assert_sterile_guarded(backend)                       # sentinel-wrapped (#966 r5 H5)
             _clear_import_sentinel()
 
             generation = backend.generate(prompt, dict(effective_decoding))  # governed forward
 
             transient = _drain_import_sentinel()
             post = assert_no_component_reachable()
-            backend.assert_sterile()                               # sterile AFTER forward (#966 H4)
             if transient:
                 raise B0RunError("component IMPORTED during governed forward: " + "; ".join(transient))
             if post:
                 raise B0RunError("component REACHABLE after governed forward: " + "; ".join(post))
+            _assert_sterile_guarded(backend)                       # sterile AFTER forward
             journal.event({
                 "event": "generated", "attempt_id": attempt_id, "ordinal": ordinal,
                 "probe_id": probe_id, "generation_sha256": canonical_digest(generation),
@@ -796,15 +943,21 @@ def run_b0(
 
             scorer_input, scorer_output = (None, None)
             if scorer is not None:
+                # Re-verify scorer identity BEFORE and AFTER the call — a backend may have
+                # mutated a bound global during the forward (#966 round-5 HIGH-3).
+                if _callable_digest(scorer) != scorer_digest:
+                    raise B0RunError("scorer identity changed before invocation (state mutated mid-run)")
+                _clear_import_sentinel()
                 scorer_input, scorer_output = scorer(probe_id, generation)
-            # Reachability + sterility after the scorer too (a scorer must not wake anything).
-            scorer_transient = _drain_import_sentinel()
+                scorer_transient = _drain_import_sentinel()
+                if scorer_transient:
+                    raise B0RunError("component IMPORTED during scorer: " + "; ".join(scorer_transient))
+                if _callable_digest(scorer) != scorer_digest:
+                    raise B0RunError("scorer identity changed across invocation (state mutated mid-run)")
             scorer_post = assert_no_component_reachable()
-            backend.assert_sterile()
-            if scorer_transient or scorer_post:
-                raise B0RunError(
-                    "component reachable via scorer: " + "; ".join(scorer_transient + scorer_post)
-                )
+            if scorer_post:
+                raise B0RunError("component reachable via scorer: " + "; ".join(scorer_post))
+            _assert_sterile_guarded(backend)                       # sterile AFTER scorer
             bundle.record(                                         # strict-JSON enforced here
                 probe_id, generation,
                 scorer_input=scorer_input, scorer_output=scorer_output,
@@ -815,42 +968,47 @@ def run_b0(
                 "probe_id": probe_id,
             })
 
-        # ---- Terminal transaction: the report binds the ACTUAL journal bytes + state. ----
+        # ---- Terminal transaction: the report binds ACTUAL journal bytes; the journal
+        # terminal event + result carry the VERIFIED post-commit disposition (#966 r5 B1). ----
         report = bundle.seal()
         report["run_kind"] = "b0_baseline"
         report["manifest_digest"] = decision.manifest_digest
         report["execution_descriptor"] = execution_descriptor
-        report["terminal_state"] = "completed"
+        report["terminal_state"] = "committed"                     # authority = journal terminal
         report["journal_digest"] = journal.actual_prefix_digest()  # ACTUAL bytes, owned inode
         report["published_digest"] = canonical_digest(
             {k: v for k, v in report.items() if k != "published_digest"}
         )
-        journal.verify_identity()                                  # inode still ours?
+        journal.verify_identity()                                  # inode still ours pre-publish?
         journal.event({
             "event": "sealing", "run_id": run_id,
             "published_digest": report["published_digest"],
             "journal_digest_prefix": report["journal_digest"], "utc": _now(),
         })
-        committed = publish_report_atomic(report, resolved_path)   # raises PRE-commit only
-        published_ok = True                                        # os.link COMMITTED => done
-        # Post-commit is best-effort; failure is a WARNING, never a run failure (#966 B1): a
-        # visible terminal_state=completed report can never be reclassified as failed.
-        warnings = finalize_publication(resolved_path, committed)
-        try:
-            journal.verify_identity()                              # post-publication identity
-        except B0RunError as exc:
-            warnings.append(str(exc))
+        committed, staging_alias = publish_report_atomic(report, resolved_path)  # PRE-commit raises
+        published_ok = True                                        # os.link COMMITTED
+
+        # A DETECTED post-commit violation is committed-integrity-failed/indeterminate, never
+        # a normal ok=True (#966 round-5 B1); it is also never `failed` (report is visible).
+        disposition, warnings = finalize_publication(resolved_path, committed, staging_alias, journal)
+        terminal_event = "completed" if disposition == INTEGRITY_VERIFIED else disposition
         try:
             journal.event({
-                "event": "completed", "run_id": run_id,
+                "event": terminal_event, "run_id": run_id, "disposition": disposition,
                 "published_digest": report["published_digest"],
                 "report_bytes_sha256": _sha256_bytes(committed),
                 "durability_warnings": warnings, "utc": _now(),
             })
-        except OSError:
-            # A truncated terminal frame is a tolerated recovery state (verify_terminal_frames
-            # accepts a truncated FINAL line); the report is committed and self-declares state.
-            warnings.append("completed-event append truncated (report committed; tolerated)")
+        except (OSError, B0RunError):                              # zero-progress write post-commit
+            if disposition == INTEGRITY_VERIFIED:
+                disposition = COMMITTED_INDETERMINATE
+            warnings.append("terminal-event append failed post-commit (committed-indeterminate)")
+        tv = verify_terminal_frames(journal.path,                  # full terminal-protocol check
+                                    report_published_digest=report["published_digest"])
+        if not tv.get("ok"):
+            if disposition == INTEGRITY_VERIFIED:
+                disposition = COMMITTED_INDETERMINATE
+            warnings.append(f"terminal-frame verification failed: {tv.get('reason')}")
     except BaseException as exc:
         if not published_ok and journal.fd_open:
             try:                                                   # via the OWNED fd (no reopen)
@@ -866,8 +1024,9 @@ def run_b0(
 
     assert report is not None
     return B0RunResult(
-        ok=True, refusals=(), report=report, report_path=str(resolved_path),
-        published_digest=report["published_digest"], warnings=tuple(warnings),
+        ok=(disposition == INTEGRITY_VERIFIED), refusals=(), report=report,
+        report_path=str(resolved_path), published_digest=report["published_digest"],
+        warnings=tuple(warnings), terminal_state=disposition,
     )
 
 
