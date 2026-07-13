@@ -1,18 +1,18 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-13 16:10 +02:00
-- Current owner: Codex returned CHANGES on drift gate `d184797` in #979 and on the full current P5 runner `99f7bd1` in #980.
-- Primary focus: supersede #168 against #979 and #156 against #980. World Model #170-#173 remain independent integration holds. Do not deploy the drift gate, run B0, or close #155.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-13-session-05.md`
+- Last updated: 2026-07-13 18:18 +02:00
+- Current owner: Codex returned CHANGES on drift gate v7 (`bdf14d5` + `7f695a4` + `0b7abd0`) in #984; countersignature withheld.
+- Primary focus: supersede #168 against #984 and #156 against #980. World Model #170-#173 remain independent integration holds. Do not deploy the drift gate, run B0, or close #155.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-13-session-06.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-13-session-05.md`; 11 chunks stored in `exocortex`)
+  - Latest session log ingest: done (`2026-07-13-session-06.md`; 11 chunks stored in `exocortex`)
 
 ## Current State - Baseline Drift Gate Review (2026-07-13)
-- **V6.1 narrow deltas GREEN:** `d184797` uses the exact eight 5g.2 IDs, current-ending same-slot escalation, the self/other anchor, improved simple negation handling, a nonfinite-history halt, and an explicit deferred disposition axis.
-- **Overall #979 remains CHANGES:** Case 07b still implements the superseded automatic hard-halt policy instead of provenance discrepancy -> REVIEW/HOLD plus human adjudication. Bands, classes, acquisition, history, and discontinuity remain caller-owned; the Cases 01-08 tests pre-inject labels; the decline algorithm does not enforce consecutive formal windows; malformed/nonfinite probe bands and lexical semantic false positives remain accepted.
-- **Tracking/evidence:** Watercooler #979; OpenCLAW #168 remains open and non-deployable; canonical review `MoCoP/reviews/drift_gate_v61_review_2026-07-13.md`; review commit `76a7e64`. Eighty-seven focused tests and Ruff pass, while fresh policy, authority, custody, trajectory, finiteness, and semantic canaries reproduce the blockers.
+- **V7 accepted deltas:** `bdf14d5` + `7f695a4` + `0b7abd0` correctly record Laura's A1 policy, route valid unsupported continuity to HOLD, implement literal A2, disclose the slow-leak residual, demote A3 to smoke-only, label the module an aggregation kernel, and add real ordinary chain/schema checks. Independent A2 fuzz matched 69,000 bounded histories.
+- **Overall #984 remains CHANGES:** mutable validated inputs can be changed by the resolver to erase current/history HARD; rounded content digests collide across an A2 SOFT/PASS threshold; supported class-(d) provenance and held slot history violate A1; acquisition resolution is unbound and double-called; malformed schema/out-of-domain diversity can crash; chronology is lexical; cross-axis report merging can soften an anchor verdict.
+- **Tracking/evidence:** Watercooler #984; OpenCLAW #168 remains open and non-deployable; canonical review `MoCoP/reviews/drift_gate_v7_review_2026-07-13.md`; review commit `b5cea5f`. Focused suite 127 PASS; Ruff/diff checks clean; Codex countersignature withheld. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, disposition calibration, and remaining countersignatures stay external holds.
 
 ## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
 - **#152 complete, scoped GO:** Isegrim #935 accepted 16 runs and the scoped GO name while pre-approving one outcome-free terminal-run amendment. Amended reviewed spec SHA-256 `476dd0a0...`; prereg internal `4973576c...`; eval-freeze internal `fdbb1407...`. The canonical result has 16x48 transitions, zero short runs, and 13/16 positive runs (`0.8125 >= 0.75`), so support, micro effects, run-macro effects, and consistency all pass. Watercooler #936/#937.
@@ -107,7 +107,7 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
-- [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `d184797` against Watercooler #979. Ratify the provenance-sensitive Case 07b policy first; bind raw adjudication/acquisition/history/discontinuity evidence; implement literal consecutive-window math; validate probe bands/classes; close semantic false positives; then request immutable re-review. No live/deployment claim before GREEN.
+- [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede v7 against Watercooler #984. Freeze one canonical input snapshot; hash exact scored precision; implement exact A1 invalid/HOLD-history routing; resolve acquisition once into a bound typed receipt; make schema parsing total and range-bounded; compare real UTC instants; prevent cross-axis verdict softening; then request immutable re-review. No live/deployment claim before GREEN.
 - [ ] **OpenCLAW #156 - P5/B0 custody and binding:** supersede `99f7bd1` against Watercooler #980 and canonical commit `9286273`, preserving accepted terminal repairs while closing recursive scorer dependencies, the pre-guard import window, terminal framing/grammar/report binding and exception containment, protected-sink attestation, and original-exception preservation. #149/HF audit remain separate holds. #155 remains blocked; no real B0 model forward.
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
@@ -137,19 +137,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Wait for immutable superseding commits for #168 against #979 and #156 against #980, then re-review only their exact deltas plus the preserved adversarial canaries. Keep #149 non-executable until its own artifacts and reviews close.
+- Wait for immutable superseding commits for #168 against #984 and #156 against #980, then re-review only their exact deltas plus the preserved adversarial canaries. Keep #149 non-executable until its own artifacts and reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #979/#980, OpenCLAW #168/#156, canonical reviews, Codex current memory)
-- Session log written: yes (`2026-07-13-session-05.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #984, OpenCLAW #168, canonical review, backlog, Codex current memory)
+- Session log written: yes (`2026-07-13-session-06.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: done (11 chunks)
-- Git commit in repo: yes (`76a7e64` drift review; `9286273` P5 current-head audit; continuity closure in this commit)
-- Watercooler findings reflected in docs: yes (both canonical reviews, this handoff, and Codex current memory)
-- No P0 bugs left unfixed: review-only session; no implementation lane was modified, and blocking corrections are tracked in #168/#156
+- Git commit in repo: yes (`b5cea5f` drift v7 review; continuity closure in this commit)
+- Watercooler findings reflected in docs: yes (canonical review, backlog, this handoff, and Codex current memory)
+- No P0 bugs left unfixed: review-only session; no implementation lane was modified, and blocking corrections are tracked in #168
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-13 18:18 +02:00 | Codex | Returned CHANGES on drift gate v7 `bdf14d5` + `7f695a4` + `0b7abd0` in #984 and withheld the amendment countersignature. Accepted Laura-aligned A1, literal A2, disclosed slow-leak residual, smoke-only A3, honest aggregation scope, and ordinary chain improvements. Reproduced resolver mutation erasing HARD, a digest collision across A2 SOFT/PASS, exact A1 edge failures, unbound/double acquisition resolution, schema crashes/overflow, false UTC chronology, and report-map softening. 127 PASS; Ruff/diff clean; 69,000-case A2 reference fuzz clean. Canon `b5cea5f`; no implementation/model/GPU/Qdrant/live-gate action. Session-06 ingested to Qdrant (11 chunks).
 - 2026-07-13 16:10 +02:00 | Codex | Returned CHANGES on drift gate v6.1 `d184797` in #979 and on the full current P5 runner `99f7bd1` in #980. Drift accepted the exact slot set/current-ending escalation/simple negation/nonfinite/deferred-axis deltas but retained a superseded Case 07b policy, caller-owned authority/custody, nonconsecutive range math, invalid-band acceptance, and semantic false positives. P5 accepted the later terminal repairs but reproduced mutable scorer dependencies, a discarded import window, incomplete terminal authority, presence-only sink attestation, and exception masking. 87 drift PASS; 208 P5 PASS/1 skip; focused Ruff clean. Canon `76a7e64` and `9286273`; no model/GPU/Qdrant experiment or implementation edit. Session-05 ingested to Qdrant (11 chunks).
 - 2026-07-13 11:30 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `3222f52` in #971. Accepted round-four link-state/readback/identity/import/sterility/basic-cleanup repairs; reproduced normal success after detected custody loss, a silent writable temp alias, mid-run scorer-state substitution, syntax-only terminal acceptance, undrained sterility imports, short-read exposure, post-commit zero-write exception, and cleanup misreporting. 177 PASS/1 skip; changed Ruff clean. Canon `ca12f1f`; no implementation edits or real model run. Session-04 ingested to Qdrant (11 chunks).
 - 2026-07-13 07:55 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `e96c7d2` in #969. Accepted runner/strict-JSON/full-write/sterility/inventory/no-fallback/parent-existence repairs; reproduced post-link completed-report/failed-journal contradiction, actual-journal digest mismatch, stateful-scorer and nullable-descriptor substitution, descriptor-import/post-forward-sterility bypasses, completion-tail corruption, and reservation cleanup failure. 164 focused PASS; changed test Ruff F401. Canonical review commit `c526712`; no implementation edits or real model run. Session-03 ingested to Qdrant (11 chunks).

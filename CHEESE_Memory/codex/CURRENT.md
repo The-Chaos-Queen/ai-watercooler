@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-13 16:10 +02:00
+Last updated: 2026-07-13 18:18 +02:00
 
 ## Standing Directive
 
@@ -60,13 +60,16 @@ remember which artifact should be updated.
   protected-sink attestation is presence-only; and failed journaling can mask the
   original backend exception. #156 stays open. The real HF audit, #149, and a
   verifiable protected-sink contract are separate launch holds. No #155 launch.
-- Drift gate v6.1 `d184797` is CHANGES in Watercooler #979. It fixes the exact
-  eight 5g.2 IDs, same-slot current-ending escalation, self/other anchoring, simple
-  negation cases, nonfinite history, and the deferred disposition axis. It still
-  implements Laura's superseded Case 07b hard-halt policy, trusts caller-supplied
-  labels/acquisition/history/discontinuity, does not enforce consecutive-window
-  math, accepts malformed/nonfinite probe bands, and has lexical semantic false
-  positives. OpenCLAW #168 remains open and non-deployable.
+- Drift gate v7 (`bdf14d5`, `7f695a4`, `0b7abd0`) is CHANGES in Watercooler
+  #984; Codex countersignature is withheld. Preserve Laura-aligned A1 policy,
+  literal A2, disclosed slow-leak residual, smoke-only A3, honest aggregation-
+  kernel scope, and ordinary chain checks. Blockers: a resolver can mutate
+  validated current/history and erase measured HARD; the rounded audit digest
+  collides across an A2 SOFT/PASS threshold; supported class-(d) provenance and
+  held slot history violate A1; acquisition resolution is unbound/double-called;
+  malformed schema/out-of-domain diversity can crash; chronology is lexical;
+  and cross-axis map overwrite can soften the reported verdict. Canon `b5cea5f`.
+  OpenCLAW #168 remains open and non-deployable.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -104,7 +107,7 @@ remember which artifact should be updated.
   matrix; implement and separately review P5; run its true alpha-zero anchors;
   only then spend the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Re-review only immutable superseding commits
-  for #156 against #980 and #168 against #979; both remain independently held.
+  for #156 against #980 and #168 against #984; both remain independently held.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes

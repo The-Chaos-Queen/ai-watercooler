@@ -169,3 +169,20 @@ evidence supports that promotion.
   content-addressed sequence and implement formal window predicates literally.
 - Evidence: Watercooler #979; commit `76a7e64`;
   `MoCoP/reviews/drift_gate_v61_review_2026-07-13.md`.
+
+## 2026-07-13 - Validate and Score One Immutable Representation
+
+- Status: active engineering lesson
+- Domain: evidence custody / deterministic gates
+- Conditions: a gate validates mutable caller objects, invokes callbacks, then
+  rereads those objects for scoring, hashing, or reporting.
+- Finding: a callback can mutate already validated current or historical evidence
+  and erase a halt while the gate still reports its earlier chain check as valid.
+  Separately, rounding a measurement in the content digest while scoring its full
+  precision permits one digest to authorize different decisions.
+- Lesson: canonically reconstruct or deep-freeze one internal snapshot before any
+  callback, then validate, score, hash, and report only that representation. Resolve
+  external evidence once into a typed receipt. Every value capable of changing a
+  decision must be committed at the exact precision used by that decision.
+- Evidence: Watercooler #984; commit `b5cea5f`;
+  `MoCoP/reviews/drift_gate_v7_review_2026-07-13.md`.
