@@ -772,6 +772,53 @@ def test_finalize_publication_surviving_alias_is_integrity_failed(tmp_path, monk
         j.close()
 
 
+def test_finalize_publication_prefix_match_verified(tmp_path):
+    # round-7: bound journal_digest == the on-disk pre-sealing bytes -> integrity_verified.
+    rp = tmp_path / "r.json"
+    rp.write_bytes(b"DATA")
+    j = reserve_report_slot(tmp_path / "other.json")
+    try:
+        j.event({"event": "claim", "run_id": "r"})
+        bound = j.actual_prefix_digest()
+        j.event({"event": "sealing", "run_id": "r", "journal_digest_prefix": bound})
+        disp, warns = finalize_publication(rp, b"DATA", tmp_path / "r.json.tmp", j, bound)
+        assert disp == "integrity_verified"
+    finally:
+        j.close()
+
+
+def test_finalize_publication_detects_prefix_injection(tmp_path):
+    # round-7 (HuntR7): a co-writer injects a frame BEFORE the sealing frame; the bound
+    # journal_digest no longer matches the on-disk pre-sealing bytes -> committed_integrity_failed.
+    rp = tmp_path / "r.json"
+    rp.write_bytes(b"DATA")
+    j = reserve_report_slot(tmp_path / "other.json")
+    try:
+        j.event({"event": "claim", "run_id": "r"})
+        bound = j.actual_prefix_digest()                          # digest of [claim] only
+        j.event({"event": "attempt", "attempt_id": "r:0"})        # INJECTED pre-sealing frame
+        j.event({"event": "sealing", "run_id": "r", "journal_digest_prefix": bound})
+        disp, warns = finalize_publication(rp, b"DATA", tmp_path / "r.json.tmp", j, bound)
+        assert disp == "committed_integrity_failed"
+        assert any("prefix digest mismatch" in w for w in warns)
+    finally:
+        j.close()
+
+
+def test_run_b0_truncated_at_sealing_is_indeterminate(tmp_path, monkeypatch):
+    # HuntR7 LOW: verify returning ok=True with disposition=None (truncated tail at sealing) must
+    # NOT leave the result integrity_verified — the reconcile forces indeterminate.
+    import p5_b0_run as mod
+    out = tmp_path / "b0_report.json"
+
+    def truncated(path, *, report_published_digest=None):
+        return {"ok": True, "disposition": None, "terminal": "sealing", "truncated_tail": True}
+
+    monkeypatch.setattr(mod, "verify_terminal_frames", truncated)
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is False and res.terminal_state == "committed_indeterminate"
+
+
 def test_run_b0_terminal_write_failure_is_indeterminate(tmp_path, monkeypatch):
     # #966 round-5 H6: a post-commit terminal-frame write failure -> committed_indeterminate
     # (ok=False), NOT an uncaught raise; the report is still committed.
@@ -788,10 +835,11 @@ def test_run_b0_terminal_write_failure_is_indeterminate(tmp_path, monkeypatch):
     assert out.exists()                                  # the report WAS committed
 
 
-def test_run_b0_terminal_fsync_failure_result_agrees_with_journal(tmp_path, monkeypatch):
-    # #966 round-6 A1: os.write of the terminal frame succeeds, fsync fails. The frame is on
-    # disk (completed/integrity_verified), so the RESULT must AGREE with the journal — not flip
-    # to indeterminate while the journal visibly ends completed.
+def test_run_b0_terminal_fsync_failure_is_indeterminate_not_verified(tmp_path, monkeypatch):
+    # Codex #973: an fsync failure after writing the terminal frame is NOT integrity_verified.
+    # "verified" must mean DURABLE custody, not page-cache visibility -> committed_indeterminate.
+    # The frame bytes are visible on disk (a non-authoritative unsynced tail), but the RESULT
+    # reports the durable truth.
     import p5_b0_run as mod
     out = tmp_path / "b0_report.json"
 
@@ -803,11 +851,11 @@ def test_run_b0_terminal_fsync_failure_result_agrees_with_journal(tmp_path, monk
 
     monkeypatch.setattr(mod._Journal, "write_terminal_frame", written_unsynced)
     res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
-    assert res.ok is True and res.terminal_state == "integrity_verified"
-    assert any("not fsync-durable" in w for w in res.warnings)
+    assert res.ok is False and res.terminal_state == "committed_indeterminate"
+    assert any("not fsync-durable" in w or "not durably committed" in w for w in res.warnings)
     events = [json.loads(x) for x in
               (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()]
-    assert events[-1]["event"] == "completed" and events[-1]["disposition"] == "integrity_verified"
+    assert events[-1]["event"] == "completed"           # visible tail, but non-authoritative
 
 
 def test_run_b0_refuses_placeholder_attestation(tmp_path):
@@ -905,7 +953,7 @@ def test_run_b0_integrity_failed_plus_write_failure_matches_journal(tmp_path, mo
     import p5_b0_run as mod
     out = tmp_path / "b0_report.json"
     monkeypatch.setattr(mod, "finalize_publication",
-                        lambda rp, c, sa, j: (mod.COMMITTED_INTEGRITY_FAILED, ["forced integrity fail"]))
+                        lambda rp, c, sa, j, rjd: (mod.COMMITTED_INTEGRITY_FAILED, ["forced integrity fail"]))
 
     def no_write(self, obj):
         raise mod.B0RunError("terminal write failed")

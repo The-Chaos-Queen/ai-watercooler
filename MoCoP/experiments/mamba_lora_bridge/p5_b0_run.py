@@ -641,6 +641,39 @@ class _Journal:
             raise B0RunError("journal size changed during digest read")
         return hashlib.sha256(bytes(buf)).hexdigest()
 
+    def prefix_digest_at_seal(self) -> str | None:
+        """SHA-256 of the ACTUAL on-disk journal bytes BEFORE the first ``sealing`` frame, read
+        through the owned fd (#966 round-7). Reconciled post-commit against the report's bound
+        ``journal_digest`` to detect a same-inode co-writer that injected a pre-sealing frame
+        between the digest binding and the sealing append — the one evidence artifact that
+        otherwise gets no post-commit check. Returns None if no sealing frame is present.
+        """
+        os.fsync(self._fd)
+        size = os.fstat(self._fd).st_size
+        if not size:
+            return None
+        off, buf = 0, bytearray()
+        while off < size:
+            if hasattr(os, "pread"):
+                chunk = os.pread(self._fd, size - off, off)
+            else:
+                os.lseek(self._fd, off, os.SEEK_SET)
+                chunk = os.read(self._fd, size - off)
+            if not chunk:
+                raise B0RunError("journal short read during prefix reconciliation")
+            buf += chunk
+            off += len(chunk)
+        data = bytes(buf)
+        cursor = 0
+        for line in data.split(b"\n"):
+            try:
+                if json.loads(line).get("event") == "sealing":
+                    return hashlib.sha256(data[:cursor]).hexdigest()
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                pass
+            cursor += len(line) + 1                          # + the split '\n'
+        return None
+
     def digest(self) -> str:
         return self._hash.hexdigest()
 
@@ -763,11 +796,13 @@ def publish_report_atomic(report: Mapping[str, Any], report_path: Path) -> tuple
 
 
 def finalize_publication(report_path: Path, committed: bytes, staging_alias: Path,
-                         journal: "_Journal") -> tuple[str, list[str]]:
+                         journal: "_Journal", report_journal_digest: str | None = None
+                         ) -> tuple[str, list[str]]:
     """Post-COMMIT verification -> (disposition, warnings). The report is already visible, so
     a detected violation is NEVER ``failed``; it is committed-but-integrity-failed/
     indeterminate (#966 round-5 BLOCKER-1). Removes the runner's staging alias and treats a
-    surviving writable alias as a custody violation (BLOCKER-2).
+    surviving writable alias as a custody violation (BLOCKER-2). Reconciles the bound journal
+    prefix digest against the actual on-disk pre-sealing bytes (round-7).
     """
     warnings: list[str] = []
     integrity_failed = False
@@ -780,6 +815,22 @@ def finalize_publication(report_path: Path, committed: bytes, staging_alias: Pat
     except OSError as exc:
         warnings.append(f"post-commit readback failed: {exc}")
         indeterminate = True
+
+    # Integrity: the report's bound journal-prefix digest vs the ACTUAL on-disk pre-sealing
+    # bytes. A same-inode co-writer that injected a frame BEFORE the sealing frame (between the
+    # digest binding and the sealing append) is invisible to every other check (round-7).
+    if report_journal_digest is not None:
+        try:
+            on_disk_prefix = journal.prefix_digest_at_seal()
+        except (OSError, B0RunError) as exc:
+            warnings.append(f"journal prefix reconciliation read failed: {exc}")
+            indeterminate = True
+        else:
+            if on_disk_prefix != report_journal_digest:
+                warnings.append(
+                    f"journal prefix digest mismatch (bound {str(report_journal_digest)[:12]}.. "
+                    f"vs on-disk {str(on_disk_prefix)[:12]}..): pre-sealing journal mutated")
+                integrity_failed = True
 
     if not _try_unlink(staging_alias):                           # integrity: staging alias
         if Path(staging_alias).exists():
@@ -857,6 +908,10 @@ def verify_terminal_frames(journal_path: Path, *,
     if events[0].get("event") != "claim":
         return {"ok": False, "reason": "first event is not 'claim'"}
     run_id = events[0].get("run_id")
+    # A frame with NO run_id key passes (default==run_id): attempt/generated/recorded frames
+    # carry attempt_id, not run_id, by design. This targets a SWAPPED id, not a missing one; the
+    # pre-sealing prefix digest reconciliation (finalize_publication) is what catches an injected
+    # id-less frame — this shape check is not that detector.
     if any(e.get("run_id", run_id) != run_id for e in events):
         return {"ok": False, "reason": "run_id inconsistent across frames"}
 
@@ -1062,7 +1117,8 @@ def run_b0(
 
         # A DETECTED post-commit violation is committed-integrity-failed/indeterminate, never
         # a normal ok=True (#966 round-5 B1); it is also never `failed` (report is visible).
-        disposition, warnings = finalize_publication(resolved_path, committed, staging_alias, journal)
+        disposition, warnings = finalize_publication(resolved_path, committed, staging_alias,
+                                                      journal, report["journal_digest"])
         terminal_event = "completed" if disposition == INTEGRITY_VERIFIED else disposition
         frame = {
             "event": terminal_event, "run_id": run_id, "disposition": disposition,
@@ -1082,7 +1138,14 @@ def run_b0(
             disposition = COMMITTED_INDETERMINATE
         else:
             if sync_state == "written_unsynced":
-                warnings.append("terminal frame written but not fsync-durable")
+                # fsync FAILED after the bytes were written: durable custody is NOT established.
+                # "integrity_verified" must mean durable commit, not page-cache visibility
+                # (Codex #973), so the run is indeterminate. The unsynced terminal frame is a
+                # non-authoritative tail (standard append-log semantics: a frame whose fsync
+                # failed may not survive a crash); the result reports the durable truth.
+                warnings.append(f"terminal frame written but NOT fsync-durable; {disposition} is "
+                                "not durably committed -> committed-indeterminate")
+                disposition = COMMITTED_INDETERMINATE
 
         # Reconcile the RESULT with the ACTUAL on-disk journal, the source of truth (round-6 A).
         # Catch ValueError too: read_text raises UnicodeDecodeError on a mutated (non-UTF-8)
