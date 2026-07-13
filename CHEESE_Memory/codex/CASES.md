@@ -129,7 +129,9 @@ evidence supports that promotion.
   inode while inode/path identity still passes.
 - Lesson: model `linked/visible`, `namespace durable`, and `verified` as distinct
   states. Once the final leaf may be visible, never emit an unpublished-failure
-  terminal. Re-read and hash actual bytes from a stable owned object, define
-  recovery for truncated terminal frames, and test every post-link failure.
-- Evidence: Watercooler #969; commit `c526712`;
+  terminal. Likewise, a detected readback or identity failure must not become
+  ordinary success merely because prevention belongs to an OS trust boundary.
+  Re-read and hash actual bytes from a stable owned object, define a durable
+  committed-indeterminate state, and test every post-link failure and alias.
+- Evidence: Watercooler #969/#971; commits `c526712` and `ca12f1f`;
   `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
