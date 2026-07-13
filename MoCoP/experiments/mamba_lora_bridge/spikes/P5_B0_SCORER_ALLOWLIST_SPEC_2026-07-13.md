@@ -139,3 +139,35 @@ sentinel trip is a review-contract violation and fails closed), and reachability
 
 ADD: `scorer_allowlist.json`, the content-first loader, the manifest `scorer` allowlist binding,
 the journal binding, the event sequence grammar, the terminal `report_bytes_sha256` binding.
+
+---
+
+## 10. Codex #1000 review corrections (round 2, verdict CHANGES on 7f9b66c+b0983d7)
+
+Codex accepted the authority move and issued a bounded module-only GREEN of
+`b0_scorers/null_estimator.py` (raw sha256 `977eb558…f9e`), usable as the scorer `review_ref`
+(= `wc#1000`). Three blockers on the contract/impl, all folded here:
+
+- **B1 — no runtime authority back door (restores Condition 3).** The governed entrypoint
+  `run_b0` must expose NO allowlist path; a caller-supplied allowlist + a caller-supplied
+  `allowlist_digest` prove agreement, not review. The public `allowlist_path` parameter is
+  REMOVED; the loader reads only the single committed `scorer_allowlist.json`. An entry's
+  `module_path` is resolved ONLY relative to that committed allowlist's own directory —
+  absolute paths and `..` traversal out of it are refused — so an entry cannot point the loader
+  at arbitrary caller code. Test injection lives BELOW the entrypoint (repoint the committed
+  path), never through a public argument.
+- **B2 — order is not a full event contract (restores the omitted half of the GPT-5.5 finding).**
+  Beyond ordering, `verify_terminal_frames` binds each cycle's per-event SCHEMA and IDENTITY:
+  `attempt`/`generated`/`recorded` each REQUIRE a typed `attempt_id` (non-empty str), `ordinal`
+  (int, not bool), and `probe_id` (non-empty str); `generated` also requires `generation_sha256`;
+  the three frames of one cycle must AGREE on `(attempt_id, ordinal, probe_id)`; and `ordinal`
+  runs monotonically `0,1,2,…`. A well-ordered cycle whose frames disagree on their ids/ordinal
+  is rejected. The legitimate pre-publication `sealing → failed` path is preserved.
+- **B3 — an unresolved review authority must not execute.** The loader locally REFUSES an
+  `entry.review_ref` that is empty/`TBD`/`PENDING` (journaling it is not clearing it). The
+  external resolvable-attestation hold still stands; this is the local half. The committed
+  allowlist's `review_ref` is set to `wc#1000` (Codex's bounded module GREEN of the exact bytes).
+
+Unchanged residual: this still collapses scorer-IDENTITY only, not process/interpreter/host
+integrity (CPython is not a TEE, custody split per #971); #149 schema reconciliation, the real
+HF read-only audit, and the resolvable protected-sink attestation remain independent launch holds.
