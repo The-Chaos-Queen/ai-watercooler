@@ -843,6 +843,22 @@ written equation; malformed `NaN` probe bands validate and pass. Canonical
 evidence: `reviews/drift_gate_v61_review_2026-07-13.md`. Eighty-seven focused
 tests and Ruff pass, but #168 remains open and non-deployable.
 
+**V7 round-six review (2026-07-13, commits `bdf14d5`, `7f695a4`,
+`0b7abd0`): CHANGES.** Laura's A1 ruling, the literal A2 equation, smoke-only A3
+scope, honest aggregation-kernel boundary, evidence-envelope shape, and ordinary
+content-chain checks are accepted. Countersignature is withheld because mutable
+validated inputs can be changed by the resolver to erase current/history `HARD`, the
+nine-decimal audit digest collides across a real A2 `SOFT`/`PASS` boundary, supported
+class-(d) provenance is misrouted to HOLD, unresolved slot HOLD rows contribute to
+automatic HARD escalation, acquisition resolution is unbound/double-called, malformed
+schema types and out-of-domain diversity can crash, timestamp chronology is lexical,
+and cross-axis report merging can soften the recorded verdict. Canonical evidence:
+`reviews/drift_gate_v7_review_2026-07-13.md`. Focused verification: 127 tests, Ruff and
+diff checks clean; independent A2 reference fuzz matched on 69,000 bounded histories.
+#168 remains open and non-deployable; raw judge-chain discrimination, runner origin
+custody, the slow-leak level detector, disposition calibration, and remaining
+countersignatures remain declared external holds.
+
 ---
 
 ## P3 — Future-Facing Backlog
