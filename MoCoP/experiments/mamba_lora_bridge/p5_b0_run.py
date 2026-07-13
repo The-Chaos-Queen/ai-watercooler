@@ -879,6 +879,15 @@ def _now() -> str:
 _TERMINAL_EVENTS = frozenset({
     "completed", COMMITTED_INTEGRITY_FAILED, COMMITTED_INDETERMINATE, "failed",
 })
+# The ONLY valid (terminal event -> disposition) pairs. 'failed' is a PRE-commit terminal
+# (carries error_type/error, never a committed disposition); a 'failed' frame with a committed
+# disposition — or any committed terminal whose disposition field disagrees — is malformed or
+# tampered and must fail closed (#975: 'failed'+integrity_verified was accepted with ok=True).
+_TERMINAL_DISPOSITION = {
+    "completed": INTEGRITY_VERIFIED,
+    COMMITTED_INTEGRITY_FAILED: COMMITTED_INTEGRITY_FAILED,
+    COMMITTED_INDETERMINATE: COMMITTED_INDETERMINATE,
+}
 
 
 def verify_terminal_frames(journal_path: Path, *,
@@ -908,10 +917,10 @@ def verify_terminal_frames(journal_path: Path, *,
     if events[0].get("event") != "claim":
         return {"ok": False, "reason": "first event is not 'claim'"}
     run_id = events[0].get("run_id")
-    # A frame with NO run_id key passes (default==run_id): attempt/generated/recorded frames
-    # carry attempt_id, not run_id, by design. This targets a SWAPPED id, not a missing one; the
-    # pre-sealing prefix digest reconciliation (finalize_publication) is what catches an injected
-    # id-less frame — this shape check is not that detector.
+    if not run_id:                                       # claim MUST carry a run_id (#975)
+        return {"ok": False, "reason": "claim frame missing run_id"}
+    # attempt/generated/recorded frames carry attempt_id, not run_id, so a missing run_id is
+    # allowed there; claim/sealing/terminal are required to carry it (checked explicitly).
     if any(e.get("run_id", run_id) != run_id for e in events):
         return {"ok": False, "reason": "run_id inconsistent across frames"}
 
@@ -923,12 +932,32 @@ def verify_terminal_frames(journal_path: Path, *,
 
     sealing_idx = next((i for i, e in enumerate(events) if e.get("event") == "sealing"), None)
     if sealing_idx is not None:
+        if not events[sealing_idx].get("run_id"):        # sealing MUST carry a run_id (#975)
+            return {"ok": False, "reason": "sealing frame missing run_id"}
         # The ONLY event permitted strictly after the sealing frame is the single terminal
         # frame — reject an injected non-terminal frame between sealing and the terminal, which
         # the prefix digest (pre-sealing only) cannot see (#966 round-7 RESIDUAL-A).
         for i in range(sealing_idx + 1, len(events)):
             if events[i].get("event") not in _TERMINAL_EVENTS:
                 return {"ok": False, "reason": "non-terminal event recorded after the sealing frame"}
+
+    # Enforce the terminal event <-> disposition mapping and require a run_id on the terminal
+    # frame (#975): recognizing a terminal event NAME is not enough — a 'failed' frame carrying
+    # a committed disposition, or a committed terminal whose disposition disagrees with its
+    # event, is malformed/tampered and must fail closed.
+    if terminal_idxs:
+        term = events[terminal_idxs[0]]
+        tevent, tdisp = term.get("event"), term.get("disposition")
+        if not term.get("run_id"):
+            return {"ok": False, "reason": "terminal frame missing run_id"}
+        if tevent == "failed":
+            if tdisp in _TERMINAL_DISPOSITION.values():
+                return {"ok": False, "reason": "'failed' terminal must not carry a committed disposition"}
+        elif tdisp != _TERMINAL_DISPOSITION.get(tevent):
+            return {"ok": False,
+                    "reason": f"terminal {tevent!r} disposition must be "
+                              f"{_TERMINAL_DISPOSITION.get(tevent)!r}, got {tdisp!r}"}
+
     last_event = events[-1].get("event")
     if truncated_tail:
         if last_event not in (_TERMINAL_EVENTS | {"sealing"}):

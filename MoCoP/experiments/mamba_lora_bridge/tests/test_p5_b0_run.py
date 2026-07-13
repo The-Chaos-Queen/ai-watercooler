@@ -652,6 +652,59 @@ def test_verify_terminal_frames_rejects_midfile_corruption(tmp_path):
     assert r["ok"] is False and r.get("corruption_at") == 1
 
 
+def test_verify_terminal_frames_rejects_failed_with_committed_disposition(tmp_path):
+    # #975 P1: a 'failed' terminal carrying a committed disposition is impossible/tampered.
+    j = tmp_path / "x.journal"
+    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
+                 '{"event":"failed","run_id":"r","disposition":"integrity_verified"}\n',
+                 encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and "committed disposition" in r["reason"]
+
+
+def test_verify_terminal_frames_rejects_disposition_mismatch(tmp_path):
+    # #975: a committed terminal whose disposition disagrees with its event is rejected.
+    j = tmp_path / "x.journal"
+    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
+                 '{"event":"completed","run_id":"r","disposition":"committed_indeterminate"}\n',
+                 encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and "disposition must be" in r["reason"]
+
+
+def test_verify_terminal_frames_rejects_terminal_missing_run_id(tmp_path):
+    # #975: claim/sealing/terminal must carry a run_id.
+    j = tmp_path / "x.journal"
+    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
+                 '{"event":"completed","disposition":"integrity_verified"}\n', encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and "missing run_id" in r["reason"]
+
+
+def test_run_b0_rejects_tampered_failed_terminal(tmp_path, monkeypatch):
+    # #975 P1 full-run canary: a same-inode co-writer flips the completed frame's event to
+    # 'failed' while keeping disposition=integrity_verified. The impossible pair must be
+    # rejected -> committed_indeterminate, NOT ok=True.
+    import p5_b0_run as mod
+    out = tmp_path / "b0_report.json"
+
+    def tamper(self, obj):
+        bad = dict(obj)
+        bad["event"] = "failed"                          # keep disposition=integrity_verified
+        line = (json.dumps(bad, sort_keys=True, allow_nan=False,
+                           ensure_ascii=True) + "\n").encode("utf-8")
+        mod._write_all(self._fd, line)
+        os.fsync(self._fd)
+        return "synced"
+
+    monkeypatch.setattr(mod._Journal, "write_terminal_frame", tamper)
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is False and res.terminal_state == "committed_indeterminate"
+    events = [json.loads(x) for x in
+              (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()]
+    assert events[-1]["event"] == "failed"               # tampered frame on disk, result rejected
+
+
 def test_verify_terminal_frames_rejects_event_after_sealing(tmp_path):
     # round-7 RESIDUAL-A: an injected non-terminal frame between sealing and the terminal frame
     # is rejected (the prefix digest, pre-sealing only, cannot see it).
@@ -669,9 +722,11 @@ def test_verify_terminal_frames_rejects_event_after_sealing(tmp_path):
     ('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n', "without a terminal"),
     ('{"event":"claim","run_id":"r"}\n{"event":"failed","run_id":"r"}\n'
      '{"event":"completed","run_id":"r"}\n', "more than one terminal"),
-    ('{"event":"claim","run_id":"r"}\n{"event":"completed","run_id":"r"}\n', "without a preceding 'sealing'"),
+    ('{"event":"claim","run_id":"r"}\n'
+     '{"event":"completed","run_id":"r","disposition":"integrity_verified"}\n',
+     "without a preceding 'sealing'"),
     ('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"x"}\n'
-     '{"event":"completed","run_id":"r"}\n', "run_id inconsistent"),
+     '{"event":"completed","run_id":"r","disposition":"integrity_verified"}\n', "run_id inconsistent"),
 ])
 def test_verify_terminal_frames_contract_violations(tmp_path, body, reason_sub):
     j = tmp_path / "x.journal"
