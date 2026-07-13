@@ -204,3 +204,20 @@ evidence supports that promotion.
   substrate is easier to review than an open-ended Python callable contract.
 - Evidence: Watercooler #987; commit `d9b64c4`;
   `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
+
+## 2026-07-14 - A Content Hash Is Not Its Own Authority
+
+- Status: active engineering lesson
+- Domain: reviewed artifacts / executable authority
+- Conditions: a governed loader accepts an artifact path plus a manifest digest from the
+  same runtime caller, then checks that the file bytes agree with that digest.
+- Finding: a caller can provide a temporary allowlist, arbitrary module bytes, and the
+  matching digest. Every hash check passes even though no reviewed authority selected the
+  artifact. A test-only dependency-injection seam exposed through the production entrypoint
+  therefore becomes an execution back door.
+- Lesson: anchor content hashes in an independent reviewed authority. Governed entrypoints
+  use one non-overridable artifact location or a resolvable signed receipt; test injection
+  lives below that boundary. Review references must fail closed while unresolved. For event
+  journals, bind exact frame schemas and cross-frame identity, not only event-name order.
+- Evidence: Watercooler #1000; commit `5ce85c6`;
+  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.

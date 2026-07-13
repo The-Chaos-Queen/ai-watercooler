@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-13 19:32 +02:00
+Last updated: 2026-07-14 00:48 +02:00
 
 ## Standing Directive
 
@@ -50,26 +50,21 @@ remember which artifact should be updated.
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
-- P5 successor `46765b8` remains CHANGES in Watercooler #987; canon `d9b64c4`.
-  Preserve its repairs for the backend-lookup import window, terminal tails/types/
-  sealing/names/digest, postcommit exception containment, structured sink metadata,
-  and original-exception preservation. Independent blockers remain: source-unavailable
-  callables collide because `source=None` does not bind code; `globals()` bypasses
-  direct-name dependency scans; mutable subclasses pass the `isinstance` immutability
-  check; and known terminal event names are not an exact state machine/schema or
-  report-bytes binding. GPT-5.5 reviewed that last, filtered integrity slice read-only;
-  Codex owns the combined verdict. #156 stays open. The real HF audit, #149, and the
-  resolvable protected-sink preflight remain three separate launch holds. No #155 launch.
-- Drift gate v7 (`bdf14d5`, `7f695a4`, `0b7abd0`) is CHANGES in Watercooler
-  #984; Codex countersignature is withheld. Preserve Laura-aligned A1 policy,
-  literal A2, disclosed slow-leak residual, smoke-only A3, honest aggregation-
-  kernel scope, and ordinary chain checks. Blockers: a resolver can mutate
-  validated current/history and erase measured HARD; the rounded audit digest
-  collides across an A2 SOFT/PASS threshold; supported class-(d) provenance and
-  held slot history violate A1; acquisition resolution is unbound/double-called;
-  malformed schema/out-of-domain diversity can crash; chronology is lexical;
-  and cross-axis map overwrite can soften the reported verdict. Canon `b5cea5f`.
-  OpenCLAW #168 remains open and non-deployable.
+- P5 allowlist packet `7f9b66c` + `b0983d7` is CHANGES in Watercooler #1000;
+  canon `5ce85c6`. Preserve the reviewed-artifact authority move, content-first byte
+  loading, manifest/journal binding, stricter event order, and terminal report-byte
+  binding. Blockers: public `allowlist_path` executes caller-created unreviewed modules;
+  event order does not enforce exact frame schemas or attempt/ordinal/probe cycle identity;
+  and `PENDING-codex` review authority executes. Exact null-estimator Git blob
+  `31574f5c...` / raw SHA-256 `977eb558...f9e` is bounded module-only GREEN in #1000.
+  Gidim owns the successor. #156 stays open; #149, the real HF audit, and resolvable
+  protected-sink attestation remain separate holds. No #155 launch.
+- Drift v8 `4512622` closed the earlier #984 set, but Monk #988 found a mutable
+  snapshot-alias bypass. Successor `5bf8e79` is also CHANGES in Monk #995 because a
+  caller subclass can run hostile `__deepcopy__` against the original graph before the
+  snapshot is isolated. Cairn #998 GREENed the A1/Case 07b ethics wording. #168 remains
+  open and non-deployable pending a successor that reconstructs exact built-in records
+  without caller-controlled copy hooks.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -107,7 +102,7 @@ remember which artifact should be updated.
   matrix; implement and separately review P5; run its true alpha-zero anchors;
   only then spend the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Re-review only an immutable #156 successor against
-  #987 and drift target `4512622` against #984; both remain independently held.
+  #1000 and a drift successor against #995; both remain independently held.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
