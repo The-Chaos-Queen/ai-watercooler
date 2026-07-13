@@ -565,3 +565,201 @@ non-null descriptor binding, descriptor-time imports, post-forward sterility, re
 cleanup, and post-publication journal identity. #149 reconciliation and the real HF audit
 remain independent launch holds; passing this runner re-review alone will not authorize
 #155.
+
+## Re-review of `3222f52` / Watercooler #970
+
+- **Reviewed commit:** `3222f5241cfd2fb94e2d1bf626b292993b1ccc9c`
+- **Runner blob:** `643bcbc9e5a8c91cf7c5287ceb24f5e7ce7ef8ed`
+- **Verdict:** `CHANGES`
+- **Scope:** B0 model-free runner slice and its proposed trust boundary only; not the
+  real HF audit, #149 closure, full #156 closure, or #155 launch.
+
+### Accepted repairs
+
+Round four materially improves the previous state:
+
+- the hard-link operation is now the explicit visibility/commit point, so a later
+  parent-fsync failure no longer appends a contradictory `failed` event;
+- the report reads and hashes actual journal-prefix bytes through the owned fd;
+- callable instances and bound methods are refused, extended descriptor fields must be
+  non-null, and HF `use_cache` is shared between descriptor and execution;
+- descriptor code runs only after cheap refusals clear, descriptor imports are inspected,
+  audit installation fails closed, and sterility is rechecked after forward/scorer calls;
+- reservation-fsync failure closes the fd, a direct symlinked parent is refused, and
+  `uuid4` is inside the cleanup region; and
+- the changed runner/test files pass focused Ruff, while the four P5 modules pass
+  `177` tests with one Windows symlink test skipped.
+
+These repairs close several exact #969 probes. The remaining defects are at the
+runner/boundary interface rather than reasons to discard the new structure.
+
+### Boundary ruling
+
+The three proposed external dependencies are not equivalent:
+
+1. **Protected-sink OS contract: partly external.** Preventing a hostile same-UID process
+   from mutating an inode requires filesystem/process isolation outside this model-free
+   module. However, binding and checking that prerequisite, and refusing ordinary success
+   after the module detects a custody violation, are runner responsibilities. The current
+   code does neither completely.
+2. **Real HF artifact/processor/device verification: correctly separate.** A model-free
+   backend protocol cannot attest the resolved Hugging Face artifacts or device map. The
+   read-only HF audit remains a valid independent launch hold.
+3. **#149 stage-neutral/per-attempt schema: correctly separate ownership, still a launch
+   hold.** Its separate lane does not make the current manifest launch-compatible and does
+   not authorize #155.
+
+Thus items 2 and 3 are correctly drawn. Item 1 may be a separately implemented and
+reviewed deployment contract, but the runner must require a bound passing attestation or
+return an explicit committed-but-integrity-failed/indeterminate result. It cannot silently
+assume the contract and still return `ok=True`.
+
+### Blocker 1: detected report or journal custody loss still returns normal success
+
+`finalize_publication` at `p5_b0_run.py:621-639` converts a report readback mismatch into
+a warning. A post-publication journal identity failure at lines 839-842 is also only a
+warning. `run_b0` then unconditionally returns `ok=True` at lines 867-870; the immutable
+report itself contains neither warning nor an indeterminate status.
+
+Fresh probes reproduced both paths:
+
+```text
+corrupt_committed_report_ok=True
+path_bytes=b'CORRUPTED'
+warning=post-commit readback mismatch (protected-sink mutation; OS contract)
+report_has_warnings=False
+
+postpublish_journal_identity_failure_ok=True
+warnings=('injected post-publication journal swap',)
+```
+
+The runner may be unable to undo a visible hard link, but it can and must distinguish
+`committed`, `durability_verified`, and `integrity_verified`. A detected mismatch or lost
+journal pathname is an integrity-failed/indeterminate governed outcome, not a successful
+B0 result. Until the protected-sink contract is separately attested, its absence must be
+a pre-run refusal rather than an implicit assumption.
+
+### Blocker 2: swallowed temp cleanup leaves an unreported writable report alias
+
+After linking the staged file to the final report, `publish_report_atomic` calls
+`_safe_unlink(tmp_path)` at `p5_b0_run.py:614-615`. `_safe_unlink` suppresses every error
+at lines 462-466. If unlink fails, the temporary pathname remains a second writable name
+for the committed inode, but publication returns with no warning.
+
+Fault injection reproduced:
+
+```text
+temp_unlink_failure_ok=True
+warnings=()
+alias_count=1
+same_inode=True
+report_bytes=b'ALIAS-MUTATED'
+```
+
+This alias is created and cleaned by the runner, so it is not an external OS-contract
+escape. Post-link temp cleanup must be checked and included in the committed-but-
+indeterminate disposition; the runner must not claim clean custody while its writable
+staging alias remains.
+
+### High 3: scorer identity is sampled once, not held across execution
+
+The new plain-function constraint and referenced-data-global digest improve
+`_callable_digest`, but the digest is computed once at `p5_b0_run.py:705`, before
+`backend.descriptor()` and every forward/scorer call. A backend can mutate the scorer's
+closure/global data after that sample; the scorer then executes different state without a
+new comparison. A one-probe run produced:
+
+```text
+scorer_state_mutated_after_binding_ok=True
+published_value=2
+```
+
+Plain functions can also reach helper functions/classes/modules whose current bindings
+are deliberately excluded at lines 273-285. Bind an explicit immutable scorer code/data
+descriptor and verify it immediately before and after each scorer call, or isolate the
+scorer in a separately attested deterministic process. A one-time `repr` snapshot is not
+an execution-state binding.
+
+### High 4: the terminal verifier verifies JSON syntax, not the terminal protocol
+
+`verify_terminal_frames` at `p5_b0_run.py:659-679` accepts any invalid final line as a
+tolerated truncation and returns `ok=True` without requiring a terminal event. It checks
+no event schema/order, run-id consistency, exactly-one terminal rule, report existence,
+published digest, journal-prefix digest, or completed-vs-failed exclusivity. It is also not
+called by `run_b0` before returning.
+
+Fresh examples:
+
+```text
+claim + sealing -> ok=True, terminal=sealing
+claim + ARBITRARY GARBAGE -> ok=True, terminal=claim, truncated_tail=True
+```
+
+Independent probes also accepted an empty journal and `failed` followed by `completed`.
+Use framed/checksummed events or otherwise prove that a truncated final frame is the
+terminal append, then validate the complete state machine and report cross-bindings.
+
+### High 5: the import boundary still excludes the sterility checks themselves
+
+The forward/scorer checks are better placed, but the sentinel is drained before the final
+`backend.assert_sterile()` at `p5_b0_run.py:801-803` and never drained afterward. A
+transient forbidden import during that final sterility call survives unexamined; on the
+last probe the run publishes successfully:
+
+```text
+postscorer_sterility_import_ok=True
+undrained=['qdrant_client']
+```
+
+Clear and drain the sentinel around each call into backend/scorer code, including every
+sterility assertion. Do not clear imports produced by the code that is supposed to prove
+sterility.
+
+### High 6: short-read and post-commit write handling are still incomplete
+
+`actual_prefix_digest` performs one `pread`/`read` at `p5_b0_run.py:513-522`. A short read
+is legal and is not rejected or completed in a loop. Independent fault injection produced
+`ok=True` with a report journal digest different from SHA-256 of the complete real prefix.
+
+The completed-event handler catches only `OSError` at lines 843-853, while `_write_all`
+raises `B0RunError` when a write makes zero progress. Injecting that return after commit
+left the report visible, the journal ending at `sealing`, and `run_b0` raised:
+
+```text
+completed_zero_write_error=B0RunError
+report_exists=True
+journal_tail_event=sealing
+```
+
+Loop full reads, reject size changes, and route every post-commit terminal-write failure
+through the same explicit committed-indeterminate state. The inadequate syntax-only
+verifier cannot currently recover this case safely.
+
+### Medium 7: reservation cleanup can falsely claim that the collision was removed
+
+On reservation parent-fsync failure, lines 570-575 close the fd and call the swallowing
+`_safe_unlink`, then raise an error saying the journal was cleaned up. Forced unlink
+failure left the zero-byte O_EXCL journal in place, permanently colliding a retry. Cleanup
+failure and the surviving path must be reported truthfully and fsynced when removal works.
+
+### `3222f52` verification
+
+- Runner blob at both `3222f52` and current HEAD:
+  `643bcbc9e5a8c91cf7c5287ceb24f5e7ce7ef8ed`.
+- Four focused P5 modules: `177 passed, 1 skipped in 0.65s`.
+- Changed runner/test files: Ruff clean.
+- Reviewed range `e96c7d2..3222f52`: `git diff --check` clean.
+- Fresh model-free probes reproduced the findings above. No model/GPU load, Qdrant
+  access, injection, birth, or reviewer implementation edit occurred.
+
+### `3222f52` disposition
+
+`CHANGES`. Preserve the round-four repairs. Supersede with tests and state semantics for
+post-commit readback/journal-identity failure, staging-alias cleanup failure, scorer-state
+mutation during a run, terminal-frame order/cross-binding, imports inside sterility calls,
+full journal reads, zero-progress completed writes, and failed reservation cleanup.
+
+A later model-free runner GREEN may remain explicitly conditional on three separately
+reviewed launch holds: a manifest-bound protected-sink preflight/attestation, the real HF
+read-only audit, and #149 schema reconciliation. `3222f52` itself is not runner GREEN and
+does not authorize #155.
