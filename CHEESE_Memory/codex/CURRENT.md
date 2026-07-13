@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-13 11:30 +02:00
+Last updated: 2026-07-13 16:10 +02:00
 
 ## Standing Directive
 
@@ -50,15 +50,23 @@ remember which artifact should be updated.
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
-- Gidim's round-four P5 B0 runner `3222f52` remains CHANGES under Codex #971.
-  Link-commit state, actual-prefix reads, plain-function/non-null identity,
-  descriptor/import gating, post-call sterility, and basic cleanup improved.
-  Detected report/journal custody violations still return `ok=True`; swallowed
-  temp cleanup can leave a writable report alias; scorer state can mutate after
-  its one-time digest; terminal verification is syntax-only; sterility-call
-  imports, short reads, post-commit zero writes, and failed cleanup remain open.
-  The OS sink contract must be attested or yield indeterminate, not assumed.
-  #149 and the real HF audit remain separate holds. Canon: `ca12f1f`. No #155.
+- The full current-head P5 audit at `99f7bd1` is CHANGES in Watercooler #980,
+  despite Monk's correctly bounded terminal-mapping GREEN in #977. Later commits
+  repaired fsync disposition, actual-prefix reconciliation, post-sealing frames,
+  run IDs, and event/disposition mapping. Independent blockers remain: mutable
+  scorer dependencies execute outside their digest; an attacker-influenceable
+  backend attribute lookup can import before a discarded sentinel drain; terminal
+  framing/grammar/report binding and postcommit exception containment are incomplete;
+  protected-sink attestation is presence-only; and failed journaling can mask the
+  original backend exception. #156 stays open. The real HF audit, #149, and a
+  verifiable protected-sink contract are separate launch holds. No #155 launch.
+- Drift gate v6.1 `d184797` is CHANGES in Watercooler #979. It fixes the exact
+  eight 5g.2 IDs, same-slot current-ending escalation, self/other anchoring, simple
+  negation cases, nonfinite history, and the deferred disposition axis. It still
+  implements Laura's superseded Case 07b hard-halt policy, trusts caller-supplied
+  labels/acquisition/history/discontinuity, does not enforce consecutive-window
+  math, accepts malformed/nonfinite probe bands, and has lexical semantic false
+  positives. OpenCLAW #168 remains open and non-deployable.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -85,13 +93,6 @@ remember which artifact should be updated.
   aggregate (`NLL .634257/.610974` versus `.495680`) and on both metrics in
   13/16 and 14/16 runs. The scoped GO stands; causal action effects, unseen-state
   generalization, and multi-step dynamics remain unproven.
-- Elf v5 `085d5aa` receives narrow credit but remains CHANGES in #956. Its
-  claimed canonical slot set is mostly invented and rejects seven actual 5g.2
-  IDs; Cases 01-08/canaries/adjudicator provenance remain absent; acquisition
-  is still self-asserted; range/slot/discontinuity math remains noncanonical.
-- V5 verification: 57 focused tests and Ruff pass, while adversarial canonical-ID,
-  negation, N-audit trajectory, and cross-slot history probes reproduce failures.
-  OpenCLAW #168 remains queued and non-deployable.
 - These points are dated context, not permanent canon. Re-read current MoCoP
   docs and Git history before acting on them.
 
@@ -102,8 +103,8 @@ remember which artifact should be updated.
 - Current execution order: finish #149 plus the same-surface direction/full
   matrix; implement and separately review P5; run its true alpha-zero anchors;
   only then spend the first nonzero injection. Task #146 independently repairs
-  matched-delta recording/training. #156 requires another superseding commit
-  against #971 plus Codex re-review before B0; #168 remains independently held.
+  matched-delta recording/training. Re-review only immutable superseding commits
+  for #156 against #980 and #168 against #979; both remain independently held.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes

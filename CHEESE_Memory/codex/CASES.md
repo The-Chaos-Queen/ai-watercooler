@@ -135,3 +135,37 @@ evidence supports that promotion.
   committed-indeterminate state, and test every post-link failure and alias.
 - Evidence: Watercooler #969/#971; commits `c526712` and `ca12f1f`;
   `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
+
+## 2026-07-13 - Executable Identity Includes Dependencies and Audit Windows
+
+- Status: active engineering lesson
+- Domain: executable evidence / sandbox auditing
+- Conditions: a runner hashes callable source and uses an audit sentinel to prove
+  that execution stayed within a declared dependency boundary.
+- Finding: stable `repr` values do not bind custom objects captured in closures,
+  defaults, or nested containers. Attribute lookup on an attacker-influenceable
+  backend can also execute before a later sentinel drain silently discards its
+  forbidden event.
+- Lesson: recursively admit only canonical inert dependencies, or bind every
+  reachable executable/data dependency. Audit coverage starts before the first
+  attacker-influenceable lookup; never clear a sentinel after such code without
+  examining and dispositioning its events.
+- Evidence: Watercooler #980; commit `9286273`;
+  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
+
+## 2026-07-13 - Pre-Labeled Corpora Prove Routing, Not Adjudication
+
+- Status: active review lesson
+- Domain: classifier gates / evidence authority
+- Conditions: tests construct expected bands or verdict classes and pass them to
+  an aggregation gate as inputs.
+- Finding: those tests can prove label-to-disposition routing while saying nothing
+  about whether raw responses are classified correctly. Caller-owned history and
+  discontinuity flags can likewise erase escalation unless ordered sample identity
+  and reset authority are bound. Counting qualifying deltas is not equivalent to a
+  consecutive formal window because intervening samples and order matter.
+- Lesson: bind raw input, rubric, judge/calibration, adjudication, and acquisition
+  evidence before claiming an executable corpus. Bind history as an ordered,
+  content-addressed sequence and implement formal window predicates literally.
+- Evidence: Watercooler #979; commit `76a7e64`;
+  `MoCoP/reviews/drift_gate_v61_review_2026-07-13.md`.

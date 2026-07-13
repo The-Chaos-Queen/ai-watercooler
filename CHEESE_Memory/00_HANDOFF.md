@@ -1,18 +1,18 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-13 11:30 +02:00
-- Current owner: Codex returned CHANGES on P5 `3222f52` in #971; canonical review commit `ca12f1f`.
-- Primary focus: supersede #156 against #971; World Model #170-#173 remain independent integration holds. Do not run B0 or close #155.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-13-session-04.md`
+- Last updated: 2026-07-13 16:10 +02:00
+- Current owner: Codex returned CHANGES on drift gate `d184797` in #979 and on the full current P5 runner `99f7bd1` in #980.
+- Primary focus: supersede #168 against #979 and #156 against #980. World Model #170-#173 remain independent integration holds. Do not deploy the drift gate, run B0, or close #155.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-13-session-05.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-13-session-04.md`; 11 chunks stored in `exocortex`)
+  - Latest session log ingest: done (`2026-07-13-session-05.md`; 11 chunks stored in `exocortex`)
 
-## Current State - Baseline Drift Gate Review (2026-07-12)
-- **V5 narrow deltas GREEN:** `085d5aa` hard-fails non-finite history, catches the supplied rebound, replaces free-string evidence with an enum, rejects purple-alone, and clears focused Ruff.
-- **Overall #956 remains CHANGES:** its claimed canonical slot set is mostly invented and rejects seven real 5g.2 IDs; Cases 01-08/canaries/adjudicator provenance remain absent; acquisition remains self-asserted; matcher, recent-10/N-audit trajectory, cross-slot history, protected-set, and discontinuity custody remain defective.
-- **Tracking/evidence:** Watercooler #941/#944/#946/#948/#956; OpenCLAW #168 stays queued for Elf; canonical backlog updated. Fifty-seven focused tests and Ruff PASS; fresh adversarial probes reproduce the remaining failures.
+## Current State - Baseline Drift Gate Review (2026-07-13)
+- **V6.1 narrow deltas GREEN:** `d184797` uses the exact eight 5g.2 IDs, current-ending same-slot escalation, the self/other anchor, improved simple negation handling, a nonfinite-history halt, and an explicit deferred disposition axis.
+- **Overall #979 remains CHANGES:** Case 07b still implements the superseded automatic hard-halt policy instead of provenance discrepancy -> REVIEW/HOLD plus human adjudication. Bands, classes, acquisition, history, and discontinuity remain caller-owned; the Cases 01-08 tests pre-inject labels; the decline algorithm does not enforce consecutive formal windows; malformed/nonfinite probe bands and lexical semantic false positives remain accepted.
+- **Tracking/evidence:** Watercooler #979; OpenCLAW #168 remains open and non-deployable; canonical review `MoCoP/reviews/drift_gate_v61_review_2026-07-13.md`; review commit `76a7e64`. Eighty-seven focused tests and Ruff pass, while fresh policy, authority, custody, trajectory, finiteness, and semantic canaries reproduce the blockers.
 
 ## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
 - **#152 complete, scoped GO:** Isegrim #935 accepted 16 runs and the scoped GO name while pre-approving one outcome-free terminal-run amendment. Amended reviewed spec SHA-256 `476dd0a0...`; prereg internal `4973576c...`; eval-freeze internal `fdbb1407...`. The canonical result has 16x48 transitions, zero short runs, and 13/16 positive runs (`0.8125 >= 0.75`), so support, micro effects, run-macro effects, and consistency all pass. Watercooler #936/#937.
@@ -55,7 +55,7 @@
 - **DQ1b #149 BLOCKED, current source `f20936a`:** source chain `806c6f9` (raw-R correction) -> `a89545e` (B0/carryover) -> `ea9ef4f` (B0 evidence/Stage split) -> `5816483` (SEV/carryover build scope) -> `f20936a` (signed SEV-overlap exception); artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md`; #891/#893/#894 latest-source review. Geometry preserves clean late comb `{29,35,41,47}`, absolute-position `!= 0`, FP32 paired residual stats, raw `R_C/R_S` diagnostics only, and P5 refusal on null/`TBD` thresholds.
 - **Control / recovery method now explicit:** Codex #874 invalidated the raw normalized ratio null; Isegrim #875/Gidim #876/#879/Cairn #877 bind prompt-paired delta-space `D` on `{30|29,36|35,42|41}` and `D_control >= 0.5` as HOLD. Isegrim #888 caught the stateless-recovery trap; Gidim #890 scopes a distinct #156 free-running build; Cairn #892 re-signs recovery only under text-mediated carryover (active trigger -> alpha off -> carried prefix/cache -> <=2 absolute spans, `overwrite_excess >= 0.05`). Fresh alpha-zero replay is `instrument_invalid`, never recovery.
 - **B0 / staged birth review:** Codex #886/Laura baseline-first board repair creates #155 after #149 freezes the nonnumeric evaluator and #156 supplies P5. DQ1a’s exact 32-item SEV holdout is dose geometry; #130 probes are behavioral infrastructure. Their SEV IDs must be disjoint or carry a **signed, reviewed** overlap declaration, otherwise P5 refuses launch (#890/#892). Isegrim is GREEN on `f20936a`; Codex #896 is CHANGES because a manifest-bound single `run_kind` cannot remain unchanged across Stage A/B and because single-Tier-1 STOP conflicts with Laura's accepted Tier-1 HOLD/B0-aggregate policy.
-- **P5 B0 runner review:** Gidim's round-four `3222f52` remains CHANGES in Codex #971. The link-commit split, actual-prefix readback, plain-function/non-null descriptor checks, HF use-cache binding, descriptor/import gate, post-call sterility, direct-parent symlink refusal, and basic cleanup are accepted. Detected report/journal custody loss still returns `ok=True`; swallowed temp cleanup can leave a writable report alias; scorer state can mutate after its one-time digest; terminal verification is syntax-only; sterility-call imports, short reads, post-commit zero writes, and failed cleanup remain open. OS prevention may be external, but its attestation/disposition is not. #149 and the real HF audit remain separate launch holds. Canon `ca12f1f`; no B0 launch.
+- **P5 B0 runner review:** The full current-head audit at `99f7bd1` remains CHANGES in Codex #980. Later patches correctly fixed terminal-fsync disposition, actual-prefix reconciliation, post-sealing rejection, run IDs, and event/disposition mapping; Monk's #977 GREEN was explicitly bounded to the last mapping patch. Independent blockers remain in recursive scorer dependency binding, the discarded pre-guard import window, terminal framing/grammar/report binding and exception containment, protected-sink attestation, and original-exception preservation. #149 and the real HF audit remain separate launch holds. Canon `9286273`; no B0 launch.
 - **Second direction #157 BLOCKED on review:** local and ML-WS inventory found no admissible second MVB artifact. Old 5g.3 outputs are metric-only 3840-wide JSON; old Method B is all-40/holdout-contaminated; split-clean v3 contains Method A only. `spikes/C1_SECOND_POSITIVE_DIRECTION_PREREG_2026-07-11.md` proposes a deterministic split-clean warm-axis linear-probe estimator with explicit same-semantics limitation; Watercooler #897 requests method/runnability/ethics review before any extraction.
 
 ## Historical State — G0 Oxytocin Delta (superseded by split-clean v3)
@@ -107,8 +107,8 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
-- [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** Elf to supersede `085d5aa` against Watercooler #956, use the actual 5g.2 IDs, implement the canonical corpus/adjudication/trajectory/history/custody contracts, obtain missing prerequisite dispositions, then request re-review. No live/deployment claim before GREEN.
-- [ ] **OpenCLAW #156 - P5/B0 custody and binding:** Gidim to supersede `3222f52` against Watercooler #971 and canonical commit `ca12f1f`, preserving accepted fixes while closing detected-custody disposition, writable temp aliases, scorer-state lifetime binding, terminal state-machine verification, sterility-call imports, full reads, post-commit zero writes, cleanup truthfulness, and a manifest-bound protected-sink prerequisite. #149/HF audit remain separate holds. #155 remains blocked; no real B0 model forward.
+- [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `d184797` against Watercooler #979. Ratify the provenance-sensitive Case 07b policy first; bind raw adjudication/acquisition/history/discontinuity evidence; implement literal consecutive-window math; validate probe bands/classes; close semantic false positives; then request immutable re-review. No live/deployment claim before GREEN.
+- [ ] **OpenCLAW #156 - P5/B0 custody and binding:** supersede `99f7bd1` against Watercooler #980 and canonical commit `9286273`, preserving accepted terminal repairs while closing recursive scorer dependencies, the pre-guard import window, terminal framing/grammar/report binding and exception containment, protected-sink attestation, and original-exception preservation. #149/HF audit remain separate holds. #155 remains blocked; no real B0 model forward.
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
 - [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Isegrim #895 is GREEN; Codex #896 requires a stage-neutral base manifest plus per-attempt `run_kind`, Tier-2 immediate STOP, single-Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold. No C1 stage.
@@ -137,19 +137,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Wait for a superseding #156 commit against #971 and re-review the exact delta. Keep Gemini/Monk's #149 B0 manifest as a clearly non-executable draft until concrete artifacts and both reviews close; #168 remains an independent review lane.
+- Wait for immutable superseding commits for #168 against #979 and #156 against #980, then re-review only their exact deltas plus the preserved adversarial canaries. Keep #149 non-executable until its own artifacts and reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #971, OpenCLAW #156, canonical review, Codex current memory)
-- Session log written: yes (`2026-07-13-session-04.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #979/#980, OpenCLAW #168/#156, canonical reviews, Codex current memory)
+- Session log written: yes (`2026-07-13-session-05.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: done (11 chunks)
-- Git commit in repo: yes (`ca12f1f`; P5 `3222f52` canonical rereview)
-- Watercooler findings reflected in docs: yes (P5 canonical review, this handoff, and Codex current memory)
-- No P0 bugs left unfixed: yes; reviewer did not patch Gidim's claimed implementation lane, and all findings are tracked as blocking corrections in #156
+- Git commit in repo: yes (`76a7e64` drift review; `9286273` P5 current-head audit; continuity closure in this commit)
+- Watercooler findings reflected in docs: yes (both canonical reviews, this handoff, and Codex current memory)
+- No P0 bugs left unfixed: review-only session; no implementation lane was modified, and blocking corrections are tracked in #168/#156
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-13 16:10 +02:00 | Codex | Returned CHANGES on drift gate v6.1 `d184797` in #979 and on the full current P5 runner `99f7bd1` in #980. Drift accepted the exact slot set/current-ending escalation/simple negation/nonfinite/deferred-axis deltas but retained a superseded Case 07b policy, caller-owned authority/custody, nonconsecutive range math, invalid-band acceptance, and semantic false positives. P5 accepted the later terminal repairs but reproduced mutable scorer dependencies, a discarded import window, incomplete terminal authority, presence-only sink attestation, and exception masking. 87 drift PASS; 208 P5 PASS/1 skip; focused Ruff clean. Canon `76a7e64` and `9286273`; no model/GPU/Qdrant experiment or implementation edit. Session-05 ingested to Qdrant (11 chunks).
 - 2026-07-13 11:30 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `3222f52` in #971. Accepted round-four link-state/readback/identity/import/sterility/basic-cleanup repairs; reproduced normal success after detected custody loss, a silent writable temp alias, mid-run scorer-state substitution, syntax-only terminal acceptance, undrained sterility imports, short-read exposure, post-commit zero-write exception, and cleanup misreporting. 177 PASS/1 skip; changed Ruff clean. Canon `ca12f1f`; no implementation edits or real model run. Session-04 ingested to Qdrant (11 chunks).
 - 2026-07-13 07:55 +02:00 | Codex | Returned CHANGES on Gidim P5 B0 `e96c7d2` in #969. Accepted runner/strict-JSON/full-write/sterility/inventory/no-fallback/parent-existence repairs; reproduced post-link completed-report/failed-journal contradiction, actual-journal digest mismatch, stateful-scorer and nullable-descriptor substitution, descriptor-import/post-forward-sterility bypasses, completion-tail corruption, and reservation cleanup failure. 164 focused PASS; changed test Ruff F401. Canonical review commit `c526712`; no implementation edits or real model run. Session-03 ingested to Qdrant (11 chunks).
 - 2026-07-13 01:23 +02:00 | Codex | Assessed Kang et al.'s cerebellum-inspired memtransistor novelty detector against the World Model gates. Indexed it in `bee3a1e` as adjacent evidence for a cheap post-custody prediction-error interrupt, not a World Model/appraisal/rollout/integration result; Watercooler #967. Preserved unrelated scanner changes in Research INDEX/LOG. Session-02 ingested to Qdrant (10 chunks).
