@@ -71,7 +71,7 @@ REQUIRED_B0_KEYS = frozenset({
 _MODEL_KEYS = ("id", "revision", "dtype")
 _PINNED_BLOCKS = {
     "panel": ("hash",),
-    "scorer": ("version",),
+    "scorer": ("scorer_id", "version", "allowlist_digest"),
     "rubric": ("version",),
     "processor": ("revision",),
     "decoding": ("hash",),

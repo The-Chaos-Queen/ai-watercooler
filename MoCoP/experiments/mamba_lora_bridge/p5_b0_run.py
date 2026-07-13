@@ -9,9 +9,10 @@ review of record #966 (MoCoP/reviews/p5_b0_runner_review_2026-07-12.md). Turns
     forward AND scorer, plus a process-wide import-audit sentinel that catches a component
     imported-and-removed transiently inside a single forward,
   * MANDATORILY bind every executed input with DERIVED hashes: panel, backend descriptor
-    (incl. backend/device/attention/use_cache), a closure-aware scorer digest, the derived
-    decoding hash, rubric/processor/runtime, and the runner's OWN source digest against an
-    authorized manifest value,
+    (incl. backend/device/attention/use_cache), the reviewed scorer loaded CONTENT-FIRST from a
+    committed allowlist (spec P5_B0_SCORER_ALLOWLIST — identity is a review property, not a
+    runtime one), the derived decoding hash, rubric/processor/runtime, and the runner's OWN
+    source digest against an authorized manifest value,
   * require a bound sterility contract on the backend (no optional bypass),
   * publish via a two-phase terminal transaction: an O_EXCL append-only journal whose
     pathname identity is inode-verified, a no-replace atomic report publication with byte
@@ -240,64 +241,6 @@ def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-# A B0 scorer may capture/reference only DEEPLY IMMUTABLE values (#980 scorer BLOCKER).
-# repr() is NOT identity: a mutable object with the default address-based repr (or a mutable
-# container holding such an object) keeps a stable repr while its state changes, so binding by
-# repr is blind to the mutation. Immutable values have no such gap — their repr IS their value.
-_IMMUTABLE_ATOMS = (bool, int, float, str, bytes, type(None))
-
-
-def _is_deeply_immutable(value: Any) -> bool:
-    if isinstance(value, _IMMUTABLE_ATOMS):
-        return True
-    if isinstance(value, (frozenset, tuple)):
-        return all(_is_deeply_immutable(v) for v in value)
-    return False                                            # list/dict/set/instance/module/etc
-
-
-def _callable_digest(fn: Callable[..., Any]) -> str:
-    """Derive a scorer identity from source + closure + defaults + referenced DATA globals.
-
-    Two callables that differ in source, captured closure state, default args, OR the
-    current value of any module-level DATA global they read get different digests (#966
-    BLOCKER-3). Code globals (modules/functions/classes/builtins) are excluded — they are
-    identity already captured by source, and their ``repr`` is not process-stable. This does
-    not make behavior fully decidable (a function can reach state transitively), which is
-    why the scorer is ALSO constrained to a plain reviewed function; but it closes the named
-    mutable-global / data-dependency collision so a mutated global re-derives a new digest
-    that no longer matches the manifest's pinned ``scorer.code_digest``.
-    """
-    parts: dict[str, Any] = {
-        "module": getattr(fn, "__module__", None),
-        "qualname": getattr(fn, "__qualname__", None),
-        "defaults": repr(getattr(fn, "__defaults__", None)),
-        "kwdefaults": repr(getattr(fn, "__kwdefaults__", None)),
-    }
-    try:
-        parts["source"] = inspect.getsource(fn)
-    except (OSError, TypeError):
-        parts["source"] = None
-    closure = getattr(fn, "__closure__", None)
-    if closure:
-        cells = []
-        for cell in closure:
-            try:
-                cells.append(repr(cell.cell_contents))
-            except ValueError:
-                cells.append("<empty-cell>")
-        parts["closure"] = cells
-    code = getattr(fn, "__code__", None)
-    g = getattr(fn, "__globals__", {})
-    if code is not None:
-        referenced: dict[str, str] = {}
-        for name in getattr(code, "co_names", ()):
-            if name in g and _is_deeply_immutable(g[name]):     # repr of an immutable IS its value
-                referenced[name] = repr(g[name])
-        if referenced:
-            parts["referenced_globals"] = referenced
-    return canonical_digest(parts)
-
-
 def _runner_digest() -> str:
     try:
         return canonical_digest(Path(__file__).read_text(encoding="utf-8"))
@@ -305,54 +248,133 @@ def _runner_digest() -> str:
         return "unknown"
 
 
-def _scorer_selfcontained_refusals(fn: Callable[..., Any]) -> list[str]:
-    """Refuse a scorer that captures/reaches state the digest cannot soundly bind (#980).
+# --------------------------------------------------------------------------- #
+# Reviewed-scorer allowlist (the authority move, spec P5_B0_SCORER_ALLOWLIST).  #
+# --------------------------------------------------------------------------- #
+# Nine review rounds (#960->#980->#987) proved the same theorem-shaped fact: you cannot
+# cryptographically bind the identity of an ARBITRARY caller-supplied Python callable
+# (getsource fails on eval'd code; globals()/getattr route around a co_names scan; isinstance
+# admits stateful subclasses; __class__ swaps / sys.modules shadowing / TOCTOU wait behind
+# those). Identity is not a runtime property in this language — it is a REVIEW property. So B0
+# stops verifying arbitrary code and only runs REVIEWED, content-hash-pinned scorers. For a
+# read-only baseline the scorer is a fixed null-estimator by definition; there is no legitimate
+# caller-supplied scorer. This collapses the entire scorer-binding review class.
+SCORER_ALLOWLIST_SCHEMA = "b0_scorer_allowlist_v1"
+DEFAULT_ALLOWLIST_PATH = Path(__file__).with_name("scorer_allowlist.json")
 
-    A B0 scorer must be SELF-CONTAINED over DEEPLY IMMUTABLE state: every module-level name it
-    references, every closure cell it captures, and every default argument must be deeply
-    immutable. Mutable containers, class/module/instance references, and helpers are refused —
-    they carry state a ``repr`` digest cannot detect a change in (repr is not identity). With
-    only immutable captured state there is nothing to mutate mid-run, so the digest binding is
-    sound. Builtins (``len``) live in ``builtins``, not the module ``__globals__``, so they are
-    unaffected. Pre-attested pure helpers would need an explicit allowlist.
+
+def _repo_root() -> Path:
+    """Repo root, from which committed allowlist ``module_path`` values are resolved.
+
+    The runner lives at ``<root>/MoCoP/experiments/mamba_lora_bridge/p5_b0_run.py``; the
+    committed allowlist stores repo-relative module paths (e.g.
+    ``MoCoP/experiments/mamba_lora_bridge/b0_scorers/null_estimator.py``). Absolute paths in an
+    entry (e.g. a test fixture's temp module) are used as-is; relative ones resolve against here.
     """
-    code = getattr(fn, "__code__", None)
-    g = getattr(fn, "__globals__", {})
-    if code is None:
-        return ["scorer has no __code__ (cannot bind its behavior)"]
-    refusals: list[str] = []
-
-    bad_globals = sorted({name for name in code.co_names
-                          if name in g and not _is_deeply_immutable(g[name])})
-    if bad_globals:
-        refusals.append(
-            f"scorer references module-level name(s) {bad_globals} whose value is not deeply "
-            "immutable; a B0 scorer may reference only builtins and immutable own data "
-            "(mutable containers / helpers / classes / modules / instances carry unbindable "
-            "state — repr is not identity).")
-
-    bad_cells = [i for i, cell in enumerate(getattr(fn, "__closure__", None) or ())
-                 if _cell_is_mutable(cell)]
-    if bad_cells:
-        refusals.append(
-            f"scorer closure captures mutable/unbindable state at cell(s) {bad_cells}; a B0 "
-            "scorer may close over only deeply-immutable values.")
-
-    defaults = list(getattr(fn, "__defaults__", None) or ())
-    defaults += list((getattr(fn, "__kwdefaults__", None) or {}).values())
-    if any(not _is_deeply_immutable(d) for d in defaults):
-        refusals.append(
-            "scorer has a non-immutable default argument; use only immutable defaults so "
-            "captured state cannot mutate mid-run.")
-
-    return refusals
+    return Path(__file__).resolve().parents[3]
 
 
-def _cell_is_mutable(cell: Any) -> bool:
+def load_allowlisted_scorer(
+    manifest: Mapping[str, Any], allowlist_path: Path | None = None,
+) -> tuple[Callable[..., Any] | None, dict[str, Any], list[str]]:
+    """Content-first load of the reviewed scorer named by ``manifest.scorer`` (spec §4).
+
+    Returns ``(scorer_fn, binding, refusals)``. NEVER imports by name — ``sys.path``/
+    ``sys.modules`` could hand back a different module than the one hashed. Instead: read the
+    allowlist bytes, canonically digest the parsed object and require it to equal the manifest's
+    ``scorer.allowlist_digest``; find the entry by ``scorer_id``+``version`` (NO unlisted
+    fallback, no back door); read the module FILE bytes and require their sha256 to equal the
+    entry ``blob_sha256``; then ``compile`` + ``exec`` those verified bytes in a FRESH isolated
+    namespace and resolve the entrypoint, refusing anything but a plain function. Any failure is
+    a pre-run refusal (empty fn, no forwards). The import sentinel is drained after exec: a
+    reviewed scorer imports nothing, so an import during load is a review-contract violation.
+    """
+    allowlist_path = Path(allowlist_path) if allowlist_path is not None else DEFAULT_ALLOWLIST_PATH
+    scorer_block = manifest.get("scorer", {})
+    if not isinstance(scorer_block, Mapping):
+        return None, {}, ["manifest scorer block missing or not a mapping"]
+    want_id = scorer_block.get("scorer_id")
+    want_version = scorer_block.get("version")
+    want_allowlist_digest = scorer_block.get("allowlist_digest")
+
     try:
-        return not _is_deeply_immutable(cell.cell_contents)
-    except ValueError:                                          # empty cell: nothing captured
-        return False
+        raw = allowlist_path.read_bytes()
+    except OSError as exc:
+        return None, {}, [f"scorer allowlist unreadable at {allowlist_path}: {exc}"]
+    try:
+        allow_obj = json.loads(raw)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        return None, {}, [f"scorer allowlist is not valid JSON: {exc}"]
+    try:
+        allowlist_digest = canonical_digest(allow_obj)
+    except (TypeError, ValueError) as exc:
+        return None, {}, [f"scorer allowlist is not canonicalizable: {exc}"]
+
+    if not want_allowlist_digest:
+        return None, {}, ["manifest scorer.allowlist_digest is unset; scorer authority is unbound"]
+    if allowlist_digest != want_allowlist_digest:
+        return None, {}, [
+            f"scorer allowlist digest {allowlist_digest[:12]}.. != manifest "
+            f"scorer.allowlist_digest {str(want_allowlist_digest)[:12]}.. (unbound allowlist)"]
+
+    if not isinstance(allow_obj, Mapping) or allow_obj.get("schema_version") != SCORER_ALLOWLIST_SCHEMA:
+        return None, {}, [f"scorer allowlist schema_version is not {SCORER_ALLOWLIST_SCHEMA!r}"]
+    entries = allow_obj.get("scorers")
+    if not isinstance(entries, list):
+        return None, {}, ["scorer allowlist 'scorers' is missing or not a list"]
+    entry = next(
+        (e for e in entries if isinstance(e, Mapping)
+         and e.get("scorer_id") == want_id and e.get("version") == want_version),
+        None,
+    )
+    if entry is None:
+        return None, {}, [
+            f"no allowlisted scorer for id={want_id!r} version={want_version!r} "
+            "(deny-by-default: no unlisted scorer, no hashed fallback)"]
+
+    module_path = entry.get("module_path")
+    blob_sha256 = entry.get("blob_sha256")
+    entrypoint = entry.get("entrypoint")
+    if not isinstance(module_path, str) or not module_path:
+        return None, {}, ["allowlist entry module_path missing"]
+    if not _is_sha256(blob_sha256):
+        return None, {}, ["allowlist entry blob_sha256 missing or not a sha256"]
+    if not isinstance(entrypoint, str) or not entrypoint:
+        return None, {}, ["allowlist entry entrypoint missing"]
+
+    resolved = Path(module_path)
+    if not resolved.is_absolute():
+        resolved = _repo_root() / module_path
+    try:
+        module_bytes = resolved.read_bytes()
+    except OSError as exc:
+        return None, {}, [f"allowlisted scorer module unreadable at {resolved}: {exc}"]
+    actual_blob = _sha256_bytes(module_bytes)
+    if actual_blob != blob_sha256:
+        return None, {}, [
+            f"scorer module sha256 {actual_blob[:12]}.. != allowlist blob_sha256 "
+            f"{str(blob_sha256)[:12]}.. (module content is not the reviewed bytes)"]
+
+    namespace: dict[str, Any] = {}
+    try:
+        exec(compile(module_bytes, str(resolved), "exec"), namespace)  # NEVER import — content-first
+    except Exception as exc:  # noqa: BLE001 - any load fault is a pre-run refusal
+        return None, {}, [f"allowlisted scorer module failed to load: {type(exc).__name__}: {exc}"]
+    load_imports = _drain_import_sentinel()
+    if load_imports:
+        return None, {}, [
+            "component IMPORTED during scorer module load (a reviewed scorer imports nothing): "
+            + "; ".join(load_imports)]
+
+    fn = namespace.get(entrypoint)
+    if not inspect.isfunction(fn):
+        return None, {}, [f"scorer entrypoint {entrypoint!r} did not resolve to a plain function"]
+
+    binding = {
+        "scorer_id": want_id, "version": want_version, "blob_sha256": blob_sha256,
+        "allowlist_digest": allowlist_digest, "review_ref": entry.get("review_ref"),
+    }
+    return fn, binding, []
 
 
 # --------------------------------------------------------------------------- #
@@ -434,11 +456,10 @@ def _is_sha256(value: Any) -> bool:
 
 def _bind_execution_to_manifest(
     manifest: Mapping[str, Any], panel: Sequence[tuple[str, str]],
-    descriptor: Mapping[str, Any], scorer: Scorer | None, scorer_version: str | None,
+    descriptor: Mapping[str, Any],
     rubric_version: str | None, processor_revision: str | None,
     decoding_hash: str | None, runtime_hash: str | None,
-    effective_decoding: Mapping[str, Any], scorer_digest: str | None,
-    sterile_bound: bool,
+    effective_decoding: Mapping[str, Any], sterile_bound: bool,
 ) -> list[str]:
     """Refuse unless EVERY executed input is present and matches the authorized manifest."""
     refusals: list[str] = []
@@ -478,34 +499,9 @@ def _bind_execution_to_manifest(
     elif actual_runner != declared_runner:
         refusals.append("runner_digest mismatch: this runner is not the authorized one")
 
-    # Scorer: mandatory, version-bound, closure-aware code-digest-bound.
-    scorer_block = manifest.get("scorer", {})
-    if scorer is None:
-        refusals.append("a scorer is mandatory for a governed B0 run (none supplied)")
-    elif not inspect.isfunction(scorer):
-        # #966 BLOCKER-3: a code digest cannot bind arbitrary callable behavior. Constrain
-        # the scorer to a plain function so source + closure + defaults + referenced data
-        # globals bind its behavior; callable instances / functools.partial / bound methods
-        # carry unbindable runtime state.
-        refusals.append(
-            "scorer must be a plain function (callable instances / functools.partial / "
-            "bound methods carry runtime state a code digest cannot bind)"
-        )
-    else:
-        refusals.extend(_scorer_selfcontained_refusals(scorer))   # no transitive-state helpers
-        if scorer_version != scorer_block.get("version"):
-            refusals.append(
-                f"scorer_version {scorer_version!r} != manifest scorer.version "
-                f"{scorer_block.get('version')!r}"
-            )
-        declared_scorer_code = scorer_block.get("code_digest")
-        if not declared_scorer_code:
-            refusals.append("manifest scorer.code_digest is unset; scorer code is unbound")
-        elif scorer_digest != declared_scorer_code:
-            refusals.append(
-                f"derived scorer code_digest {str(scorer_digest)[:12]}.. != manifest "
-                f"scorer.code_digest {str(declared_scorer_code)[:12]}.."
-            )
+    # Scorer identity is owned by the content-first allowlist loader (spec §3-§4), not this
+    # binding: there is no caller-supplied scorer to introspect. The manifest scorer block
+    # (scorer_id/version/allowlist_digest) is verified there, deny-by-default.
 
     # Decoding: derived hash of the exact consumed kwargs; deterministic-only; no extras.
     dec_block = manifest.get("decoding", {})
@@ -939,12 +935,16 @@ _TERMINAL_DISPOSITION = {
     COMMITTED_INTEGRITY_FAILED: COMMITTED_INTEGRITY_FAILED,
     COMMITTED_INDETERMINATE: COMMITTED_INDETERMINATE,
 }
-# The ONLY event names a governed B0 journal may contain — reject arbitrary/injected names (#980).
+# The vocabulary a governed B0 journal draws from — the ORDER is enforced by the sequence
+# grammar below; membership here only gives a clear "unknown event" reason (#980 + GPT-5.5 #1).
 _KNOWN_EVENTS = frozenset({"claim", "attempt", "generated", "recorded", "sealing"}) | _TERMINAL_EVENTS
+# The per-probe cycle the grammar expects between the claim and the sealing/terminal.
+_PROBE_CYCLE = ("attempt", "generated", "recorded")
 
 
 def verify_terminal_frames(journal_path: Path, *,
-                           report_published_digest: str | None = None) -> dict[str, Any]:
+                           report_published_digest: str | None = None,
+                           committed_report_bytes: bytes | None = None) -> dict[str, Any]:
     """Executable terminal-PROTOCOL verifier (#966 round-5 HIGH-4) — not JSON syntax alone.
 
     Requires: non-empty; first event is ``claim``; a single ``run_id`` throughout; at most
@@ -1019,6 +1019,44 @@ def verify_terminal_frames(journal_path: Path, *,
         if tevent in _TERMINAL_DISPOSITION and (sealing_idx is None or sealing_idx > terminal_idxs[0]):
             return {"ok": False, "reason": f"committed terminal {tevent!r} without a preceding 'sealing'"}
 
+    # ---- Event SEQUENCE grammar (GPT-5.5 finding #1): a valid event TYPE in an invalid ORDER
+    # must be rejected. Enforce claim -> (attempt -> generated -> recorded)* -> sealing? ->
+    # terminal?. A pre-commit 'failed' may interrupt a partial cycle; a committed terminal may
+    # not. This catches double 'sealing', 'generated'-before-'attempt', and interleaved probe
+    # frames that the per-type checks above (which retire _KNOWN_EVENTS as an identity) miss.
+    cycle_pos = 0                     # 0 = between cycles; 1 = expect 'generated'; 2 = expect 'recorded'
+    grammar_sealing = False
+    grammar_terminal = False
+    for idx, e in enumerate(events):
+        ev = e.get("event")
+        if idx == 0:
+            continue                  # events[0] == 'claim' already verified above
+        if grammar_terminal:
+            return {"ok": False, "reason": "events recorded after the terminal event"}
+        if ev == "claim":
+            return {"ok": False, "reason": "more than one 'claim' frame"}
+        if ev in _TERMINAL_EVENTS:
+            if ev != "failed":        # committed terminal needs a completed cycle + a sealing
+                if cycle_pos != 0:
+                    return {"ok": False, "reason": f"committed terminal {ev!r} recorded mid probe-cycle"}
+                if not grammar_sealing:
+                    return {"ok": False, "reason": f"committed terminal {ev!r} without a preceding 'sealing'"}
+            grammar_terminal = True
+            continue
+        if ev == "sealing":
+            if grammar_sealing:
+                return {"ok": False, "reason": "more than one 'sealing' frame"}
+            if cycle_pos != 0:
+                return {"ok": False, "reason": "'sealing' recorded mid probe-cycle"}
+            grammar_sealing = True
+            continue
+        if grammar_sealing:           # a probe frame after sealing is out of grammar
+            return {"ok": False, "reason": f"probe frame {ev!r} recorded after 'sealing'"}
+        if ev != _PROBE_CYCLE[cycle_pos]:
+            return {"ok": False,
+                    "reason": f"out-of-order probe frame {ev!r} (expected {_PROBE_CYCLE[cycle_pos]!r})"}
+        cycle_pos = (cycle_pos + 1) % 3
+
     last_event = events[-1].get("event")
     if truncated_tail:
         if last_event not in (_TERMINAL_EVENTS | {"sealing"}):
@@ -1034,6 +1072,17 @@ def verify_terminal_frames(journal_path: Path, *,
             if te.get("event") in _TERMINAL_DISPOSITION and te.get("published_digest") != report_published_digest:
                 return {"ok": False, "reason": "terminal published_digest does not match report"}
 
+    # GPT-5.5 finding #2: the committed terminal frame's report_bytes_sha256 is a hash the verdict
+    # depends on; it must be INSIDE the verified set. Given the committed report bytes, require the
+    # terminal frame to bind their sha256 (Monk #984 blocker-2).
+    if committed_report_bytes is not None and terminal_idxs:
+        te = events[terminal_idxs[0]]
+        if te.get("event") in _TERMINAL_DISPOSITION:
+            want_report_sha = hashlib.sha256(committed_report_bytes).hexdigest()
+            if te.get("report_bytes_sha256") != want_report_sha:
+                return {"ok": False,
+                        "reason": "terminal report_bytes_sha256 does not match committed report bytes"}
+
     terminal = events[terminal_idxs[0]].get("event") if terminal_idxs else last_event
     disposition = events[terminal_idxs[0]].get("disposition") if terminal_idxs else None
     return {"ok": True, "events": events, "terminal": terminal, "disposition": disposition,
@@ -1045,13 +1094,12 @@ def run_b0(
     panel: Sequence[tuple[str, str]],
     backend: GenerationBackend,
     *,
-    scorer: Scorer | None = None,
-    scorer_version: str | None = None,
     rubric_version: str | None = None,
     processor_revision: str | None = None,
     decoding_hash: str | None = None,
     runtime_hash: str | None = None,
     report_path: Path | None = None,
+    allowlist_path: Path | None = None,
 ) -> B0RunResult:
     """Run a read-only B0 baseline. Refuses (zero forwards) on ANY gate violation."""
     decision = authorize_b0_launch(manifest)
@@ -1073,7 +1121,8 @@ def run_b0(
     # ONLY after the cheap gates pass (#966 HIGH-4), and ACCOUNT for every import it triggers
     # rather than erasing it with a bare baseline drain (#980 import-audit BLOCKER).
     descriptor: dict[str, Any] = {}
-    scorer_digest: str | None = None
+    scorer_fn: Callable[..., Any] | None = None
+    scorer_binding: dict[str, Any] = {}
     sterile_bound = False
     if not refusals:
         sterile_bound = callable(getattr(backend, "assert_sterile", None))
@@ -1082,10 +1131,11 @@ def run_b0(
             refusals.append("component IMPORTED during backend.assert_sterile lookup: "
                             + "; ".join(lookup_imports))
     if not refusals:
-        scorer_digest = _callable_digest(scorer) if scorer is not None else None
-        digest_imports = _drain_import_sentinel()
-        if digest_imports:
-            refusals.append("component IMPORTED during scorer digest: " + "; ".join(digest_imports))
+        # Content-first load of the reviewed scorer from the committed allowlist (the loader
+        # accounts for any import its exec triggers and refuses it — see load_allowlisted_scorer).
+        scorer_fn, scorer_binding, load_refusals = load_allowlisted_scorer(manifest, allowlist_path)
+        refusals.extend(load_refusals)
+    if not refusals:
         descriptor = dict(backend.descriptor())
         desc_imports = _drain_import_sentinel()
         if desc_imports:
@@ -1095,9 +1145,9 @@ def run_b0(
     if not refusals:
         refusals.extend(
             _bind_execution_to_manifest(
-                manifest, panel, descriptor, scorer, scorer_version,
+                manifest, panel, descriptor,
                 rubric_version, processor_revision, decoding_hash, runtime_hash,
-                effective_decoding, scorer_digest, sterile_bound,
+                effective_decoding, sterile_bound,
             )
         )
 
@@ -1127,8 +1177,11 @@ def run_b0(
             "model": descriptor,
             "decoding": dict(effective_decoding),
             "decoding_hash": canonical_digest(dict(effective_decoding)),
-            "scorer_version": scorer_version,
-            "scorer_code_digest": scorer_digest,
+            "scorer_id": scorer_binding.get("scorer_id"),
+            "scorer_version": scorer_binding.get("version"),
+            "scorer_blob_sha256": scorer_binding.get("blob_sha256"),
+            "scorer_allowlist_digest": scorer_binding.get("allowlist_digest"),
+            "scorer_review_ref": scorer_binding.get("review_ref"),
             "rubric_version": rubric_version,
             "processor_revision": processor_revision,
             "runtime_hash": runtime_hash,
@@ -1140,6 +1193,13 @@ def run_b0(
             "event": "claim", "run_id": run_id, "run_kind": "b0_baseline",
             "manifest_digest": decision.manifest_digest,
             "execution_descriptor_digest": canonical_digest(execution_descriptor),
+            "scorer_binding": {
+                "scorer_id": scorer_binding.get("scorer_id"),
+                "version": scorer_binding.get("version"),
+                "blob_sha256": scorer_binding.get("blob_sha256"),
+                "allowlist_digest": scorer_binding.get("allowlist_digest"),
+                "review_ref": scorer_binding.get("review_ref"),
+            },
             "utc": _now(),
         })
 
@@ -1169,20 +1229,14 @@ def run_b0(
                 "generation": generation,
             })
 
-            scorer_input, scorer_output = (None, None)
-            if scorer is not None:
-                # Re-verify scorer identity BEFORE and AFTER the call, accounting for imports
-                # triggered by the digest recompute itself (attacker-influenceable __repr__,
-                # round-6 D) as well as the forward possibly mutating a bound global (round-5 H3).
-                _drain_and_check("pre-scorer-digest baseline")
-                if _callable_digest(scorer) != scorer_digest:
-                    raise B0RunError("scorer identity changed before invocation (state mutated mid-run)")
-                _drain_and_check("scorer-identity recompute (pre)")
-                scorer_input, scorer_output = scorer(probe_id, generation)
-                _drain_and_check("scorer call")
-                if _callable_digest(scorer) != scorer_digest:
-                    raise B0RunError("scorer identity changed across invocation (state mutated mid-run)")
-                _drain_and_check("scorer-identity recompute (post)")
+            # The scorer is a reviewed, content-pinned pure function (loaded content-first from
+            # the allowlist). It imports nothing, so the sentinel guards around the CALL turn any
+            # import into a review-contract violation; no runtime identity re-derivation is needed
+            # (identity is a review property, frozen by the blob hash — spec §5).
+            _drain_and_check("pre-scorer baseline")
+            assert scorer_fn is not None
+            scorer_input, scorer_output = scorer_fn(probe_id, generation)
+            _drain_and_check("scorer call")
             scorer_post = assert_no_component_reachable()
             if scorer_post:
                 raise B0RunError("component reachable via scorer: " + "; ".join(scorer_post))
@@ -1254,7 +1308,8 @@ def run_b0(
         # inode, which must not escape as an uncaught raise on a committed run (round-6 A2b).
         try:
             tv = verify_terminal_frames(journal.path,
-                                        report_published_digest=report["published_digest"])
+                                        report_published_digest=report["published_digest"],
+                                        committed_report_bytes=committed)
         except Exception as exc:                               # noqa: BLE001 - post-commit MUST NOT escape
             # ANY verifier fault post-commit (UnicodeDecodeError, a malformed frame that slips a
             # raise, ...) becomes indeterminate — it can never propagate on a committed run (#980).

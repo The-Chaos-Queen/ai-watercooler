@@ -17,11 +17,11 @@ import pytest
 
 from p5_b0_harness import COMPONENT_ROUTES, EvidenceBundleError, canonical_digest
 from p5_b0_run import (
+    DEFAULT_ALLOWLIST_PATH,
     FORBIDDEN_ROUTE_MODULES,
     B0RunError,
     ScriptedGenerationBackend,
     _Journal,
-    _callable_digest,
     _clear_import_sentinel,
     _drain_import_sentinel,
     _ensure_import_audit,
@@ -33,6 +33,7 @@ from p5_b0_run import (
     canonical_panel_hash,
     derive_effective_decoding,
     finalize_publication,
+    load_allowlisted_scorer,
     publish_report_atomic,
     reachable_components,
     reserve_report_slot,
@@ -51,11 +52,39 @@ DEC_HASH = canonical_digest(DEC)
 RUNNER_DIGEST = _runner_digest()
 
 
-def _scorer(probe_id, generation):
-    return ({"probe": probe_id}, {"harm_tier": 0, "diversity": 0.9})
+# The reviewed scorer is loaded content-first from the COMMITTED allowlist by default; the
+# manifest scorer block pins it by id+version+allowlist_digest (never a caller code digest).
+SCORER_ID = "b0_null_estimator"
+SCORER_VERSION = "1"
+ALLOWLIST_DIGEST = canonical_digest(json.loads(DEFAULT_ALLOWLIST_PATH.read_bytes()))
+_DEFAULT_SCORER_BLOCK = {"scorer_id": SCORER_ID, "version": SCORER_VERSION,
+                         "allowlist_digest": ALLOWLIST_DIGEST}
 
 
-SCORER_DIGEST = _callable_digest(_scorer)
+def _write_scorer_allowlist(tmp_path, source, *, scorer_id=SCORER_ID, version=SCORER_VERSION,
+                            entrypoint="score", blob_override=None):
+    """Write a scorer module + a matching allowlist under tmp_path; return (allowlist_path, block).
+
+    ``block`` is the manifest ``scorer`` block (scorer_id/version/allowlist_digest) that binds
+    the written allowlist. ``blob_override`` forges the entry's blob_sha256 to exercise the
+    content-hash-mismatch refusal.
+    """
+    mod = tmp_path / "custom_scorer.py"
+    mod.write_text(source, encoding="utf-8")
+    blob = blob_override or hashlib.sha256(mod.read_bytes()).hexdigest()
+    allow = {
+        "schema_version": "b0_scorer_allowlist_v1",
+        "scorers": [{
+            "scorer_id": scorer_id, "version": version,
+            "module_path": str(mod), "entrypoint": entrypoint,
+            "blob_sha256": blob, "review_ref": "wc#test",
+        }],
+    }
+    allow_path = tmp_path / "allowlist.json"
+    allow_path.write_text(json.dumps(allow), encoding="utf-8")
+    digest = canonical_digest(json.loads(allow_path.read_bytes()))
+    block = {"scorer_id": scorer_id, "version": version, "allowlist_digest": digest}
+    return allow_path, block
 
 
 def _backend(model=None):
@@ -68,8 +97,7 @@ def _mods(*names):
 
 
 def _manifest(panel, report_path, *, model=None, panel_hash=None,
-              scorer_version="5g2-v1", scorer_code_digest=None, decoding=None,
-              runner_digest=None):
+              scorer_block=None, decoding=None, runner_digest=None):
     dec = dict(decoding or DEC)
     dec_block = {**dec, "hash": canonical_digest(
         {"do_sample": bool(dec["do_sample"]), "max_new_tokens": int(dec["max_new_tokens"])})}
@@ -78,8 +106,7 @@ def _manifest(panel, report_path, *, model=None, panel_hash=None,
         "run_kind": "b0_baseline",
         "model": dict(model or MODEL),
         "panel": {"hash": panel_hash if panel_hash is not None else canonical_panel_hash(panel)},
-        "scorer": {"version": scorer_version,
-                   "code_digest": scorer_code_digest if scorer_code_digest is not None else SCORER_DIGEST},
+        "scorer": dict(scorer_block if scorer_block is not None else _DEFAULT_SCORER_BLOCK),
         "rubric": {"version": "rubric-v1"},
         "processor": {"revision": "proc-rev-1"},
         "decoding": dec_block,
@@ -95,9 +122,8 @@ def _manifest(panel, report_path, *, model=None, panel_hash=None,
 
 
 def _run(manifest, panel, backend, out, **over):
-    kw = dict(scorer=_scorer, scorer_version="5g2-v1", rubric_version="rubric-v1",
-              processor_revision="proc-rev-1", decoding_hash=DEC_HASH,
-              runtime_hash="rt-hash-1", report_path=out)
+    kw = dict(rubric_version="rubric-v1", processor_revision="proc-rev-1",
+              decoding_hash=DEC_HASH, runtime_hash="rt-hash-1", report_path=out)
     kw.update(over)
     return run_b0(manifest, panel, backend, **kw)
 
@@ -184,7 +210,9 @@ def test_run_b0_happy_path(tmp_path):
     published = json.loads(out.read_text(encoding="utf-8"))
     recomputed = canonical_digest({k: v for k, v in published.items() if k != "published_digest"})
     assert recomputed == published["published_digest"] == res.published_digest
-    assert published["execution_descriptor"]["scorer_code_digest"] == SCORER_DIGEST
+    ed = published["execution_descriptor"]
+    assert ed["scorer_id"] == SCORER_ID and ed["scorer_version"] == SCORER_VERSION
+    assert ed["scorer_allowlist_digest"] == ALLOWLIST_DIGEST and ed["scorer_blob_sha256"]
     assert published["journal_digest"]
 
 
@@ -372,15 +400,6 @@ def test_run_b0_refuses_unset_runner_digest(tmp_path):
     assert res.ok is False and any("runner is unauthorized" in r for r in res.refusals)
 
 
-def test_closure_state_changes_scorer_digest():
-    # #966 counterexample: identical source, different captured state -> DIFFERENT digest.
-    def make(v):
-        def s(pid, gen):
-            return ({}, {"v": v})
-        return s
-    assert _callable_digest(make(1)) != _callable_digest(make(2))
-
-
 def test_run_b0_refuses_descriptor_missing_field(tmp_path):
     out = tmp_path / "b0_report.json"
     partial = _backend({k: v for k, v in MODEL.items() if k != "use_cache"})
@@ -407,11 +426,24 @@ def test_run_b0_refuses_missing_mandatory_binding(tmp_path, missing):
     assert any("mandatory" in r and missing.split("_")[0] in r for r in res.refusals)
 
 
-def test_run_b0_refuses_scorer_code_digest_mismatch(tmp_path):
+def test_run_b0_refuses_allowlist_digest_mismatch(tmp_path):
+    # The manifest binds the scorer to an allowlist by digest; a wrong digest is deny-by-default.
     out = tmp_path / "b0_report.json"
-    m = _manifest(PANEL, out, scorer_code_digest="deadbeef")
+    block = {"scorer_id": SCORER_ID, "version": SCORER_VERSION, "allowlist_digest": "f" * 64}
+    m = _manifest(PANEL, out, scorer_block=block)
     res = _run(m, PANEL, _ExplodingBackend(), out)
-    assert res.ok is False and any("code_digest" in r for r in res.refusals)
+    assert res.ok is False and any("allowlist_digest" in r for r in res.refusals)
+
+
+def test_run_b0_refuses_scorer_id_not_in_allowlist(tmp_path):
+    # No unlisted scorer, no hashed fallback: an id absent from the (correctly-bound) allowlist
+    # is refused (spec §4 step 2).
+    out = tmp_path / "b0_report.json"
+    block = {"scorer_id": "not_reviewed", "version": SCORER_VERSION,
+             "allowlist_digest": ALLOWLIST_DIGEST}
+    m = _manifest(PANEL, out, scorer_block=block)
+    res = _run(m, PANEL, _ExplodingBackend(), out)
+    assert res.ok is False and any("no allowlisted scorer" in r for r in res.refusals)
 
 
 def test_run_b0_refuses_derived_decoding_hash_mismatch(tmp_path):
@@ -451,10 +483,14 @@ def test_run_b0_refuses_unbound_panel(tmp_path):
     assert res.ok is False and any("unbound panel" in r for r in res.refusals)
 
 
-def test_run_b0_refuses_missing_scorer(tmp_path):
+def test_run_b0_refuses_unpinned_scorer_block(tmp_path):
+    # The scorer block is mandatory and must pin scorer_id/version/allowlist_digest (harness
+    # deny-by-default); dropping allowlist_digest is a launch refusal.
     out = tmp_path / "b0_report.json"
-    res = _run(_manifest(PANEL, out), PANEL, _ExplodingBackend(), out, scorer=None)
-    assert res.ok is False and any("scorer is mandatory" in r for r in res.refusals)
+    m = _manifest(PANEL, out)
+    del m["scorer"]["allowlist_digest"]
+    res = _run(m, PANEL, _ExplodingBackend(), out)
+    assert res.ok is False and any("scorer.allowlist_digest" in r for r in res.refusals)
 
 
 def test_run_b0_refuses_report_path_mismatch(tmp_path):
@@ -485,13 +521,12 @@ def test_run_b0_duplicate_probe_refused_before_forward(tmp_path):
 # --------------------------------------------------------------------------- #
 def test_run_b0_nan_scorer_output_refused_no_report(tmp_path):
     out = tmp_path / "b0_report.json"
-
-    def nan_scorer(probe_id, generation):
-        return ({"probe": probe_id}, {"score": float("nan")})
-
-    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(nan_scorer))
+    src = ("def score(probe_id, generation):\n"
+           "    return ({'probe': probe_id}, {'score': float('nan')})\n")
+    allow_path, block = _write_scorer_allowlist(tmp_path, src)
+    m = _manifest(PANEL, out, scorer_block=block)
     with pytest.raises(EvidenceBundleError):
-        _run(m, PANEL, _backend(), out, scorer=nan_scorer)
+        _run(m, PANEL, _backend(), out, allowlist_path=allow_path)
     assert not out.exists()
     events = [json.loads(x) for x in
               (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()]
@@ -500,13 +535,12 @@ def test_run_b0_nan_scorer_output_refused_no_report(tmp_path):
 
 def test_run_b0_object_scorer_output_refused_no_report(tmp_path):
     out = tmp_path / "b0_report.json"
-
-    def obj_scorer(probe_id, generation):
-        return ({"probe": probe_id}, {"score": object()})
-
-    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(obj_scorer))
+    src = ("def score(probe_id, generation):\n"
+           "    return ({'probe': probe_id}, {'score': object()})\n")
+    allow_path, block = _write_scorer_allowlist(tmp_path, src)
+    m = _manifest(PANEL, out, scorer_block=block)
     with pytest.raises(EvidenceBundleError):
-        _run(m, PANEL, _backend(), out, scorer=obj_scorer)
+        _run(m, PANEL, _backend(), out, allowlist_path=allow_path)
     assert not out.exists()
 
 
@@ -604,18 +638,6 @@ def test_run_b0_does_not_call_backend_on_refused_launch(tmp_path, monkeypatch):
 
     res = _run(_manifest(PANEL, out), PANEL, _Tripwire(), out)
     assert res.ok is False and any("REACHABLE" in r and "mamba" in r for r in res.refusals)
-
-
-def test_run_b0_refuses_callable_instance_scorer(tmp_path):
-    # #966 BLOCKER-3: only a plain function is bindable; a stateful callable is refused.
-    out = tmp_path / "b0_report.json"
-
-    class _CallableScorer:
-        def __call__(self, probe_id, generation):
-            return ({}, {"v": 1})
-
-    res = _run(_manifest(PANEL, out), PANEL, _ExplodingBackend(), out, scorer=_CallableScorer())
-    assert res.ok is False and any("plain function" in r for r in res.refusals)
 
 
 @pytest.mark.parametrize("field", ["backend", "device", "attention"])
@@ -746,73 +768,53 @@ def test_run_b0_refuses_without_protected_sink_attestation(tmp_path):
     assert res.ok is False and any("protected_sink_attestation" in r for r in res.refusals)
 
 
-# --- scorer captured/referenced state must be immutable (#980); H3 mid-run reassignment ---
-_IMMUT_SCORER_INT = 1
+# --- reviewed-scorer allowlist: content-first load (spec §4) ---
+def test_load_allowlisted_scorer_happy(tmp_path):
+    src = "def score(probe_id, generation):\n    return ({'p': probe_id}, {'v': 1})\n"
+    allow_path, block = _write_scorer_allowlist(tmp_path, src)
+    fn, binding, refusals = load_allowlisted_scorer({"scorer": block}, allow_path)
+    assert refusals == [] and callable(fn)
+    assert fn("p1", "g") == ({"p": "p1"}, {"v": 1})
+    assert binding["scorer_id"] == SCORER_ID and binding["allowlist_digest"] == block["allowlist_digest"]
 
 
-def _immutable_reading_scorer(probe_id, generation):
-    return ({}, {"v": _IMMUT_SCORER_INT})
+def test_load_allowlisted_scorer_blob_mismatch_refused(tmp_path):
+    # The module bytes do not hash to the entry's blob_sha256 -> not the reviewed bytes.
+    src = "def score(probe_id, generation):\n    return ({}, {})\n"
+    allow_path, block = _write_scorer_allowlist(tmp_path, src, blob_override="a" * 64)
+    fn, _binding, refusals = load_allowlisted_scorer({"scorer": block}, allow_path)
+    assert fn is None and any("not the reviewed bytes" in r for r in refusals)
 
 
-def test_run_b0_catches_immutable_global_reassigned_mid_run(tmp_path):
-    # An IMMUTABLE global reference is allowed and BOUND; if the backend reassigns it during the
-    # forward, the before/after digest re-verification catches it (round-5 H3 preserved).
+def test_load_allowlisted_scorer_non_function_entrypoint_refused(tmp_path):
+    # An entrypoint that resolves to a non-function (a bare value) is refused.
+    src = "score = 42\n"
+    allow_path, block = _write_scorer_allowlist(tmp_path, src)
+    fn, _binding, refusals = load_allowlisted_scorer({"scorer": block}, allow_path)
+    assert fn is None and any("not resolve to a plain function" in r for r in refusals)
+
+
+def test_load_allowlisted_scorer_forbidden_import_refused(tmp_path):
+    # A reviewed scorer imports nothing; a forbidden import fired during exec (here via an audit
+    # event, without leaving the module loaded) is a review-contract violation -> refused.
+    src = ("import sys\n"
+           "sys.audit('import', 'mamba_ssm', None, None, None, None)\n"
+           "def score(probe_id, generation):\n    return ({}, {})\n")
+    allow_path, block = _write_scorer_allowlist(tmp_path, src)
+    fn, _binding, refusals = load_allowlisted_scorer({"scorer": block}, allow_path)
+    assert fn is None and any("IMPORTED during scorer module load" in r for r in refusals)
+    assert "mamba_ssm" not in sys.modules
+
+
+def test_run_b0_with_custom_allowlisted_scorer(tmp_path):
+    # Full run: a valid custom allowlist + module loads content-first and completes verified.
     out = tmp_path / "b0_report.json"
-    global _IMMUT_SCORER_INT
-    _IMMUT_SCORER_INT = 1
-    code_digest = _callable_digest(_immutable_reading_scorer)
-
-    class _Mutator:
-        def descriptor(self):
-            return dict(MODEL)
-
-        def assert_sterile(self):
-            return None
-
-        def generate(self, prompt, decoding):
-            global _IMMUT_SCORER_INT
-            _IMMUT_SCORER_INT = 2             # reassign the bound immutable global mid-forward
-            return "gen"
-
-    m = _manifest(PANEL, out, scorer_code_digest=code_digest)
-    try:
-        with pytest.raises(B0RunError) as ei:
-            _run(m, PANEL, _Mutator(), out, scorer=_immutable_reading_scorer)
-        assert "scorer identity changed" in str(ei.value)
-        assert not out.exists()
-    finally:
-        _IMMUT_SCORER_INT = 1
-
-
-_MUT_STATE = {"v": 1}
-
-
-def _mut_reading_scorer(probe_id, generation):
-    return ({}, {"v": _MUT_STATE["v"]})
-
-
-def test_run_b0_refuses_scorer_with_mutable_global(tmp_path):
-    # #980: a scorer referencing a MUTABLE global (dict) is refused at bind — repr is not identity.
-    out = tmp_path / "b0_report.json"
-    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(_mut_reading_scorer))
-    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_mut_reading_scorer)
-    assert res.ok is False and any("deeply immutable" in r for r in res.refusals)
-
-
-def _make_closure_scorer(captured):
-    def scorer(probe_id, generation):
-        return ({}, {"v": len(captured)})
-    return scorer
-
-
-def test_run_b0_refuses_scorer_capturing_mutable_object(tmp_path):
-    # #980 core: a scorer closing over a MUTABLE object (stable address-repr) is refused — its
-    # state could change mid-run without the repr digest ever noticing.
-    out = tmp_path / "b0_report.json"
-    scorer = _make_closure_scorer([1, 2, 3])             # closes over a list
-    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(scorer))
-    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=scorer)
-    assert res.ok is False and any("closure captures" in r for r in res.refusals)
+    src = ("def score(probe_id, generation):\n"
+           "    return ({'p': probe_id}, {'harm_tier': 0, 'len': len(generation)})\n")
+    allow_path, block = _write_scorer_allowlist(tmp_path, src)
+    m = _manifest(PANEL, out, scorer_block=block)
+    res = _run(m, PANEL, _backend(), out, allowlist_path=allow_path)
+    assert res.ok is True and res.terminal_state == "integrity_verified"
 
 
 # --- sterility-call imports are drained (HIGH-5) ---
@@ -914,7 +916,7 @@ def test_run_b0_truncated_at_sealing_is_indeterminate(tmp_path, monkeypatch):
     import p5_b0_run as mod
     out = tmp_path / "b0_report.json"
 
-    def truncated(path, *, report_published_digest=None):
+    def truncated(path, *, report_published_digest=None, committed_report_bytes=None):
         return {"ok": True, "disposition": None, "terminal": "sealing", "truncated_tail": True}
 
     monkeypatch.setattr(mod, "verify_terminal_frames", truncated)
@@ -970,26 +972,6 @@ def test_run_b0_refuses_placeholder_attestation(tmp_path):
     assert res.ok is False and any("placeholder" in r for r in res.refusals)
 
 
-_B_HELPER_STATE = {"v": 1}
-
-
-def _b_helper():
-    return _B_HELPER_STATE["v"]
-
-
-def _helper_using_scorer(probe_id, generation):
-    return ({}, {"v": _b_helper()})
-
-
-def test_run_b0_refuses_scorer_with_module_helper(tmp_path):
-    # #966 round-6 B: a scorer reaching state via a module-level helper is refused (its digest
-    # cannot bind the helper's globals).
-    out = tmp_path / "b0_report.json"
-    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(_helper_using_scorer))
-    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_helper_using_scorer)
-    assert res.ok is False and any("deeply immutable" in r for r in res.refusals)
-
-
 def test_run_b0_refuses_dirty_sentinel_at_entry(tmp_path):
     # #966 round-6 D: a forbidden import leaked by a prior run must fail the next run closed.
     import p5_b0_run as mod
@@ -1001,24 +983,6 @@ def test_run_b0_refuses_dirty_sentinel_at_entry(tmp_path):
         assert res.ok is False and any("dirty at run entry" in r for r in res.refusals)
     finally:
         mod._forbidden_imports.clear()
-
-
-_MUTABLE_CONTAINER = [1, 2, 3]
-
-
-def _container_reading_scorer(probe_id, generation):
-    return ({}, {"n": len(_MUTABLE_CONTAINER)})
-
-
-def test_run_b0_refuses_scorer_with_mutable_container(tmp_path):
-    # #980: a mutable container global is refused (its contents could change mid-run; a repr
-    # digest cannot bind a stable-repr element). The old __repr__-during-digest import vector is
-    # thereby closed structurally — the container is never repr'd.
-    out = tmp_path / "b0_report.json"
-    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(_container_reading_scorer))
-    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_container_reading_scorer)
-    assert res.ok is False and any("deeply immutable" in r for r in res.refusals)
-    assert not out.exists()
 
 
 def test_run_b0_accounts_for_import_during_sterile_lookup(tmp_path):
@@ -1084,6 +1048,48 @@ def test_verify_terminal_frames_rejects_unknown_event(tmp_path):
     assert r["ok"] is False and "unknown journal event" in r["reason"]
 
 
+_C = '{"event":"claim","run_id":"r"}\n'
+_S = '{"event":"sealing","run_id":"r"}\n'
+_T = '{"event":"completed","run_id":"r","disposition":"integrity_verified"}\n'
+
+
+@pytest.mark.parametrize("body,reason_sub", [
+    # GPT-5.5 #1: a valid event TYPE in an invalid ORDER must be rejected by the sequence grammar.
+    (_C + _S + _S + _T, "sealing"),                                          # double sealing
+    (_C + '{"event":"generated","attempt_id":"r:0"}\n' + _S + _T, "out-of-order"),  # gen before attempt
+    (_C + '{"event":"attempt","attempt_id":"r:0"}\n'
+        + '{"event":"attempt","attempt_id":"r:1"}\n' + _S + _T, "out-of-order"),     # interleaved probes
+    (_C + '{"event":"attempt","attempt_id":"r:0"}\n'
+        + '{"event":"recorded","attempt_id":"r:0"}\n' + _S + _T, "out-of-order"),    # recorded before generated
+])
+def test_verify_terminal_frames_grammar_rejects(tmp_path, body, reason_sub):
+    j = tmp_path / "x.journal"
+    j.write_text(body, encoding="utf-8")
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and reason_sub in r["reason"]
+
+
+def test_verify_terminal_frames_grammar_accepts_full_cycle(tmp_path):
+    # A well-ordered journal (claim -> attempt/generated/recorded -> sealing -> completed) passes.
+    j = tmp_path / "x.journal"
+    j.write_text(_C + '{"event":"attempt","attempt_id":"r:0"}\n'
+                 '{"event":"generated","attempt_id":"r:0"}\n'
+                 '{"event":"recorded","attempt_id":"r:0"}\n' + _S + _T, encoding="utf-8")
+    assert verify_terminal_frames(j)["ok"] is True
+
+
+def test_verify_terminal_frames_binds_report_bytes(tmp_path):
+    # GPT-5.5 #2: the committed terminal's report_bytes_sha256 must match the committed report bytes.
+    good = ('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
+            '{"event":"completed","run_id":"r","disposition":"integrity_verified",'
+            '"report_bytes_sha256":"%s"}\n' % hashlib.sha256(b"REPORT").hexdigest())
+    j = tmp_path / "x.journal"
+    j.write_text(good, encoding="utf-8")
+    assert verify_terminal_frames(j, committed_report_bytes=b"REPORT")["ok"] is True
+    r = verify_terminal_frames(j, committed_report_bytes=b"TAMPERED")
+    assert r["ok"] is False and "report_bytes_sha256" in r["reason"]
+
+
 @pytest.mark.parametrize("att,reason_sub", [
     ({"signer": "x", "review_ref": "x"}, "digest"),
     ({"signer": "x", "review_ref": "x", "digest": "a" * 64}, "bound_path"),
@@ -1115,7 +1121,7 @@ def test_run_b0_verifier_read_valueerror_is_indeterminate(tmp_path, monkeypatch)
     import p5_b0_run as mod
     out = tmp_path / "b0_report.json"
 
-    def boom(path, *, report_published_digest=None):
+    def boom(path, *, report_published_digest=None, committed_report_bytes=None):
         raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
 
     monkeypatch.setattr(mod, "verify_terminal_frames", boom)
@@ -1145,27 +1151,6 @@ def test_run_b0_integrity_failed_plus_write_failure_matches_journal(tmp_path, mo
     assert any("integrity_failed" in w for w in res.warnings)     # detail preserved
 
 
-class _BCfg:
-    def __init__(self):
-        self.v = 1
-
-
-_B_CFG_INSTANCE = _BCfg()
-
-
-def _instance_reading_scorer(probe_id, generation):
-    return ({}, {"v": _B_CFG_INSTANCE.v})
-
-
-def test_run_b0_refuses_scorer_with_module_instance(tmp_path):
-    # #966 round-6 B residual: a scorer reaching state via a module-level INSTANCE attribute is
-    # refused (an instance is not a bindable data type).
-    out = tmp_path / "b0_report.json"
-    m = _manifest(PANEL, out, scorer_code_digest=_callable_digest(_instance_reading_scorer))
-    res = _run(m, PANEL, _ExplodingBackend(), out, scorer=_instance_reading_scorer)
-    assert res.ok is False and any("deeply immutable" in r for r in res.refusals)
-
-
 def test_reserve_reports_uncleaned_collision(tmp_path, monkeypatch):
     # #966 round-5 MED-7: on fsync failure with a failed cleanup, report the surviving path.
     import p5_b0_run as mod
@@ -1188,26 +1173,6 @@ def test_reserve_refuses_symlinked_parent(tmp_path):
     with pytest.raises(B0RunError) as ei:
         reserve_report_slot(link / "b0_report.json")
     assert "symlink" in str(ei.value)
-
-
-_SCORER_IMMUT_GLOBAL = "v1"
-
-
-def _immut_global_scorer(probe_id, generation):
-    return ({}, {"v": _SCORER_IMMUT_GLOBAL})
-
-
-def test_scorer_digest_binds_referenced_immutable_global():
-    # #980: an IMMUTABLE global reference IS bound by value; reassigning it changes the digest
-    # (a mutable global is refused entirely by _scorer_selfcontained_refusals instead).
-    global _SCORER_IMMUT_GLOBAL
-    d1 = _callable_digest(_immut_global_scorer)
-    _SCORER_IMMUT_GLOBAL = "v2"
-    try:
-        d2 = _callable_digest(_immut_global_scorer)
-    finally:
-        _SCORER_IMMUT_GLOBAL = "v1"
-    assert d1 != d2
 
 
 def test_ensure_import_audit_fails_closed(monkeypatch):
