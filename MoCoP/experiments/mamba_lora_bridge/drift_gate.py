@@ -225,7 +225,7 @@ class AnchorAttribute:
     match_fn_name: str = "attribute"
 
 
-@dataclass
+@dataclass(slots=True)
 class ProbeResult:
     anchor: str
     band: int
@@ -237,8 +237,6 @@ class ProbeResult:
     evidence_type: EvidenceType = EvidenceType.NONE
     evidence_ref: str = ""  # scheme-qualified locator; REQUIRED for GROWTH
     continuity_provenance: Optional[ContinuityProvenance] = None  # A1
-    # Evidence envelope (Codex #979 blocker 2): binds the row to its
-    # adjudication artifacts. Required nonempty on every row.
     probe_id: str = ""
     rubric_version: str = ""
     judge_ref: str = ""
@@ -795,7 +793,7 @@ def resolve_acquisitions(
                 "error", "resolver binding lacks identity/version")
         else:
             try:
-                result = resolver.resolve(ref, probe)
+                result = resolver.resolve(ref, copy.deepcopy(probe))
             except Exception as exc:  # typed non-authorizing result, never a crash
                 receipts[anchor] = receipt(
                     "error", f"resolver raised {type(exc).__name__}: {exc}")

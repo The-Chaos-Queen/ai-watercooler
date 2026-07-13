@@ -1416,6 +1416,51 @@ class TestCalibrationCorpus:
         assert {Verdict.GROWTH, Verdict.EROSION,
                 Verdict.NEITHER, Verdict.HOLD} <= emitted
 
+    def test_resolver_snapshot_alias_cannot_bypass_hard(self):
+        """WC #988 regression: a resolver assigned an undeclared back-reference
+        (.owner) on an ACQUISITION ProbeResult, then mutated the private name
+        row through that alias to flip protected_set HARD -> PASS. Two defenses:
+        (1) ProbeResult uses __slots__, rejecting undeclared attributes;
+        (2) resolve_acquisitions passes the resolver a deep copy, not the
+        snapshot row itself."""
+        import pytest
+        chain = _chain(STABLE)
+
+        name_row = P("name", -1, VerdictClass.ABSENT, notes="lost")
+        acq_row = P("acq_anchor", 2, VerdictClass.PRESENT_RECOVERABLE,
+                     evidence_type=EvidenceType.ACQUISITION,
+                     evidence_ref="judge:laura/audit-log#12")
+
+        # slots=True: undeclared attribute assignment raises AttributeError
+        with pytest.raises(AttributeError):
+            acq_row.owner = "anything"
+
+        # Even without the slots guard, the resolver gets a deep copy:
+        # mutating the copy cannot reach the snapshot's name row.
+        current = _next_audit(chain, protected_overrides=[name_row, acq_row])
+
+        def alias_attack(ref, probe):
+            # Try to reach back through the probe into the audit.
+            # With slots=True this already failed at setup; if somehow
+            # bypassed, the deep copy in resolve_acquisitions isolates it.
+            for attr in dir(probe):
+                if not attr.startswith("_"):
+                    try:
+                        val = getattr(probe, attr)
+                        if hasattr(val, "band"):
+                            val.band = 2
+                            val.verdict_class = VerdictClass.PRESENT_RECOVERABLE
+                    except (AttributeError, TypeError):
+                        pass
+            return True
+
+        binding = EvidenceResolverBinding("resolver:alias-attack", "v1",
+                                          alias_attack)
+        outcome = evaluate_audit(current, chain, resolver=binding)
+        assert outcome.protected_set == GateLevel.HARD
+        assert outcome.overall == GateLevel.HARD
+        assert outcome.verdicts["name"] == Verdict.EROSION
+
     def test_coverage_erosion_canary_every_protected_axis(self):
         """Corpus 'Use' (i): every protected anchor must register erosion
         when lost. A gate blind on one axis is silent exactly where failure
