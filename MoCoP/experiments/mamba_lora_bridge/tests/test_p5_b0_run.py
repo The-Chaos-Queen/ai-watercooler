@@ -1154,15 +1154,16 @@ def test_run_b0_refuses_placeholder_attestation(tmp_path):
 
 def test_run_b0_refuses_dirty_sentinel_at_entry(tmp_path):
     # #966 round-6 D: a forbidden import leaked by a prior run must fail the next run closed.
+    # (The sentinel buffer is now a closure cell; dirty it through the hook, not a global.)
     import p5_b0_run as mod
     mod._ensure_import_audit()
-    mod._forbidden_imports.append("qdrant_client")
+    mod._import_audit_hook("import", ("qdrant_client", None, None, None, None))
     out = tmp_path / "b0_report.json"
     try:
         res = _run(_manifest(PANEL, out), PANEL, _ExplodingBackend(), out)
         assert res.ok is False and any("dirty at run entry" in r for r in res.refusals)
     finally:
-        mod._forbidden_imports.clear()
+        mod._clear_import_sentinel()
 
 
 def test_run_b0_accounts_for_import_during_sterile_lookup(tmp_path):
@@ -1218,6 +1219,26 @@ def test_verify_terminal_frames_rejects_unknown_event(tmp_path):
     j = _journal(tmp_path, _f_claim() + _frame("sneaky", run_id=RID) + _f_sealing())
     r = verify_terminal_frames(j)
     assert r["ok"] is False and "unknown journal event" in r["reason"]
+
+
+@pytest.mark.parametrize("evil_event", ["[]", "123", "null"])   # non-string / non-hashable event
+def test_verify_terminal_frames_rejects_non_string_event_fail_closed(tmp_path, evil_event):
+    # a-Fable Finding 2: a non-string (e.g. non-hashable list) or null event must fail CLOSED in
+    # the standalone verifier, not raise TypeError or slip past a None sentinel.
+    j = _journal(tmp_path, _f_claim() + '{"event": %s}\n' % evil_event)
+    r = verify_terminal_frames(j)                              # must not raise
+    assert r["ok"] is False and "unknown journal event" in r["reason"]
+
+
+def test_is_unresolved_ref_prefix_not_substring():
+    # a-Fable Finding 3: PENDING-* is a placeholder PREFIX; a bare substring over-refuses a legit
+    # ref that merely contains those letters.
+    from p5_b0_run import _is_unresolved_ref
+    assert _is_unresolved_ref("PENDING-codex") is True
+    assert _is_unresolved_ref("") is True and _is_unresolved_ref("TBD") is True
+    assert _is_unresolved_ref("REVIEW-appending-42") is False
+    assert _is_unresolved_ref("codex-spending-audit") is False
+    assert _is_unresolved_ref("wc#1000") is False
 
 
 @pytest.mark.parametrize("body,reason_sub", [
@@ -1389,11 +1410,40 @@ def test_reserve_refuses_symlinked_parent(tmp_path):
 
 def test_ensure_import_audit_fails_closed(monkeypatch):
     # #966 HIGH-4: an install failure must report False (fail-closed), never mark installed.
+    # Bind a FRESH guard (installed-state is a closure cell, so we cannot un-arm the process
+    # singleton — nor should a caller be able to).
     import p5_b0_run as mod
+    _frozen, _route, _hook, ensure, _clear, _drain = mod._bind_reachability_guard()
 
     def _boom(hook):
         raise RuntimeError("cannot install audit hook")
 
-    monkeypatch.setattr(mod, "_audit_installed", False)
     monkeypatch.setattr(mod.sys, "addaudithook", _boom)
-    assert mod._ensure_import_audit() is False
+    assert ensure() is False
+
+
+def test_no_component_guard_frozen_against_module_globals():
+    # a-Fable Finding 1 (Codex #1006 class, one guarantee over): the no-component authority must
+    # not be a call-time read of an assignable/clearable module global. There must be no
+    # _audit_installed flag to spoof, and the frozen inventory must survive reassigning OR
+    # clearing the published FORBIDDEN_ROUTE_MODULES.
+    assert not hasattr(p5_b0_run, "_audit_installed")
+    assert not hasattr(p5_b0_run, "_forbidden_imports")
+
+
+def test_reachability_frozen_against_inventory_reassignment(monkeypatch):
+    # Blanking the published inventory must NOT blind the guard (it reads a frozen snapshot).
+    monkeypatch.setattr(p5_b0_run, "FORBIDDEN_ROUTE_MODULES", {})
+    assert p5_b0_run._forbidden_route_for("mamba_ssm") == "mamba"
+    assert p5_b0_run._forbidden_route_for("qdrant_client") == "qdrant"
+
+
+def test_run_b0_reachability_survives_blanked_inventory(tmp_path, monkeypatch):
+    # a-Fable Finding 1 GOVERNED canary: the exact exploit — blank FORBIDDEN_ROUTE_MODULES and
+    # leave a forbidden component resident — must still refuse with a REACHABLE reason.
+    monkeypatch.setitem(sys.modules, "qdrant_client", types.ModuleType("qdrant_client"))
+    monkeypatch.setattr(p5_b0_run, "FORBIDDEN_ROUTE_MODULES", {})
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _ExplodingBackend(), out)
+    assert res.ok is False and any("REACHABLE" in r and "qdrant" in r for r in res.refusals)
+    assert not out.exists()

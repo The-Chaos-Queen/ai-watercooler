@@ -109,16 +109,68 @@ class B0RunError(RuntimeError):
     pass
 
 
-def _forbidden_route_for(name: str) -> str | None:
-    """Return the route a module NAME falls under, by exact top-level/basename equality."""
-    if not isinstance(name, str) or not name:
+def _bind_reachability_guard():
+    """Freeze the no-component guard's authority at import into closure cells (Codex #1006 class,
+    one guarantee over — a-Fable review, WC follow-up).
+
+    The reachability lookup AND the transient-import audit must not be a call-time dereference of
+    an assignable/clearable module global — the same rule R4 applied to the scorer/runner origin.
+    ``FORBIDDEN_ROUTE_MODULES`` stays as the reviewed, published inventory, but the GUARD reads a
+    deep snapshot frozen HERE (a new dict of new frozensets), immune to a plain
+    ``p5_b0_run.FORBIDDEN_ROUTE_MODULES = {}`` OR an in-place ``.clear()`` (both in-scope data
+    mutations). The sentinel's recorded-imports buffer and its installed-state live in cells too,
+    so a caller cannot blank the buffer or spoof "armed" by assigning ``_audit_installed``.
+    Reassigning the exposed FUNCTIONS is function replacement — the documented out-of-scope residual.
+    """
+    frozen = {route: frozenset(mods) for route, mods in FORBIDDEN_ROUTE_MODULES.items()}
+    buffer: list[str] = []
+    state = {"installed": False}
+
+    def forbidden_route_for(name: str) -> str | None:
+        """Return the route a module NAME falls under, by exact top-level/basename equality."""
+        if not isinstance(name, str) or not name:
+            return None
+        top = name.split(".", 1)[0]
+        base = name.rsplit(".", 1)[-1]
+        for route, forbidden in frozen.items():
+            if name in forbidden or top in forbidden or base in forbidden:
+                return route
         return None
-    top = name.split(".", 1)[0]
-    base = name.rsplit(".", 1)[-1]
-    for route, forbidden in FORBIDDEN_ROUTE_MODULES.items():
-        if name in forbidden or top in forbidden or base in forbidden:
-            return route
-    return None
+
+    def import_audit_hook(event: str, args: tuple) -> None:
+        if event == "import" and args:
+            name = args[0]
+            if isinstance(name, str) and forbidden_route_for(name):
+                buffer.append(name)
+
+    def ensure_import_audit() -> bool:
+        """Install the transient-import sentinel. Returns False if it could NOT be armed, so the
+        caller can fail CLOSED (#966 HIGH-4) rather than run with a silently-disabled sentinel.
+        The installed-state is a CLOSURE cell — not a reassignable global a caller can pre-set to
+        skip the real install (Codex #1006 class).
+        """
+        if not state["installed"]:
+            try:
+                sys.addaudithook(import_audit_hook)
+            except Exception:  # pragma: no cover - audit hooks unavailable
+                return False
+            state["installed"] = True
+        return state["installed"]
+
+    def clear_import_sentinel() -> None:
+        buffer.clear()
+
+    def drain_import_sentinel() -> list[str]:
+        seen = sorted(set(buffer))
+        buffer.clear()
+        return seen
+
+    return (frozen, forbidden_route_for, import_audit_hook,
+            ensure_import_audit, clear_import_sentinel, drain_import_sentinel)
+
+
+(_FROZEN_FORBIDDEN, _forbidden_route_for, _import_audit_hook,
+ _ensure_import_audit, _clear_import_sentinel, _drain_import_sentinel) = _bind_reachability_guard()
 
 
 # --------------------------------------------------------------------------- #
@@ -155,44 +207,10 @@ def assert_no_component_reachable(loaded_modules: Mapping[str, Any] | None = Non
     ]
 
 
-# Process-wide import-audit sentinel: catches a forbidden module imported AND removed
-# transiently inside one forward, which a before/after sys.modules snapshot misses (#966).
-_forbidden_imports: list[str] = []
-_audit_installed = False
+# The import-audit sentinel (transient forbidden import caught inside one forward, which a
+# before/after sys.modules snapshot misses, #966) is now frozen into the closure above.
 
-
-def _import_audit_hook(event: str, args: tuple) -> None:
-    if event == "import" and args:
-        route = _forbidden_route_for(args[0]) if isinstance(args[0], str) else None
-        if route:
-            _forbidden_imports.append(args[0])
-
-
-def _ensure_import_audit() -> bool:
-    """Install the transient-import sentinel. Returns False if it could NOT be armed, so the
-    caller can fail CLOSED (#966 HIGH-4) rather than run with a silently-disabled sentinel.
-    """
-    global _audit_installed
-    if not _audit_installed:
-        try:
-            sys.addaudithook(_import_audit_hook)
-        except Exception:  # pragma: no cover - audit hooks unavailable
-            return False
-        _audit_installed = True
-    return _audit_installed
-
-
-def _clear_import_sentinel() -> None:
-    _forbidden_imports.clear()
-
-
-def _drain_import_sentinel() -> list[str]:
-    seen = sorted(set(_forbidden_imports))
-    _forbidden_imports.clear()
-    return seen
-
-
-_MISSING_ROUTES = set(COMPONENT_ROUTES) - set(FORBIDDEN_ROUTE_MODULES)
+_MISSING_ROUTES = set(COMPONENT_ROUTES) - set(_FROZEN_FORBIDDEN)
 if _MISSING_ROUTES:  # pragma: no cover - config invariant
     raise B0RunError(
         f"FORBIDDEN_ROUTE_MODULES missing routes {sorted(_MISSING_ROUTES)}; "
@@ -511,7 +529,9 @@ def _is_unresolved_ref(value: Any) -> bool:
     """
     if _is_unset(value):                          # empty / "tbd" / "none" / "pending" / "[tbd: ..."
         return True
-    return "pending" in str(value).strip().lower()     # PENDING-codex, pending-review, ...
+    # PENDING-* placeholder as a PREFIX, not a bare substring — a bare "in" over-refuses a legit
+    # ref like "REVIEW-appending-42" (a-Fable Finding 3). Our placeholders are always leading.
+    return str(value).strip().lower().startswith("pending")
 
 
 def _bind_execution_to_manifest(
@@ -1140,9 +1160,14 @@ def verify_terminal_frames(journal_path: Path, *,
         return {"ok": False, "reason": "empty journal"}
     if events[0].get("event") != "claim":
         return {"ok": False, "reason": "first event is not 'claim'"}
-    unknown = next((e.get("event") for e in events if e.get("event") not in _KNOWN_EVENTS), None)
-    if unknown is not None:                                   # no arbitrary/injected events (#980)
-        return {"ok": False, "reason": f"unknown journal event {unknown!r}"}
+    # No arbitrary/injected events (#980). Iterate rather than next(...): a non-string event (e.g.
+    # ``{"event": []}``) is non-hashable and would raise in an ``in`` test, and a missing/None
+    # event collides with next()'s None sentinel — both must fail CLOSED, not crash or slip
+    # (a-Fable Finding 2).
+    for e in events:
+        ev = e.get("event")
+        if not isinstance(ev, str) or ev not in _KNOWN_EVENTS:
+            return {"ok": False, "reason": f"unknown journal event {ev!r}"}
 
     # EXACT per-frame schema (Codex #1003 BLOCKER-2): every frame's field set is closed — required
     # fields present and typed, no extras — BEFORE any semantic check reads them. This is what
