@@ -299,11 +299,11 @@ evidence supports that promotion.
 - Domain: active-object boundaries / decision-kernel snapshot isolation
 - Conditions: a kernel exact-checks nested row classes, then `deepcopy`s an open caller-owned
   dataclass before validation and scoring.
-- Finding: an exact record with exact rows can carry undeclared state whose copy hook mutates a
-  protected row before it is copied. Exact nested leaves do not neutralize an active enclosing
-  record, container, discontinuity, or scalar value.
+- Finding: v9 showed an exact record with exact rows carrying undeclared copy-hook state; v10
+  stopped traversing that state but still iterated active row-list and history containers before
+  canonicalization. Exact dataclass nodes do not neutralize their containers or scalar leaves.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Reject active record/container/leaf subclasses and never traverse undeclared
   state. Public helpers must either repeat that boundary or accept canonical internal records only.
-- Evidence: Drift Gate `e2b19ec`; Watercooler #1021; review `5d9d0f5`;
-  `MoCoP/reviews/drift_gate_v9_review_2026-07-15.md`.
+- Evidence: Drift Gate `e2b19ec`/`5f5d331`; Watercooler #1021/#1023; reviews
+  `5d9d0f5`/`a49aff3`; `MoCoP/reviews/drift_gate_v10_review_2026-07-15.md`.
