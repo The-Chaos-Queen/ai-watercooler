@@ -1529,3 +1529,153 @@ manifest/panel objects survive past authorization, and the standalone journal-pr
 shape-only. Keep #156 open. The unchanged null-estimator GREEN remains module-only. #149, the real
 HF read-only audit, and resolvable protected-sink attestation remain independent launch holds; no
 #155 authorization follows.
+
+## Round-six complete-authority audit (`5576452` + `521d175`)
+
+- **Review request:** Watercooler #1010.
+- **Spec commit:** `5576452e95991b4b5f31013742fd7e7301cab720`.
+- **Spec blob:** `f374298b4590e1cc3bd548b8cc9f96256a7046b8`.
+- **Implementation commit:** `521d175e2f2aa4e828893b2b1ec756079652f907`.
+- **Runner blob:** `e0a15a089fb459d5e30d6212aca459f5fbcb1dc5`.
+- **Test blob:** `5cd8c55d00cadceb07d1eab0025c6c224fd0ed71`.
+- **Allowlist blob:** `4946a99f09e4242dc1f43bdc1ea6ab3c7e41bcbb`.
+- **Verdict:** `CHANGES` on the amended contract and implementation.
+
+### Accepted round-six repairs
+
+Preserve these repairs:
+
+- the component inventory is no longer returned through `_FROZEN_FORBIDDEN` or another mutable
+  alias;
+- the transient-import evidence is an append-only closure log with private per-run cursors, and
+  the former exported clear/drain capabilities are gone;
+- the guard captures the real `sys` module object rather than reading the assignable published
+  `sys` name;
+- direct reassignment or in-place mutation of the runner-local descriptor, frame-schema, run-kind,
+  event, dtype, and terminal-disposition documentation copies no longer changes their covered
+  verdicts;
+- plain built-in manifest/panel mutation after reconstruction no longer changes execution;
+- the standalone verifier recomputes the sealing prefix digest from the exact raw bytes preceding
+  the sealing frame; and
+- the exact null-estimator remains unchanged: Git blob
+  `31574f5cd95767d8c9aa3b55b958655d75f16ed2`, raw SHA-256
+  `977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e`.
+
+### Blocker 1: the authority freeze stops at the runner-module boundary
+
+`run_b0` still calls the imported `authorize_b0_launch` at `p5_b0_run.py:1436`. That function
+reads mutable policy data from `p5_b0_harness.py`: `COMPONENT_ROUTES` and `DISABLED_VALUES` at
+lines 37-52, required/pinned keys at lines 54-84, and `B0_RUN_KIND` at line 81. The validation
+reads those names live at lines 105-121 and 185-210. None belongs to the new `_Authority` snapshot
+at `p5_b0_run.py:1708-1753`.
+
+Ordinary data reassignment therefore still weakens the governed decision. Adding `True` to the
+harness's disabled-value tuple allowed a manifest that explicitly declared `components.bridge`
+enabled. Rebinding the harness run kind allowed a caller-selected kind through authorization while
+the successful report and claim independently said `b0_baseline`:
+
+```text
+live_harness_disabled_values True integrity_verified ()
+live_harness_run_kind True integrity_verified caller_kind b0_baseline b0_baseline
+```
+
+The runner-local sweep is also not complete: `SCORER_ALLOWLIST_SCHEMA` remains a live data
+authority at `p5_b0_run.py:352` and is consulted at lines 407-408. Reassignment currently causes a
+caller-selected false refusal:
+
+```text
+live_allowlist_schema_false_refusal False scorer allowlist schema_version is not 'caller_schema'
+```
+
+Freeze the complete manifest-authorization policy at its owning module boundary, including route
+vocabulary, disabled values, required/pinned blocks, run kind, unset vocabulary, and schema tags.
+The governed runner must consume one immutable policy decision whose data authorities cannot be
+rebound after import. Include the allowlist schema in the same call-graph inventory. Published
+copies may remain documentation only; they cannot be verdict inputs.
+
+### Blocker 2: `_inert_snapshot` preserves active primitive subclasses
+
+The function promises exact built-in reconstruction at `p5_b0_run.py:112-121`, but line 125 uses
+`isinstance(obj, (bool, int, float, str))` and returns the original object. A `str` subclass
+therefore survives by identity. A fresh governed run proved that the backend received the caller's
+original prompt object, not an inert reconstruction:
+
+```text
+primitive_subclass_snapshot_alias True True CallerStr
+```
+
+This is verdict-bearing, not only a type-theory discrepancy. An equality-overriding manifest
+`model.id` admitted and published a different backend model ID, and a mutable prompt subclass let
+the first forward change what the second forward produced after the panel was supposedly frozen:
+
+```text
+manifest_primitive_subclass_binding True integrity_verified manifest/model-A backend/model-B
+primitive_subclass_panel_toctou True integrity_verified after
+```
+
+Use exact-type dispatch for every leaf (`type(obj) in {type(None), bool, int, float, str}`) and
+refuse subclasses without invoking conversion, equality, hashing, iteration, or copy hooks. Apply
+finite-float and string-key checks while reconstructing so the inert snapshot itself is the only
+object later authorized, hashed, compared, journaled, and executed.
+
+### Blocker 3: other inputs and backend results remain active objects
+
+The manifest and panel are not the whole caller-controlled surface. The scalar bindings at
+`p5_b0_run.py:650-659` are compared and then retained without exact-type normalization. An
+equality-overriding `rubric_version` passed against a different manifest value and was published:
+
+```text
+scalar_binding_subclass True integrity_verified attacker-rubric
+```
+
+The optional `report_path` is coerced once for comparison at lines 1487-1491 and again for use at
+line 1495. A stateful path-like object returned the attested path from `__str__` and a different
+path from `__fspath__`; the declared sink remained absent while the alternate path received an
+`integrity_verified` report:
+
+```text
+split_report_path True integrity_verified .../actual.json False True
+```
+
+Backend results need the same boundary. `dict(backend.descriptor())` at line 1472 is only a shallow
+container copy; its leaves remain active. With an exact built-in manifest, an equality-overriding
+descriptor `id` passed lines 598-611 and the report published a different model:
+
+```text
+backend_descriptor_active_leaf True integrity_verified google/gemma-4-12B backend/model-B EqStr
+```
+
+Before any callback, exact-type-normalize or refuse every external scalar binding. Derive the
+publication destination solely from the exact-string sink in the inert manifest, or normalize an
+optional consistency argument exactly once and use that single value for comparison and I/O.
+Immediately after `backend.descriptor()`, reconstruct and exact-schema-check an inert descriptor;
+bind, journal, and publish only that copy. Apply the same exact-return-type boundary to generation
+and any other callback value admitted into evidence custody.
+
+### Delegated GPT-5.5 and root reconciliation
+
+At Laura's request, the GPT-5.5 coding subagent completed the immutable packet review before the
+root pass. It returned `CHANGES` for the live harness policy, primitive-subclass snapshot, active
+scalar bindings, and split report path, while confirming the narrow component-guard and raw-prefix
+repairs. Codex independently reproduced every one of those cases. The root sweep then added the
+still-live allowlist schema and the active backend-descriptor leaf. No delegated claim is accepted
+here without a local executable reproduction.
+
+### `5576452` / `521d175` verification
+
+- Exact spec, runner, test, allowlist, and scorer blobs matched the immutable packet.
+- Four focused P5 modules: `265 passed, 1 skipped in 2.45s`.
+- Changed runner/test Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- Fresh model-free probes reproduced every blocker above and confirmed the accepted repairs.
+- No Gemma/model forward, GPU use, Qdrant access, injection, deployment, B0 launch, or reviewer
+  implementation/spec/test edit occurred.
+
+### `5576452` / `521d175` disposition
+
+`CHANGES`. The guard/sentinel repair and exact raw-byte prefix verification close their narrow
+round-five findings. The claimed complete authority freeze does not include the live harness
+policy or allowlist schema; the inert snapshot retains primitive subclasses; and scalar/path/
+descriptor inputs remain active after their supposed binding. Keep #156 open. The unchanged
+null-estimator GREEN remains module-only. #149, the real HF read-only audit, and resolvable
+protected-sink attestation remain independent launch holds; no #155 authorization follows.
