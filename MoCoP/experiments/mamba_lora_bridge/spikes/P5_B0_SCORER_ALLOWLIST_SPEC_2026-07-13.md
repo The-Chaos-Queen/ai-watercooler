@@ -39,7 +39,7 @@ NO runtime-mutable allowlist and NO env-var override (Condition 3: no back door)
     {
       "scorer_id": "b0_null_estimator",
       "version": "1",
-      "module_path": "MoCoP/experiments/mamba_lora_bridge/b0_scorers/null_estimator.py",
+      "module_path": "b0_scorers/null_estimator.py",
       "entrypoint": "score",
       "blob_sha256": "<sha256 of the module FILE bytes as committed>",
       "review_ref": "<wolf-Codex message id that GREENed this scorer>"
@@ -171,3 +171,46 @@ Codex accepted the authority move and issued a bounded module-only GREEN of
 Unchanged residual: this still collapses scorer-IDENTITY only, not process/interpreter/host
 integrity (CPython is not a TEE, custody split per #971); #149 schema reconciliation, the real
 HF read-only audit, and the resolvable protected-sink attestation remain independent launch holds.
+
+Note (module_path): §2's `module_path` is relative to the COMMITTED ALLOWLIST's own directory
+(`b0_scorers/null_estimator.py`), not repo-relative. The §2 example is corrected accordingly.
+
+---
+
+## 11. Codex #1003 review corrections (round 3, CHANGES; GPT-5.5 cross-check confirmed at #1004)
+
+Round 2 fixed the *named* holes and left the *shape* of both. Codex (and an independent GPT-5.5
+Extra-High pass) found the same two residuals with matching line-level reasoning.
+
+- **B1 — the authority knob moved, it did not close.** Removing the `run_b0(allowlist_path=…)`
+  parameter is not enough while `DEFAULT_ALLOWLIST_PATH` remains an **exported, assignable module
+  global that the loader dereferences at call time** — and the round-2 positive integration test
+  reassigned it to run a temporary scorer (canary: `mutable_default_override → integrity_verified`).
+  A path-*selection* global IS an alternate governed authority; it is not merely "hostile
+  interpreter mutation" and does not fall under the CPython-is-not-a-TEE residual.
+  **Contract:** the governed allowlist path is **derived INTERNALLY**, inline from the runner
+  module's own `__file__`. There is NO module-level allowlist-path global — no knob to reassign.
+  `run_b0` never selects an allowlist. The loader retains an `allowlist_path` argument for LOADER
+  UNIT TESTS ONLY (they sit below the governed entrypoint); **governed `run_b0` integration tests
+  MUST exercise the committed scorer** — a test seam that substitutes the scorer through the
+  governed path would BE the back door, so the round-2 tests that did so are deleted, and the
+  strict-JSON scorer-evidence invariant is tested where it actually lives (the evidence bundle).
+
+- **B2 — the exact-schema requirement was narrowed to a subset.** Identity-trio + monotone ordinal
+  is not the repair. Every governed frame now has an **EXACT field set**: required fields present
+  and well-typed, and **no extra fields** (arbitrary extra keys are how a co-writer smuggles state
+  past a name-only checker). Specifically:
+  - `claim` binds `run_id`, `run_kind` (== `b0_baseline`), `manifest_digest`,
+    `execution_descriptor_digest`, `utc`, and a fully-bound `scorer_binding`
+    (`scorer_id`/`version`/`blob_sha256`/`allowlist_digest`/`review_ref`, the latter resolved).
+  - `attempt`/`generated`/`recorded` require `attempt_id`/`ordinal`/`probe_id` (+ `prompt_sha256`;
+    + `generation_sha256`/`generation`), the three frames of a cycle must AGREE on the trio, the
+    ordinal is monotone from 0, and **`attempt_id` must be run-DERIVED (`{run_id}:{ordinal}`)**.
+  - `sealing` requires `published_digest` + `journal_digest_prefix`; a committed terminal requires
+    `disposition` + `published_digest` + `report_bytes_sha256` + `durability_warnings` — **all
+    digest fields unconditional and sha256-shaped** (an empty or absent digest is not a digest).
+  - `failed` (the legitimate pre-publication `sealing → failed` path) is preserved and must carry
+    `error_type`/`error` and **no** `disposition`.
+
+Both #1003 canaries are re-run against the fix and refused: `mutable_default_override` has no
+knob to turn, and `underspecified_exact_schema` / `attempt_id_not_run_derived` are rejected.
