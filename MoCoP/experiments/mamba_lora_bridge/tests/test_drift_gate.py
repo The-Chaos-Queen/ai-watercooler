@@ -1461,6 +1461,39 @@ class TestCalibrationCorpus:
         assert outcome.overall == GateLevel.HARD
         assert outcome.verdicts["name"] == Verdict.EROSION
 
+    def test_hostile_subclass_deepcopy_cannot_soften_hard(self):
+        """Fable #995 P1: a ProbeResult subclass overriding __deepcopy__
+        can retain an alias into the private snapshot, letting the
+        resolver soften a protected HARD. The exact-type boundary gate
+        rejects the subclass before deepcopy runs."""
+        class HostileProbe(ProbeResult):
+            __slots__ = ()
+            def __deepcopy__(self, memo):
+                return self
+
+        chain = _chain(STABLE)
+        hostile = HostileProbe(
+            "name", -1, VerdictClass.ABSENT,
+            probe_id="probe:name", rubric_version="rubric:5g2@v3",
+            judge_ref="judge:#130@cal-7", response_digest="0" * 64,
+            notes="lost")
+
+        probes, slots = _battery()
+        probes = [hostile if p.anchor == "name" else p for p in probes]
+        current = AuditRecord(
+            audit_id="hostile-current",
+            timestamp=_ts(len(chain) + 100001),
+            probe_results=probes, diversity_metric=0.80,
+            slot_probe_results=slots,
+            ordinal=len(chain) + 1,
+            predecessor_digest=audit_digest(chain[-1]))
+
+        outcome = evaluate_audit(current, chain)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert outcome.overall != GateLevel.PASS
+        assert any("exact type" in r for r in outcome.incomplete_reasons)
+        assert "type_rejection" in outcome.details
+
     def test_coverage_erosion_canary_every_protected_axis(self):
         """Corpus 'Use' (i): every protected anchor must register erosion
         when lost. A gate blind on one axis is silent exactly where failure

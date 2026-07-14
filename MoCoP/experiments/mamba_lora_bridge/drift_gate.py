@@ -752,6 +752,27 @@ def _is_hold_row(probe: ProbeResult) -> bool:
             and probe.continuity_provenance == ContinuityProvenance.UNSUPPORTED)
 
 
+def _canonical_probe(probe: ProbeResult) -> ProbeResult:
+    """Field-by-field rebuild into an exact ProbeResult — bypasses any
+    __deepcopy__/__copy__ override on a subclass."""
+    return ProbeResult(
+        anchor=probe.anchor,
+        band=probe.band,
+        verdict_class=probe.verdict_class,
+        notes=probe.notes,
+        reframe_band=probe.reframe_band,
+        reframe_notes=probe.reframe_notes,
+        smoke_result=probe.smoke_result,
+        evidence_type=probe.evidence_type,
+        evidence_ref=probe.evidence_ref,
+        continuity_provenance=probe.continuity_provenance,
+        probe_id=probe.probe_id,
+        rubric_version=probe.rubric_version,
+        judge_ref=probe.judge_ref,
+        response_digest=probe.response_digest,
+    )
+
+
 def resolve_acquisitions(
     probes: Sequence[ProbeResult],
     resolver: Optional[EvidenceResolverBinding] = None,
@@ -793,7 +814,7 @@ def resolve_acquisitions(
                 "error", "resolver binding lacks identity/version")
         else:
             try:
-                result = resolver.resolve(ref, copy.deepcopy(probe))
+                result = resolver.resolve(ref, _canonical_probe(probe))
             except Exception as exc:  # typed non-authorizing result, never a crash
                 receipts[anchor] = receipt(
                     "error", f"resolver raised {type(exc).__name__}: {exc}")
@@ -1111,6 +1132,40 @@ def evaluate_audit(
     or because the disposition-divergence metric is deferred. HOLD (A1)
     outranks INCOMPLETE. HARD findings on measured axes override
     everything (a halt is never masked)."""
+    # Exact-type boundary gate: a ProbeResult subclass can override
+    # __deepcopy__ to retain an alias into the private snapshot, letting
+    # a resolver soften a protected HARD (#995 P1).
+    _type_issues = []
+    for _p in audit.probe_results:
+        if type(_p) is not ProbeResult:
+            _type_issues.append(
+                f"protected probe {getattr(_p, 'anchor', '?')!r}: "
+                f"exact type ProbeResult required, got {type(_p).__name__}")
+    for _p in audit.slot_probe_results:
+        if type(_p) is not ProbeResult:
+            _type_issues.append(
+                f"slot probe {getattr(_p, 'anchor', '?')!r}: "
+                f"exact type ProbeResult required, got {type(_p).__name__}")
+    for _hi, _rec in enumerate(history):
+        for _p in getattr(_rec, 'probe_results', ()):
+            if type(_p) is not ProbeResult:
+                _type_issues.append(
+                    f"history[{_hi}] probe: exact type ProbeResult required")
+        for _p in getattr(_rec, 'slot_probe_results', ()):
+            if type(_p) is not ProbeResult:
+                _type_issues.append(
+                    f"history[{_hi}] slot: exact type ProbeResult required")
+    if _type_issues:
+        return GateOutcome(
+            overall=GateLevel.INCOMPLETE,
+            protected_set=GateLevel.INCOMPLETE,
+            range_trajectory=GateLevel.INCOMPLETE,
+            disposition_divergence=GateLevel.INCOMPLETE,
+            details={"type_rejection": _type_issues},
+            incomplete_reasons=_type_issues,
+            reasoning=["boundary: rejected non-exact ProbeResult type(s)"],
+        )
+
     # Snapshot before ANY validation or callback (#984 blocker 1).
     audit = copy.deepcopy(audit)
     history = [copy.deepcopy(rec) for rec in history]
