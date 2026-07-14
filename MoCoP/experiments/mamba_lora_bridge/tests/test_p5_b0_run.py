@@ -524,7 +524,8 @@ def test_run_b0_refuses_descriptor_missing_field(tmp_path):
     out = tmp_path / "b0_report.json"
     partial = _backend({k: v for k, v in MODEL.items() if k != "use_cache"})
     res = _run(_manifest(PANEL, out), PANEL, partial, out)
-    assert res.ok is False and any("omits required field" in r for r in res.refusals)
+    # exact descriptor schema (#1013 B1): a missing key is a keys-mismatch refusal
+    assert res.ok is False and any("use_cache" in r and "missing" in r for r in res.refusals)
 
 
 @pytest.mark.parametrize("field", ["backend", "device", "attention", "use_cache"])
@@ -773,11 +774,11 @@ def test_run_b0_does_not_call_backend_on_refused_launch(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("field", ["backend", "device", "attention"])
 def test_run_b0_refuses_null_descriptor_field(tmp_path, field):
-    # #966 BLOCKER-3: extended fields cannot be null on both sides and pass.
+    # #966 BLOCKER-3 / #1013 B1: a null descriptor field fails the exact field-type schema.
     out = tmp_path / "b0_report.json"
     model = {**MODEL, field: None}
     res = _run(_manifest(PANEL, out, model=model), PANEL, _backend(model), out)
-    assert res.ok is False and any(field in r and "null" in r for r in res.refusals)
+    assert res.ok is False and any(field in r and "must be a str" in r for r in res.refusals)
 
 
 def test_run_b0_report_binds_actual_journal_bytes(tmp_path):
@@ -1166,6 +1167,73 @@ def test_run_b0_scalar_binding_subclass_refused(tmp_path):
     out = tmp_path / "b0_report.json"
     res = _run(_manifest(PANEL, out), PANEL, _backend(), out, rubric_version=_EqStr("attacker-rubric"))
     assert res.ok is False
+
+
+def test_run_b0_refuses_descriptor_extra_field(tmp_path):
+    # Codex #1013 B1: an extra descriptor field must be refused, not published unbound.
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _backend({**MODEL, "smuggled": "x"}), out)
+    assert res.ok is False and any("keys mismatch" in r and "smuggled" in r for r in res.refusals)
+
+
+def test_run_b0_refuses_descriptor_list_root(tmp_path):
+    # Codex #1013 B1: a non-dict descriptor root must refuse cleanly, not raise AttributeError.
+    out = tmp_path / "b0_report.json"
+
+    class _ListDesc:
+        def assert_sterile(self):
+            return None
+
+        def descriptor(self):
+            return ["not", "a", "dict"]
+
+        def generate(self, prompt, decoding):
+            raise AssertionError("must not generate")
+
+    res = _run(_manifest(PANEL, out), PANEL, _ListDesc(), out)
+    assert res.ok is False and any("root is not a dict" in r for r in res.refusals)
+
+
+def test_run_b0_refuses_str_subclass_generation(tmp_path):
+    # Codex #1013 B2: a str subclass returned by generate() must be refused before hash/journal/
+    # score/custody — it can render visible text yet carry contradictory scorer evidence.
+    out = tmp_path / "b0_report.json"
+
+    class _SubclassGen:
+        def assert_sterile(self):
+            return None
+
+        def descriptor(self):
+            return dict(MODEL)
+
+        def generate(self, prompt, decoding):
+            return _EqStr("visible text")
+
+    with pytest.raises(B0RunError) as ei:
+        _run(_manifest(PANEL, out), PANEL, _SubclassGen(), out)
+    assert "non-exact-str" in str(ei.value)
+    assert not out.exists()
+
+
+def test_run_b0_mutating_report_path_cannot_gain_acceptance(tmp_path):
+    # Codex #1013 B3: report_path is normalized ONCE before any callback; a backend mutating an
+    # initially-mismatching path into a match later must not gain acceptance.
+    declared = tmp_path / "declared.json"
+
+    class _MutPath:
+        def __init__(self):
+            self.value = str(tmp_path / "wrong.json")     # initially mismatches the sink
+
+        def __fspath__(self):
+            v = self.value
+            self.value = str(declared)                    # mutate toward acceptance on later reads
+            return v
+
+        def __repr__(self):
+            raise AssertionError("original report_path must never be repr'd")
+
+    res = _run(_manifest(PANEL, declared), PANEL, _backend(), declared, report_path=_MutPath())
+    assert res.ok is False                                # the ONE early normalization saw the mismatch
 
 
 def test_run_b0_governed_run_uses_the_committed_scorer(tmp_path):

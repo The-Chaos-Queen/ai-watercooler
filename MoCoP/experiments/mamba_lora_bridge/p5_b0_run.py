@@ -1194,6 +1194,27 @@ def _exact_schema_error(label: str, frame: Mapping[str, Any], schema: Mapping[st
     return None
 
 
+def _descriptor_schema_error(descriptor: Any) -> str | None:
+    """Codex #1013 B1: the backend descriptor must be an EXACT dict with EXACTLY the frozen key
+    set and EXACT field types — a list root would raise later, and extra fields would publish
+    unbound under integrity_verified. ``use_cache`` is a bool; every other field is a plain str."""
+    keys = _authority().descriptor_keys
+    if type(descriptor) is not dict:
+        return f"backend descriptor root is not a dict (got {type(descriptor).__name__})"
+    have = set(descriptor)
+    if have != set(keys):
+        return (f"backend descriptor keys mismatch (extra={sorted(have - set(keys))}, "
+                f"missing={sorted(set(keys) - have)})")
+    for k in keys:
+        v = descriptor[k]
+        want_bool = k == "use_cache"
+        if want_bool and type(v) is not bool:
+            return f"backend descriptor field {k!r} must be a bool"
+        if not want_bool and type(v) is not str:
+            return f"backend descriptor field {k!r} must be a str"
+    return None
+
+
 def _frame_schema_error(event: str, frame: Mapping[str, Any]) -> str | None:
     """Exact-schema check for one governed frame (dispatches committed terminals)."""
     _A = _authority()                                          # frozen schemas (Codex #1009 B2)
@@ -1453,6 +1474,22 @@ def run_b0(
                           ("decoding_hash", decoding_hash), ("runtime_hash", runtime_hash)):
         if _sval is not None and type(_sval) is not str:
             refusals.append(f"{_sname} must be an exact str (an equality-overriding subclass is refused)")
+
+    # Codex #1013 B3: normalize report_path ONCE, NOW, before any backend/scorer callback can see
+    # or mutate it. Keep only the inert string (or a static refusal); the original object is never
+    # read, repr'd, or fspath'd again — so a stateful path cannot mutate an initial mismatch into
+    # acceptance, and a raising __repr__ cannot crash a refusal message.
+    report_path_str: str | None = None
+    if report_path is not None:
+        try:
+            _rp = os.fspath(report_path)
+        except TypeError:
+            _rp = None
+        if type(_rp) is str:
+            report_path_str = _rp
+        else:
+            refusals.append("report_path is not a valid filesystem path string")
+
     refusals.extend(assert_no_component_reachable())               # live sys.modules
     refusals.extend(_validate_panel(panel))
     refusals.extend(check_protected_sink_attestation(manifest))    # OS-contract prereq (#966 r5)
@@ -1494,6 +1531,10 @@ def run_b0(
             descriptor = _inert_snapshot(backend.descriptor())
         except B0RunError as exc:
             refusals.append(f"backend descriptor is not inert-reconstructable: {exc}")
+        else:
+            desc_err = _descriptor_schema_error(descriptor)      # exact root/keys/types (#1013 B1)
+            if desc_err:
+                refusals.append(desc_err)
         desc_imports = watch()
         if desc_imports:
             refusals.append("component IMPORTED during backend.descriptor(): "
@@ -1519,14 +1560,11 @@ def run_b0(
         if not (isinstance(sink_path, str) and sink_path):
             refusals.append("manifest evidence_sink.path is unset; cannot bind evidence")
         else:
-            if report_path is not None:
-                try:
-                    rp = os.fspath(report_path)
-                except TypeError:
-                    rp = report_path
-                if type(rp) is not str or rp != sink_path:
-                    refusals.append(f"report_path {report_path!r} != manifest evidence_sink.path "
-                                    f"{sink_path!r}")
+            # Compare the PRE-NORMALIZED report_path string (never the original object) to the
+            # inert manifest sink; the path is always derived from the sink, never from the caller.
+            if report_path_str is not None and report_path_str != sink_path:
+                refusals.append(f"report_path {report_path_str!r} != manifest evidence_sink.path "
+                                f"{sink_path!r}")
             if not refusals:
                 resolved_path = Path(sink_path)               # the inert manifest's exact string
 
@@ -1586,6 +1624,12 @@ def run_b0(
             _check_import_window(watch, "pre-forward baseline")
 
             generation = backend.generate(prompt, dict(effective_decoding))  # governed forward
+            # Codex #1011 -> #1013 B2: require an EXACT str immediately, before any hash/journal/
+            # score/custody — a str subclass can render visible text yet carry contradictory
+            # scorer evidence while remaining GREEN.
+            if type(generation) is not str:
+                raise B0RunError(f"backend.generate returned a non-exact-str "
+                                 f"({type(generation).__name__}); refusing")
 
             _check_import_window(watch, "governed forward")        # transient-import accounting
             post = assert_no_component_reachable()
