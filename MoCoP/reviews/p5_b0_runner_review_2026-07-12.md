@@ -1679,3 +1679,123 @@ policy or allowlist schema; the inert snapshot retains primitive subclasses; and
 descriptor inputs remain active after their supposed binding. Keep #156 open. The unchanged
 null-estimator GREEN remains module-only. #149, the real HF read-only audit, and resolvable
 protected-sink attestation remain independent launch holds; no #155 authorization follows.
+
+## Round-seven callback-boundary audit (`4f01720` + `8a86506`)
+
+- **Review request:** Watercooler #1012.
+- **Spec commit:** `4f01720443ec70540629e131bd85c41e585573cf`.
+- **Spec blob:** `3e20bc0498455ab70374b4fbe0e8ca3edd3e33e2`.
+- **Implementation commit:** `8a8650639dead9f251257fe4c4a2d966845ab9c3`.
+- **Harness blob:** `5d056309bfe48d4d66d575ca7b572d7fcbd6a519`.
+- **Runner blob:** `bbfce102b2eef34a1cc467e9b7f4de203b377ddd`.
+- **Test blob:** `26b3747e3a06bb98859e54699f12f026725b46f0`.
+- **Allowlist blob:** `4946a99f09e4242dc1f43bdc1ea6ab3c7e41bcbb`.
+- **Verdict:** `CHANGES` on the amended contract and implementation.
+
+### Accepted round-seven repairs
+
+Preserve these repairs:
+
+- the manifest policy is frozen at its owning `p5_b0_harness` boundary, and reassignment of the
+  published route, disabled-value, required/pinned-key, run-kind, and unset-value copies no longer
+  weakens authorization;
+- the scorer allowlist schema is part of the runner authority snapshot;
+- manifest and panel reconstruction now admits only exact built-in leaves, finite floats, and
+  exact string mapping keys, so the prior primitive-subclass alias/binding/TOCTOU cases refuse;
+- external rubric, processor, decoding, and runtime scalar subclasses refuse before backend code;
+- the earlier split `__str__`/`__fspath__` path no longer redirects publication to the alternate
+  leaf;
+- active backend descriptor leaves refuse during inert reconstruction; and
+- the exact null-estimator remains unchanged: Git blob
+  `31574f5cd95767d8c9aa3b55b958655d75f16ed2`, raw SHA-256
+  `977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e`.
+
+### Blocker 1: the backend descriptor is not an exact closed-world record
+
+The callback result is inert-reconstructed at `p5_b0_run.py:1494`, but `_inert_snapshot` admits
+exact lists and tuples as list values and does not establish the descriptor's root type or schema.
+The binder at lines 590-622 checks only that the seven required keys are present; it neither
+rejects extras nor defines exact field types.
+
+A descriptor with an extra nested field therefore published that unbound evidence under normal
+success. A list root containing the required key strings reached `.get()` and raised an uncaught
+`AttributeError` instead of returning a closed refusal:
+
+```text
+descriptor_extra_field True integrity_verified {'unbound': True}
+descriptor_list_root AttributeError 'list' object has no attribute 'get'
+```
+
+Immediately after the callback, require an exact `dict` root, an exact frozen key set, and exact
+field types (`str` for the six textual fields and `bool` for `use_cache`) before comparison or
+publication. Inert reconstruction is necessary but not a schema.
+
+### Blocker 2: generation remains an active callback object
+
+`backend.generate()` returns at line 1588, and the result is passed without an exact-type boundary
+through digesting/journaling at lines 1595-1599, the reviewed scorer at line 1607, and evidence
+custody at lines 1613-1616. `isinstance` checks in the downstream scorer/bundle still admit a
+`str` subclass with overridden behavior.
+
+A subclass whose stored text was `visible` but whose `.split()` returned three selected tokens
+published the visible text while recording incompatible scorer evidence, all under GREEN:
+
+```text
+active_generation_subclass True integrity_verified visible 3 0.666667 ActiveGeneration
+```
+
+Require `type(generation) is str` immediately after `generate()` and before any hash, journal,
+scorer, or bundle operation. The exact immutable string must be the one representation used by all
+four consumers.
+
+### Blocker 3: `report_path` is normalized after backend callbacks
+
+The optional consistency argument is first normalized at lines 1522-1527, after scorer loading,
+backend attribute lookup, and `backend.descriptor()`. A backend retaining the path object changed
+an initially mismatching path to the declared sink during `descriptor()`; the later normalization
+then accepted it and the run published normally:
+
+```text
+late_report_path_normalization True integrity_verified True False .../declared.json
+```
+
+The mismatch branch at lines 1527-1529 also formats the original active object with `!r`. A path
+whose normalized value mismatched but whose `__repr__` raised escaped instead of returning the
+intended refusal:
+
+```text
+report_path_refusal_repr RuntimeError repr callback ran
+```
+
+Normalize `report_path` exactly once before any backend/scorer callback, retain only the exact
+built-in string (or a static refusal), and discard the original object. Compare and report using
+that inert local only; never coerce or format the caller object again. Publication should continue
+to use only the exact manifest sink.
+
+### Delegated GPT-5.5 and root reconciliation
+
+At Laura's request, the GPT-5.5 coding subagent completed the immutable packet review before the
+root code audit. It returned `CHANGES` for the descriptor root/schema, active generation value,
+and late report-path normalization while confirming the harness/allowlist freeze, exact manifest/
+panel leaves, scalar refusal, direct split-path repair, and active descriptor-leaf refusal. Codex
+then independently reproduced every delegated case and added the raising-`__repr__` instance of
+the same late path boundary. No delegated claim is accepted here without local reproduction.
+
+### `4f01720` / `8a86506` verification
+
+- Exact spec, harness, runner, test, allowlist, and scorer blobs matched the immutable packet.
+- Four focused P5 modules: `272 passed, 1 skipped in 2.99s`.
+- Changed harness/runner/test Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- Fresh model-free probes reproduced every blocker above and confirmed the accepted repairs.
+- No Gemma/model forward, GPU use, Qdrant access, injection, deployment, B0 launch, or reviewer
+  implementation/spec/test edit occurred.
+
+### `4f01720` / `8a86506` disposition
+
+`CHANGES`. The full harness/allowlist authority freeze, exact manifest/panel reconstruction, and
+covered scalar/descriptor-leaf fixes close the round-six architectural findings. The callback
+boundary remains incomplete: descriptor root/schema is open, generation is active through custody,
+and the optional path is normalized too late and reread on refusal. Keep #156 open. The unchanged
+null-estimator GREEN remains module-only. #149, the real HF read-only audit, and resolvable
+protected-sink attestation remain independent launch holds; no #155 authorization follows.
