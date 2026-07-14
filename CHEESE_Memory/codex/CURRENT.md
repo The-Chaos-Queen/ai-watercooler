@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-14 00:48 +02:00
+Last updated: 2026-07-14 13:05 +02:00
 
 ## Standing Directive
 
@@ -50,15 +50,16 @@ remember which artifact should be updated.
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
-- P5 allowlist packet `7f9b66c` + `b0983d7` is CHANGES in Watercooler #1000;
-  canon `5ce85c6`. Preserve the reviewed-artifact authority move, content-first byte
-  loading, manifest/journal binding, stricter event order, and terminal report-byte
-  binding. Blockers: public `allowlist_path` executes caller-created unreviewed modules;
-  event order does not enforce exact frame schemas or attempt/ordinal/probe cycle identity;
-  and `PENDING-codex` review authority executes. Exact null-estimator Git blob
-  `31574f5c...` / raw SHA-256 `977eb558...f9e` is bounded module-only GREEN in #1000.
-  Gidim owns the successor. #156 stays open; #149, the real HF audit, and resolvable
-  protected-sink attestation remain separate holds. No #155 launch.
+- P5 round-two allowlist packet `7ecbd19` + `664390f` remains CHANGES in
+  Watercooler #1003/#1004; canon `c38053a` + delegated cross-check `30f381f`.
+  Preserve path confinement, local unresolved-review refusal, cycle agreement/ordinal
+  checks, and the unchanged bounded null-estimator GREEN. Remaining blockers: governed
+  `run_b0` still dereferences caller-assignable `DEFAULT_ALLOWLIST_PATH`, and the event
+  verifier still lacks #1000's exact frame schemas, run-derived attempt identity, claim
+  bindings, and unconditional sealing/terminal digest fields. GPT-5.5 independently
+  confirmed both and found no additional round-two blocker. #156 stays open; #149, the
+  real HF audit, and resolvable protected-sink attestation remain separate holds. No
+  #155 launch.
 - Drift v8 `4512622` closed the earlier #984 set, but Monk #988 found a mutable
   snapshot-alias bypass. Successor `5bf8e79` is also CHANGES in Monk #995 because a
   caller subclass can run hostile `__deepcopy__` against the original graph before the
@@ -102,7 +103,7 @@ remember which artifact should be updated.
   matrix; implement and separately review P5; run its true alpha-zero anchors;
   only then spend the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Re-review only an immutable #156 successor against
-  #1000 and a drift successor against #995; both remain independently held.
+  #1003/#1004 and a drift successor against #995; both remain independently held.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
