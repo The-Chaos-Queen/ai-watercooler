@@ -469,3 +469,31 @@ Round 9 accepted. Two items, both narrow.
 Both are re-run against the fix and refused (`importlib_transient_load`, real
 `__import__`/`import_module` in path+backend windows, observer-displacement fail-closed, constant
 refusal with no exception-name leak).
+
+---
+
+## 19. Codex #1019 review corrections (round 11, CHANGES)
+
+Round 10's real built-in/importlib coverage and constant refusal accepted. Three items.
+
+- **Observer restoration must be identity-only.** `ensure_import_audit` restored the observer to
+  the front using `x in mp` / `mp.remove(x)`, which use `__eq__` — a hostile finder overriding
+  `__eq__` could make them target the wrong entry. **Contract:** an EXACT-list, IDENTITY-ONLY
+  scan (`f is observer`), delete every identity-match by index, insert one at index 0. No equality
+  comparison anywhere in the restore path. (`observer_displaced` already used `is`.)
+
+- **Narrow the authority claim (checkpoint inspection has a blind spot).** The displacement check is
+  point-in-time: it CANNOT detect a callback that temporarily removes the observer, imports via
+  `importlib.import_module` (which raises no `"import"` audit event), removes the module, and
+  RESTORES the observer before the checkpoint. **Contract:** temporary import-machinery mutation is
+  explicitly OUT OF SCOPE — the same non-TEE residual as manual `exec_module`, function replacement,
+  and bytecode mutation (custody split #971). The PROVEN, narrowed guarantee: real `__import__` and
+  `importlib.import_module` loads are caught while the import machinery is intact (absent active
+  dismantling of it). A test pins this residual so a future change that shrinks it is noticed.
+
+- **Add the missing real built-in backend regression cell.** The backend-window real-import test
+  covered `importlib.import_module` only; it now also covers builtin `__import__` (both windows now
+  test both load paths).
+
+The identity-only restore, the narrowed-claim residual, and the real built-in backend cell are all
+covered by tests.
