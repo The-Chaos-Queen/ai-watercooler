@@ -1073,6 +1073,101 @@ def test_run_b0_panel_toctou_defeated(tmp_path):
     assert recs[1]["provenance"]["prompt_sha256"] == canonical_digest("prompt two")
 
 
+class _EqStr(str):
+    """A str subclass that compares equal to anything — the #1011 equality-override attacker."""
+
+    def __eq__(self, other):
+        return True
+
+    def __hash__(self):
+        return hash("_eqstr_")
+
+
+@pytest.mark.parametrize("attr,value,mutate", [
+    ("DISABLED_VALUES", None, "add_true"),          # add True to the harness disabled tuple
+    ("B0_RUN_KIND", "caller_kind", "run_kind"),     # rebind harness run kind
+])
+def test_harness_policy_frozen_against_reassignment(tmp_path, monkeypatch, attr, value, mutate):
+    # Codex #1011 B1: the authority freeze must reach the harness — reassigning harness policy
+    # must not weaken authorization.
+    import p5_b0_harness as h
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out)
+    if mutate == "add_true":
+        monkeypatch.setattr(h, "DISABLED_VALUES", tuple(h.DISABLED_VALUES) + (True,))
+        m["components"]["bridge"] = True
+    else:
+        monkeypatch.setattr(h, "B0_RUN_KIND", value)
+        m["run_kind"] = value
+    res = _run(m, PANEL, _ExplodingBackend(), out)
+    assert res.ok is False
+
+
+def test_scorer_allowlist_schema_frozen(tmp_path, monkeypatch):
+    # Codex #1011 B1: SCORER_ALLOWLIST_SCHEMA is a runner data authority; reassigning it must not
+    # cause a caller-selected false refusal.
+    monkeypatch.setattr(p5_b0_run, "SCORER_ALLOWLIST_SCHEMA", "caller_schema")
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is True
+
+
+def test_inert_snapshot_refuses_str_subclass_leaf(tmp_path):
+    # Codex #1011 B2: a str subclass in the manifest must be refused (not honored by identity) —
+    # an equality-overriding leaf could bind an exact manifest to a different published value.
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out)
+    m["model"]["id"] = _EqStr("google/gemma-4-12B")
+    res = _run(m, PANEL, _backend({**MODEL, "id": "backend/model-B"}), out)
+    assert res.ok is False
+
+
+def test_run_b0_split_report_path_cannot_redirect(tmp_path):
+    # Codex #1011 B3: a report_path whose __str__ and __fspath__ disagree must not route the report
+    # to an alternate destination — the path comes solely from the inert manifest sink.
+    declared = tmp_path / "declared.json"
+    actual = tmp_path / "actual.json"
+
+    class _Split:
+        def __str__(self):
+            return str(declared)
+
+        def __fspath__(self):
+            return str(actual)
+
+    res = _run(_manifest(PANEL, declared), PANEL, _backend(), declared, report_path=_Split())
+    assert res.ok is False or not actual.exists()             # never lands at the alternate path
+    assert not actual.exists()
+
+
+def test_run_b0_backend_descriptor_active_leaf_refused(tmp_path):
+    # Codex #1011 B3: an equality-overriding backend descriptor leaf must not bind an exact
+    # manifest to a different published model id — the descriptor is inert-reconstructed first.
+    out = tmp_path / "b0_report.json"
+
+    class _DescLeaf:
+        def assert_sterile(self):
+            return None
+
+        def descriptor(self):
+            d = dict(MODEL)
+            d["id"] = _EqStr("backend/model-B")
+            return d
+
+        def generate(self, prompt, decoding):
+            return "gen"
+
+    res = _run(_manifest(PANEL, out), PANEL, _DescLeaf(), out)
+    assert res.ok is False
+
+
+def test_run_b0_scalar_binding_subclass_refused(tmp_path):
+    # Codex #1011 B3: an equality-overriding scalar binding is refused before it is compared.
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out, rubric_version=_EqStr("attacker-rubric"))
+    assert res.ok is False
+
+
 def test_run_b0_governed_run_uses_the_committed_scorer(tmp_path):
     # The governed run binds the COMMITTED reviewed scorer — its blob hash and resolved review_ref
     # appear in the published execution_descriptor, and no fixture could have substituted them.

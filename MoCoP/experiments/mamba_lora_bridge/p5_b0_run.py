@@ -34,6 +34,7 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
+import math
 import os
 import sys
 import time
@@ -122,17 +123,26 @@ def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
     """
     if _depth > 64:
         raise B0RunError("manifest/panel nesting too deep to snapshot")
-    if obj is None or isinstance(obj, (bool, int, float, str)):
-        return obj                                            # immutable primitives pass through
     t = type(obj)
+    # EXACT-type leaves (Codex #1011 B2): a str/int/… SUBCLASS is refused, not returned by
+    # identity — a subclass can override __eq__ to compare equal to a different published value.
+    # No conversion/equality/hash/iter/copy hook is invoked on a leaf.
+    if obj is None or t is bool or t is int or t is str:
+        return obj
+    if t is float:
+        if not math.isfinite(obj):                            # finite-float check while reconstructing
+            raise B0RunError("non-finite float in manifest/panel input")
+        return obj
     if t is dict:
-        out: dict[Any, Any] = {}
+        out: dict[str, Any] = {}
         for k, v in list(obj.items()):                        # plain dict.items — not caller code
-            out[_inert_snapshot(k, _depth + 1)] = _inert_snapshot(v, _depth + 1)
+            if type(k) is not str:                            # string-key check (exact)
+                raise B0RunError(f"non-string mapping key {k!r} in manifest/panel input")
+            out[k] = _inert_snapshot(v, _depth + 1)
         return out
     if t is list or t is tuple:
         return [_inert_snapshot(x, _depth + 1) for x in list(obj)]
-    raise B0RunError(f"non-inert {t.__name__} in manifest/panel input (only plain "
+    raise B0RunError(f"non-inert {t.__name__} in manifest/panel input (only EXACT plain "
                      "dict/list/tuple/str/int/float/bool/None permitted)")
 
 
@@ -375,6 +385,7 @@ def load_allowlisted_scorer(
     ``allowlist_path``; the parameter exists ONLY for loader unit tests, which sit BELOW the
     governed entrypoint.
     """
+    SCORER_ALLOWLIST_SCHEMA = _authority().scorer_allowlist_schema   # frozen (Codex #1011 B1)
     allowlist_path = (Path(allowlist_path) if allowlist_path is not None
                       else _governed_allowlist_path())
     scorer_block = manifest.get("scorer", {})
@@ -1435,6 +1446,13 @@ def run_b0(
 
     decision = authorize_b0_launch(manifest)
     refusals = list(decision.refusals)
+    # Codex #1011 B3: normalize the external SCALAR bindings before they are compared — an
+    # equality-overriding str subclass must not pass against a different manifest value.
+    for _sname, _sval in (("rubric_version", rubric_version),
+                          ("processor_revision", processor_revision),
+                          ("decoding_hash", decoding_hash), ("runtime_hash", runtime_hash)):
+        if _sval is not None and type(_sval) is not str:
+            refusals.append(f"{_sname} must be an exact str (an equality-overriding subclass is refused)")
     refusals.extend(assert_no_component_reachable())               # live sys.modules
     refusals.extend(_validate_panel(panel))
     refusals.extend(check_protected_sink_attestation(manifest))    # OS-contract prereq (#966 r5)
@@ -1469,7 +1487,13 @@ def run_b0(
         scorer_fn, scorer_binding, load_refusals = load_allowlisted_scorer(manifest)
         refusals.extend(load_refusals)
     if not refusals:
-        descriptor = dict(backend.descriptor())
+        # Codex #1011 B3: the backend result is caller-controlled — inert-reconstruct it (exact
+        # built-in leaves) BEFORE binding, so an equality-overriding descriptor leaf cannot bind an
+        # exact manifest to a different published model id.
+        try:
+            descriptor = _inert_snapshot(backend.descriptor())
+        except B0RunError as exc:
+            refusals.append(f"backend descriptor is not inert-reconstructable: {exc}")
         desc_imports = watch()
         if desc_imports:
             refusals.append("component IMPORTED during backend.descriptor(): "
@@ -1484,15 +1508,27 @@ def run_b0(
             )
         )
 
+    # Codex #1011 B3: derive the publication destination SOLELY from the exact-string sink in the
+    # inert manifest (a plain str after _inert_snapshot). A caller-supplied report_path is
+    # normalized ONCE (os.fspath collapses a split __str__/__fspath__ object to a single value) and
+    # required to equal that sink — but is never itself used as the path, so it cannot redirect the
+    # report to an alternate destination.
     sink_path = manifest.get("evidence_sink", {}).get("path")
     resolved_path: Path | None = None
     if not refusals:
-        if report_path is not None and str(report_path) != str(sink_path):
-            refusals.append(f"report_path {report_path} != manifest evidence_sink.path {sink_path}")
-        elif not sink_path:
+        if not (isinstance(sink_path, str) and sink_path):
             refusals.append("manifest evidence_sink.path is unset; cannot bind evidence")
         else:
-            resolved_path = Path(report_path if report_path is not None else sink_path)
+            if report_path is not None:
+                try:
+                    rp = os.fspath(report_path)
+                except TypeError:
+                    rp = report_path
+                if type(rp) is not str or rp != sink_path:
+                    refusals.append(f"report_path {report_path!r} != manifest evidence_sink.path "
+                                    f"{sink_path!r}")
+            if not refusals:
+                resolved_path = Path(sink_path)               # the inert manifest's exact string
 
     if refusals:
         return B0RunResult(False, tuple(refusals), None, None, None)
@@ -1726,6 +1762,7 @@ class _Authority(NamedTuple):
     warn_tag: str
     binding_tag: str
     ref_tag: str
+    scorer_allowlist_schema: str
 
 
 def _bind_authority() -> Callable[[], _Authority]:
@@ -1751,6 +1788,7 @@ def _bind_authority() -> Callable[[], _Authority]:
         scorer_binding_schema=MappingProxyType(dict(_SCORER_BINDING_SCHEMA)),
         sha_tag=str(_SHA), str_tag=str(_STR), text_tag=str(_TEXT), ord_tag=str(_ORD),
         warn_tag=str(_WARN), binding_tag=str(_BINDING), ref_tag=str(_REF),
+        scorer_allowlist_schema=str(SCORER_ALLOWLIST_SCHEMA),
     )
 
     def authority() -> _Authority:

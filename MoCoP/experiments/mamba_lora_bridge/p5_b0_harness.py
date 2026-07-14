@@ -22,7 +22,8 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
+from types import MappingProxyType
+from typing import Any, Mapping, NamedTuple, Sequence
 
 # Component routes that MUST be explicitly disabled for a B0 run. Deny-by-default:
 # a route that is missing, enabled, or "reachable" fails the launch. (DQ1b §6.1.)
@@ -84,11 +85,50 @@ B0_RUN_KIND = "b0_baseline"
 _UNSET_STRINGS = {"", "tbd", "null", "none", "pending", "todo", "changeme"}
 
 
+# --------------------------------------------------------------------------- #
+# Manifest-authorization POLICY, frozen at import at its owning boundary        #
+# (Codex #1009 B1 -> #1011 B1: the runner's authority freeze must reach here).  #
+# --------------------------------------------------------------------------- #
+# The validators below render a governed decision; none of the policy they read may be a
+# call-time dereference of a reassignable/mutable module global (adding `True` to DISABLED_VALUES,
+# or rebinding B0_RUN_KIND, weakened authorization). The module constants above remain PUBLISHED
+# documentation; the validators consume the frozen snapshot returned by ``_policy()``.
+class _HarnessPolicy(NamedTuple):
+    component_routes: tuple
+    disabled_values: tuple
+    required_keys: frozenset
+    model_keys: tuple
+    pinned_blocks: Mapping[str, tuple]
+    b0_run_kind: str
+    unset_strings: frozenset
+
+
+def _bind_harness_policy():
+    snap = _HarnessPolicy(
+        component_routes=tuple(COMPONENT_ROUTES),
+        disabled_values=tuple(DISABLED_VALUES),
+        required_keys=frozenset(REQUIRED_B0_KEYS),
+        model_keys=tuple(_MODEL_KEYS),
+        pinned_blocks=MappingProxyType({k: tuple(v) for k, v in _PINNED_BLOCKS.items()}),
+        b0_run_kind=str(B0_RUN_KIND),
+        unset_strings=frozenset(_UNSET_STRINGS),
+    )
+
+    def policy() -> _HarnessPolicy:
+        return snap
+
+    return policy
+
+
+_policy = _bind_harness_policy()
+
+
 class B0ManifestError(ValueError):
     """A structural launch-refusal reason (bug or unsafe config), not a run outcome."""
 
 
 def _is_unset(value: Any) -> bool:
+    _UNSET_STRINGS = _policy().unset_strings              # frozen (Codex #1011 B1)
     if not isinstance(value, str):
         return True
     val_lower = value.strip().lower()
@@ -103,6 +143,8 @@ def _is_unset(value: Any) -> bool:
 # Manifest validation (deny-by-default, closed-world).                         #
 # --------------------------------------------------------------------------- #
 def _check_no_component(components: Any, refusals: list[str]) -> None:
+    _P = _policy()                                       # frozen policy (Codex #1011 B1)
+    COMPONENT_ROUTES, DISABLED_VALUES = _P.component_routes, _P.disabled_values
     if not isinstance(components, Mapping):
         refusals.append("components block missing or not a mapping")
         return
@@ -122,6 +164,8 @@ def _check_no_component(components: Any, refusals: list[str]) -> None:
 
 
 def _check_pinned(manifest: Mapping[str, Any], refusals: list[str]) -> None:
+    _P = _policy()                                       # frozen policy (Codex #1011 B1)
+    _MODEL_KEYS, _PINNED_BLOCKS = _P.model_keys, _P.pinned_blocks
     model = manifest.get("model")
     if not isinstance(model, Mapping):
         refusals.append("model block missing or not a mapping")
@@ -185,6 +229,8 @@ def _check_evidence_sink(sink: Any, refusals: list[str]) -> None:
 def validate_b0_manifest(manifest: Mapping[str, Any]) -> list[str]:
     """Return a list of launch-refusal reasons ([] means clean). Never runs anything."""
 
+    _P = _policy()                                       # frozen policy (Codex #1011 B1)
+    REQUIRED_B0_KEYS, B0_RUN_KIND = _P.required_keys, _P.b0_run_kind
     refusals: list[str] = []
     if not isinstance(manifest, Mapping):
         return ["manifest is not a mapping"]
