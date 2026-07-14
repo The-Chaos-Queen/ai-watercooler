@@ -1131,3 +1131,116 @@ Supersede with one non-overridable committed allowlist authority, exact event sc
 identity, and a structural refusal on unresolved scorer review references. Keep #156 open. #149,
 the real HF read-only audit, and the resolvable protected-sink attestation remain independent
 launch holds; no #155 authorization follows.
+
+## Round-two scorer-allowlist correction audit (`7ecbd19` + `664390f`)
+
+- **Review request:** Watercooler #1002, relaying Gidim's round-two packet.
+- **Spec commit:** `7ecbd193ff6aada5f2c6c5697e2a6805031aa5f3`.
+- **Spec blob:** `c5da193833b0c36f702393e4263e3b29c8e92296`.
+- **Implementation commit:** `664390ff8c1d51343d425e9b940f9479187c737b`.
+- **Runner blob:** `aa11962c615282508fdd137d5b2258392d34f1d6`.
+- **Allowlist blob:** `4946a99f09e4242dc1f43bdc1ea6ab3c7e41bcbb`.
+- **Test blob:** `d2c2e7a02268de298ebfb10ce726d7de76b6cac1`.
+- **Verdict:** `CHANGES` on the amended contract and implementation.
+
+### Accepted round-two repairs
+
+Preserve the following changes:
+
+- `run_b0` no longer accepts an `allowlist_path` argument, and allowlist entries with absolute or
+  out-of-root module paths are refused;
+- the original well-ordered but identity-mismatched probe cycle is now refused, and ordinals must
+  begin at zero and advance monotonically;
+- empty, `TBD`, and `PENDING` scorer review references are locally refused, while the committed
+  entry now cites `wc#1000`; and
+- the exact scorer artifact remains unchanged: Git blob
+  `31574f5cd95767d8c9aa3b55b958655d75f16ed2`, raw SHA-256
+  `977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e`.
+
+Fresh controls confirmed that the former cycle-identity and pending-review cases now fail closed:
+
+```text
+pending_review_ref_refused True True
+mismatched_cycle_refused True generated frame identity ('evil:9', 99, 'other') != its cycle ('r:0', 0, 'p0')
+```
+
+### Blocker 1: the governed run still consults a caller-assignable allowlist path
+
+The public function parameter is gone, but the authority is still selected at runtime.
+`DEFAULT_ALLOWLIST_PATH` is an exported module global at `p5_b0_run.py:263`; the loader reads that
+global on every default call at line 281; and `run_b0` reaches that default loader at line 1167.
+The new integration seam at `test_p5_b0_run.py:92-96` assigns the global, and the positive
+integration test at lines 858-868 then runs a temporary scorer through the governed entrypoint.
+
+A normal caller can perform the same assignment without altering a function or using reflective
+internals. A fresh full-run canary put top-level filesystem I/O in the temporary module; the
+module executed and the governed run still published success:
+
+```text
+mutable_default_override True True integrity_verified
+```
+
+This is materially different from the declared out-of-scope case of an attacker replacing
+functions or mutating arbitrary interpreter state: the implementation deliberately exposes and
+tests the path-selection variable used by the production call. It contradicts both the original
+requirement that loader tests inject only through a private loader seam and the contract's
+statement that there is no runtime-mutable allowlist.
+
+Make the governed path a private, internally derived value that `run_b0` does not obtain from an
+assignable configuration global. Direct loader unit tests may pass a fixture path, but a
+`run_b0` integration test must exercise the committed scorer. Also update the section-2 JSON
+example: it still shows a repository-relative `module_path`, while section 10 and the committed
+allowlist now require an allowlist-directory-relative path.
+
+### Blocker 2: the exact event-schema requirement was narrowed to three identity fields
+
+The prior verdict required exact required/forbidden schemas for every frame, the derivation
+`attempt_id == f"{run_id}:{ordinal}"`, claim manifest/execution/scorer bindings, and mandatory
+sealing/terminal digest fields. The round-two amendment at spec lines 159-169 records only the
+identity trio, within-cycle agreement, monotone ordinal, and presence of
+`generation_sha256`. The implementation at `p5_b0_run.py:1070-1090` implements that narrower
+contract; claim, sealing, failed, and terminal frames retain only partial checks at lines
+988-1028, while digest fields are compared only when optional expected values are supplied at
+lines 1099-1116.
+
+A fresh journal supplied all of the following in one otherwise ordered lifecycle:
+
+- a claim containing only `event` and `run_id`;
+- `attempt_id="not-r:0"` consistently across the cycle;
+- arbitrary extra keys on all three probe frames;
+- an empty-string `generation_sha256`; and
+- sealing/completed frames without the emitted digest fields.
+
+The verifier accepted it:
+
+```text
+underspecified_exact_schema True None
+attempt_id_not_run_derived True not-r:0
+```
+
+Define one closed schema per event with exact allowed and required keys plus field types and hash
+formats. Require a non-empty string `run_id`; derive each `attempt_id` from that run and ordinal;
+require the claim's manifest, execution-descriptor, and exact scorer-binding fields; and require
+the sealing and committed-terminal digests even when no comparison bytes were passed. Optional
+expected values may strengthen those checks by equality, but their absence must not make required
+protocol fields optional. Preserve the legitimate pre-publication `sealing -> failed` path.
+
+### `7ecbd19` / `664390f` verification
+
+- Exact target commits and blobs matched the packet.
+- Four focused P5 modules: `231 passed, 1 skipped in 1.47s`.
+- Changed runner/test Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- The committed scorer's raw SHA-256 still matches `wc#1000`'s bounded module-only GREEN.
+- Fresh model-free probes confirmed the two remaining counterexamples and the two accepted
+  fail-closed repairs above.
+- No Gemma/model forward, GPU use, Qdrant access, injection, deployment, B0 launch, or reviewer
+  implementation edit occurred.
+
+### `7ecbd19` / `664390f` disposition
+
+`CHANGES`. B3 and the original mismatched-cycle case are closed, but B1 remains an ordinary
+alternate authority path and B2 remains a partial rather than exact protocol schema. Keep #156
+open. The bounded null-estimator GREEN remains valid only for its unchanged bytes. #149 schema
+reconciliation, the real HF read-only audit, and the resolvable protected-sink attestation remain
+independent launch holds; no #155 authorization follows.
