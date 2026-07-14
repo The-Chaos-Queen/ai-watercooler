@@ -1475,21 +1475,6 @@ def run_b0(
         if _sval is not None and type(_sval) is not str:
             refusals.append(f"{_sname} must be an exact str (an equality-overriding subclass is refused)")
 
-    # Codex #1013 B3: normalize report_path ONCE, NOW, before any backend/scorer callback can see
-    # or mutate it. Keep only the inert string (or a static refusal); the original object is never
-    # read, repr'd, or fspath'd again — so a stateful path cannot mutate an initial mismatch into
-    # acceptance, and a raising __repr__ cannot crash a refusal message.
-    report_path_str: str | None = None
-    if report_path is not None:
-        try:
-            _rp = os.fspath(report_path)
-        except TypeError:
-            _rp = None
-        if type(_rp) is str:
-            report_path_str = _rp
-        else:
-            refusals.append("report_path is not a valid filesystem path string")
-
     refusals.extend(assert_no_component_reachable())               # live sys.modules
     refusals.extend(_validate_panel(panel))
     refusals.extend(check_protected_sink_attestation(manifest))    # OS-contract prereq (#966 r5)
@@ -1502,6 +1487,31 @@ def run_b0(
         # cleared; each run inspects only its own suffix), so the clear-era 'dirty at entry' check
         # is subsumed — a component RESIDENT at entry is still caught by the snapshot check above.
         watch = _new_import_watch()
+
+    # Codex #1013 -> #1015 B: report_path.__fspath__ is a CALLER CALLBACK, so it must run ONLY
+    # after the sentinel is armed and the watch is open (round 8 ran it at function top, before
+    # both — a path hook transiently imported qdrant_client and published integrity_verified).
+    # Normalize ONCE, here, under the sentinel; account its import window and recheck reachability
+    # BEFORE any backend/scorer callback; catch ANY __fspath__ fault (not only TypeError) as a
+    # static refusal; then drop every reference to the original object and the temporary value.
+    report_path_str: str | None = None
+    if not refusals and report_path is not None:
+        try:
+            _rp = os.fspath(report_path)
+        except Exception as exc:  # noqa: BLE001 - any __fspath__ fault is a static refusal
+            _rp = None
+            refusals.append(f"report_path normalization failed ({type(exc).__name__}); refusing")
+        if type(_rp) is str:
+            report_path_str = _rp
+        elif not refusals:
+            refusals.append("report_path is not a valid filesystem path string")
+        norm_imports = watch() if watch is not None else ()
+        if norm_imports:
+            refusals.append("component IMPORTED during report_path normalization: "
+                            + "; ".join(norm_imports))
+        refusals.extend(assert_no_component_reachable())           # resident after the path hook?
+        _rp = None
+    report_path = None                                             # drop the caller's original object
 
     effective_decoding = derive_effective_decoding(manifest)
 

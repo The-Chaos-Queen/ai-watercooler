@@ -1236,6 +1236,36 @@ def test_run_b0_mutating_report_path_cannot_gain_acceptance(tmp_path):
     assert res.ok is False                                # the ONE early normalization saw the mismatch
 
 
+def test_run_b0_report_path_fspath_transient_import_caught(tmp_path):
+    # Codex #1013->#1015 B: report_path.__fspath__ is a callback — it must run under the armed
+    # sentinel + open watch, so a transient forbidden import inside it is accounted and refused.
+    out = tmp_path / "b0_report.json"
+
+    class _ImportingPath:
+        def __fspath__(self):
+            sys.audit("import", "qdrant_client", None, None, None, None)   # transient, not resident
+            return str(out)
+
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out, report_path=_ImportingPath())
+    assert res.ok is False
+    assert any("report_path normalization" in r and "IMPORTED" in r for r in res.refusals)
+    assert not out.exists()
+    assert "qdrant_client" not in sys.modules
+
+
+def test_run_b0_report_path_fspath_raise_is_static_refusal(tmp_path):
+    # Codex #1015 B: ANY __fspath__ fault (not only TypeError) is a static refusal, not a crash.
+    out = tmp_path / "b0_report.json"
+
+    class _BoomPath:
+        def __fspath__(self):
+            raise RuntimeError("boom")
+
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out, report_path=_BoomPath())
+    assert res.ok is False and any("normalization failed" in r for r in res.refusals)
+    assert not out.exists()
+
+
 def test_run_b0_governed_run_uses_the_committed_scorer(tmp_path):
     # The governed run binds the COMMITTED reviewed scorer — its blob hash and resolved review_ref
     # appear in the published execution_descriptor, and no fixture could have substituted them.
