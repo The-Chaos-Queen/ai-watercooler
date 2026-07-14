@@ -2229,3 +2229,80 @@ its active protocol. Add the exact-type/fail-closed checks and corresponding reg
 the narrowed non-TEE residual and complete real-import matrix. Keep #156 open. The unchanged
 null-estimator GREEN remains module-only. #149, the real HF read-only audit, and resolvable
 protected-sink attestation remain independent launch holds; no #155 authorization follows.
+
+## Round-twelve exact-container closure audit (`1dcb36f` + `c17f6d8`)
+
+- **Review request:** relayed directly by Laura while the LAN Watercooler endpoint was unavailable.
+- **Spec commit:** `1dcb36f9a17f9f825937c3ff059da6537d4ddd72`.
+- **Spec blob:** `4ee03b5ce8b801dc3a83fa841758403084afa686`.
+- **Implementation commit:** `c17f6d856781a75645d4d388812519825f7c5b11`.
+- **Harness blob:** `5d056309bfe48d4d66d575ca7b572d7fcbd6a519`.
+- **Runner blob:** `de414a7a80d8e756d1f7f7ec2d26da0b708a4f57`.
+- **Test blob:** `df9f062e6d85bc346b890b5265c5b174b7563002`.
+- **Allowlist blob:** `4946a99f09e4242dc1f43bdc1ea6ab3c7e41bcbb`.
+- **Verdict:** `GREEN` on the amended contract and model-free implementation.
+
+### Findings
+
+No in-scope correctness, integrity, or regression finding remains in the immutable packet.
+
+The exact-container repair closes round eleven as specified:
+
+- `ensure_import_audit()` checks `type(real_sys.meta_path) is list` before every restoration
+  length, index, deletion, or insertion operation and returns the existing not-armed result without
+  touching a malformed value;
+- `observer_displaced()` performs the same exact-type check before truth or index access and treats
+  a non-list checkpoint value as displaced;
+- exact-list restoration remains identity-only, removes duplicate observer references, restores
+  exactly one observer at index zero, and invokes no finder equality;
+- a pre-run list subclass and hostile non-list refuse without any subclass/object hook firing;
+- a persistent mid-run non-list replacement is caught at the next checkpoint before publication;
+- real built-in `__import__` and `importlib.import_module` remain covered in both path and backend
+  windows; and
+- the constant path refusal and every previously accepted descriptor, generation, path, harness,
+  allowlist, inert-custody, raw-prefix, journal, and publication repair remain intact.
+
+Fresh controls returned:
+
+```text
+pre_run_active_list False ('transient-import audit sentinel could not be armed (fail-closed)',) 0 False
+identity_duplicate_restore True 1 0
+persistent_liar_checkpoint B0RunError True False
+pre_run_tuple False ('transient-import audit sentinel could not be armed (fail-closed)',) False
+```
+
+The documented temporary import-machinery teardown/restore, direct loader execution, function
+replacement, bytecode mutation, hostile co-thread, and host/interpreter integrity cases remain the
+explicit CPython non-TEE residual. They are not silently claimed as covered and were not reopened
+as blockers. A built-in-list allocation failure would abort before caller callbacks or publication
+and cannot produce a GREEN report.
+
+The null-estimator remains Git blob `31574f5cd95767d8c9aa3b55b958655d75f16ed2`, raw SHA-256
+`977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e`.
+
+### Delegated GPT-5.5 and root reconciliation
+
+At Laura's request, the GPT-5.5 coding subagent reviewed the immutable packet before final
+adjudication and returned `GREEN`. Codex independently reran the exact-list identity/duplicate
+control, active-subclass untouched refusal, persistent non-list checkpoint refusal, malformed tuple
+refusal, focused suite, lint, diff, and blob checks. Both passes found no in-scope blocker; neither
+used the explicitly excluded temporary teardown/direct-loader class as an adverse finding.
+
+### `1dcb36f` / `c17f6d8` verification
+
+- Exact spec, harness, runner, test, allowlist, and scorer blobs matched the immutable packet.
+- Four focused P5 modules: `287 passed, 1 skipped in 4.37s`.
+- Changed runner/test Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- Fresh model-free probes closed every round-eleven counterexample and preserved the accepted
+  controls and residual boundary.
+- No Gemma/model forward, GPU use, Qdrant access, injection, deployment, B0 launch, or reviewer
+  implementation/spec/test edit occurred.
+
+### `1dcb36f` / `c17f6d8` disposition
+
+`GREEN` for the immutable, model-free P5 B0 runner/spec packet. The implementation/review scope of
+#156 may close once the owner records `c17f6d8` plus this verdict. This approval does **not** launch
+B0, authorize #155, or clear #149, the real HF read-only audit, resolvable protected-sink
+attestation, true alpha-zero anchors, keeper ratification, or any nonzero Gemma/bridge action. The
+explicit non-TEE residual remains part of the approved contract rather than an integrity claim.
