@@ -40,7 +40,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping, Protocol, Sequence
+from typing import Any, Callable, Mapping, NamedTuple, Protocol, Sequence
 
 from p5_b0_harness import (
     B0_RUN_KIND,
@@ -109,6 +109,33 @@ class B0RunError(RuntimeError):
     pass
 
 
+def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
+    """Rebuild ``obj`` from EXACT built-in types only — no caller copy hooks, no retained alias.
+
+    Codex #1009 BLOCKER-3: the caller owns the ``manifest`` / ``panel`` objects and can mutate
+    them AFTER they are authorized+hashed (a backend callback changed ``model.id`` / a prompt
+    post-hash and still published success under the original receipt). Before ANY backend access
+    the runner reconstructs an inert deep snapshot and authorizes/hashes/validates/journals/executes
+    ONLY that. Exact-type dispatch (``type(o) is dict``) so a dict/list SUBCLASS with an overridden
+    ``items``/``__iter__``/``__deepcopy__`` cannot inject or alias — such an input is refused, not
+    honored. The snapshot shares no mutable object with the caller's originals.
+    """
+    if _depth > 64:
+        raise B0RunError("manifest/panel nesting too deep to snapshot")
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj                                            # immutable primitives pass through
+    t = type(obj)
+    if t is dict:
+        out: dict[Any, Any] = {}
+        for k, v in list(obj.items()):                        # plain dict.items — not caller code
+            out[_inert_snapshot(k, _depth + 1)] = _inert_snapshot(v, _depth + 1)
+        return out
+    if t is list or t is tuple:
+        return [_inert_snapshot(x, _depth + 1) for x in list(obj)]
+    raise B0RunError(f"non-inert {t.__name__} in manifest/panel input (only plain "
+                     "dict/list/tuple/str/int/float/bool/None permitted)")
+
+
 def _bind_reachability_guard():
     """Freeze the no-component guard's authority at import into closure cells (Codex #1006 class,
     one guarantee over — a-Fable review, WC follow-up).
@@ -122,8 +149,15 @@ def _bind_reachability_guard():
     so a caller cannot blank the buffer or spoof "armed" by assigning ``_audit_installed``.
     Reassigning the exposed FUNCTIONS is function replacement — the documented out-of-scope residual.
     """
+    real_sys = sys                       # Codex #1009 B1: capture the REAL sys module object, so a
+    #                                      caller reassigning `p5_b0_run.sys = proxy` cannot feed the
+    #                                      guard an empty modules map or a no-op addaudithook.
     frozen = {route: frozenset(mods) for route, mods in FORBIDDEN_ROUTE_MODULES.items()}
-    buffer: list[str] = []
+    #  The inventory snapshot is NEVER returned as a mutable alias (Codex #1009 B1: exporting it as
+    #  `_FROZEN_FORBIDDEN` let `.clear()` on that name blank the closure's own dict).
+    log: list[str] = []                  # append-only MONOTONE evidence; never cleared, no drain/
+    #                                      clear op is exposed (Codex #1009 B1: an exported destructive
+    #                                      op let a backend erase its own import evidence mid-window).
     state = {"installed": False}
 
     def forbidden_route_for(name: str) -> str | None:
@@ -141,36 +175,42 @@ def _bind_reachability_guard():
         if event == "import" and args:
             name = args[0]
             if isinstance(name, str) and forbidden_route_for(name):
-                buffer.append(name)
+                log.append(name)                     # monotone append; nothing is ever removed
 
     def ensure_import_audit() -> bool:
-        """Install the transient-import sentinel. Returns False if it could NOT be armed, so the
-        caller can fail CLOSED (#966 HIGH-4) rather than run with a silently-disabled sentinel.
-        The installed-state is a CLOSURE cell — not a reassignable global a caller can pre-set to
-        skip the real install (Codex #1006 class).
-        """
+        """Install the transient-import sentinel; False if it could NOT be armed (fail CLOSED,
+        #966). Installed-state is a CLOSURE cell — no reassignable ``_audit_installed`` to spoof."""
         if not state["installed"]:
             try:
-                sys.addaudithook(import_audit_hook)
+                real_sys.addaudithook(import_audit_hook)
             except Exception:  # pragma: no cover - audit hooks unavailable
                 return False
             state["installed"] = True
         return state["installed"]
 
-    def clear_import_sentinel() -> None:
-        buffer.clear()
+    def live_modules() -> Mapping[str, Any]:
+        return real_sys.modules                      # the REAL module table, not a reassignable sys
 
-    def drain_import_sentinel() -> list[str]:
-        seen = sorted(set(buffer))
-        buffer.clear()
-        return seen
+    def new_import_watch():
+        """A per-run window watch with a PRIVATE local cursor into the monotone log. Non-destructive:
+        it only reads the log suffix since the last checkpoint and advances its OWN cursor. The
+        cursor lives in this closure cell (a run_b0 local) — code running inside a guarded window
+        (a backend/scorer) has no handle to it and cannot erase or skip evidence (Codex #1009 B1)."""
+        box = {"cursor": len(log)}
 
-    return (frozen, forbidden_route_for, import_audit_hook,
-            ensure_import_audit, clear_import_sentinel, drain_import_sentinel)
+        def forbidden_since_last() -> tuple[str, ...]:
+            cp = box["cursor"]
+            box["cursor"] = len(log)
+            return tuple(sorted(set(log[cp:])))
+
+        return forbidden_since_last
+
+    return (forbidden_route_for, import_audit_hook, ensure_import_audit,
+            live_modules, new_import_watch)
 
 
-(_FROZEN_FORBIDDEN, _forbidden_route_for, _import_audit_hook,
- _ensure_import_audit, _clear_import_sentinel, _drain_import_sentinel) = _bind_reachability_guard()
+(_forbidden_route_for, _import_audit_hook, _ensure_import_audit,
+ _live_modules, _new_import_watch) = _bind_reachability_guard()
 
 
 # --------------------------------------------------------------------------- #
@@ -197,9 +237,10 @@ def reachable_components(loaded_modules: Mapping[str, Any]) -> dict[str, list[st
 def assert_no_component_reachable(loaded_modules: Mapping[str, Any] | None = None) -> list[str]:
     """Refusal reasons if any component module is loaded (empty = clean).
 
-    ``loaded_modules`` is a TEST/helper seam only; ``run_b0`` inspects live ``sys.modules``.
+    ``loaded_modules`` is a TEST/helper seam only; ``run_b0`` inspects the REAL live module table
+    captured in the guard closure — never the reassignable module-global ``sys`` (Codex #1009 B1).
     """
-    modules = loaded_modules if loaded_modules is not None else sys.modules
+    modules = loaded_modules if loaded_modules is not None else _live_modules()
     hits = reachable_components(modules)
     return [
         f"component route {route!r} is REACHABLE: module(s) {mods} loaded in-process"
@@ -210,7 +251,7 @@ def assert_no_component_reachable(loaded_modules: Mapping[str, Any] | None = Non
 # The import-audit sentinel (transient forbidden import caught inside one forward, which a
 # before/after sys.modules snapshot misses, #966) is now frozen into the closure above.
 
-_MISSING_ROUTES = set(COMPONENT_ROUTES) - set(_FROZEN_FORBIDDEN)
+_MISSING_ROUTES = set(COMPONENT_ROUTES) - set(FORBIDDEN_ROUTE_MODULES)
 if _MISSING_ROUTES:  # pragma: no cover - config invariant
     raise B0RunError(
         f"FORBIDDEN_ROUTE_MODULES missing routes {sorted(_MISSING_ROUTES)}; "
@@ -421,11 +462,12 @@ def load_allowlisted_scorer(
             f"{str(blob_sha256)[:12]}.. (module content is not the reviewed bytes)"]
 
     namespace: dict[str, Any] = {}
+    load_watch = _new_import_watch()                          # monotone window over the exec below
     try:
         exec(compile(module_bytes, str(resolved), "exec"), namespace)  # NEVER import — content-first
     except Exception as exc:  # noqa: BLE001 - any load fault is a pre-run refusal
         return None, {}, [f"allowlisted scorer module failed to load: {type(exc).__name__}: {exc}"]
-    load_imports = _drain_import_sentinel()
+    load_imports = load_watch()
     if load_imports:
         return None, {}, [
             "component IMPORTED during scorer module load (a reviewed scorer imports nothing): "
@@ -542,6 +584,7 @@ def _bind_execution_to_manifest(
     effective_decoding: Mapping[str, Any], sterile_bound: bool,
 ) -> list[str]:
     """Refuse unless EVERY executed input is present and matches the authorized manifest."""
+    DESCRIPTOR_KEYS = _authority().descriptor_keys            # frozen (Codex #1009 B2)
     refusals: list[str] = []
 
     declared_panel = manifest.get("panel", {}).get("hash")
@@ -663,24 +706,26 @@ def _try_unlink(path: Path) -> bool:
         return False
 
 
-def _drain_and_check(context: str) -> None:
-    """Drain the import sentinel and REFUSE if a forbidden module was imported since the last
-    checkpoint (#966 round-6 D). Replaces every bare ``_clear``: a window boundary must ACCOUNT
-    for imports (drain + raise on non-empty), never erase them unexamined. ``context`` names
-    the window whose code just ran.
+def _check_import_window(watch: Callable[[], tuple[str, ...]], context: str) -> None:
+    """REFUSE if a forbidden module was imported since ``watch``'s last checkpoint (#966 round-6 D).
+
+    ``watch`` is a per-run monotone window (``_new_import_watch``): non-destructive (it reads the
+    append-only log suffix and advances its OWN private cursor), so unlike the retired
+    ``_drain``/``_clear`` it cannot be called by in-window code to erase evidence (Codex #1009 B1).
     """
-    imported = _drain_import_sentinel()
+    imported = watch()
     if imported:
         raise B0RunError(f"component IMPORTED during {context}: " + "; ".join(imported))
 
 
-def _assert_sterile_guarded(backend: GenerationBackend, *, preceding: str) -> None:
+def _assert_sterile_guarded(backend: GenerationBackend,
+                            watch: Callable[[], tuple[str, ...]], *, preceding: str) -> None:
     """Account for the PRECEDING window, run the sterility contract, then account for the
-    imports IT produced — never clearing either unexamined (#966 round-5 H5 + round-6 D).
+    imports IT produced — via the non-destructive monotone watch (#966 round-5 H5 + round-6 D).
     """
-    _drain_and_check(preceding)
+    _check_import_window(watch, preceding)
     backend.assert_sterile()
-    _drain_and_check("assert_sterile()")
+    _check_import_window(watch, "assert_sterile()")
     reach = assert_no_component_reachable()
     if reach:
         raise B0RunError("component REACHABLE around assert_sterile(): " + "; ".join(reach))
@@ -931,6 +976,10 @@ def finalize_publication(report_path: Path, committed: bytes, staging_alias: Pat
     surviving writable alias as a custody violation (BLOCKER-2). Reconciles the bound journal
     prefix digest against the actual on-disk pre-sealing bytes (round-7).
     """
+    _A = _authority()                                             # frozen dispositions (#1009 B2)
+    INTEGRITY_VERIFIED = _A.integrity_verified
+    COMMITTED_INTEGRITY_FAILED = _A.committed_integrity_failed
+    COMMITTED_INDETERMINATE = _A.committed_indeterminate
     warnings: list[str] = []
     integrity_failed = False
     indeterminate = False
@@ -1063,8 +1112,30 @@ _SCORER_BINDING_SCHEMA = {"scorer_id": _STR, "version": _STR, "blob_sha256": _SH
                           "allowlist_digest": _SHA, "review_ref": _REF}
 
 
+def _prefix_digest_before_sealing(raw: bytes) -> str | None:
+    """SHA-256 of the exact raw journal bytes BEFORE the first ``sealing`` frame (BLOCKER-4).
+
+    Mirrors ``_Journal.prefix_digest_at_seal`` but over a file the standalone auditor was handed.
+    Codex #1009: the verifier must HASH the actual prefix, not merely accept a sha256-SHAPED
+    ``journal_digest_prefix`` — shape is not a binding. Returns None if no sealing frame is present.
+    """
+    cursor = 0
+    for line in raw.split(b"\n"):
+        try:
+            if json.loads(line).get("event") == "sealing":
+                return hashlib.sha256(raw[:cursor]).hexdigest()
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            pass
+        cursor += len(line) + 1                               # + the split '\n'
+    return None
+
+
 def _typed_field_error(kind: str, key: str, value: Any) -> str | None:
     """None if ``value`` satisfies the declared field ``kind``, else a reason fragment."""
+    _A = _authority()                                          # frozen tags (Codex #1009 B2)
+    _SHA, _STR, _TEXT, _ORD = _A.sha_tag, _A.str_tag, _A.text_tag, _A.ord_tag
+    _WARN, _BINDING, _REF = _A.warn_tag, _A.binding_tag, _A.ref_tag
+    _SCORER_BINDING_SCHEMA = _A.scorer_binding_schema
     if kind == _SHA:
         return None if _is_sha256(value) else f"{key} is not a sha256 digest"
     if kind == _STR:
@@ -1114,12 +1185,13 @@ def _exact_schema_error(label: str, frame: Mapping[str, Any], schema: Mapping[st
 
 def _frame_schema_error(event: str, frame: Mapping[str, Any]) -> str | None:
     """Exact-schema check for one governed frame (dispatches committed terminals)."""
+    _A = _authority()                                          # frozen schemas (Codex #1009 B2)
     if event == "failed" and "disposition" in frame:
         # #975 invariant, kept as its own reason: 'failed' is a PRE-commit terminal.
         return "'failed' terminal must not carry a committed disposition"
-    schema = _FRAME_SCHEMAS.get(event)
+    schema = _A.frame_schemas.get(event)
     if schema is None:                                   # a committed terminal
-        schema = _COMMITTED_TERMINAL_SCHEMA
+        schema = _A.committed_terminal_schema
     return _exact_schema_error(event, frame, schema)
 
 
@@ -1135,7 +1207,12 @@ def verify_terminal_frames(journal_path: Path, *,
     ``sealing`` or a terminal; and (when given) the sealing frame's ``published_digest``
     cross-binds the report. Returns {ok, reason?, terminal, disposition, truncated_tail}.
     """
-    raw_text = Path(journal_path).read_text(encoding="utf-8")
+    _A = _authority()                                         # frozen verdict authority (#1009 B2)
+    _KNOWN_EVENTS, _TERMINAL_EVENTS = _A.known_events, _A.terminal_events
+    _TERMINAL_DISPOSITION, _PROBE_CYCLE = _A.terminal_disposition, _A.probe_cycle
+    B0_RUN_KIND = _A.b0_run_kind
+    raw_bytes = Path(journal_path).read_bytes()               # the ACTUAL on-disk bytes (BLOCKER-4)
+    raw_text = raw_bytes.decode("utf-8")
     has_final_newline = raw_text == "" or raw_text.endswith("\n")
     lines = raw_text.splitlines()
     events: list[dict[str, Any]] = []
@@ -1297,6 +1374,16 @@ def verify_terminal_frames(journal_path: Path, *,
                         "reason": "terminal published_digest does not match the sealing frame "
                                   "(the journal attests two different publications)"}
 
+    # BLOCKER-4 (#1009): the sealing frame's journal_digest_prefix must EQUAL the sha256 of the
+    # actual raw bytes preceding it — a sha256 SHAPE (already enforced by the schema) is not a
+    # binding. A hand-crafted journal with a plausible-but-wrong 64-hex prefix is rejected.
+    if sealing_idx is not None:
+        actual_prefix = _prefix_digest_before_sealing(raw_bytes)
+        if actual_prefix is None or events[sealing_idx].get("journal_digest_prefix") != actual_prefix:
+            return {"ok": False,
+                    "reason": "sealing journal_digest_prefix does not match the actual pre-sealing "
+                              "journal bytes"}
+
     if report_published_digest is not None:
         if sealing_idx is not None and events[sealing_idx].get("published_digest") != report_published_digest:
             return {"ok": False, "reason": "sealing published_digest does not match report"}
@@ -1334,31 +1421,45 @@ def run_b0(
     report_path: Path | None = None,
 ) -> B0RunResult:
     """Run a read-only B0 baseline. Refuses (zero forwards) on ANY gate violation."""
+    _A = _authority()                                             # frozen verdict authority (#1009 B2)
+    B0_RUN_KIND = _A.b0_run_kind
+    INTEGRITY_VERIFIED = _A.integrity_verified
+    COMMITTED_INDETERMINATE = _A.committed_indeterminate
+    # BLOCKER-3 (#1009): snapshot the caller-owned inputs to inert built-ins BEFORE anything else,
+    # and never read the originals again — so a backend callback cannot mutate a hashed input.
+    try:
+        manifest = _inert_snapshot(manifest)
+        panel = _inert_snapshot(panel)
+    except B0RunError as exc:
+        return B0RunResult(False, (f"input not inert-reconstructable: {exc}",), None, None, None)
+
     decision = authorize_b0_launch(manifest)
     refusals = list(decision.refusals)
     refusals.extend(assert_no_component_reachable())               # live sys.modules
     refusals.extend(_validate_panel(panel))
     refusals.extend(check_protected_sink_attestation(manifest))    # OS-contract prereq (#966 r5)
+    watch = None
     if not _ensure_import_audit():                                 # fail-CLOSED sentinel (#966)
         refusals.append("transient-import audit sentinel could not be armed (fail-closed)")
     else:
-        entry_residue = _drain_import_sentinel()                   # run-entry invariant (round-6 D)
-        if entry_residue:
-            refusals.append("import-audit sentinel dirty at run entry (a prior run leaked "
-                            f"forbidden import(s) {entry_residue}); refusing fail-closed")
+        # Open a per-run monotone window NOW; every later check reads only the log suffix it
+        # appended (Codex #1009 B1). Cross-run bleed is structurally impossible (nothing is ever
+        # cleared; each run inspects only its own suffix), so the clear-era 'dirty at entry' check
+        # is subsumed — a component RESIDENT at entry is still caught by the snapshot check above.
+        watch = _new_import_watch()
 
     effective_decoding = derive_effective_decoding(manifest)
 
     # Touch ANY backend code (even the assert_sterile lookup, whose __getattribute__ can import)
     # ONLY after the cheap gates pass (#966 HIGH-4), and ACCOUNT for every import it triggers
-    # rather than erasing it with a bare baseline drain (#980 import-audit BLOCKER).
+    # via the non-destructive monotone watch (#980 import-audit BLOCKER; #1009 B1).
     descriptor: dict[str, Any] = {}
     scorer_fn: Callable[..., Any] | None = None
     scorer_binding: dict[str, Any] = {}
     sterile_bound = False
     if not refusals:
         sterile_bound = callable(getattr(backend, "assert_sterile", None))
-        lookup_imports = _drain_import_sentinel()
+        lookup_imports = watch()
         if lookup_imports:
             refusals.append("component IMPORTED during backend.assert_sterile lookup: "
                             + "; ".join(lookup_imports))
@@ -1369,7 +1470,7 @@ def run_b0(
         refusals.extend(load_refusals)
     if not refusals:
         descriptor = dict(backend.descriptor())
-        desc_imports = _drain_import_sentinel()
+        desc_imports = watch()
         if desc_imports:
             refusals.append("component IMPORTED during backend.descriptor(): "
                             + "; ".join(desc_imports))
@@ -1445,16 +1546,16 @@ def run_b0(
             pre = assert_no_component_reachable()
             if pre:
                 raise B0RunError("component REACHABLE before governed forward: " + "; ".join(pre))
-            _assert_sterile_guarded(backend, preceding="attempt setup")
-            _drain_and_check("pre-forward baseline")               # was bare _clear (round-6 D)
+            _assert_sterile_guarded(backend, watch, preceding="attempt setup")
+            _check_import_window(watch, "pre-forward baseline")
 
             generation = backend.generate(prompt, dict(effective_decoding))  # governed forward
 
-            _drain_and_check("governed forward")                   # transient-import accounting
+            _check_import_window(watch, "governed forward")        # transient-import accounting
             post = assert_no_component_reachable()
             if post:
                 raise B0RunError("component REACHABLE after governed forward: " + "; ".join(post))
-            _assert_sterile_guarded(backend, preceding="post-forward reachability")
+            _assert_sterile_guarded(backend, watch, preceding="post-forward reachability")
             journal.event({
                 "event": "generated", "attempt_id": attempt_id, "ordinal": ordinal,
                 "probe_id": probe_id, "generation_sha256": canonical_digest(generation),
@@ -1465,14 +1566,14 @@ def run_b0(
             # the allowlist). It imports nothing, so the sentinel guards around the CALL turn any
             # import into a review-contract violation; no runtime identity re-derivation is needed
             # (identity is a review property, frozen by the blob hash — spec §5).
-            _drain_and_check("pre-scorer baseline")
+            _check_import_window(watch, "pre-scorer baseline")
             assert scorer_fn is not None
             scorer_input, scorer_output = scorer_fn(probe_id, generation)
-            _drain_and_check("scorer call")
+            _check_import_window(watch, "scorer call")
             scorer_post = assert_no_component_reachable()
             if scorer_post:
                 raise B0RunError("component reachable via scorer: " + "; ".join(scorer_post))
-            _assert_sterile_guarded(backend, preceding="post-scorer reachability")
+            _assert_sterile_guarded(backend, watch, preceding="post-scorer reachability")
             bundle.record(                                         # strict-JSON enforced here
                 probe_id, generation,
                 scorer_input=scorer_input, scorer_output=scorer_output,
@@ -1571,7 +1672,8 @@ def run_b0(
                 pass
         raise
     finally:
-        _clear_import_sentinel()                                   # no cross-run residue (round-6 D)
+        # No sentinel clear: the import log is monotone and never erased (Codex #1009 B1); the
+        # next run opens its own watch, so there is no cross-run residue to clear.
         journal.close()
 
     assert report is not None
@@ -1592,9 +1694,78 @@ _DTYPE_ALIASES = {
 }
 
 
+# --------------------------------------------------------------------------- #
+# One complete VERDICT-AUTHORITY inventory, frozen at import (Codex #1009 B2).   #
+# --------------------------------------------------------------------------- #
+# Section 12's rule, applied to EVERY verdict authority rather than name-by-name: no verdict may
+# be a call-time dereference of an assignable module attribute. The module-level constants above
+# remain the PUBLISHED documentation copies; the governed entrypoint and the standalone verifier
+# read the frozen snapshot returned by ``_authority()`` instead. Each verdict function rebinds the
+# names it needs from this snapshot at entry (a local read of a frozen value), so reassigning or
+# mutating any published module global — DESCRIPTOR_KEYS, B0_RUN_KIND, INTEGRITY_VERIFIED,
+# _TERMINAL_DISPOSITION, _FRAME_SCHEMAS, _DTYPE_ALIASES, … — cannot weaken a verdict. Dict-valued
+# authorities are exposed as read-only proxies so the snapshot itself cannot be mutated in place.
+class _Authority(NamedTuple):
+    descriptor_keys: tuple
+    b0_run_kind: str
+    integrity_verified: str
+    committed_integrity_failed: str
+    committed_indeterminate: str
+    terminal_events: frozenset
+    terminal_disposition: Mapping[str, str]
+    known_events: frozenset
+    probe_cycle: tuple
+    dtype_aliases: Mapping[str, str]
+    frame_schemas: Mapping[str, Mapping[str, str]]
+    committed_terminal_schema: Mapping[str, str]
+    scorer_binding_schema: Mapping[str, str]
+    sha_tag: str
+    str_tag: str
+    text_tag: str
+    ord_tag: str
+    warn_tag: str
+    binding_tag: str
+    ref_tag: str
+
+
+def _bind_authority() -> Callable[[], _Authority]:
+    from types import MappingProxyType
+
+    def _froze_schema(s: Mapping[str, Any]) -> Mapping[str, Any]:
+        return MappingProxyType({k: (MappingProxyType(dict(v)) if isinstance(v, dict) else v)
+                                 for k, v in s.items()})
+
+    snap = _Authority(
+        descriptor_keys=tuple(DESCRIPTOR_KEYS),
+        b0_run_kind=str(B0_RUN_KIND),
+        integrity_verified=str(INTEGRITY_VERIFIED),
+        committed_integrity_failed=str(COMMITTED_INTEGRITY_FAILED),
+        committed_indeterminate=str(COMMITTED_INDETERMINATE),
+        terminal_events=frozenset(_TERMINAL_EVENTS),
+        terminal_disposition=MappingProxyType(dict(_TERMINAL_DISPOSITION)),
+        known_events=frozenset(_KNOWN_EVENTS),
+        probe_cycle=tuple(_PROBE_CYCLE),
+        dtype_aliases=MappingProxyType(dict(_DTYPE_ALIASES)),
+        frame_schemas=_froze_schema(_FRAME_SCHEMAS),
+        committed_terminal_schema=MappingProxyType(dict(_COMMITTED_TERMINAL_SCHEMA)),
+        scorer_binding_schema=MappingProxyType(dict(_SCORER_BINDING_SCHEMA)),
+        sha_tag=str(_SHA), str_tag=str(_STR), text_tag=str(_TEXT), ord_tag=str(_ORD),
+        warn_tag=str(_WARN), binding_tag=str(_BINDING), ref_tag=str(_REF),
+    )
+
+    def authority() -> _Authority:
+        return snap
+
+    return authority
+
+
+_authority = _bind_authority()
+
+
 def _normalize_dtype(raw: Any) -> str:
+    aliases = _authority().dtype_aliases                       # frozen; not the reassignable global
     key = str(raw).replace("torch.", "").strip().lower()
-    return _DTYPE_ALIASES.get(key, key)
+    return aliases.get(key, key)
 
 
 class HFGenerationBackend:

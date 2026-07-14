@@ -29,11 +29,10 @@ from p5_b0_run import (
     B0RunError,
     ScriptedGenerationBackend,
     _Journal,
-    _clear_import_sentinel,
-    _drain_import_sentinel,
     _ensure_import_audit,
     _forbidden_route_for,
     _import_audit_hook,
+    _new_import_watch,
     _normalize_dtype,
     _runner_digest,
     assert_no_component_reachable,
@@ -226,9 +225,35 @@ def _f_failed(**over):
     return _frame("failed", **f)
 
 
-def _journal(tmp_path, body):
+def _fix_sealing_prefix(body):
+    """Set the sealing frame's journal_digest_prefix to sha256 of the ACTUAL preceding bytes.
+
+    The verifier now hashes the real pre-sealing bytes (Codex #1009 BLOCKER-4), so a hand-built
+    'valid' journal must carry the correct prefix. Editing the sealing line changes only bytes
+    AFTER it, so the prefix (bytes before it) is stable under this rewrite.
+    """
+    raw = body.encode("utf-8")
+    cursor = 0
+    for line in raw.split(b"\n"):
+        try:
+            obj = json.loads(line)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            obj = None
+        if isinstance(obj, dict) and obj.get("event") == "sealing":
+            obj["journal_digest_prefix"] = hashlib.sha256(raw[:cursor]).hexdigest()
+            fixed = json.dumps(obj, sort_keys=True).encode("utf-8")
+            return (raw[:cursor] + fixed + raw[cursor + len(line):]).decode("utf-8")
+        cursor += len(line) + 1
+    return body
+
+
+def _journal(tmp_path, body, *, fix_prefix=True):
     j = tmp_path / "x.journal"
-    j.write_text(body, encoding="utf-8")
+    if fix_prefix:
+        body = _fix_sealing_prefix(body)
+    # write BYTES: the real journal is \n-only (O_BINARY); write_text would translate to \r\n on
+    # Windows and break the raw-byte prefix digest the verifier now recomputes (BLOCKER-4).
+    j.write_bytes(body.encode("utf-8"))
     return j
 
 
@@ -277,11 +302,13 @@ def test_forbidden_route_for_exact_match():
 
 
 def test_import_sentinel_flags_forbidden_transient():
-    _clear_import_sentinel()
+    # Monotone, non-destructive: a per-run watch reads the log suffix since its checkpoint and
+    # advances its own private cursor. No clear/drain is exposed (Codex #1009 B1).
+    watch = _new_import_watch()
     _import_audit_hook("import", ("qdrant_client", None, None, None, None))
-    _import_audit_hook("import", ("json", None, None, None, None))
-    assert _drain_import_sentinel() == ["qdrant_client"]
-    assert _drain_import_sentinel() == []                     # drained
+    _import_audit_hook("import", ("json", None, None, None, None))   # not forbidden -> ignored
+    assert watch() == ("qdrant_client",)
+    assert watch() == ()                                     # cursor advanced; nothing new
 
 
 def test_assert_helper_accepts_explicit_module_list():
@@ -984,6 +1011,68 @@ def test_run_b0_governed_run_ignores_dunder_file_override(tmp_path, monkeypatch)
     assert res.report["execution_descriptor"]["scorer_blob_sha256"] == committed["blob_sha256"]
 
 
+def test_reachability_uses_captured_real_sys(monkeypatch):
+    # Codex #1009 B1: reassigning the module global `sys` to a proxy with an empty modules map
+    # must NOT blind the guard — it reads the real module table captured in the closure.
+    proxy = types.SimpleNamespace(modules={}, addaudithook=lambda h: None)
+    monkeypatch.setattr(p5_b0_run, "sys", proxy)
+    monkeypatch.setitem(sys.modules, "qdrant_client", types.ModuleType("qdrant_client"))
+    assert any("qdrant" in r for r in p5_b0_run.assert_no_component_reachable())
+
+
+def test_reachability_frozen_against_inventory_in_place_clear(monkeypatch):
+    # In-place .clear() of the published inventory must not reach the frozen guard snapshot.
+    monkeypatch.setattr(p5_b0_run, "FORBIDDEN_ROUTE_MODULES", dict(p5_b0_run.FORBIDDEN_ROUTE_MODULES))
+    p5_b0_run.FORBIDDEN_ROUTE_MODULES.clear()
+    assert p5_b0_run._forbidden_route_for("mamba_ssm") == "mamba"
+
+
+@pytest.mark.parametrize("attr,value", [
+    ("DESCRIPTOR_KEYS", ()),
+    ("B0_RUN_KIND", "caller_kind"),
+    ("INTEGRITY_VERIFIED", "caller_verified"),
+])
+def test_verdict_authority_frozen_against_reassignment(tmp_path, monkeypatch, attr, value):
+    # Codex #1009 B2: no verdict may be weakened by reassigning a published authority global.
+    monkeypatch.setattr(p5_b0_run, attr, value)
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is True and res.terminal_state == "integrity_verified"   # frozen values used
+    ed = res.report["execution_descriptor"]
+    assert ed["scorer_id"] == SCORER_ID                                    # descriptor still bound
+
+
+def test_frame_schema_frozen_against_in_place_mutation(tmp_path, monkeypatch):
+    # Mutating the published _FRAME_SCHEMAS in place must not weaken the verifier's exact schema.
+    monkeypatch.setitem(p5_b0_run._FRAME_SCHEMAS, "claim", {})
+    j = _journal(tmp_path, _f_claim(injected="x") + _f_cycle() + _f_sealing() + _f_terminal())
+    assert verify_terminal_frames(j)["ok"] is False
+
+
+def test_run_b0_panel_toctou_defeated(tmp_path):
+    # Codex #1009 B3: a backend that mutates the caller's panel list during the first forward must
+    # not change what executes — the runner binds an inert snapshot taken before any backend access.
+    out = tmp_path / "b0_report.json"
+    panel = [("probe1", "prompt one"), ("probe2", "prompt two")]
+
+    class _PanelMutator:
+        def assert_sterile(self):
+            return None
+
+        def descriptor(self):
+            return dict(MODEL)
+
+        def generate(self, prompt, decoding):
+            panel[1] = ("probe2", "TAMPERED")             # mutate the caller-owned list mid-run
+            return "gen"
+
+    res = _run(_manifest(panel, out), panel, _PanelMutator(), out)
+    # The bound panel hash and the executed prompts both come from the pre-forward snapshot.
+    assert res.ok is True
+    recs = res.report["records"]
+    assert recs[1]["provenance"]["prompt_sha256"] == canonical_digest("prompt two")
+
+
 def test_run_b0_governed_run_uses_the_committed_scorer(tmp_path):
     # The governed run binds the COMMITTED reviewed scorer — its blob hash and resolved review_ref
     # appear in the published execution_descriptor, and no fixture could have substituted them.
@@ -1152,18 +1241,19 @@ def test_run_b0_refuses_placeholder_attestation(tmp_path):
     assert res.ok is False and any("placeholder" in r for r in res.refusals)
 
 
-def test_run_b0_refuses_dirty_sentinel_at_entry(tmp_path):
-    # #966 round-6 D: a forbidden import leaked by a prior run must fail the next run closed.
-    # (The sentinel buffer is now a closure cell; dirty it through the hook, not a global.)
+def test_run_b0_monotone_log_ignores_pre_entry_transient(tmp_path):
+    # Monotone redesign (#1009 B1): the log is append-only with per-run local checkpoints, so a
+    # transient forbidden import from BEFORE this run (already gone, NOT resident) is below this
+    # run's watch cursor and correctly ignored — it is not this run's forward. A RESIDENT
+    # component would still be caught by the snapshot reachability check. There is no destructive
+    # clear/drain to exploit (that was the vulnerability), so the clear-era dirty-at-entry check
+    # is subsumed rather than removed.
     import p5_b0_run as mod
     mod._ensure_import_audit()
-    mod._import_audit_hook("import", ("qdrant_client", None, None, None, None))
+    mod._import_audit_hook("import", ("qdrant_client", None, None, None, None))  # transient, gone
     out = tmp_path / "b0_report.json"
-    try:
-        res = _run(_manifest(PANEL, out), PANEL, _ExplodingBackend(), out)
-        assert res.ok is False and any("dirty at run entry" in r for r in res.refusals)
-    finally:
-        mod._clear_import_sentinel()
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is True                                    # pre-entry transient does not block
 
 
 def test_run_b0_accounts_for_import_during_sterile_lookup(tmp_path):
@@ -1308,6 +1398,15 @@ def test_verify_terminal_frames_rejects_mismatched_publication_digests(tmp_path)
     assert r["ok"] is False and "two different publications" in r["reason"]
 
 
+def test_verify_terminal_frames_rejects_false_journal_prefix(tmp_path):
+    # Codex #1009 BLOCKER-4: a sha256-SHAPED but wrong journal_digest_prefix must be rejected —
+    # the verifier hashes the actual pre-sealing bytes, shape alone is not a binding.
+    body = _f_claim() + _f_cycle() + _f_sealing(journal_digest_prefix="d" * 64) + _f_terminal()
+    j = _journal(tmp_path, body, fix_prefix=False)            # keep the deliberately-wrong prefix
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and "journal_digest_prefix" in r["reason"]
+
+
 def test_verify_terminal_frames_grammar_accepts_full_cycle(tmp_path):
     # A well-ordered, identity-consistent, schema-complete journal passes (two probes).
     j = _journal(tmp_path, _f_claim() + _f_cycle(0, "p0") + _f_cycle(1, "p1")
@@ -1413,7 +1512,7 @@ def test_ensure_import_audit_fails_closed(monkeypatch):
     # Bind a FRESH guard (installed-state is a closure cell, so we cannot un-arm the process
     # singleton — nor should a caller be able to).
     import p5_b0_run as mod
-    _frozen, _route, _hook, ensure, _clear, _drain = mod._bind_reachability_guard()
+    _route, _hook, ensure, _live, _watch = mod._bind_reachability_guard()
 
     def _boom(hook):
         raise RuntimeError("cannot install audit hook")
