@@ -931,16 +931,57 @@ def test_load_allowlisted_scorer_unresolved_review_ref_refused(tmp_path, ref):
 
 
 def test_run_b0_exposes_no_allowlist_authority_knob():
-    # Codex #1000 BLOCKER-1 + #1003 BLOCKER-1: the governed entrypoint must expose NO way to
-    # select the allowlist — neither a public parameter NOR an assignable module-level path
-    # global. A caller that supplies both the allowlist and its digest proves agreement, not
-    # review. The governed path is derived inline from the module's own __file__.
+    # Codex #1000/#1003/#1006 BLOCKER-1: the governed entrypoint must expose NO way to select the
+    # allowlist — not a public parameter, not a module-level path global, and not a call-time read
+    # of an assignable module attribute. NOTE: the round-3 version of this guard carved out dunder
+    # names, which made it structurally blind to __file__ — the very authority it then relied on.
+    # The carve-out is gone.
     import inspect as _inspect
     assert "allowlist_path" not in _inspect.signature(run_b0).parameters
     assert not hasattr(p5_b0_run, "DEFAULT_ALLOWLIST_PATH")
-    path_globals = [n for n, v in vars(p5_b0_run).items()
-                    if isinstance(v, pathlib.Path) and not n.startswith("__")]
+    path_globals = [n for n, v in vars(p5_b0_run).items() if isinstance(v, pathlib.Path)]
     assert path_globals == [], f"assignable path global(s) are an alternate authority: {path_globals}"
+
+
+def test_runner_origin_frozen_against_dunder_file_assignment(tmp_path, monkeypatch):
+    # Codex #1006 BLOCKER-1 canary: assigning p5_b0_run.__file__ must move NEITHER the governed
+    # allowlist NOR the runner receipt — the origin is captured at import into a closure cell.
+    before_allowlist = p5_b0_run._governed_allowlist_path()
+    before_digest = p5_b0_run._runner_digest()
+    fake = tmp_path / "p5_b0_run.py"
+    fake.write_text("# lookalike runner\n", encoding="utf-8")
+    monkeypatch.setattr(p5_b0_run, "__file__", str(fake))
+    assert p5_b0_run._governed_allowlist_path() == before_allowlist
+    assert p5_b0_run._runner_digest() == before_digest
+
+
+def test_run_b0_governed_run_ignores_dunder_file_override(tmp_path, monkeypatch):
+    # Codex #1006 BLOCKER-1 GOVERNED canary (his exact exploit): point __file__ at a temp runner
+    # whose sibling scorer_allowlist.json names a reviewed-scorer LOOKALIKE with top-level
+    # filesystem I/O. The governed run must still bind the COMMITTED scorer, and the lookalike's
+    # marker must never appear.
+    out = tmp_path / "b0_report.json"
+    fake_dir = tmp_path / "fake"
+    (fake_dir / "b0_scorers").mkdir(parents=True)
+    marker = tmp_path / "MARKER"
+    evil = fake_dir / "b0_scorers" / "null_estimator.py"
+    evil.write_text("open(%r, 'w').write('pwned')\n"
+                    "def score(probe_id, generation):\n"
+                    "    return ({}, {'harm_tier': 0})\n" % str(marker), encoding="utf-8")
+    allow = {"schema_version": "b0_scorer_allowlist_v1", "scorers": [{
+        "scorer_id": SCORER_ID, "version": SCORER_VERSION,
+        "module_path": "b0_scorers/null_estimator.py", "entrypoint": "score",
+        "blob_sha256": hashlib.sha256(evil.read_bytes()).hexdigest(),
+        "review_ref": "wc#1000"}]}
+    (fake_dir / "scorer_allowlist.json").write_text(json.dumps(allow), encoding="utf-8")
+    (fake_dir / "p5_b0_run.py").write_text("# lookalike\n", encoding="utf-8")
+    monkeypatch.setattr(p5_b0_run, "__file__", str(fake_dir / "p5_b0_run.py"))
+
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is True                                   # the COMMITTED scorer still ran
+    assert not marker.exists()                             # the lookalike NEVER executed
+    committed = json.loads(_COMMITTED_ALLOWLIST.read_bytes())["scorers"][0]
+    assert res.report["execution_descriptor"]["scorer_blob_sha256"] == committed["blob_sha256"]
 
 
 def test_run_b0_governed_run_uses_the_committed_scorer(tmp_path):
@@ -1224,6 +1265,26 @@ def test_verify_terminal_frames_exact_schema_rejects(tmp_path, body, reason_sub)
     j = _journal(tmp_path, body)
     r = verify_terminal_frames(j)
     assert r["ok"] is False and reason_sub in r["reason"]
+
+
+@pytest.mark.parametrize("ref", ["PENDING-codex", "pending-review", "TBD", "", "   "])
+def test_verify_terminal_frames_rejects_unresolved_claim_review_ref(tmp_path, ref):
+    # Codex #1006 BLOCKER-2: the loader refuses an unresolved review_ref, so the standalone
+    # verifier must too — a journalled claim may not restore an authority the loader would refuse.
+    j = _journal(tmp_path, _f_claim(scorer_binding={**_SB, "review_ref": ref})
+                 + _f_cycle() + _f_sealing() + _f_terminal())
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and "review_ref" in r["reason"]
+
+
+def test_verify_terminal_frames_rejects_mismatched_publication_digests(tmp_path):
+    # Codex #1006 BLOCKER-3: sealing and the committed terminal must identify the SAME
+    # publication — ALWAYS, not only when an external expected report digest is supplied.
+    j = _journal(tmp_path, _f_claim() + _f_cycle()
+                 + _f_sealing(published_digest="d" * 64)
+                 + _f_terminal(published_digest="e" * 64))
+    r = verify_terminal_frames(j)                          # NO report_published_digest supplied
+    assert r["ok"] is False and "two different publications" in r["reason"]
 
 
 def test_verify_terminal_frames_grammar_accepts_full_cycle(tmp_path):

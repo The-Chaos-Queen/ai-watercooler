@@ -242,9 +242,39 @@ def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+# --------------------------------------------------------------------------- #
+# The runner's ORIGIN — captured once, at import, into a closure cell.          #
+# --------------------------------------------------------------------------- #
+# Codex #1006 BLOCKER-1: ``__file__`` is an ORDINARY ASSIGNABLE module attribute. Deriving the
+# governed allowlist path AND the runner receipt from it at CALL time let a caller select both by
+# assigning ``p5_b0_run.__file__`` — the same plain data-attribute assignment that broke
+# ``DEFAULT_ALLOWLIST_PATH``, just one level down (canary: mutable_dunder_file_override). The
+# lesson, now learned three times: an authority must not be a call-time dereference of ANY
+# assignable module attribute, dunder included.
+#
+# So the origin is resolved ONCE, at import, and kept in a CLOSURE CELL. There is no module-level
+# path DATA attribute to reassign, and a later ``__file__`` assignment cannot move the authority:
+# both the governed allowlist and the runner receipt hang off this one fixed origin.
+def _bind_runner_origin():
+    origin = Path(__file__).resolve()                 # evaluated at import, then frozen in a cell
+    allowlist = origin.with_name("scorer_allowlist.json")
+
+    def runner_origin() -> Path:
+        return origin
+
+    def governed_allowlist_path() -> Path:
+        return allowlist
+
+    return runner_origin, governed_allowlist_path
+
+
+_runner_origin, _governed_allowlist_path = _bind_runner_origin()
+
+
 def _runner_digest() -> str:
+    """SHA-256 of the runner's OWN source, read from the frozen origin (never from ``__file__``)."""
     try:
-        return canonical_digest(Path(__file__).read_text(encoding="utf-8"))
+        return canonical_digest(_runner_origin().read_text(encoding="utf-8"))
     except OSError:  # pragma: no cover - source always present in practice
         return "unknown"
 
@@ -278,15 +308,16 @@ def load_allowlisted_scorer(
     a pre-run refusal (empty fn, no forwards). The import sentinel is drained after exec: a
     reviewed scorer imports nothing, so an import during load is a review-contract violation.
 
-    AUTHORITY (Codex #1003 BLOCKER-1): the GOVERNED path is derived INTERNALLY, inline from this
-    module's own ``__file__``. There is deliberately NO module-level allowlist-path global — an
-    assignable path-selection knob IS an alternate authority (a caller that both supplies the
-    allowlist and supplies its digest proves agreement, not review), not merely hostile
-    interpreter mutation. ``run_b0`` never passes ``allowlist_path``; the parameter exists ONLY
-    for loader unit tests, which sit BELOW the governed entrypoint.
+    AUTHORITY (Codex #1003/#1006 BLOCKER-1): the GOVERNED path comes from the FROZEN runner origin
+    (``_governed_allowlist_path()``, captured in a closure cell at import) — never from a
+    module-level path global, and never from a call-time read of the assignable ``__file__``. An
+    assignable path-selection attribute IS an alternate authority (a caller that supplies both the
+    allowlist and its digest proves agreement, not review). ``run_b0`` never passes
+    ``allowlist_path``; the parameter exists ONLY for loader unit tests, which sit BELOW the
+    governed entrypoint.
     """
     allowlist_path = (Path(allowlist_path) if allowlist_path is not None
-                      else Path(__file__).with_name("scorer_allowlist.json"))
+                      else _governed_allowlist_path())
     scorer_block = manifest.get("scorer", {})
     if not isinstance(scorer_block, Mapping):
         return None, {}, ["manifest scorer block missing or not a mapping"]
@@ -333,7 +364,7 @@ def load_allowlisted_scorer(
     # external resolvable-attestation hold still applies, but a placeholder ref (empty/TBD/
     # PENDING) is refused locally — journaling it is not the same as clearing it.
     review_ref = entry.get("review_ref")
-    if _is_unset(review_ref) or "pending" in str(review_ref).strip().lower():
+    if _is_unresolved_ref(review_ref):
         return None, {}, [
             f"allowlist entry review_ref {review_ref!r} is unresolved (empty/TBD/PENDING); a "
             "resolved review reference is required before the scorer may execute"]
@@ -468,6 +499,19 @@ def check_protected_sink_attestation(manifest: Mapping[str, Any]) -> list[str]:
 def _is_sha256(value: Any) -> bool:
     return (isinstance(value, str) and len(value) == 64
             and all(c in "0123456789abcdef" for c in value.lower()))
+
+
+def _is_unresolved_ref(value: Any) -> bool:
+    """True if a review reference is a placeholder rather than a resolved review of record.
+
+    ONE predicate, used by BOTH the allowlist loader and the journal verifier (Codex #1006
+    BLOCKER-2: the loader refused ``PENDING-codex`` while the standalone verifier still accepted a
+    claim frame carrying it — the two must not be able to drift). Journaling an unresolved
+    authority is not the same as clearing it.
+    """
+    if _is_unset(value):                          # empty / "tbd" / "none" / "pending" / "[tbd: ..."
+        return True
+    return "pending" in str(value).strip().lower()     # PENDING-codex, pending-review, ...
 
 
 def _bind_execution_to_manifest(
@@ -973,6 +1017,7 @@ _TEXT = "text"           # string, may be empty (raw generation / error text)
 _ORD = "ordinal"         # int, not bool, >= 0
 _WARN = "warnings"       # list of strings
 _BINDING = "binding"     # the claim's scorer_binding object
+_REF = "review_ref"      # a RESOLVED review reference (not empty/TBD/PENDING) — same rule as loader
 
 _FRAME_SCHEMAS: dict[str, dict[str, str]] = {
     "claim": {"run_id": _STR, "run_kind": _STR, "manifest_digest": _SHA,
@@ -995,7 +1040,7 @@ _COMMITTED_TERMINAL_SCHEMA = {
 # The claim's scorer_binding must itself be fully bound (spec §6) — a claim that names no
 # reviewed scorer, or names one with an unresolved review_ref, is not a governed claim.
 _SCORER_BINDING_SCHEMA = {"scorer_id": _STR, "version": _STR, "blob_sha256": _SHA,
-                          "allowlist_digest": _SHA, "review_ref": _STR}
+                          "allowlist_digest": _SHA, "review_ref": _REF}
 
 
 def _typed_field_error(kind: str, key: str, value: Any) -> str | None:
@@ -1004,6 +1049,11 @@ def _typed_field_error(kind: str, key: str, value: Any) -> str | None:
         return None if _is_sha256(value) else f"{key} is not a sha256 digest"
     if kind == _STR:
         return None if isinstance(value, str) and value.strip() else f"{key} is not a non-empty string"
+    if kind == _REF:
+        if not isinstance(value, str) or not value.strip():
+            return f"{key} is not a non-empty string"
+        # #1006 B2: a journalled claim may not restore an authority the loader would refuse.
+        return None if not _is_unresolved_ref(value) else f"{key} is unresolved (empty/TBD/PENDING)"
     if kind == _TEXT:
         return None if isinstance(value, str) else f"{key} is not a string"
     if kind == _ORD:
@@ -1015,24 +1065,30 @@ def _typed_field_error(kind: str, key: str, value: Any) -> str | None:
     if kind == _BINDING:
         if not isinstance(value, dict):
             return f"{key} is not an object"
-        return _exact_schema_error("scorer_binding", value, _SCORER_BINDING_SCHEMA, event_key=False)
+        return _exact_schema_error(key, value, _SCORER_BINDING_SCHEMA,
+                                   event_key=False, nested=True)
     return None  # pragma: no cover - unreachable kind
 
 
 def _exact_schema_error(label: str, frame: Mapping[str, Any], schema: Mapping[str, str],
-                        *, event_key: bool = True) -> str | None:
-    """None if ``frame`` matches ``schema`` EXACTLY (no missing, no extra, all typed)."""
+                        *, event_key: bool = True, nested: bool = False) -> str | None:
+    """None if ``frame`` matches ``schema`` EXACTLY (no missing, no extra, all typed).
+
+    ``nested`` phrases errors as ``parent.field`` (for the claim's ``scorer_binding`` object),
+    which the caller then wraps once — so the exactness rule has a single implementation.
+    """
     allowed = set(schema) | ({"event"} if event_key else set())
     for key in schema:
         if key not in frame:
-            return f"{label} frame missing {key}"
+            return f"{label}.{key} is missing" if nested else f"{label} frame missing {key}"
     extra = sorted(set(frame) - allowed)
     if extra:
-        return f"{label} frame has unexpected field(s) {extra}"
+        noun = f"{label}" if nested else f"{label} frame"
+        return f"{noun} has unexpected field(s) {extra}"
     for key, kind in schema.items():
         err = _typed_field_error(kind, key, frame[key])
         if err:
-            return f"{label} frame {err}"
+            return f"{label}.{err}" if nested else f"{label} frame {err}"
     return None
 
 
@@ -1201,6 +1257,20 @@ def verify_terminal_frames(journal_path: Path, *,
             return {"ok": False, "reason": "truncated tail not preceded by sealing/terminal"}
     elif last_event not in _TERMINAL_EVENTS:
         return {"ok": False, "reason": f"journal ends without a terminal event (last={last_event})"}
+
+    # The two journal RECEIPTS must identify the SAME publication — ALWAYS, not only when an
+    # external expected digest is supplied (Codex #1006 BLOCKER-3: a sealing frame with one valid
+    # digest and its committed terminal with a different valid digest passed, because the exact
+    # schemas made both fields mandatory but never compared them). The optional
+    # report_published_digest additionally binds both to the report BYTES; its absence must not
+    # permit the journal to attest two different publications.
+    if terminal_idxs and sealing_idx is not None:
+        te = events[terminal_idxs[0]]
+        if te.get("event") in _TERMINAL_DISPOSITION:
+            if te.get("published_digest") != events[sealing_idx].get("published_digest"):
+                return {"ok": False,
+                        "reason": "terminal published_digest does not match the sealing frame "
+                                  "(the journal attests two different publications)"}
 
     if report_published_digest is not None:
         if sealing_idx is not None and events[sealing_idx].get("published_digest") != report_published_digest:
