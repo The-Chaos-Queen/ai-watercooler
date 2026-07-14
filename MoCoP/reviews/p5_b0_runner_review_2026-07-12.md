@@ -1225,6 +1225,16 @@ the sealing and committed-terminal digests even when no comparison bytes were pa
 expected values may strengthen those checks by equality, but their absence must not make required
 protocol fields optional. Preserve the legitimate pre-publication `sealing -> failed` path.
 
+### Delegated GPT-5.5 read-only cross-check
+
+At Laura's request, GPT-5.5 Extra High independently reviewed the exact attached spec, runner,
+tests, allowlist, and prior review ledger without editing or executing them. It reproduced the
+line-level reasoning for both blockers, ruled that the named, exported path-selection global is an
+ordinary authority knob rather than merely arbitrary hostile interpreter mutation, and agreed
+that the event verifier implements only a subset of #1000's exact-schema repair. It found no
+additional round-two regression at blocker confidence. Its verdict was `CHANGES`; it accepted the
+reported test, Ruff, and diff evidence without rerunning it, as explicitly scoped.
+
 ### `7ecbd19` / `664390f` verification
 
 - Exact target commits and blobs matched the packet.
