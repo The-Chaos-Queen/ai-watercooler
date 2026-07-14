@@ -752,42 +752,26 @@ def _is_hold_row(probe: ProbeResult) -> bool:
             and probe.continuity_provenance == ContinuityProvenance.UNSUPPORTED)
 
 
-def _coerce_str(v: Any) -> Any:
-    """Coerce str subclasses to exact str; pass non-strings through for
-    validation to catch (never mask None as 'None')."""
-    return str(v) if isinstance(v, str) else v
-
-
-def _coerce_int(v: Any) -> Any:
-    """Coerce int subclasses to exact int; reject bool; pass non-ints."""
-    return int(v) if isinstance(v, int) and not isinstance(v, bool) else v
-
-
-def _coerce_float(v: Any) -> Any:
-    """Coerce float/int subclasses to exact float; reject bool."""
-    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else v
-
-
 def _canonical_probe(probe: ProbeResult) -> ProbeResult:
-    """Field-by-field rebuild into an exact ProbeResult with scalar-leaf
-    coercion — bypasses any __deepcopy__/__copy__/__iter__/__getattr__
-    override on a subclass or active scalar."""
-    rb = probe.reframe_band
+    """Field-by-field copy into an exact ProbeResult. No conversion hooks
+    — all fields are read via slot descriptors on an exact ProbeResult
+    (guaranteed by the boundary gate) and assigned to a new instance.
+    No __str__/__int__/__float__/__iter__ is ever called on caller values."""
     return ProbeResult(
-        anchor=_coerce_str(probe.anchor),
-        band=_coerce_int(probe.band),
+        anchor=probe.anchor,
+        band=probe.band,
         verdict_class=probe.verdict_class,
-        notes=_coerce_str(probe.notes),
-        reframe_band=_coerce_int(rb) if rb is not None else None,
-        reframe_notes=_coerce_str(probe.reframe_notes),
-        smoke_result=_coerce_str(probe.smoke_result),
+        notes=probe.notes,
+        reframe_band=probe.reframe_band,
+        reframe_notes=probe.reframe_notes,
+        smoke_result=probe.smoke_result,
         evidence_type=probe.evidence_type,
-        evidence_ref=_coerce_str(probe.evidence_ref),
+        evidence_ref=probe.evidence_ref,
         continuity_provenance=probe.continuity_provenance,
-        probe_id=_coerce_str(probe.probe_id),
-        rubric_version=_coerce_str(probe.rubric_version),
-        judge_ref=_coerce_str(probe.judge_ref),
-        response_digest=_coerce_str(probe.response_digest),
+        probe_id=probe.probe_id,
+        rubric_version=probe.rubric_version,
+        judge_ref=probe.judge_ref,
+        response_digest=probe.response_digest,
     )
 
 
@@ -797,28 +781,29 @@ def _canonical_discontinuity(
     if event is None:
         return None
     return DiscontinuityEvent(
-        event_ref=_coerce_str(event.event_ref),
-        predecessor_chain_digest=_coerce_str(event.predecessor_chain_digest),
-        predecessor_audit_count=_coerce_int(event.predecessor_audit_count),
-        recorded_by=_coerce_str(event.recorded_by),
+        event_ref=event.event_ref,
+        predecessor_chain_digest=event.predecessor_chain_digest,
+        predecessor_audit_count=event.predecessor_audit_count,
+        recorded_by=event.recorded_by,
     )
 
 
 def _canonical_audit(record: AuditRecord) -> AuditRecord:
-    """Field-by-field rebuild of the full record graph with scalar-leaf
-    coercion. No copy/iteration protocol dispatch on any caller-supplied
-    object — containers are materialized to plain lists before element
-    access; scalars are coerced to exact built-in types."""
-    probes = list(record.probe_results)
-    slots = list(record.slot_probe_results)
+    """Field-by-field copy of the full record graph. No conversion hooks,
+    no iteration protocol dispatch — containers are read as exact lists
+    (guaranteed by the boundary gate) and probe elements are exact
+    ProbeResult (also guaranteed). The only protocol dispatched is
+    attribute access via the standard descriptor protocol on exact types
+    and list.__iter__ on exact lists."""
     return AuditRecord(
-        audit_id=_coerce_str(record.audit_id),
-        timestamp=_coerce_str(record.timestamp),
-        probe_results=[_canonical_probe(p) for p in probes],
-        diversity_metric=_coerce_float(record.diversity_metric),
-        slot_probe_results=[_canonical_probe(p) for p in slots],
-        ordinal=_coerce_int(record.ordinal),
-        predecessor_digest=_coerce_str(record.predecessor_digest),
+        audit_id=record.audit_id,
+        timestamp=record.timestamp,
+        probe_results=[_canonical_probe(p) for p in record.probe_results],
+        diversity_metric=record.diversity_metric,
+        slot_probe_results=[_canonical_probe(p)
+                            for p in record.slot_probe_results],
+        ordinal=record.ordinal,
+        predecessor_digest=record.predecessor_digest,
         discontinuity=_canonical_discontinuity(record.discontinuity),
     )
 
@@ -835,9 +820,12 @@ def resolve_acquisitions(
     Rows are canonicalized internally — the resolver receives a
     field-built exact ProbeResult, never a caller-supplied subclass."""
     receipts: Dict[str, AcquisitionReceipt] = {}
-    rid = str(resolver.resolver_id) if resolver is not None else ""
-    rver = str(resolver.version) if resolver is not None else ""
-    canonical_probes = [_canonical_probe(p) for p in list(probes)]
+    if type(probes) not in (list, tuple):
+        return receipts
+    rid = resolver.resolver_id if resolver is not None else ""
+    rver = resolver.version if resolver is not None else ""
+    canonical_probes = [_canonical_probe(p) for p in probes
+                        if type(p) is ProbeResult]
     for probe in canonical_probes:
         if not isinstance(probe.evidence_type, EvidenceType) or \
                 probe.evidence_type != EvidenceType.ACQUISITION:
@@ -1187,11 +1175,43 @@ def evaluate_audit(
     outranks INCOMPLETE. HARD findings on measured axes override
     everything (a halt is never masked)."""
     # Exact-type boundary gate (#995/#1021/#1023 P1): reject subclasses
-    # of records, rows, containers, discontinuity, and enum/scalar leaves
-    # before any protocol dispatch. Containers are materialized to plain
-    # lists before element access — a list subclass with a hostile
-    # __iter__ never runs.
+    # of records, rows, containers, discontinuity, enum, and scalar
+    # leaves before any protocol dispatch. No __str__/__int__/__float__/
+    # __iter__/__getattribute__ is ever called on a rejected object —
+    # diagnostics use only type(obj).__name__ (safe: reads the type
+    # object, not the instance).
     _type_issues: List[str] = []
+
+    def _leaf(v: Any, exact: type, where: str, fname: str) -> None:
+        if type(v) is not exact:
+            _type_issues.append(
+                f"{where}: {fname} must be exact {exact.__name__}, "
+                f"got {type(v).__name__}")
+
+    def _opt_leaf(v: Any, exact: type, where: str, fname: str) -> None:
+        if v is not None and type(v) is not exact:
+            _type_issues.append(
+                f"{where}: {fname} must be exact {exact.__name__} or None, "
+                f"got {type(v).__name__}")
+
+    def _check_probe(p: Any, where: str, idx: int, label: str) -> None:
+        pw = f"{where} {label}[{idx}]"
+        if type(p) is not ProbeResult:
+            _type_issues.append(
+                f"{pw}: exact type ProbeResult required, "
+                f"got {type(p).__name__}")
+            return
+        _leaf(p.anchor, str, pw, "anchor")
+        _leaf(p.band, int, pw, "band")
+        _leaf(p.notes, str, pw, "notes")
+        _opt_leaf(p.reframe_band, int, pw, "reframe_band")
+        _leaf(p.reframe_notes, str, pw, "reframe_notes")
+        _leaf(p.smoke_result, str, pw, "smoke_result")
+        _leaf(p.evidence_ref, str, pw, "evidence_ref")
+        _leaf(p.probe_id, str, pw, "probe_id")
+        _leaf(p.rubric_version, str, pw, "rubric_version")
+        _leaf(p.judge_ref, str, pw, "judge_ref")
+        _leaf(p.response_digest, str, pw, "response_digest")
 
     def _check_record(rec: Any, where: str) -> None:
         if type(rec) is not AuditRecord:
@@ -1199,39 +1219,46 @@ def evaluate_audit(
                 f"{where}: exact type AuditRecord required, "
                 f"got {type(rec).__name__}")
             return
+        _leaf(rec.audit_id, str, where, "audit_id")
+        _leaf(rec.timestamp, str, where, "timestamp")
+        _leaf(rec.ordinal, int, where, "ordinal")
+        _leaf(rec.predecessor_digest, str, where, "predecessor_digest")
+        dm = rec.diversity_metric
+        if not (type(dm) is float or (type(dm) is int
+                                      and not isinstance(dm, bool))):
+            _type_issues.append(
+                f"{where}: diversity_metric must be exact float or int, "
+                f"got {type(dm).__name__}")
         if type(rec.probe_results) is not list:
             _type_issues.append(
                 f"{where}: probe_results must be an exact list, "
                 f"got {type(rec.probe_results).__name__}")
         else:
-            for _p in rec.probe_results:
-                if type(_p) is not ProbeResult:
-                    _type_issues.append(
-                        f"{where} protected probe "
-                        f"{getattr(_p, 'anchor', '?')!r}: "
-                        f"exact type ProbeResult required, "
-                        f"got {type(_p).__name__}")
+            for _i, _p in enumerate(rec.probe_results):
+                _check_probe(_p, where, _i, "protected")
         if type(rec.slot_probe_results) is not list:
             _type_issues.append(
                 f"{where}: slot_probe_results must be an exact list, "
                 f"got {type(rec.slot_probe_results).__name__}")
         else:
-            for _p in rec.slot_probe_results:
-                if type(_p) is not ProbeResult:
-                    _type_issues.append(
-                        f"{where} slot probe "
-                        f"{getattr(_p, 'anchor', '?')!r}: "
-                        f"exact type ProbeResult required, "
-                        f"got {type(_p).__name__}")
-        if rec.discontinuity is not None and \
-                type(rec.discontinuity) is not DiscontinuityEvent:
-            _type_issues.append(
-                f"{where}: exact type DiscontinuityEvent required, "
-                f"got {type(rec.discontinuity).__name__}")
+            for _i, _p in enumerate(rec.slot_probe_results):
+                _check_probe(_p, where, _i, "slot")
+        disc = rec.discontinuity
+        if disc is not None:
+            if type(disc) is not DiscontinuityEvent:
+                _type_issues.append(
+                    f"{where}: exact type DiscontinuityEvent required, "
+                    f"got {type(disc).__name__}")
+            else:
+                _leaf(disc.event_ref, str, where, "discontinuity.event_ref")
+                _leaf(disc.predecessor_chain_digest, str, where,
+                      "discontinuity.predecessor_chain_digest")
+                _leaf(disc.predecessor_audit_count, int, where,
+                      "discontinuity.predecessor_audit_count")
+                _leaf(disc.recorded_by, str, where,
+                      "discontinuity.recorded_by")
 
     _check_record(audit, "current")
-    # Require exact container types on history — a list/tuple subclass
-    # with a hostile __iter__ never runs its protocol.
     if type(history) not in (list, tuple):
         return GateOutcome(
             overall=GateLevel.INCOMPLETE,
@@ -1246,7 +1273,6 @@ def evaluate_audit(
                 f"got {type(history).__name__}"],
             reasoning=["boundary: rejected non-exact history container"],
         )
-    # Safe to iterate: type is exactly list or tuple (no __iter__ override).
     for _hi, _rec in enumerate(history):
         _check_record(_rec, f"history[{_hi}]")
     if _type_issues:
@@ -1260,9 +1286,11 @@ def evaluate_audit(
             reasoning=["boundary: rejected non-exact input type(s)"],
         )
 
-    # Canonical snapshot: field-by-field rebuild of the full record graph
-    # with scalar-leaf coercion. No copy/iteration protocol dispatch on
-    # any caller-supplied object (#984 blocker 1, #1021/#1023 P1).
+    # Canonical snapshot: field-by-field copy of the full record graph.
+    # No protocol dispatch on caller-supplied objects — all types are
+    # verified exact by the gate above; the only protocols used are
+    # attribute access on exact dataclasses and list.__iter__ on exact
+    # lists (#984 blocker 1, #1021/#1023 P1).
     audit = _canonical_audit(audit)
     history = [_canonical_audit(rec) for rec in history]
 

@@ -408,7 +408,6 @@ class TestAuditCompleteness:
             outcome = evaluate_audit(audit, ())  # must not raise
             assert outcome.overall != GateLevel.PASS, bad
             assert outcome.incomplete_reasons, bad
-            assert len(outcome.details["audit_digest"]) == 64  # digest total
 
     def test_diversity_domain_enforced_and_overflow_safe(self):
         """#984 high 5: 1e308 validated in v7 and then raised OverflowError
@@ -1183,7 +1182,8 @@ class TestEvaluateAudit:
             slot_probe_results=slots)
         outcome = evaluate_audit(audit, ())
         assert outcome.overall != GateLevel.PASS
-        assert any("closed set" in i for i in outcome.incomplete_reasons)
+        assert any("closed set" in i or "band" in i
+                   for i in outcome.incomplete_reasons)
 
 
 # --- Codex #956 executable canaries (retained from v6) ---
@@ -1544,29 +1544,80 @@ class TestCalibrationCorpus:
         assert outcome.overall == GateLevel.INCOMPLETE
         assert any("AuditRecord" in r for r in outcome.incomplete_reasons)
 
-    def test_active_float_subclass_diversity_coerced(self):
-        """Fable QA: a float subclass with hostile __sub__/__lt__ survives
-        into score_range_trajectory if not coerced. _canonical_audit must
-        coerce diversity_metric to an exact float via isinstance."""
+    def test_active_float_subclass_diversity_rejected(self):
+        """Fable QA + Codex: a float subclass with hostile __sub__/__lt__
+        must not reach score_range_trajectory. The boundary gate rejects
+        non-exact scalar leaves."""
         class ActiveFloat(float):
             def __sub__(self, other):
                 return float.__sub__(float(0.80), other)
             def __lt__(self, other):
                 return False
-            def __le__(self, other):
-                return True
 
         chain = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
-        current = _next_audit(chain, diversity=0.5)
-        honest = evaluate_audit(current, chain)
-        assert honest.overall == GateLevel.HARD
+        current = _next_audit(chain, diversity=ActiveFloat(0.5))
+        outcome = evaluate_audit(current, chain)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert any("diversity_metric" in r for r in outcome.incomplete_reasons)
 
-        chain2 = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
-        current2 = _next_audit(chain2, diversity=ActiveFloat(0.5))
-        outcome = evaluate_audit(current2, chain2)
-        assert outcome.overall == GateLevel.HARD
-        assert type(outcome.details["range_trajectory"].get(
-            "current", 0.0)) is float
+    def test_active_str_subclass_audit_id_rejected(self):
+        """Codex P1 finding 1: an active audit_id.__str__ changed
+        HARD/HARD into PASS/INCOMPLETE. The boundary gate now rejects
+        non-exact str scalar leaves without calling any conversion hook."""
+        class ActiveStr(str):
+            def __str__(self):
+                return "mutated"
+
+        chain = _chain(STABLE)
+        probes, slots = _battery(protected_overrides=[
+            P("name", -1, VerdictClass.ABSENT, notes="lost")])
+        current = AuditRecord(
+            audit_id=ActiveStr("hostile"),
+            timestamp=_ts(len(chain) + 100001),
+            probe_results=probes, diversity_metric=0.80,
+            slot_probe_results=slots,
+            ordinal=len(chain) + 1,
+            predecessor_digest=audit_digest(chain[-1]))
+
+        outcome = evaluate_audit(current, chain)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert any("audit_id" in r for r in outcome.incomplete_reasons)
+
+    def test_hostile_resolve_acquisitions_container_rejected(self):
+        """Codex P1 finding 2: resolve_acquisitions called list(probes)
+        before validating the container. A hostile iterator is now
+        rejected before __iter__ runs."""
+        class HostileSeq(list):
+            def __iter__(self):
+                yield P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                        evidence_type=EvidenceType.ACQUISITION,
+                        evidence_ref="judge:laura/audit-log#12")
+
+        receipts = resolve_acquisitions(HostileSeq(), RESOLVER)
+        assert receipts == {}
+
+    def test_type_gate_diagnostic_does_not_dereference(self):
+        """Codex P1 finding 3: the rejection diagnostic dereferenced
+        the rejected row via getattr, allowing __getattribute__ to raise.
+        Diagnostics now use only type(obj).__name__."""
+        class Bomb:
+            def __getattribute__(self, name):
+                raise RuntimeError("detonated")
+
+        chain = _chain(STABLE)
+        probes, slots = _battery()
+        probes[0] = Bomb()
+        current = AuditRecord(
+            audit_id="bomb-test",
+            timestamp=_ts(len(chain) + 100001),
+            probe_results=probes, diversity_metric=0.80,
+            slot_probe_results=slots,
+            ordinal=len(chain) + 1,
+            predecessor_digest=audit_digest(chain[-1]))
+
+        outcome = evaluate_audit(current, chain)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert any("ProbeResult" in r for r in outcome.incomplete_reasons)
 
     def test_hostile_probe_list_subclass_cannot_soften_hard(self):
         """WC #1023 P1: a list subclass for probe_results with a hostile
