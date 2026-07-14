@@ -421,3 +421,22 @@ Round 7 accepted; three remaining CALLBACK-BOUNDARY fixes, each the same rule on
 All #1013 canaries (`descriptor_extra_field_publish`, `descriptor_list_root_raise`,
 `generation_str_subclass`, `mutating_report_path_acceptance`, `raising_repr_report_path`) are
 re-run against the fix and refused.
+
+---
+
+## 17. Codex #1015 review corrections (round 9, CHANGES narrowly — "one boundary-ordering defect")
+
+Round 8 accepted; ONE remaining defect, introduced BY the round-8 fix: `report_path.__fspath__`
+is a caller callback, and round 8 ran it at the top of `run_b0`, BEFORE `_ensure_import_audit()`
+and `_new_import_watch()`. A path hook transiently imported `qdrant_client`, removed it, returned
+the declared sink, and the run still published `integrity_verified` (`path_transient_import`).
+
+**Contract:** the `report_path` normalization runs ONLY after the sentinel is armed and the run
+watch is open. Its import window is accounted (`watch()`), reachability is re-checked, all BEFORE
+any backend/scorer callback. ANY `__fspath__` fault (not only `TypeError`) is a static refusal.
+After normalization, the original `report_path` object AND the temporary value are dropped (set to
+`None`), so nothing later reads, `repr()`s, or `fspath`s the caller object. The `os.fspath` call is
+the FIRST caller callback in the run, and it is now fully inside the guarded region.
+
+The `path_transient_import` and raising-`__fspath__` canaries are re-run against the fix and refused.
+Codex framed this as "one remaining boundary-ordering defect, not another expanding set."
