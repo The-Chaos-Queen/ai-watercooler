@@ -88,7 +88,6 @@ Stdlib only — no ML dependencies. The gate scores audit records, not models.
 """
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
 import math
@@ -773,6 +772,35 @@ def _canonical_probe(probe: ProbeResult) -> ProbeResult:
     )
 
 
+def _canonical_discontinuity(
+    event: Optional[DiscontinuityEvent],
+) -> Optional[DiscontinuityEvent]:
+    if event is None:
+        return None
+    return DiscontinuityEvent(
+        event_ref=event.event_ref,
+        predecessor_chain_digest=event.predecessor_chain_digest,
+        predecessor_audit_count=event.predecessor_audit_count,
+        recorded_by=event.recorded_by,
+    )
+
+
+def _canonical_audit(record: AuditRecord) -> AuditRecord:
+    """Field-by-field rebuild of the full record graph — no copy protocol
+    dispatch on any caller-supplied object. Bypasses __deepcopy__ on
+    AuditRecord, DiscontinuityEvent, and ProbeResult subclasses."""
+    return AuditRecord(
+        audit_id=record.audit_id,
+        timestamp=record.timestamp,
+        probe_results=[_canonical_probe(p) for p in record.probe_results],
+        diversity_metric=record.diversity_metric,
+        slot_probe_results=[_canonical_probe(p) for p in record.slot_probe_results],
+        ordinal=record.ordinal,
+        predecessor_digest=record.predecessor_digest,
+        discontinuity=_canonical_discontinuity(record.discontinuity),
+    )
+
+
 def resolve_acquisitions(
     probes: Sequence[ProbeResult],
     resolver: Optional[EvidenceResolverBinding] = None,
@@ -1132,29 +1160,38 @@ def evaluate_audit(
     or because the disposition-divergence metric is deferred. HOLD (A1)
     outranks INCOMPLETE. HARD findings on measured axes override
     everything (a halt is never masked)."""
-    # Exact-type boundary gate: a ProbeResult subclass can override
-    # __deepcopy__ to retain an alias into the private snapshot, letting
-    # a resolver soften a protected HARD (#995 P1).
+    # Exact-type boundary gate: a subclass of any input dataclass can
+    # override __deepcopy__ to retain an alias into the private snapshot,
+    # letting a resolver soften a protected HARD (#995/#1021 P1).
     _type_issues = []
-    for _p in audit.probe_results:
-        if type(_p) is not ProbeResult:
+    def _check_record(rec: Any, where: str) -> None:
+        if type(rec) is not AuditRecord:
             _type_issues.append(
-                f"protected probe {getattr(_p, 'anchor', '?')!r}: "
-                f"exact type ProbeResult required, got {type(_p).__name__}")
-    for _p in audit.slot_probe_results:
-        if type(_p) is not ProbeResult:
+                f"{where}: exact type AuditRecord required, "
+                f"got {type(rec).__name__}")
+            return
+        for _p in rec.probe_results:
+            if type(_p) is not ProbeResult:
+                _type_issues.append(
+                    f"{where} protected probe "
+                    f"{getattr(_p, 'anchor', '?')!r}: "
+                    f"exact type ProbeResult required, "
+                    f"got {type(_p).__name__}")
+        for _p in rec.slot_probe_results:
+            if type(_p) is not ProbeResult:
+                _type_issues.append(
+                    f"{where} slot probe "
+                    f"{getattr(_p, 'anchor', '?')!r}: "
+                    f"exact type ProbeResult required, "
+                    f"got {type(_p).__name__}")
+        if rec.discontinuity is not None and \
+                type(rec.discontinuity) is not DiscontinuityEvent:
             _type_issues.append(
-                f"slot probe {getattr(_p, 'anchor', '?')!r}: "
-                f"exact type ProbeResult required, got {type(_p).__name__}")
+                f"{where}: exact type DiscontinuityEvent required, "
+                f"got {type(rec.discontinuity).__name__}")
+    _check_record(audit, "current")
     for _hi, _rec in enumerate(history):
-        for _p in getattr(_rec, 'probe_results', ()):
-            if type(_p) is not ProbeResult:
-                _type_issues.append(
-                    f"history[{_hi}] probe: exact type ProbeResult required")
-        for _p in getattr(_rec, 'slot_probe_results', ()):
-            if type(_p) is not ProbeResult:
-                _type_issues.append(
-                    f"history[{_hi}] slot: exact type ProbeResult required")
+        _check_record(_rec, f"history[{_hi}]")
     if _type_issues:
         return GateOutcome(
             overall=GateLevel.INCOMPLETE,
@@ -1163,12 +1200,14 @@ def evaluate_audit(
             disposition_divergence=GateLevel.INCOMPLETE,
             details={"type_rejection": _type_issues},
             incomplete_reasons=_type_issues,
-            reasoning=["boundary: rejected non-exact ProbeResult type(s)"],
+            reasoning=["boundary: rejected non-exact input type(s)"],
         )
 
-    # Snapshot before ANY validation or callback (#984 blocker 1).
-    audit = copy.deepcopy(audit)
-    history = [copy.deepcopy(rec) for rec in history]
+    # Canonical snapshot: field-by-field rebuild of the full record graph.
+    # No copy protocol dispatch on caller-supplied objects (#984 blocker 1,
+    # #1021 P1). Replaces copy.deepcopy entirely.
+    audit = _canonical_audit(audit)
+    history = [_canonical_audit(rec) for rec in history]
 
     incomplete_reasons: List[str] = []
     reasoning: List[str] = []

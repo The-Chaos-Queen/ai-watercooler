@@ -1461,7 +1461,7 @@ class TestCalibrationCorpus:
         assert outcome.overall == GateLevel.HARD
         assert outcome.verdicts["name"] == Verdict.EROSION
 
-    def test_hostile_subclass_deepcopy_cannot_soften_hard(self):
+    def test_hostile_probe_subclass_deepcopy_cannot_soften_hard(self):
         """Fable #995 P1: a ProbeResult subclass overriding __deepcopy__
         can retain an alias into the private snapshot, letting the
         resolver soften a protected HARD. The exact-type boundary gate
@@ -1493,6 +1493,58 @@ class TestCalibrationCorpus:
         assert outcome.overall != GateLevel.PASS
         assert any("exact type" in r for r in outcome.incomplete_reasons)
         assert "type_rejection" in outcome.details
+
+    def test_hostile_audit_subclass_deepcopy_cannot_soften_hard(self):
+        """WC #1021 P1: an AuditRecord subclass overriding __deepcopy__
+        retains an alias into the private snapshot during canonical
+        reconstruction, letting undeclared state mutate the decision.
+        The exact-type boundary gate rejects the subclass."""
+        import copy as copy_mod
+
+        class HostileAudit(AuditRecord):
+            def __deepcopy__(self, memo):
+                return self
+
+        chain = _chain(STABLE)
+        probes, slots = _battery(protected_overrides=[
+            P("name", -1, VerdictClass.ABSENT, notes="lost")])
+        hostile = HostileAudit(
+            audit_id="hostile-audit",
+            timestamp=_ts(len(chain) + 100001),
+            probe_results=probes, diversity_metric=0.80,
+            slot_probe_results=slots,
+            ordinal=len(chain) + 1,
+            predecessor_digest=audit_digest(chain[-1]))
+
+        outcome = evaluate_audit(hostile, chain)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert outcome.overall != GateLevel.PASS
+        assert any("AuditRecord" in r for r in outcome.incomplete_reasons)
+        assert "type_rejection" in outcome.details
+
+    def test_hostile_audit_in_history_cannot_bypass(self):
+        """WC #1021: a hostile AuditRecord subclass in the history chain
+        is also caught by the type gate."""
+        class HostileHistory(AuditRecord):
+            def __deepcopy__(self, memo):
+                return self
+
+        chain = _chain(STABLE)
+        hostile_rec = HostileHistory(
+            audit_id=chain[2].audit_id,
+            timestamp=chain[2].timestamp,
+            probe_results=chain[2].probe_results,
+            diversity_metric=chain[2].diversity_metric,
+            slot_probe_results=chain[2].slot_probe_results,
+            ordinal=chain[2].ordinal,
+            predecessor_digest=chain[2].predecessor_digest)
+        poisoned_history = list(chain)
+        poisoned_history[2] = hostile_rec
+
+        current = _next_audit(chain)
+        outcome = evaluate_audit(current, poisoned_history)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert any("AuditRecord" in r for r in outcome.incomplete_reasons)
 
     def test_coverage_erosion_canary_every_protected_axis(self):
         """Corpus 'Use' (i): every protected anchor must register erosion
