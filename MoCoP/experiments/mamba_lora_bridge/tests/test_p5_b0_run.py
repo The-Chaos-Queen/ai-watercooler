@@ -1307,8 +1307,10 @@ def test_observer_catches_real_transient_load_in_path_window(tmp_path, _fake_for
     assert not out.exists()
 
 
-def test_observer_catches_real_transient_load_in_backend_window(tmp_path, _fake_forbidden_module):
-    # Same, in the backend.generate() window: a real importlib load then removal is caught.
+@pytest.mark.parametrize("how", ["builtin", "importlib"])
+def test_observer_catches_real_transient_load_in_backend_window(tmp_path, _fake_forbidden_module, how):
+    # Codex #1015/#1019: real built-in (__import__) AND importlib loads, in the backend.generate()
+    # window, with removal before the reachability snapshot, are both caught.
     out = tmp_path / "b0_report.json"
     name = _fake_forbidden_module
 
@@ -1321,14 +1323,47 @@ def test_observer_catches_real_transient_load_in_backend_window(tmp_path, _fake_
 
         def generate(self, prompt, decoding):
             import importlib
-            importlib.import_module(name)              # importlib path — misses the audit hook,
-            sys.modules.pop(name, None)               # caught by the meta_path observer
+            (__import__ if how == "builtin" else importlib.import_module)(name)
+            sys.modules.pop(name, None)
             return "gen"
 
     with pytest.raises(B0RunError) as ei:
         _run(_manifest(PANEL, out), PANEL, _RealImportBackend(), out)
     assert "qdrant" in str(ei.value).lower() or "REACHABLE" in str(ei.value)
     assert not out.exists()
+
+
+def test_temporary_metapath_teardown_is_documented_residual(tmp_path, _fake_forbidden_module):
+    # Codex #1019 NARROWED CLAIM: checkpoint inspection cannot detect a callback that temporarily
+    # removes the observer, imports via importlib.import_module (no "import" audit event), removes
+    # the module, and RESTORES the observer before the checkpoint. This active import-machinery
+    # teardown is the documented residual, out of scope alongside exec_module / bytecode mutation.
+    # The test PINS the boundary: if a future change made this detectable, update the claim.
+    out = tmp_path / "b0_report.json"
+    name = _fake_forbidden_module
+
+    class _TeardownBackend:
+        def assert_sterile(self):
+            return None
+
+        def descriptor(self):
+            return dict(MODEL)
+
+        def generate(self, prompt, decoding):
+            import importlib
+            saved = list(sys.meta_path)
+            sys.meta_path[:] = [f for f in sys.meta_path if type(f).__name__ != "_ImportObserver"]
+            try:
+                importlib.import_module(name)          # unobserved: observer torn down, no audit event
+                sys.modules.pop(name, None)
+            finally:
+                sys.meta_path[:] = saved               # restore BEFORE the checkpoint
+            return "gen"
+
+    res = _run(_manifest(PANEL, out), PANEL, _TeardownBackend(), out)
+    # Residual: the transient importlib load under active machinery teardown is NOT caught. If this
+    # ever starts failing (i.e. the run is refused), the residual shrank — tighten the spec claim.
+    assert res.ok is True
 
 
 def test_observer_displacement_fails_closed(tmp_path):

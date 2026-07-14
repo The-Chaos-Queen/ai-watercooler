@@ -214,19 +214,30 @@ def _bind_reachability_guard():
             except Exception:  # pragma: no cover - audit hooks unavailable
                 return False
             state["installed"] = True
-        mp = real_sys.meta_path                        # restore the name-observer to the FRONT so it
-        if observer in mp:                             # is consulted before any short-circuiting
-            if mp and mp[0] is not observer:           # finder (benign reordering between runs is ok;
-                mp.remove(observer)                    # mid-run displacement is caught by the watch)
-                mp.insert(0, observer)
-        else:
-            mp.insert(0, observer)
+        # Restore the name-observer to the FRONT via an EXACT-list, IDENTITY-ONLY scan/delete
+        # (Codex #1019): `x in mp` / `mp.remove(x)` use __eq__, which a hostile finder could
+        # override to make them target the wrong entry. Scan by `is`, delete every identity-match
+        # by index, then insert one at index 0 — no equality comparison anywhere.
+        mp = real_sys.meta_path
+        for i in range(len(mp) - 1, -1, -1):
+            if mp[i] is observer:
+                del mp[i]
+        mp.insert(0, observer)
         return state["installed"]
 
     def observer_displaced() -> bool:
-        # Authority protection (Codex #1015 B): the observer must be present AND first, so it is
-        # consulted before any finder that could short-circuit an import. If a caller removed it
-        # from sys.meta_path or inserted ahead of it during a window, that is a fail-closed tamper.
+        # Authority protection (Codex #1015/#1019): the observer must be present AND first, so it is
+        # consulted before any finder that could short-circuit an import. If it is removed or
+        # displaced and STILL displaced at the checkpoint, that is a fail-closed tamper.
+        #
+        # NARROWED CLAIM (Codex #1019): this is CHECKPOINT inspection. It cannot detect a callback
+        # that temporarily removes the observer, imports via importlib.import_module (which does not
+        # raise the "import" audit event), removes the module, and RESTORES the observer before the
+        # checkpoint — the mutation is invisible point-in-time. Temporary import-machinery mutation
+        # (like manual exec_module) is therefore explicitly OUT OF SCOPE, alongside function
+        # replacement and bytecode mutation, under the CPython-is-not-a-TEE residual (custody #971).
+        # The PROVEN guarantee: real __import__ and importlib.import_module loads are caught while
+        # the import machinery is intact (i.e. absent active dismantling of it).
         mp = real_sys.meta_path
         return not mp or mp[0] is not observer
 
