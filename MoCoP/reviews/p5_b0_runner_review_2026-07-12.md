@@ -1359,3 +1359,173 @@ verifier admits unresolved claim authority and mutually inconsistent publication
 Keep #156 open. The unchanged null-estimator GREEN remains module-only. #149, the real HF
 read-only audit, and resolvable protected-sink attestation remain independent launch holds; no
 #155 authorization follows.
+
+## Round-five self-corrected allowlist audit (`5a05884` + `08925d0`)
+
+- **Review request:** Watercooler #1008, which supersedes round-four request #1007.
+- **Spec commit:** `5a058848962494bf7db07a08441f188527895f39`.
+- **Spec blob:** `46ea8961fdeaff2295cf8cb55785715e4bb2ffbf`.
+- **Implementation commit:** `08925d080421285251336dd8efa2587d71538fde`.
+- **Runner blob:** `61e8092947838076e60acccd1d646ef04be21b4f`.
+- **Test blob:** `ff87f8b0ba5da4420c02c7da7bf7a194c83019d6`.
+- **Allowlist blob:** `4946a99f09e4242dc1f43bdc1ea6ab3c7e41bcbb`.
+- **Verdict:** `CHANGES` on the amended contract and implementation.
+
+### Accepted round-five repairs
+
+Preserve these repairs:
+
+- the runner origin is captured once in a closure, so assigning module `__file__` no longer moves
+  either the governed allowlist or the runner receipt;
+- the loader and claim verifier share one unresolved-review predicate, and empty, `TBD`, and
+  `PENDING-*` claim references now fail closed without the former bare-substring over-refusal;
+- sealing and committed-terminal `published_digest` values are always mutually compared;
+- non-string and missing event values fail closed instead of raising in the unknown-event scan;
+- reassigning or clearing the published `FORBIDDEN_ROUTE_MODULES` object no longer changes the
+  closure's separate inventory snapshot; and
+- the exact null-estimator remains unchanged: Git blob
+  `31574f5cd95767d8c9aa3b55b958655d75f16ed2`, raw SHA-256
+  `977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e`.
+
+Fresh controls confirmed the three #1006 cases are closed:
+
+```text
+dunder_origin_frozen True True
+pending_claim_refused True claim frame scorer_binding.review_ref is unresolved (empty/TBD/PENDING)
+mismatched_publications_refused True terminal published_digest does not match the sealing frame
+```
+
+### Blocker 1: the frozen no-component guard still exposes erase capabilities
+
+`_bind_reachability_guard` builds the closure-captured `frozen` dict at
+`p5_b0_run.py:112-127`, but returns that exact mutable object at lines 168-169. The module then
+publishes the alias as `_FROZEN_FORBIDDEN` at lines 172-173. Clearing the new name therefore
+clears the closure itself. With `qdrant_client` resident, both the direct reachability check and a
+governed run reported clean:
+
+```text
+frozen_inventory_alias_clear True [] True integrity_verified
+```
+
+The import buffer is closure-local, but destructive capabilities over it remain exported.
+`_clear_import_sentinel` and `_drain_import_sentinel` at lines 160-166 are module attributes. A
+backend can emit a forbidden import and either call the clear function, or call `_drain_and_check`
+and catch the resulting `B0RunError`; the runner's later check then sees an empty window:
+
+```text
+backend_calls_exported_sentinel_clear True integrity_verified () True
+backend_drains_and_catches True integrity_verified ()
+```
+
+Finally, the closure's installer and the live reachability check still dereference the assignable
+module global `sys` at lines 154 and 202. Replacing only that data attribute with a proxy carrying
+an empty `modules` mapping and a no-op `addaudithook` hid a real resident component:
+
+```text
+sys_global_proxy True integrity_verified True
+```
+
+Do not return a mutable alias to the captured inventory, expose a destructive buffer operation to
+code that runs inside the guarded window, or read the live module `sys` binding. Use an immutable
+closure-owned inventory and a non-destructive monotone event log/checkpoint API, and capture the
+real module dependency inside the same guard factory. Add governed canaries for the alias, helper
+call, caught drain, and `sys` reassignment cases.
+
+### Blocker 2: other protocol authorities remain live module data
+
+Section 12 states the correct general rule: no authority may be a call-time dereference of an
+assignable module attribute. The implementation applies it only to runner origin and part of the
+component guard. Other verdict-bearing data remain live:
+
+- `DESCRIPTOR_KEYS` at line 231 is read after `backend.descriptor()` returns, so that callback can
+  replace it with `()` and make an empty execution descriptor pass;
+- `_FRAME_SCHEMAS` at lines 1042-1053 is mutable in place, so weakening the claim schema makes an
+  under-bound claim pass the standalone verifier;
+- imported `B0_RUN_KIND` is read when the claim is written and again by the verifier, so a backend
+  callback can rebind both while the report still hardcodes `b0_baseline`; and
+- `INTEGRITY_VERIFIED` plus `_TERMINAL_DISPOSITION` remain independently assignable/mutable, so a
+  caller-selected disposition can become `ok=True`.
+
+Fresh full-run and verifier canaries passed incorrectly:
+
+```text
+descriptor_keys_live_global True integrity_verified {}
+claim_schema_live_global True None
+run_kind_live_global True integrity_verified caller_selected_kind b0_baseline
+terminal_authority_live_globals True caller_verified completed caller_verified
+```
+
+Perform one complete authority inventory rather than another name-by-name patch. Bind the exact
+descriptor fields, run kind, event vocabulary/schemas, terminal mapping, digest rules, and related
+normalization tables into immutable closure-owned values used by the governed entrypoint and
+standalone verifier. Published documentation copies may remain module data, but must not be the
+objects or names consulted for a verdict.
+
+### Blocker 3: authorized manifest and panel inputs are mutable after binding
+
+`run_b0` authorizes and digests the caller's live manifest at line 1337, then invokes backend code
+before later reads from that same object. `_bind_execution_to_manifest` reads it at lines 547-615,
+the sink path is read at lines 1386-1394, and the original decision digest is nevertheless placed
+in the execution descriptor and claim at lines 1420-1427. A backend retaining the manifest
+reference changed `model.id` during `descriptor()`, returned a matching different descriptor, and
+published success under the original authorized digest:
+
+```text
+authorized_manifest_toctou True integrity_verified True True caller/other-model
+```
+
+The panel is likewise hashed before execution but iterated from the caller's original mutable list
+at line 1438. A first forward changed the second row; the bound panel hash stayed original while
+the second recorded prompt digest proved the changed prompt executed:
+
+```text
+executed_panel_toctou True integrity_verified True True
+```
+
+Before touching any backend attribute or callback, reconstruct inert exact-built-in snapshots of
+the manifest and panel. Authorize, hash, validate, journal, and execute only those same snapshots;
+never read the caller-owned objects again. The reconstruction must not invoke caller-controlled
+copy hooks or retain mutable aliases.
+
+### Blocker 4: the standalone verifier does not verify `journal_digest_prefix`
+
+The sealing schema requires a SHA-256-shaped `journal_digest_prefix`, but
+`verify_terminal_frames` never hashes the actual raw bytes before the sealing line. `_Journal`
+has the needed byte-level semantics in `prefix_digest_at_seal` at lines 771-802, yet the standalone
+auditor accepts any different 64-hex value:
+
+```text
+false_journal_prefix_digest True True None
+```
+
+Parse with raw-byte offsets and require the sealing receipt to equal SHA-256 of the exact journal
+prefix preceding that sealing frame. Shape alone is not a binding.
+
+### Delegated GPT-5.5 and root reconciliation
+
+At Laura's request, a GPT-5.5 coding subagent independently reviewed the complete immutable
+packet before the root verdict. It identified the frozen-dict alias, destructive sentinel calls,
+`sys` proxy, live descriptor/schema authorities, and false journal-prefix receipt. Its final prose
+was classifier-blocked after those findings reached the root. Codex then independently reproduced
+every reported case and added the manifest and panel TOCTOU plus the run-kind/terminal-authority
+instances of the same live-global class. No delegated claim is accepted here without a local
+executable reproduction.
+
+### `5a05884` / `08925d0` verification
+
+- Exact spec, runner, test, allowlist, and scorer blobs matched the immutable packet.
+- Four focused P5 modules: `257 passed, 1 skipped in 1.61s`.
+- Changed runner/test Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- Fresh model-free probes reproduced every blocker above and confirmed the accepted repairs.
+- No Gemma/model forward, GPU use, Qdrant access, injection, deployment, B0 launch, or reviewer
+  implementation/spec/test edit occurred.
+
+### `5a05884` / `08925d0` disposition
+
+`CHANGES`. The #1006 repairs and the intended closure move are valid, but the component guard still
+exports mutable/destructive authority, other verdict-bearing globals remain live, caller-owned
+manifest/panel objects survive past authorization, and the standalone journal-prefix receipt is
+shape-only. Keep #156 open. The unchanged null-estimator GREEN remains module-only. #149, the real
+HF read-only audit, and resolvable protected-sink attestation remain independent launch holds; no
+#155 authorization follows.
