@@ -43,6 +43,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from p5_b0_harness import (
+    B0_RUN_KIND,
     COMPONENT_ROUTES,
     B0EvidenceBundle,
     _is_unset,  # the placeholder-aware unset check (rejects "tbd"/"none"/"[tbd:"/...)
@@ -260,7 +261,6 @@ def _runner_digest() -> str:
 # read-only baseline the scorer is a fixed null-estimator by definition; there is no legitimate
 # caller-supplied scorer. This collapses the entire scorer-binding review class.
 SCORER_ALLOWLIST_SCHEMA = "b0_scorer_allowlist_v1"
-DEFAULT_ALLOWLIST_PATH = Path(__file__).with_name("scorer_allowlist.json")
 
 
 def load_allowlisted_scorer(
@@ -277,8 +277,16 @@ def load_allowlisted_scorer(
     namespace and resolve the entrypoint, refusing anything but a plain function. Any failure is
     a pre-run refusal (empty fn, no forwards). The import sentinel is drained after exec: a
     reviewed scorer imports nothing, so an import during load is a review-contract violation.
+
+    AUTHORITY (Codex #1003 BLOCKER-1): the GOVERNED path is derived INTERNALLY, inline from this
+    module's own ``__file__``. There is deliberately NO module-level allowlist-path global — an
+    assignable path-selection knob IS an alternate authority (a caller that both supplies the
+    allowlist and supplies its digest proves agreement, not review), not merely hostile
+    interpreter mutation. ``run_b0`` never passes ``allowlist_path``; the parameter exists ONLY
+    for loader unit tests, which sit BELOW the governed entrypoint.
     """
-    allowlist_path = Path(allowlist_path) if allowlist_path is not None else DEFAULT_ALLOWLIST_PATH
+    allowlist_path = (Path(allowlist_path) if allowlist_path is not None
+                      else Path(__file__).with_name("scorer_allowlist.json"))
     scorer_block = manifest.get("scorer", {})
     if not isinstance(scorer_block, Mapping):
         return None, {}, ["manifest scorer block missing or not a mapping"]
@@ -950,6 +958,95 @@ _KNOWN_EVENTS = frozenset({"claim", "attempt", "generated", "recorded", "sealing
 _PROBE_CYCLE = ("attempt", "generated", "recorded")
 
 
+# --------------------------------------------------------------------------- #
+# EXACT per-frame schemas (Codex #1000/#1003 BLOCKER-2).                        #
+# --------------------------------------------------------------------------- #
+# Order is not a contract on its own, and neither is a partial field check. Every governed frame
+# has an EXACT field set: each required field must be present and well-TYPED, and NO extra field
+# may appear (arbitrary extra keys are how a co-writer smuggles state past a name-only checker).
+# The digest fields the verdict depends on are required UNCONDITIONALLY and must be sha256-shaped
+# — an empty or absent digest is not a passing digest (#1003: a digest-free sealing/terminal and an
+# empty generation digest both passed the round-2 verifier).
+_SHA = "sha256"          # 64-hex digest
+_STR = "str"             # non-empty string
+_TEXT = "text"           # string, may be empty (raw generation / error text)
+_ORD = "ordinal"         # int, not bool, >= 0
+_WARN = "warnings"       # list of strings
+_BINDING = "binding"     # the claim's scorer_binding object
+
+_FRAME_SCHEMAS: dict[str, dict[str, str]] = {
+    "claim": {"run_id": _STR, "run_kind": _STR, "manifest_digest": _SHA,
+              "execution_descriptor_digest": _SHA, "scorer_binding": _BINDING, "utc": _STR},
+    "attempt": {"attempt_id": _STR, "ordinal": _ORD, "probe_id": _STR,
+                "prompt_sha256": _SHA, "utc": _STR},
+    "generated": {"attempt_id": _STR, "ordinal": _ORD, "probe_id": _STR,
+                  "generation_sha256": _SHA, "generation": _TEXT},
+    "recorded": {"attempt_id": _STR, "ordinal": _ORD, "probe_id": _STR},
+    "sealing": {"run_id": _STR, "published_digest": _SHA, "journal_digest_prefix": _SHA,
+                "utc": _STR},
+    "failed": {"run_id": _STR, "error_type": _STR, "error": _TEXT, "utc": _STR},
+}
+# Every COMMITTED terminal (completed / committed_integrity_failed / committed_indeterminate)
+# shares one schema: the published digest AND the report-bytes digest are unconditional.
+_COMMITTED_TERMINAL_SCHEMA = {
+    "run_id": _STR, "disposition": _STR, "published_digest": _SHA,
+    "report_bytes_sha256": _SHA, "durability_warnings": _WARN, "utc": _STR,
+}
+# The claim's scorer_binding must itself be fully bound (spec §6) — a claim that names no
+# reviewed scorer, or names one with an unresolved review_ref, is not a governed claim.
+_SCORER_BINDING_SCHEMA = {"scorer_id": _STR, "version": _STR, "blob_sha256": _SHA,
+                          "allowlist_digest": _SHA, "review_ref": _STR}
+
+
+def _typed_field_error(kind: str, key: str, value: Any) -> str | None:
+    """None if ``value`` satisfies the declared field ``kind``, else a reason fragment."""
+    if kind == _SHA:
+        return None if _is_sha256(value) else f"{key} is not a sha256 digest"
+    if kind == _STR:
+        return None if isinstance(value, str) and value.strip() else f"{key} is not a non-empty string"
+    if kind == _TEXT:
+        return None if isinstance(value, str) else f"{key} is not a string"
+    if kind == _ORD:
+        ok = isinstance(value, int) and not isinstance(value, bool) and value >= 0
+        return None if ok else f"{key} is not a non-negative int"
+    if kind == _WARN:
+        ok = isinstance(value, list) and all(isinstance(w, str) for w in value)
+        return None if ok else f"{key} is not a list of strings"
+    if kind == _BINDING:
+        if not isinstance(value, dict):
+            return f"{key} is not an object"
+        return _exact_schema_error("scorer_binding", value, _SCORER_BINDING_SCHEMA, event_key=False)
+    return None  # pragma: no cover - unreachable kind
+
+
+def _exact_schema_error(label: str, frame: Mapping[str, Any], schema: Mapping[str, str],
+                        *, event_key: bool = True) -> str | None:
+    """None if ``frame`` matches ``schema`` EXACTLY (no missing, no extra, all typed)."""
+    allowed = set(schema) | ({"event"} if event_key else set())
+    for key in schema:
+        if key not in frame:
+            return f"{label} frame missing {key}"
+    extra = sorted(set(frame) - allowed)
+    if extra:
+        return f"{label} frame has unexpected field(s) {extra}"
+    for key, kind in schema.items():
+        err = _typed_field_error(kind, key, frame[key])
+        if err:
+            return f"{label} frame {err}"
+    return None
+
+
+def _frame_schema_error(event: str, frame: Mapping[str, Any]) -> str | None:
+    """Exact-schema check for one governed frame (dispatches committed terminals)."""
+    if event == "failed" and "disposition" in frame:
+        # #975 invariant, kept as its own reason: 'failed' is a PRE-commit terminal.
+        return "'failed' terminal must not carry a committed disposition"
+    schema = _FRAME_SCHEMAS.get(event)
+    if schema is None:                                   # a committed terminal
+        schema = _COMMITTED_TERMINAL_SCHEMA
+    return _exact_schema_error(event, frame, schema)
+
+
 def verify_terminal_frames(journal_path: Path, *,
                            report_published_digest: str | None = None,
                            committed_report_bytes: bytes | None = None) -> dict[str, Any]:
@@ -990,9 +1087,20 @@ def verify_terminal_frames(journal_path: Path, *,
     unknown = next((e.get("event") for e in events if e.get("event") not in _KNOWN_EVENTS), None)
     if unknown is not None:                                   # no arbitrary/injected events (#980)
         return {"ok": False, "reason": f"unknown journal event {unknown!r}"}
+
+    # EXACT per-frame schema (Codex #1003 BLOCKER-2): every frame's field set is closed — required
+    # fields present and typed, no extras — BEFORE any semantic check reads them. This is what
+    # makes the digest fields the verdict depends on unconditional.
+    for e in events:
+        schema_error = _frame_schema_error(e.get("event"), e)
+        if schema_error:
+            return {"ok": False, "reason": schema_error}
+
     run_id = events[0].get("run_id")
     if not run_id:                                           # claim MUST carry a run_id (#975)
         return {"ok": False, "reason": "claim frame missing run_id"}
+    if events[0].get("run_kind") != B0_RUN_KIND:             # the claim binds the run KIND (#1003)
+        return {"ok": False, "reason": f"claim frame run_kind is not {B0_RUN_KIND!r}"}
     # attempt/generated/recorded frames carry attempt_id, not run_id; claim/sealing/terminal MUST.
     if any(e.get("run_id", run_id) != run_id for e in events):
         return {"ok": False, "reason": "run_id inconsistent across frames"}
@@ -1067,20 +1175,18 @@ def verify_terminal_frames(journal_path: Path, *,
         if ev != _PROBE_CYCLE[cycle_pos]:
             return {"ok": False,
                     "reason": f"out-of-order probe frame {ev!r} (expected {_PROBE_CYCLE[cycle_pos]!r})"}
-        # Per-event schema: the identity trio is required and typed on every cycle frame.
-        aid, ordv, pid = e.get("attempt_id"), e.get("ordinal"), e.get("probe_id")
-        if not isinstance(aid, str) or not aid:
-            return {"ok": False, "reason": f"{ev} frame attempt_id missing or not a non-empty string"}
-        if not isinstance(ordv, int) or isinstance(ordv, bool):
-            return {"ok": False, "reason": f"{ev} frame ordinal missing or not an int"}
-        if not isinstance(pid, str) or not pid:
-            return {"ok": False, "reason": f"{ev} frame probe_id missing or not a non-empty string"}
-        if ev == "generated" and not isinstance(e.get("generation_sha256"), str):
-            return {"ok": False, "reason": "generated frame missing generation_sha256"}
+        # The exact schema above already guarantees these are present and well-typed; here the
+        # cycle's IDENTITY is bound: the attempt_id must be DERIVED from the run (run_id:ordinal),
+        # the ordinal monotonic, and all three frames of one cycle must agree (Codex #1000/#1003).
+        aid, ordv, pid = e["attempt_id"], e["ordinal"], e["probe_id"]
         if ev == "attempt":
             if ordv != expected_ordinal:
                 return {"ok": False,
                         "reason": f"attempt ordinal {ordv} != expected {expected_ordinal} (non-monotonic)"}
+            derived = f"{run_id}:{ordv}"
+            if aid != derived:
+                return {"ok": False,
+                        "reason": f"attempt_id {aid!r} is not run-derived (expected {derived!r})"}
             cycle_key = (aid, ordv, pid)
         elif (aid, ordv, pid) != cycle_key:
             return {"ok": False,
@@ -1221,7 +1327,7 @@ def run_b0(
         }
         bundle = B0EvidenceBundle(manifest_digest=decision.manifest_digest or "")
         journal.event({
-            "event": "claim", "run_id": run_id, "run_kind": "b0_baseline",
+            "event": "claim", "run_id": run_id, "run_kind": B0_RUN_KIND,
             "manifest_digest": decision.manifest_digest,
             "execution_descriptor_digest": canonical_digest(execution_descriptor),
             "scorer_binding": {

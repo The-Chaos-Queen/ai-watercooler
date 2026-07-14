@@ -10,14 +10,21 @@ an adversarial test here.
 import hashlib
 import json
 import os
+import pathlib
 import sys
 import types
 
 import pytest
 
-from p5_b0_harness import COMPONENT_ROUTES, EvidenceBundleError, canonical_digest
+import p5_b0_run
+
+from p5_b0_harness import (
+    COMPONENT_ROUTES,
+    B0EvidenceBundle,
+    EvidenceBundleError,
+    canonical_digest,
+)
 from p5_b0_run import (
-    DEFAULT_ALLOWLIST_PATH,
     FORBIDDEN_ROUTE_MODULES,
     B0RunError,
     ScriptedGenerationBackend,
@@ -52,11 +59,13 @@ DEC_HASH = canonical_digest(DEC)
 RUNNER_DIGEST = _runner_digest()
 
 
-# The reviewed scorer is loaded content-first from the COMMITTED allowlist by default; the
-# manifest scorer block pins it by id+version+allowlist_digest (never a caller code digest).
+# The reviewed scorer is loaded content-first from the COMMITTED allowlist, whose path the runner
+# derives INTERNALLY (there is deliberately no assignable path global — Codex #1003 BLOCKER-1).
+# Tests locate the same committed file read-only, purely to build a matching manifest scorer block.
 SCORER_ID = "b0_null_estimator"
 SCORER_VERSION = "1"
-ALLOWLIST_DIGEST = canonical_digest(json.loads(DEFAULT_ALLOWLIST_PATH.read_bytes()))
+_COMMITTED_ALLOWLIST = pathlib.Path(p5_b0_run.__file__).with_name("scorer_allowlist.json")
+ALLOWLIST_DIGEST = canonical_digest(json.loads(_COMMITTED_ALLOWLIST.read_bytes()))
 _DEFAULT_SCORER_BLOCK = {"scorer_id": SCORER_ID, "version": SCORER_VERSION,
                          "allowlist_digest": ALLOWLIST_DIGEST}
 
@@ -87,13 +96,6 @@ def _write_scorer_allowlist(tmp_path, source, *, scorer_id=SCORER_ID, version=SC
     digest = canonical_digest(json.loads(allow_path.read_bytes()))
     block = {"scorer_id": scorer_id, "version": version, "allowlist_digest": digest}
     return allow_path, block
-
-
-def _use_committed_allowlist(monkeypatch, allow_path):
-    """Inject a test allowlist BELOW the governed entrypoint (Codex #1000 BLOCKER-1): the public
-    run_b0 takes no allowlist path; tests point the fixed committed path at their fixture."""
-    import p5_b0_run as _mod
-    monkeypatch.setattr(_mod, "DEFAULT_ALLOWLIST_PATH", allow_path)
 
 
 def _backend(model=None):
@@ -146,6 +148,88 @@ class _ExplodingBackend:
 
     def generate(self, prompt, decoding):
         raise AssertionError("generate() must not be called on a refused B0 run")
+
+
+# --------------------------------------------------------------------------- #
+# Journal frame builders — every governed frame has an EXACT field set (Codex   #
+# #1000/#1003 BLOCKER-2), so hand-built test journals must be schema-complete.  #
+# Each builder emits a VALID frame; tests override/drop one field to isolate a  #
+# single rejection.                                                             #
+# --------------------------------------------------------------------------- #
+H = "a" * 64                                    # a well-formed sha256 stand-in
+RID = "r"
+_SB = {"scorer_id": "b0_null_estimator", "version": "1", "blob_sha256": "b" * 64,
+       "allowlist_digest": "c" * 64, "review_ref": "wc#1000"}
+
+
+def _frame(event, **fields):
+    return json.dumps({"event": event, **fields}, sort_keys=True) + "\n"
+
+
+def _drop(line, *keys):
+    """Re-emit a built frame with ``keys`` removed (to test 'missing required field')."""
+    obj = json.loads(line)
+    for k in keys:
+        obj.pop(k, None)
+    return json.dumps(obj, sort_keys=True) + "\n"
+
+
+def _f_claim(**over):
+    f = {"run_id": RID, "run_kind": "b0_baseline", "manifest_digest": H,
+         "execution_descriptor_digest": H, "scorer_binding": dict(_SB), "utc": "T"}
+    f.update(over)
+    return _frame("claim", **f)
+
+
+def _f_attempt(ordinal=0, probe="p0", run_id=RID, **over):
+    f = {"attempt_id": f"{run_id}:{ordinal}", "ordinal": ordinal, "probe_id": probe,
+         "prompt_sha256": H, "utc": "T"}
+    f.update(over)
+    return _frame("attempt", **f)
+
+
+def _f_generated(ordinal=0, probe="p0", run_id=RID, **over):
+    f = {"attempt_id": f"{run_id}:{ordinal}", "ordinal": ordinal, "probe_id": probe,
+         "generation_sha256": H, "generation": "gen"}
+    f.update(over)
+    return _frame("generated", **f)
+
+
+def _f_recorded(ordinal=0, probe="p0", run_id=RID, **over):
+    f = {"attempt_id": f"{run_id}:{ordinal}", "ordinal": ordinal, "probe_id": probe}
+    f.update(over)
+    return _frame("recorded", **f)
+
+
+def _f_cycle(ordinal=0, probe="p0"):
+    return _f_attempt(ordinal, probe) + _f_generated(ordinal, probe) + _f_recorded(ordinal, probe)
+
+
+def _f_sealing(**over):
+    f = {"run_id": RID, "published_digest": H, "journal_digest_prefix": H, "utc": "T"}
+    f.update(over)
+    return _frame("sealing", **f)
+
+
+def _f_terminal(event="completed", disposition="integrity_verified", report_bytes=None, **over):
+    f = {"run_id": RID, "disposition": disposition, "published_digest": H,
+         "report_bytes_sha256": (hashlib.sha256(report_bytes).hexdigest()
+                                 if report_bytes is not None else H),
+         "durability_warnings": [], "utc": "T"}
+    f.update(over)
+    return _frame(event, **f)
+
+
+def _f_failed(**over):
+    f = {"run_id": RID, "error_type": "B0RunError", "error": "boom", "utc": "T"}
+    f.update(over)
+    return _frame("failed", **f)
+
+
+def _journal(tmp_path, body):
+    j = tmp_path / "x.journal"
+    j.write_text(body, encoding="utf-8")
+    return j
 
 
 # --------------------------------------------------------------------------- #
@@ -528,31 +612,40 @@ def test_run_b0_duplicate_probe_refused_before_forward(tmp_path):
 # --------------------------------------------------------------------------- #
 # Strict-JSON custody (#960 MED-5 / #966 MED-6).                              #
 # --------------------------------------------------------------------------- #
-def test_run_b0_nan_scorer_output_refused_no_report(tmp_path, monkeypatch):
-    out = tmp_path / "b0_report.json"
-    src = ("def score(probe_id, generation):\n"
-           "    return ({'probe': probe_id}, {'score': float('nan')})\n")
-    allow_path, block = _write_scorer_allowlist(tmp_path, src)
-    _use_committed_allowlist(monkeypatch, allow_path)
-    m = _manifest(PANEL, out, scorer_block=block)
+# Strict-JSON scorer-evidence custody is a BUNDLE invariant (#960 MED-5) and is tested there.
+# It is deliberately NOT tested by injecting a hostile scorer through the governed run_b0: the
+# governed entrypoint runs the COMMITTED scorer only (Codex #1003 BLOCKER-1) — there is no
+# allowlist knob to substitute one, and re-adding a seam to test this would BE the back door.
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), object()])
+def test_bundle_refuses_nonstrict_scorer_output(bad):
+    b = B0EvidenceBundle(manifest_digest="a" * 64)
     with pytest.raises(EvidenceBundleError):
-        _run(m, PANEL, _backend(), out)
+        b.record("p1", "gen", scorer_input={"probe": "p1"}, scorer_output={"score": bad})
+    assert len(b) == 0                                   # nothing enters custody
+
+
+def test_run_b0_mid_run_failure_journals_failed_terminal(tmp_path):
+    # A raise inside the governed forward leaves a 'failed' terminal frame and publishes NOTHING.
+    out = tmp_path / "b0_report.json"
+
+    class _Boom:
+        def descriptor(self):
+            return dict(MODEL)
+
+        def assert_sterile(self):
+            return None
+
+        def generate(self, prompt, decoding):
+            raise B0RunError("forced mid-run failure")
+
+    with pytest.raises(B0RunError):
+        _run(_manifest(PANEL, out), PANEL, _Boom(), out)
     assert not out.exists()
     events = [json.loads(x) for x in
               (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()]
     assert events[-1]["event"] == "failed"
-
-
-def test_run_b0_object_scorer_output_refused_no_report(tmp_path, monkeypatch):
-    out = tmp_path / "b0_report.json"
-    src = ("def score(probe_id, generation):\n"
-           "    return ({'probe': probe_id}, {'score': object()})\n")
-    allow_path, block = _write_scorer_allowlist(tmp_path, src)
-    _use_committed_allowlist(monkeypatch, allow_path)
-    m = _manifest(PANEL, out, scorer_block=block)
-    with pytest.raises(EvidenceBundleError):
-        _run(m, PANEL, _backend(), out)
-    assert not out.exists()
+    assert "disposition" not in events[-1]               # pre-commit terminal carries no disposition
+    assert verify_terminal_frames(tmp_path / "b0_report.json.journal")["ok"] is True
 
 
 def test_canonical_digest_is_injective_on_types():
@@ -672,46 +765,36 @@ def test_run_b0_report_binds_actual_journal_bytes(tmp_path):
 
 
 def test_verify_terminal_frames_tolerates_truncated_tail_after_sealing(tmp_path):
-    j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
-                 '{"event":"comp', encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + _f_sealing() + '{"event":"comp')
     r = verify_terminal_frames(j)
     assert r["ok"] is True and r["truncated_tail"] is True
 
 
 def test_verify_terminal_frames_rejects_midfile_corruption(tmp_path):
-    j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim","run_id":"r"}\nNOT JSON\n{"event":"completed","run_id":"r"}\n',
-                 encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + "NOT JSON\n" + _f_terminal())
     r = verify_terminal_frames(j)
     assert r["ok"] is False and r.get("corruption_at") == 1
 
 
 def test_verify_terminal_frames_rejects_failed_with_committed_disposition(tmp_path):
     # #975 P1: a 'failed' terminal carrying a committed disposition is impossible/tampered.
-    j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
-                 '{"event":"failed","run_id":"r","disposition":"integrity_verified"}\n',
-                 encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + _f_sealing()
+                 + _f_failed(disposition="integrity_verified"))
     r = verify_terminal_frames(j)
     assert r["ok"] is False and "committed disposition" in r["reason"]
 
 
 def test_verify_terminal_frames_rejects_disposition_mismatch(tmp_path):
     # #975: a committed terminal whose disposition disagrees with its event is rejected.
-    j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
-                 '{"event":"completed","run_id":"r","disposition":"committed_indeterminate"}\n',
-                 encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + _f_sealing()
+                 + _f_terminal("completed", disposition="committed_indeterminate"))
     r = verify_terminal_frames(j)
     assert r["ok"] is False and "disposition must be" in r["reason"]
 
 
 def test_verify_terminal_frames_rejects_terminal_missing_run_id(tmp_path):
     # #975: claim/sealing/terminal must carry a run_id.
-    j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
-                 '{"event":"completed","disposition":"integrity_verified"}\n', encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + _f_sealing() + _drop(_f_terminal(), "run_id"))
     r = verify_terminal_frames(j)
     assert r["ok"] is False and "missing run_id" in r["reason"]
 
@@ -743,29 +826,21 @@ def test_run_b0_rejects_tampered_failed_terminal(tmp_path, monkeypatch):
 def test_verify_terminal_frames_rejects_event_after_sealing(tmp_path):
     # round-7 RESIDUAL-A: an injected non-terminal frame between sealing and the terminal frame
     # is rejected (the prefix digest, pre-sealing only, cannot see it).
-    j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
-                 '{"event":"attempt","attempt_id":"r:0"}\n{"event":"completed","run_id":"r"}\n',
-                 encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + _f_sealing() + _f_attempt() + _f_terminal())
     r = verify_terminal_frames(j)
     assert r["ok"] is False and "after the sealing frame" in r["reason"]
 
 
 @pytest.mark.parametrize("body,reason_sub", [
     ("", "empty"),
-    ('{"event":"attempt","run_id":"r"}\n', "not 'claim'"),
-    ('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n', "without a terminal"),
-    ('{"event":"claim","run_id":"r"}\n{"event":"failed","run_id":"r"}\n'
-     '{"event":"completed","run_id":"r"}\n', "more than one terminal"),
-    ('{"event":"claim","run_id":"r"}\n'
-     '{"event":"completed","run_id":"r","disposition":"integrity_verified"}\n',
-     "without a preceding 'sealing'"),
-    ('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"x"}\n'
-     '{"event":"completed","run_id":"r","disposition":"integrity_verified"}\n', "run_id inconsistent"),
+    (_f_attempt(), "not 'claim'"),
+    (_f_claim() + _f_sealing(), "without a terminal"),
+    (_f_claim() + _f_failed() + _f_terminal(), "more than one terminal"),
+    (_f_claim() + _f_terminal(), "without a preceding 'sealing'"),
+    (_f_claim() + _f_sealing(run_id="x") + _f_terminal(), "run_id inconsistent"),
 ])
 def test_verify_terminal_frames_contract_violations(tmp_path, body, reason_sub):
-    j = tmp_path / "x.journal"
-    j.write_text(body, encoding="utf-8")
+    j = _journal(tmp_path, body)
     r = verify_terminal_frames(j)
     assert r["ok"] is False and reason_sub in r["reason"]
 
@@ -855,24 +930,30 @@ def test_load_allowlisted_scorer_unresolved_review_ref_refused(tmp_path, ref):
     assert fn is None and any("unresolved" in r for r in refusals)
 
 
-def test_run_b0_with_custom_allowlisted_scorer(tmp_path, monkeypatch):
-    # Full run: a valid custom allowlist + module loads content-first and completes verified.
-    out = tmp_path / "b0_report.json"
-    src = ("def score(probe_id, generation):\n"
-           "    return ({'p': probe_id}, {'harm_tier': 0, 'len': len(generation)})\n")
-    allow_path, block = _write_scorer_allowlist(tmp_path, src)
-    _use_committed_allowlist(monkeypatch, allow_path)
-    m = _manifest(PANEL, out, scorer_block=block)
-    res = _run(m, PANEL, _backend(), out)
-    assert res.ok is True and res.terminal_state == "integrity_verified"
-
-
-def test_run_b0_no_public_allowlist_override(tmp_path):
-    # Codex #1000 BLOCKER-1: the governed entrypoint exposes NO allowlist path — a caller cannot
-    # substitute a runtime allowlist. (A digest supplied by the same caller proves agreement,
-    # not review.)
+def test_run_b0_exposes_no_allowlist_authority_knob():
+    # Codex #1000 BLOCKER-1 + #1003 BLOCKER-1: the governed entrypoint must expose NO way to
+    # select the allowlist — neither a public parameter NOR an assignable module-level path
+    # global. A caller that supplies both the allowlist and its digest proves agreement, not
+    # review. The governed path is derived inline from the module's own __file__.
     import inspect as _inspect
     assert "allowlist_path" not in _inspect.signature(run_b0).parameters
+    assert not hasattr(p5_b0_run, "DEFAULT_ALLOWLIST_PATH")
+    path_globals = [n for n, v in vars(p5_b0_run).items()
+                    if isinstance(v, pathlib.Path) and not n.startswith("__")]
+    assert path_globals == [], f"assignable path global(s) are an alternate authority: {path_globals}"
+
+
+def test_run_b0_governed_run_uses_the_committed_scorer(tmp_path):
+    # The governed run binds the COMMITTED reviewed scorer — its blob hash and resolved review_ref
+    # appear in the published execution_descriptor, and no fixture could have substituted them.
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is True
+    committed = json.loads(_COMMITTED_ALLOWLIST.read_bytes())["scorers"][0]
+    ed = res.report["execution_descriptor"]
+    assert ed["scorer_blob_sha256"] == committed["blob_sha256"]
+    assert ed["scorer_review_ref"] == committed["review_ref"]
+    assert "pending" not in ed["scorer_review_ref"].lower()
 
 
 # --- sterility-call imports are drained (HIGH-5) ---
@@ -1070,8 +1151,7 @@ def test_run_b0_accounts_for_import_during_sterile_lookup(tmp_path):
 
 def test_verify_terminal_frames_rejects_non_object_frame(tmp_path):
     # #980: a JSON array/scalar frame ('[]') must be rejected, not crash with AttributeError.
-    j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim","run_id":"r"}\n[]\n', encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + "[]\n")
     r = verify_terminal_frames(j)
     assert r["ok"] is False and "non-object" in r["reason"]
 
@@ -1079,87 +1159,83 @@ def test_verify_terminal_frames_rejects_non_object_frame(tmp_path):
 def test_verify_terminal_frames_torn_no_newline_tail(tmp_path):
     # #980: a complete terminal JSON WITHOUT its trailing newline is a torn write -> truncated,
     # not a clean 'completed' terminal.
-    j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
-                 '{"event":"completed","run_id":"r","disposition":"integrity_verified"}',  # no \n
-                 encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + _f_sealing() + _f_terminal().rstrip("\n"))
     r = verify_terminal_frames(j)
     assert r["truncated_tail"] is True and r["terminal"] == "sealing"
 
 
 def test_verify_terminal_frames_rejects_committed_terminal_without_sealing(tmp_path):
     # #980: EVERY committed terminal (not just 'completed') needs a preceding sealing.
-    j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim","run_id":"r"}\n'
-                 '{"event":"committed_integrity_failed","run_id":"r",'
-                 '"disposition":"committed_integrity_failed"}\n', encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + _f_terminal("committed_integrity_failed",
+                                                    disposition="committed_integrity_failed"))
     r = verify_terminal_frames(j)
     assert r["ok"] is False and "without a preceding 'sealing'" in r["reason"]
 
 
 def test_verify_terminal_frames_rejects_unknown_event(tmp_path):
     # #980: arbitrary/injected event names are rejected.
-    j = tmp_path / "x.journal"
-    j.write_text('{"event":"claim","run_id":"r"}\n{"event":"sneaky","run_id":"r"}\n'
-                 '{"event":"sealing","run_id":"r"}\n', encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + _frame("sneaky", run_id=RID) + _f_sealing())
     r = verify_terminal_frames(j)
     assert r["ok"] is False and "unknown journal event" in r["reason"]
 
 
-_C = '{"event":"claim","run_id":"r"}\n'
-_S = '{"event":"sealing","run_id":"r"}\n'
-_T = '{"event":"completed","run_id":"r","disposition":"integrity_verified"}\n'
-
-
-def _att(a="r:0", o=0, p="p0"):
-    return ('{"event":"attempt","attempt_id":"%s","ordinal":%d,"probe_id":"%s",'
-            '"prompt_sha256":"h"}\n' % (a, o, p))
-
-
-def _gen(a="r:0", o=0, p="p0"):
-    return ('{"event":"generated","attempt_id":"%s","ordinal":%d,"probe_id":"%s",'
-            '"generation_sha256":"h"}\n' % (a, o, p))
-
-
-def _rec(a="r:0", o=0, p="p0"):
-    return '{"event":"recorded","attempt_id":"%s","ordinal":%d,"probe_id":"%s"}\n' % (a, o, p)
+@pytest.mark.parametrize("body,reason_sub", [
+    # GPT-5.5 #1: a valid event TYPE in an invalid ORDER is rejected by the sequence grammar.
+    (_f_claim() + _f_sealing() + _f_sealing() + _f_terminal(), "sealing"),      # double sealing
+    (_f_claim() + _f_generated() + _f_sealing() + _f_terminal(), "out-of-order"),   # gen before attempt
+    (_f_claim() + _f_attempt(0, "p0") + _f_attempt(1, "p1")
+        + _f_sealing() + _f_terminal(), "out-of-order"),                        # interleaved probes
+    (_f_claim() + _f_attempt() + _f_recorded()
+        + _f_sealing() + _f_terminal(), "out-of-order"),                        # recorded before generated
+    # Codex #1000/#1003 BLOCKER-2: order is not a contract — cycle identity is bound.
+    (_f_claim() + _f_attempt(0, "p0") + _f_generated(9, "other", run_id="evil")
+        + _f_recorded(0, "p0") + _f_sealing() + _f_terminal(), "identity"),     # forged mid-cycle id
+    (_f_claim() + _f_cycle(1, "p1") + _f_sealing() + _f_terminal(), "ordinal"),  # first ordinal != 0
+    # #1003: attempt_id must be DERIVED from the run (run_id:ordinal), not arbitrary.
+    (_f_claim() + _f_attempt(0, "p0", attempt_id="not-r:0")
+        + _f_sealing() + _f_terminal(), "not run-derived"),
+])
+def test_verify_terminal_frames_grammar_rejects(tmp_path, body, reason_sub):
+    j = _journal(tmp_path, body)
+    r = verify_terminal_frames(j)
+    assert r["ok"] is False and reason_sub in r["reason"]
 
 
 @pytest.mark.parametrize("body,reason_sub", [
-    # GPT-5.5 #1: a valid event TYPE in an invalid ORDER is rejected by the sequence grammar.
-    (_C + _S + _S + _T, "sealing"),                                    # double sealing
-    (_C + _gen() + _S + _T, "out-of-order"),                           # generated before attempt
-    (_C + _att() + _att("r:1", 1, "p1") + _S + _T, "out-of-order"),    # interleaved probes
-    (_C + _att() + _rec() + _S + _T, "out-of-order"),                  # recorded before generated
-    # Codex #1000 BLOCKER-2: order is not a full contract — cycle identity + schema are bound.
-    (_C + _att() + _gen("evil:9", 99, "other") + _rec() + _S + _T, "identity"),  # forged mid-cycle id
-    (_C + _att("r:1", 1, "p1") + _gen("r:1", 1, "p1")
-        + _rec("r:1", 1, "p1") + _S + _T, "ordinal"),                  # first ordinal not 0
-    (_C + '{"event":"attempt","attempt_id":"r:0","probe_id":"p0"}\n' + _S + _T, "ordinal"),  # missing ordinal
+    # Codex #1003 BLOCKER-2 canaries: EXACT per-frame schemas — required fields present and
+    # typed, no extras, digests unconditional.
+    (_drop(_f_claim(), "run_kind", "manifest_digest", "execution_descriptor_digest",
+           "scorer_binding", "utc"), "missing"),                    # underspecified claim
+    (_f_claim(injected="smuggled") + _f_sealing() + _f_terminal(), "unexpected field"),
+    (_f_claim() + _f_attempt() + _f_generated(generation_sha256="")
+        + _f_recorded() + _f_sealing() + _f_terminal(), "generation_sha256"),   # empty digest
+    (_f_claim() + _f_cycle() + _drop(_f_sealing(), "published_digest")
+        + _f_terminal(), "missing published_digest"),               # digest-free sealing
+    (_f_claim() + _f_cycle() + _f_sealing()
+        + _drop(_f_terminal(), "report_bytes_sha256"), "missing report_bytes_sha256"),
+    (_f_claim() + _f_cycle() + _f_sealing()
+        + _f_terminal(durability_warnings="nope"), "durability_warnings"),      # wrong type
+    (_f_claim(scorer_binding={"scorer_id": "x"}) + _f_sealing() + _f_terminal(), "missing"),
+    (_f_claim(scorer_binding={**_SB, "review_ref": ""}) + _f_sealing()
+        + _f_terminal(), "review_ref"),                             # claim binding must be bound
+    (_f_claim(run_kind="not_b0") + _f_sealing() + _f_terminal(), "run_kind"),
 ])
-def test_verify_terminal_frames_grammar_rejects(tmp_path, body, reason_sub):
-    j = tmp_path / "x.journal"
-    j.write_text(body, encoding="utf-8")
+def test_verify_terminal_frames_exact_schema_rejects(tmp_path, body, reason_sub):
+    j = _journal(tmp_path, body)
     r = verify_terminal_frames(j)
     assert r["ok"] is False and reason_sub in r["reason"]
 
 
 def test_verify_terminal_frames_grammar_accepts_full_cycle(tmp_path):
-    # A well-ordered, identity-consistent journal passes (two probes, monotonic ordinals).
-    j = tmp_path / "x.journal"
-    j.write_text(_C + _att("r:0", 0, "p0") + _gen("r:0", 0, "p0") + _rec("r:0", 0, "p0")
-                 + _att("r:1", 1, "p1") + _gen("r:1", 1, "p1") + _rec("r:1", 1, "p1")
-                 + _S + _T, encoding="utf-8")
+    # A well-ordered, identity-consistent, schema-complete journal passes (two probes).
+    j = _journal(tmp_path, _f_claim() + _f_cycle(0, "p0") + _f_cycle(1, "p1")
+                 + _f_sealing() + _f_terminal())
     assert verify_terminal_frames(j)["ok"] is True
 
 
 def test_verify_terminal_frames_binds_report_bytes(tmp_path):
     # GPT-5.5 #2: the committed terminal's report_bytes_sha256 must match the committed report bytes.
-    good = ('{"event":"claim","run_id":"r"}\n{"event":"sealing","run_id":"r"}\n'
-            '{"event":"completed","run_id":"r","disposition":"integrity_verified",'
-            '"report_bytes_sha256":"%s"}\n' % hashlib.sha256(b"REPORT").hexdigest())
-    j = tmp_path / "x.journal"
-    j.write_text(good, encoding="utf-8")
+    j = _journal(tmp_path, _f_claim() + _f_sealing() + _f_terminal(report_bytes=b"REPORT"))
     assert verify_terminal_frames(j, committed_report_bytes=b"REPORT")["ok"] is True
     r = verify_terminal_frames(j, committed_report_bytes=b"TAMPERED")
     assert r["ok"] is False and "report_bytes_sha256" in r["reason"]
