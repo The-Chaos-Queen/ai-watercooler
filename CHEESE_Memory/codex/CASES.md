@@ -290,3 +290,5 @@ evidence supports that promotion.
   arbitrary container inert.
 - Evidence: spec `c106b09`, implementation `f1fd5df`, review commit `fe927b6`;
   `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
+- Closure: implementation `c17f6d8` enforces the exact-list check before restoration and
+  checkpoint protocols; review `23fad60` returned GREEN with malformed-object hooks untouched.

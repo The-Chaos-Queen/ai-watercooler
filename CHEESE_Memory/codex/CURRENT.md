@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-14 22:54 +02:00
+Last updated: 2026-07-14 23:19 +02:00
 
 ## Standing Directive
 
@@ -50,14 +50,13 @@ remember which artifact should be updated.
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
-- P5 round-eleven packet `c106b09` + `f1fd5df` remains narrowly CHANGES in canon
-  `fe927b6`. Preserve the coherent non-TEE residual, identity-only normal-list restore,
-  full real built-in/`importlib` path/backend matrix, constant path refusal, and all prior
-  custody repairs. The promised exact-list boundary is never checked before active
-  container protocols: a list subclass can import pre-watch, a persistent liar can pass
-  checkpoint without the observer, and malformed containers raise. Require
-  `type(meta_path) is list` before restoration/checkpoint access and fail closed otherwise.
-  #156 stays open under Gidim via Laura's relay. No B0 or #155 launch.
+- P5 round-twelve packet `1dcb36f` + `c17f6d8` is GREEN in canon `23fad60`.
+  Exact-list checks precede all restore/checkpoint protocols; malformed objects are
+  untouched and fail closed; identity duplicates, persistent swaps, full real-import
+  matrix, constant refusal, and prior custody/publication repairs pass. #156's model-free
+  implementation/review scope is technically complete; LAN board closure awaits Laura's
+  relay. The explicit CPython non-TEE residual remains. No B0, #155, #149, HF audit,
+  protected-sink, alpha-zero, keeper, or nonzero authorization follows.
 - Drift v8 `4512622` closed the earlier #984 set, but Monk #988 found a mutable
   snapshot-alias bypass. Successor `5bf8e79` is also CHANGES in Monk #995 because a
   caller subclass can run hostile `__deepcopy__` against the original graph before the
@@ -98,10 +97,10 @@ remember which artifact should be updated.
 - Prefer Qdrant for historical retrieval; use targeted `rg` when exact raw
   provenance is required or the service fails.
 - Current execution order: finish #149 plus the same-surface direction/full
-  matrix; implement and separately review P5; run its true alpha-zero anchors;
-  only then spend the first nonzero injection. Task #146 independently repairs
-  matched-delta recording/training. Re-review only an immutable #156 successor against
-  `fe927b6` and a drift successor against #995; both remain independently held.
+  matrix; record P5 closure; run its true alpha-zero anchors; only then spend
+  the first nonzero injection. Task #146 independently repairs
+  matched-delta recording/training. Do not re-review unchanged P5 packet `c17f6d8`;
+  record #156 closure when LAN returns. Review only an immutable drift successor to #995.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
