@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-14 20:22 +02:00
+Last updated: 2026-07-14 22:09 +02:00
 
 ## Standing Directive
 
@@ -50,15 +50,15 @@ remember which artifact should be updated.
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
-- P5 round-six packet `5576452` + `521d175` remains CHANGES in Watercooler #1011;
-  canon `51c32b9`, OpenCLAW #156 event #728. Preserve the monotone import guard,
-  captured real `sys`, covered runner-local authority snapshot, plain built-in input
-  reconstruction, exact raw journal-prefix binding, and unchanged null-estimator GREEN.
-  Remaining blockers: `p5_b0_harness` policy and the allowlist schema are still live
-  data; primitive subclasses survive `_inert_snapshot`; and scalar/path/descriptor
-  objects can produce mismatched successful bindings. #156 stays open under Gidim;
-  #149, the real HF audit, and resolvable protected-sink attestation remain separate
-  holds. No B0 or #155 launch.
+- P5 round-nine packet `d39a830` + `5211405` remains CHANGES in canon `5ae1f72`.
+  Preserve the exact descriptor/generation boundaries, corrected path sentinel/watch
+  ordering, reachability recheck, alias cleanup, manifest-only publication sink, prior
+  authority/inert-custody repairs, raw-prefix binding, and unchanged null-estimator GREEN.
+  The audit-event sentinel misses real `importlib.import_module()` loads: transient path
+  and generation imports can be removed before reachability and still publish GREEN.
+  The path-fault refusal also reads active `type(exc).__name__`; make it constant. #156
+  stays open under Gidim via Laura's relay. #149, real HF audit, and protected-sink
+  attestation remain separate holds. No B0 or #155 launch.
 - Drift v8 `4512622` closed the earlier #984 set, but Monk #988 found a mutable
   snapshot-alias bypass. Successor `5bf8e79` is also CHANGES in Monk #995 because a
   caller subclass can run hostile `__deepcopy__` against the original graph before the
@@ -102,7 +102,7 @@ remember which artifact should be updated.
   matrix; implement and separately review P5; run its true alpha-zero anchors;
   only then spend the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Re-review only an immutable #156 successor against
-  #1011 and a drift successor against #995; both remain independently held.
+  `5ae1f72` and a drift successor against #995; both remain independently held.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes

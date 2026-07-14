@@ -237,3 +237,21 @@ evidence supports that promotion.
   Published documentation copies must never be the objects consulted for a verdict.
 - Evidence: Watercooler #1011; commit `51c32b9`;
   `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
+
+## 2026-07-14 - Synthetic Telemetry Does Not Prove Mechanism Coverage
+
+- Status: active engineering lesson
+- Domain: security/custody instrumentation and regression testing
+- Conditions: a governed runner consumes audit events to attest that no forbidden import
+  occurred, and its regression test emits the expected event directly.
+- Finding: direct `sys.audit("import", ...)` and built-in `__import__` reached the watcher,
+  while a real `importlib.import_module()` load of the same temporary module emitted no
+  watched event in the review runtime. Removing the module before the resident-state check
+  let both path and generation callbacks publish GREEN.
+- Lesson: test the producer mechanism, not only the telemetry consumer. Every supported
+  route must perform a real harmless operation inside each guarded window, including a
+  transient load removed before the next checkpoint. Protect the observer's own authority
+  and fail closed if it is absent or altered. Static refusals over active exceptions use
+  constant messages and never inspect caller-controlled metadata.
+- Evidence: spec `d39a830`, implementation `5211405`, review commit `5ae1f72`;
+  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
