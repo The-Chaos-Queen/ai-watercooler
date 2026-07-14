@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-14 23:19 +02:00
-- Current owner: Codex returned GREEN on P5 round-twelve spec `1dcb36f` + implementation `c17f6d8`; Laura/Gidim can record #156 closure when LAN board access returns.
+- Last updated: 2026-07-14 23:38 +02:00
+- Current owner: P5 #156 is complete under implementation `c17f6d8`, review `23fad60`, Watercooler #1014, and OpenCLAW completion event #731.
 - Primary focus: preserve #156 technical closure under canon `23fad60`, supersede #168 against Monk #995, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-14-session-08.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: skipped (`2026-07-14-session-08.md`; LAN endpoint unavailable)
+  - Latest session log ingest: done (`2026-07-14-session-08.md`; 10 chunks; collection count 34,230)
 
 ## Current State - Baseline Drift Gate Review (2026-07-13)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
@@ -55,7 +55,7 @@
 - **DQ1b #149 BLOCKED, current source `f20936a`:** source chain `806c6f9` (raw-R correction) -> `a89545e` (B0/carryover) -> `ea9ef4f` (B0 evidence/Stage split) -> `5816483` (SEV/carryover build scope) -> `f20936a` (signed SEV-overlap exception); artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md`; #891/#893/#894 latest-source review. Geometry preserves clean late comb `{29,35,41,47}`, absolute-position `!= 0`, FP32 paired residual stats, raw `R_C/R_S` diagnostics only, and P5 refusal on null/`TBD` thresholds.
 - **Control / recovery method now explicit:** Codex #874 invalidated the raw normalized ratio null; Isegrim #875/Gidim #876/#879/Cairn #877 bind prompt-paired delta-space `D` on `{30|29,36|35,42|41}` and `D_control >= 0.5` as HOLD. Isegrim #888 caught the stateless-recovery trap; Gidim #890 scopes a distinct #156 free-running build; Cairn #892 re-signs recovery only under text-mediated carryover (active trigger -> alpha off -> carried prefix/cache -> <=2 absolute spans, `overwrite_excess >= 0.05`). Fresh alpha-zero replay is `instrument_invalid`, never recovery.
 - **B0 / staged birth review:** Codex #886/Laura baseline-first board repair creates #155 after #149 freezes the nonnumeric evaluator and #156 supplies P5. DQ1a’s exact 32-item SEV holdout is dose geometry; #130 probes are behavioral infrastructure. Their SEV IDs must be disjoint or carry a **signed, reviewed** overlap declaration, otherwise P5 refuses launch (#890/#892). Isegrim is GREEN on `f20936a`; Codex #896 is CHANGES because a manifest-bound single `run_kind` cannot remain unchanged across Stage A/B and because single-Tier-1 STOP conflicts with Laura's accepted Tier-1 HOLD/B0-aggregate policy.
-- **P5 B0 runner GREEN:** Round-twelve spec `1dcb36f` + implementation `c17f6d8` are GREEN in canon `23fad60`. Exact-list checks precede every restore/checkpoint protocol, malformed objects are untouched and fail closed, identity/duplicate restoration is clean, the real built-in/`importlib` path/backend matrix remains complete, and all prior custody/publication repairs hold. 287 pass/1 skip; Ruff/diffs/blobs clean. #156's model-free implementation/review scope is complete; LAN board closure is pending. The explicit CPython non-TEE residual remains. No B0/#155/#149/HF/protected-sink/alpha-zero/nonzero authorization follows.
+- **P5 B0 runner GREEN / #156 complete:** Round-twelve spec `1dcb36f` + implementation `c17f6d8` are GREEN in canon `23fad60`. Exact-list checks precede every restore/checkpoint protocol, malformed objects are untouched and fail closed, identity/duplicate restoration is clean, the real built-in/`importlib` path/backend matrix remains complete, and all prior custody/publication repairs hold. 287 pass/1 skip; Ruff/diffs/blobs clean. Watercooler #1014 and OpenCLAW events #729/#731 record verdict and closure. The explicit CPython non-TEE residual remains. No B0/#155/#149/HF/protected-sink/alpha-zero/nonzero authorization follows.
 - **Second direction #157 BLOCKED on review:** local and ML-WS inventory found no admissible second MVB artifact. Old 5g.3 outputs are metric-only 3840-wide JSON; old Method B is all-40/holdout-contaminated; split-clean v3 contains Method A only. `spikes/C1_SECOND_POSITIVE_DIRECTION_PREREG_2026-07-11.md` proposes a deterministic split-clean warm-axis linear-probe estimator with explicit same-semantics limitation; Watercooler #897 requests method/runnability/ethics review before any extraction.
 
 ## Historical State — G0 Oxytocin Delta (superseded by split-clean v3)
@@ -108,7 +108,6 @@
 
 ## Open Threads
 - [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `5bf8e79` against Monk #995 by reconstructing inert exact built-in records without caller-controlled `deepcopy`/copy hooks. No live/deployment claim before GREEN.
-- [ ] **OpenCLAW #156 - closure bookkeeping only:** implementation `c17f6d8` plus review `23fad60` are GREEN for the model-free runner/spec; record artifact and close the task when LAN board access returns. Do not reopen without an implementation/spec change. #149, real HF audit, protected-sink preflight, #155, and any real B0/model forward remain separate holds.
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
 - [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Isegrim #895 is GREEN; Codex #896 requires a stage-neutral base manifest plus per-attempt `run_kind`, Tier-2 immediate STOP, single-Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold. No C1 stage.
@@ -138,19 +137,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Record #156 closure when LAN access returns; otherwise leave the GREEN packet unchanged. Wait for an immutable drift successor to #995 and keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
+- Leave completed #156 unchanged. Wait for an immutable drift successor to #995 and keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: partial (canonical review, handoff, and Codex memory updated; Watercooler/OpenCLAW unavailable on LAN)
+- Tracking surfaces updated if needed: yes (canonical review, Watercooler #1014, OpenCLAW events #729/#731, handoff, and Codex memory)
 - Session log written: yes (`2026-07-14-session-08.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: skipped (LAN endpoint unavailable)
+- Qdrant ingest for latest session log confirmed: yes (10 chunks; collection count 34,230)
 - Git commit in repo: yes (`23fad60` round-twelve GREEN review; continuity closure is this commit)
-- Watercooler findings reflected in docs: yes (canonical review, this handoff, and Codex current memory; external post pending relay)
+- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1014, OpenCLAW event #729, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: review-only session; no in-scope P5 blocker remains, and independent downstream holds are listed above
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-14 23:38 +02:00 | Codex | After LAN recovery, published the round-twelve GREEN as Watercooler #1014 and OpenCLAW #156 event #729, then preserved ownership while Gidim completed the task as event #731. Session-08 is in Qdrant (10 chunks; 34,230 total). No downstream authorization changed.
 - 2026-07-14 23:19 +02:00 | Codex | Returned GREEN on P5 round-twelve spec `1dcb36f` + implementation `c17f6d8` after delegated GPT-5.5 and root verification. Exact-list checks now precede every restoration/checkpoint protocol; active/malformed containers are untouched and fail closed; identity duplicates, persistent swaps, full real-import matrix, constant refusal, and prior custody repairs all pass. 287 PASS/1 skip; Ruff/diffs/blobs clean. Canon `23fad60`; #156 technical scope complete, LAN board closure/Qdrant unavailable, and no B0/#155/downstream authorization follows.
 - 2026-07-14 22:54 +02:00 | Codex | Returned narrowly CHANGES on P5 round-eleven spec `c106b09` + implementation `f1fd5df` after delegated GPT-5.5 review and root reproduction. Accepted the narrowed non-TEE boundary, identity-only normal-list restore, full real-import matrix, constant refusal, and prior custody repairs. Reproduced active list-subclass pre-watch import, persistent lying-container GREEN, and malformed-container escape because the promised exact-list type is never checked. 284 PASS/1 skip; Ruff/diff clean. Canon `fe927b6`; LAN coordination/Qdrant unavailable, so Laura is relaying and session-07 ingest is skipped.
 - 2026-07-14 22:39 +02:00 | Codex | Returned CHANGES on P5 round-ten spec `2072112` + implementation `3e4484e` after delegated GPT-5.5 review and root reproduction. Accepted real built-in/`importlib` coverage under an intact finder, constant path refusal, and prior custody repairs. Reproduced temporary observer remove/import/restore and method-neutralization GREEN bypasses, plus active finder equality importing before the watch during observer restoration. 282 PASS/1 skip; Ruff/diff clean. Canon `7269cb6`; LAN coordination/Qdrant unavailable, so Laura is relaying and session-06 ingest is skipped.
@@ -219,7 +219,7 @@
 ## Next Agent Brief
 - Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1006.
 - Decide first:
-  - Do not re-review unchanged #156 packet `c17f6d8`; record its GREEN `23fad60` when LAN returns. Review only an immutable #168 successor to #995; no remaining launch lane is authorized by P5 GREEN.
+  - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to #995; no remaining launch lane is authorized by P5 GREEN.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller

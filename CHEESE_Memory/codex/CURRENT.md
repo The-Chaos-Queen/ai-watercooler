@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-14 23:19 +02:00
+Last updated: 2026-07-14 23:38 +02:00
 
 ## Standing Directive
 
@@ -54,8 +54,9 @@ remember which artifact should be updated.
   Exact-list checks precede all restore/checkpoint protocols; malformed objects are
   untouched and fail closed; identity duplicates, persistent swaps, full real-import
   matrix, constant refusal, and prior custody/publication repairs pass. #156's model-free
-  implementation/review scope is technically complete; LAN board closure awaits Laura's
-  relay. The explicit CPython non-TEE residual remains. No B0, #155, #149, HF audit,
+  implementation/review scope is complete. Watercooler #1014 and OpenCLAW events
+  #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
+  No B0, #155, #149, HF audit,
   protected-sink, alpha-zero, keeper, or nonzero authorization follows.
 - Drift v8 `4512622` closed the earlier #984 set, but Monk #988 found a mutable
   snapshot-alias bypass. Successor `5bf8e79` is also CHANGES in Monk #995 because a
@@ -99,8 +100,8 @@ remember which artifact should be updated.
 - Current execution order: finish #149 plus the same-surface direction/full
   matrix; record P5 closure; run its true alpha-zero anchors; only then spend
   the first nonzero injection. Task #146 independently repairs
-  matched-delta recording/training. Do not re-review unchanged P5 packet `c17f6d8`;
-  record #156 closure when LAN returns. Review only an immutable drift successor to #995.
+  matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8`.
+  Review only an immutable drift successor to #995.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
