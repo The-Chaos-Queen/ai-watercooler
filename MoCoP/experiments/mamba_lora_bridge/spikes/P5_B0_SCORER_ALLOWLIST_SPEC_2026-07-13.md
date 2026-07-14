@@ -297,3 +297,56 @@ way R3/R4 taught against. The standing rule (§12) is now enforced across BOTH g
   only over-refuses), but corrected to a `pending`-PREFIX match; our placeholders are always leading.
 
 All three are reproduced and refused after the fix, including the in-place `.clear()` variant.
+
+---
+
+## 14. Codex #1009 review corrections (round 6, CHANGES on 5a05884+08925d0)
+
+Round 5 closed the scorer/runner-origin and one part of the component guard; Codex (with a GPT-5.5
+cross-check) then did the COMPLETE authority sweep the §12 rule implies and found four more. The
+rule is now enforced across EVERY verdict authority, not surface by surface.
+
+- **B1 — the frozen component guard still leaked erase/authority capabilities.** (i) The closure's
+  inventory was RETURNED as the mutable module alias `_FROZEN_FORBIDDEN`, so `.clear()` on that
+  name cleared the closure's own dict. (ii) The destructive `_clear`/`_drain` sentinel ops were
+  module attributes — code inside a guarded window (a backend) could call them, or trip
+  `_drain_and_check` and catch the `B0RunError`, to empty its own import evidence. (iii) the guard
+  read the assignable module global `sys`, so a `sys` proxy with an empty `modules` and a no-op
+  `addaudithook` hid a resident component.
+  **Contract:** the guard factory captures the REAL `sys` module object; the inventory snapshot is
+  NEVER returned as an alias; the sentinel is an APPEND-ONLY MONOTONE log with NO exposed clear/
+  drain. Accounting is done through a per-run watch holding a PRIVATE local cursor (a run_b0 local
+  a backend has no handle to); it only reads the log suffix since its checkpoint and advances its
+  own cursor — non-destructive. Cross-run bleed is structurally impossible (nothing is cleared;
+  each run inspects only its own suffix), so the clear-era "dirty at entry" refusal is subsumed;
+  a component RESIDENT at entry is still caught by the snapshot check.
+
+- **B2 — every OTHER verdict authority was still live module data.** `DESCRIPTOR_KEYS`,
+  `_FRAME_SCHEMAS`, `B0_RUN_KIND`, `INTEGRITY_VERIFIED`, `_TERMINAL_DISPOSITION` (and the event
+  vocabulary, probe cycle, schema kind-tags, dtype table) could be reassigned or mutated in place
+  to blank the descriptor binding, weaken a claim schema, select a caller run-kind, or make a
+  caller disposition read `ok=True`.
+  **Contract:** ONE complete authority inventory is frozen at import into a closure snapshot
+  (`_bind_authority` → `_authority()`), dict-valued members exposed as read-only proxies. The
+  governed entrypoint and the standalone verifier rebind the names they need from that snapshot at
+  entry, so no verdict is a call-time read of a published module global. The module constants remain
+  as published DOCUMENTATION but are not the objects consulted for a verdict.
+
+- **B3 — the authorized manifest/panel stayed caller-mutable.** They were hashed, then a backend
+  callback mutated `model.id` / a prompt AFTER hashing and published success under the original
+  receipt.
+  **Contract:** BEFORE any backend access, `run_b0` rebuilds inert deep snapshots of the manifest
+  and panel from EXACT built-in types (`_inert_snapshot`; a dict/list subclass with an overridden
+  `items`/`__deepcopy__` is refused, not honored) and authorizes/hashes/validates/journals/executes
+  ONLY those. The caller's originals are never read again.
+
+- **B4 — the standalone verifier only shape-checked `journal_digest_prefix`.** A sha256-SHAPED but
+  wrong 64-hex value passed.
+  **Contract:** `verify_terminal_frames` reads the raw journal bytes and requires the sealing
+  frame's `journal_digest_prefix` to EQUAL the sha256 of the exact bytes preceding that frame —
+  shape is not a binding.
+
+All four #1009 canaries (`frozen_inventory_alias_clear`, `backend_calls_exported_sentinel_clear`,
+`sys_global_proxy`, `descriptor_keys_live_global`, `claim_schema_live_global`, `run_kind_live_global`,
+`terminal_authority_live_globals`, `authorized_manifest_toctou`, `executed_panel_toctou`,
+`false_journal_prefix_digest`) are re-run against the fix and refused.
