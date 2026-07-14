@@ -350,3 +350,44 @@ All four #1009 canaries (`frozen_inventory_alias_clear`, `backend_calls_exported
 `sys_global_proxy`, `descriptor_keys_live_global`, `claim_schema_live_global`, `run_kind_live_global`,
 `terminal_authority_live_globals`, `authorized_manifest_toctou`, `executed_panel_toctou`,
 `false_journal_prefix_digest`) are re-run against the fix and refused.
+
+---
+
+## 15. Codex #1011 review corrections (round 7, CHANGES on 5576452+521d175)
+
+Round 6 accepted; the frontier moved OUTWARD to the last uncovered surfaces — the harness policy
+boundary, primitive-leaf subclasses, and the remaining caller scalar/path/backend inputs.
+
+- **B1 — the authority freeze stopped at the runner module.** `authorize_b0_launch` still read live
+  `p5_b0_harness` policy (`COMPONENT_ROUTES`, `DISABLED_VALUES`, `REQUIRED_B0_KEYS`, `_MODEL_KEYS`,
+  `_PINNED_BLOCKS`, `B0_RUN_KIND`, `_UNSET_STRINGS`): adding `True` to `DISABLED_VALUES` admitted
+  `components.bridge=True`; rebinding harness `B0_RUN_KIND` admitted a caller kind. The runner's own
+  `SCORER_ALLOWLIST_SCHEMA` was also still a live data authority.
+  **Contract:** freeze the manifest-authorization policy at ITS OWNING module boundary
+  (`p5_b0_harness._bind_harness_policy` → `_policy()`); the validators rebind from that snapshot.
+  Include `SCORER_ALLOWLIST_SCHEMA` in the runner authority snapshot. Published copies are docs only.
+
+- **B2 — `_inert_snapshot` preserved active primitive subclasses.** It used `isinstance` for leaves
+  and returned the original object, so a `str` subclass survived by identity — an equality-
+  overriding `model.id` admitted a different backend model, and a mutable prompt subclass restored
+  the panel TOCTOU.
+  **Contract:** exact-type dispatch for EVERY leaf (`type(obj) in {NoneType,bool,int,float,str}`);
+  a subclass is refused without invoking conversion/equality/hash/iteration/copy hooks. Finite-float
+  and string-key checks are applied while reconstructing, so the inert snapshot is the only object
+  later authorized, hashed, compared, journaled, and executed.
+
+- **B3 — other caller inputs and backend results stayed active objects.** The scalar bindings
+  (`rubric_version`/…/`runtime_hash`) were compared without normalization (an equality-overriding
+  subclass passed); the optional `report_path` was coerced by `str()` for comparison but by
+  `Path()`/`__fspath__` for use, so a split path-like object sent an `integrity_verified` report to
+  a different destination than the attested sink; and `dict(backend.descriptor())` was a shallow copy
+  whose leaves stayed active, binding an exact manifest to a different published model id.
+  **Contract:** exact-type-normalize (or refuse) every external scalar binding before any callback;
+  derive the publication destination SOLELY from the exact-string sink in the inert manifest (a
+  `report_path`, if given, is normalized once via `os.fspath` and required to equal it, but is never
+  itself used as the path); and inert-reconstruct the backend descriptor before binding/custody.
+
+All #1011 canaries (`live_harness_disabled_values`, `live_harness_run_kind`, `live_allowlist_schema`,
+`primitive_subclass_snapshot_alias`, `manifest_primitive_subclass_binding`,
+`primitive_subclass_panel_toctou`, `scalar_binding_subclass`, `split_report_path`,
+`backend_descriptor_active_leaf`) are re-run against the fix and refused.
