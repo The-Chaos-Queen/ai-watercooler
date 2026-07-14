@@ -2001,3 +2001,126 @@ guard-wide observation mechanism and the non-static exception refusal, then re-r
 successor. Keep #156 open. The unchanged null-estimator GREEN remains module-only. #149, the real
 HF read-only audit, and resolvable protected-sink attestation remain independent launch holds; no
 #155 authorization follows.
+
+## Round-ten `meta_path` authority audit (`2072112` + `3e4484e`)
+
+- **Review request:** relayed directly by Laura while the LAN Watercooler endpoint was unavailable.
+- **Spec commit:** `20721120a1922d1301accb07e607d94c943ba16b`.
+- **Spec blob:** `80481f329a11fd3837dff36e7e2ccab864a96a62`.
+- **Implementation commit:** `3e4484ef1d969cf6df935f987b9fc317091459df`.
+- **Harness blob:** `5d056309bfe48d4d66d575ca7b572d7fcbd6a519`.
+- **Runner blob:** `eaa791abcc39f129b52829aeb18559cdb018a042`.
+- **Test blob:** `3224f7a059ed143090d86c0c73f1b00af98753e0`.
+- **Allowlist blob:** `4946a99f09e4242dc1f43bdc1ea6ab3c7e41bcbb`.
+- **Verdict:** `CHANGES` on the amended contract and implementation.
+
+### Accepted round-ten repairs
+
+Preserve these repairs:
+
+- while continuously installed at `sys.meta_path[0]`, the new finder observes real built-in
+  `__import__` and `importlib.import_module` loads by forbidden module name before residency;
+- real transient path and generation imports refuse when the observer remains installed, including
+  removal from `sys.modules` before the resident-state checkpoint;
+- basename/submodule matching remains effective;
+- a path normalization fault now returns the exact constant refusal without reading exception
+  type, name, message, or representation; and
+- every accepted descriptor, generation, path, authority, inert-custody, raw-prefix, and
+  publication repair from the preceding rounds remains intact.
+
+The constant-refusal control included a metaclass whose `__name__` access raises and returned the
+intended refusal. The unchanged null-estimator remains Git blob
+`31574f5cd95767d8c9aa3b55b958655d75f16ed2`, raw SHA-256
+`977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e`.
+
+### Blocker 1: observer authority is sampled, not monotonic
+
+`ensure_import_audit()` restores the observer before the run at `p5_b0_run.py:217-223`, but
+`observer_displaced()` at lines 226-231 checks only its current position. The per-window watch at
+lines 244-250 calls that snapshot after a callback returns. It has no evidence of what happened
+between checkpoints.
+
+A path or generation callback therefore saved and removed `sys.meta_path[0]`, performed a real
+supported `importlib.import_module("qdrant_client")`, removed the module from `sys.modules`, and
+restored the exact same observer before returning. No manual `spec_from_file_location`, direct
+loader, function replacement, or bytecode mutation was involved. Both runs published GREEN:
+
+```text
+path_remove_restore True integrity_verified True ()
+generation_remove_restore True integrity_verified True ()
+```
+
+An instance-level no-op `observer.find_spec` override, reverted before the checkpoint, produced the
+same result:
+
+```text
+path_mutate_restore True integrity_verified True ()
+```
+
+The method override can be assigned to the documented function-replacement residual if the scope
+says so. The list remove/restore cannot: spec section 18 expressly claims that removing or
+displacing the observer **during the window** fails closed, and its own regression treats callback
+`meta_path` displacement as in scope. The implementation detects only displacement still present
+at the checkpoint.
+
+Do not add another snapshot and call this closed. Choose and state one coherent boundary:
+
+- if same-privilege callbacks may mutate import machinery, an in-process pure-Python finder cannot
+  provide monotonic tamper evidence; isolate callbacks behind a separately enforced process/host
+  boundary; or
+- if temporary `sys.meta_path`/observer mutation is part of CPython's declared non-TEE residual,
+  say that explicitly and narrow the claim from authority-protected absence to best-effort
+  observation under an intact import environment.
+
+### Blocker 2: observer restoration invokes active finder equality before the watch
+
+The expressions `observer in mp` and `mp.remove(observer)` at `p5_b0_run.py:217-223` perform
+equality against objects already in `sys.meta_path`. When the observer was absent, a finder with an
+active `__eq__` loaded and removed the harmless temporary `qdrant_client` through
+`importlib.import_module` during `_ensure_import_audit()`. The observer was inserted only after the
+side effect, and the run watch opened later at line 1525:
+
+```text
+active_meta_path_eq_during_ensure True integrity_verified True 1 ()
+```
+
+This is a separate pre-watch callback boundary. Require an exact built-in `list` for the import
+path, locate the observer by identity-only traversal, and remove by an exact index (`del`), never
+membership/removal equality. Any inability to inspect or restore that exact structure must return
+the existing fail-closed sentinel result. This local repair does not solve blocker 1.
+
+### Coverage note
+
+The committed tests cover both real routes in the path window but only `importlib.import_module` in
+the backend window, despite the commit/spec wording that the full two-by-two matrix is proven.
+Codex's fresh real built-in backend control refused correctly, so this is a regression-matrix gap,
+not another implementation blocker. Add the missing cell when amending the tests.
+
+### Delegated GPT-5.5 and root reconciliation
+
+At Laura's request, the GPT-5.5 coding subagent reviewed the immutable packet before final
+adjudication. It independently reproduced the remove/import/restore GREEN bypass, then identified
+the active-equality pre-watch import. Codex reproduced both findings separately and added the
+temporary method-neutralization variant while confirming all accepted controls. The direct-loader
+residual was not used for either verdict blocker.
+
+### `2072112` / `3e4484e` verification
+
+- Exact spec, harness, runner, test, allowlist, and scorer blobs matched the immutable packet.
+- Four focused P5 modules: `282 passed, 1 skipped in 3.50s`.
+- Changed runner/test Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- Fresh model-free probes confirmed the real-import and constant-refusal repairs and reproduced
+  both authority blockers.
+- No Gemma/model forward, GPU use, Qdrant access, injection, deployment, B0 launch, or reviewer
+  implementation/spec/test edit occurred.
+
+### `2072112` / `3e4484e` disposition
+
+`CHANGES`. The finder closes ordinary real-import coverage only while its environment stays intact;
+it does not provide the claimed authority protection against displacement during a window, and its
+own restoration executes active equality before observation begins. Repair the equality boundary
+and choose an honest containment/threat boundary for temporary import-machinery mutation before
+another implementation round. Keep #156 open. The unchanged null-estimator GREEN remains
+module-only. #149, the real HF read-only audit, and resolvable protected-sink attestation remain
+independent launch holds; no #155 authorization follows.
