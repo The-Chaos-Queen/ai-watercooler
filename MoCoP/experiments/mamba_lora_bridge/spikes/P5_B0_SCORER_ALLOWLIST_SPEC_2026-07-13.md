@@ -259,3 +259,41 @@ time — the standing lesson is now explicit in the contract:
   receipts to attest different publications.
 
 All three #1006 canaries are re-run against the fix and refused.
+
+---
+
+## 13. a-Fable adversarial pass — the fifth defect, self-found before the round-4 verdict
+
+Provenance: an ANONYMOUS Fable adversarial review (substrate capability, unattested — not
+wolf-Isegrim), run by Gidim after relaying round 4 (WC #1007) and before Codex's round-4 verdict.
+One real blocker + two correctness notes, all reproduced independently before fixing.
+
+The scorer-execution authority (R1–R4) held — the Fable could not break it. But it found the
+R4 lesson had been applied to the scorer/runner origin and **not** to the OTHER core B0 promise,
+the no-component runtime guarantee, which was still wired to assignable module globals exactly the
+way R3/R4 taught against. The standing rule (§12) is now enforced across BOTH guarantees.
+
+- **BLOCKER — the no-component guard read assignable module globals at call time.** The
+  reachability lookup dereferenced `FORBIDDEN_ROUTE_MODULES` (a dict) live, and the transient-import
+  sentinel trusted `_audit_installed` (a bool) and appended to `_forbidden_imports` (a list) — all
+  in-scope data attributes. `p5_b0_run.FORBIDDEN_ROUTE_MODULES = {}` (or an in-place `.clear()`)
+  blanked the reachability guard; `_audit_installed = True` left the sentinel disarmed while it
+  reported armed. Either yields a GREEN `integrity_verified` B0 report while a forbidden component
+  is reachable/imported — B0's central guarantee, void and silent.
+  **Contract:** freeze the guard's authority at import into closure cells (`_bind_reachability_guard`),
+  exactly as R4 froze the runner origin. `FORBIDDEN_ROUTE_MODULES` remains the reviewed PUBLISHED
+  inventory, but the guard reads a deep snapshot (new dict of new frozensets) immune to reassignment
+  AND in-place mutation; the sentinel's buffer and installed-state are cells with no module-attribute
+  handle to blank or spoof. Reassigning the exposed functions is function replacement (out of scope).
+
+- **NOTE — standalone verifier fail-open on a non-string event.** A journal frame with a
+  non-hashable `event` (e.g. `{"event": []}`) raised an uncaught `TypeError` in the membership scan
+  (and a missing/None event collided with the `next()` sentinel). Inside `run_b0` the post-commit
+  reconcile wraps this in `except Exception → indeterminate`, but the independently-verifiable
+  auditor path must fail CLOSED. Fixed: iterate and reject any non-string / unknown event.
+
+- **NOTE — `_is_unresolved_ref` over-refused.** The §12 predicate matched the bare substring
+  `"pending"`, wrongly rejecting a legitimate ref like `REVIEW-appending-42`. No security loss (it
+  only over-refuses), but corrected to a `pending`-PREFIX match; our placeholders are always leading.
+
+All three are reproduced and refused after the fix, including the in-place `.clear()` variant.
