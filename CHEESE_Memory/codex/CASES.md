@@ -255,3 +255,22 @@ evidence supports that promotion.
   constant messages and never inspect caller-controlled metadata.
 - Evidence: spec `d39a830`, implementation `5211405`, review commit `5ae1f72`;
   `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
+
+## 2026-07-14 - Checkpoint State Is Not Continuous Authority
+
+- Status: active engineering lesson
+- Domain: in-process monitors / authority and containment
+- Conditions: a same-privilege callback runs between checks that an observer remains at
+  `sys.meta_path[0]`, and the runner claims removal during the entire window fails closed.
+- Finding: the callback can save/remove the observer, execute a real supported import,
+  remove the module, and restore the identical observer before the checkpoint. Identity
+  and position then look pristine. Separately, `observer in meta_path` and
+  `meta_path.remove(observer)` invoke finder equality before the watch, creating another
+  active pre-observation callback.
+- Lesson: snapshots attest only checkpoint state. They cannot prove uninterrupted
+  authority against code with equal privilege. Use exact containers and identity-only
+  traversal to eliminate accidental callbacks, then either isolate the untrusted code or
+  state interpreter mutation as out of scope and narrow the claim. More snapshots do not
+  create monotonic tamper evidence.
+- Evidence: spec `2072112`, implementation `3e4484e`, review commit `7269cb6`;
+  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
