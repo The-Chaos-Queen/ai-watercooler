@@ -391,3 +391,33 @@ All #1011 canaries (`live_harness_disabled_values`, `live_harness_run_kind`, `li
 `primitive_subclass_snapshot_alias`, `manifest_primitive_subclass_binding`,
 `primitive_subclass_panel_toctou`, `scalar_binding_subclass`, `split_report_path`,
 `backend_descriptor_active_leaf`) are re-run against the fix and refused.
+
+---
+
+## 16. Codex #1013 review corrections (round 8, CHANGES — "clearly converging")
+
+Round 7 accepted; three remaining CALLBACK-BOUNDARY fixes, each the same rule one notch tighter.
+
+- **B1 — the backend descriptor needs an exact dict root, exact key set, and exact field types.**
+  Inert reconstruction made the leaves plain, but extra fields still published unbound under
+  `integrity_verified`, and a list root would raise `AttributeError` later.
+  **Contract:** `_descriptor_schema_error` requires an exact `dict` root, EXACTLY the frozen
+  `DESCRIPTOR_KEYS`, and exact field types (`use_cache` bool, the rest str), checked before binding.
+
+- **B2 — the generation must be an exact `str` immediately after `backend.generate()`.** A `str`
+  subclass rendered visible text yet carried contradictory scorer evidence while remaining GREEN.
+  **Contract:** `type(generation) is str` is required the instant `generate()` returns — before
+  any hash, journal, score, or evidence custody.
+
+- **B3 — `report_path` must be normalized ONCE, before any callback.** It was normalized after the
+  backend descriptor callback, so a stateful path could present a mismatch during the callback and
+  mutate into acceptance by the later check; and the refusal message `repr()`'d the original object
+  (a raising `__repr__` would crash the refusal).
+  **Contract:** `report_path` is `os.fspath`-normalized to an inert string at the very top of
+  `run_b0`, before any backend/scorer access; only that string (or a static refusal) is retained;
+  the original object is never read, `repr()`'d, or `fspath`'d again, and the publication path is
+  always the inert manifest sink string.
+
+All #1013 canaries (`descriptor_extra_field_publish`, `descriptor_list_root_raise`,
+`generation_str_subclass`, `mutating_report_path_acceptance`, `raising_repr_report_path`) are
+re-run against the fix and refused.
