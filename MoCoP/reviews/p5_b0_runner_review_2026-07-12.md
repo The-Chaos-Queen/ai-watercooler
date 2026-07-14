@@ -1904,3 +1904,100 @@ callback exceptions and the retained original alias are two smaller manifestatio
 unfinished normalization boundary. Keep #156 open. The unchanged null-estimator GREEN remains
 module-only. #149, the real HF read-only audit, and resolvable protected-sink attestation remain
 independent launch holds; no #155 authorization follows.
+
+## Round-nine real-import sentinel audit (`d39a830` + `5211405`)
+
+- **Review request:** relayed directly by Laura while the LAN Watercooler endpoint was unavailable.
+- **Spec commit:** `d39a83054adff3f31444963a63b41be6afc3671c`.
+- **Spec blob:** `e0034e061665211522bfa3445ca5b179a7f0fabd`.
+- **Implementation commit:** `5211405d38fa20c411fd28510c0b40365a3d58f8`.
+- **Harness blob:** `5d056309bfe48d4d66d575ca7b572d7fcbd6a519`.
+- **Runner blob:** `d3434d25633abb5c24d542477498efb5b56614fa`.
+- **Test blob:** `f4d3e7d41d5f3cef971ca4dcba6115a6f2706e96`.
+- **Allowlist blob:** `4946a99f09e4242dc1f43bdc1ea6ab3c7e41bcbb`.
+- **Verdict:** `CHANGES` on the amended contract and implementation.
+
+### Accepted round-nine repairs
+
+Preserve these repairs:
+
+- `_ensure_import_audit()` and the per-run watch now precede `report_path.__fspath__`;
+- the path-normalization window is checkpointed, followed by a live reachability check, before
+  any backend or scorer callback;
+- an ordinary `__fspath__` exception becomes a refusal, and both the original argument and the
+  temporary normalized value are cleared before backend access;
+- publication remains derived solely from the inert manifest sink; and
+- the accepted exact descriptor schema, exact generation string, harness/allowlist authority,
+  scalar, and inert-reconstruction boundaries from the preceding rounds remain intact.
+
+The direct synthetic-event and ordinary-`RuntimeError` canaries now refuse as intended. The
+unchanged null-estimator remains Git blob `31574f5cd95767d8c9aa3b55b958655d75f16ed2`, raw
+SHA-256 `977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e`.
+
+### Blocker: the audit-event sentinel misses real `importlib` loads
+
+The sentinel at `p5_b0_run.py:184-188` records only Python audit events named `import`. In the
+review runtime, a real built-in `__import__("qdrant_client")` emitted that event, but loading the
+same harmless temporary module with `importlib.import_module("qdrant_client")` emitted no event.
+The round-nine test at `test_p5_b0_run.py:1239-1253` invokes `sys.audit("import", ...)` directly,
+so it verifies watch ordering/bookkeeping but does not verify coverage of a real import operation.
+
+A temporary `qdrant_client.py` was loaded through `importlib.import_module`, removed from
+`sys.modules` inside the callback, and therefore also escaped the later resident-module check. The
+same real-import canary passed through both the newly guarded path hook and `generate()` and
+published GREEN:
+
+```text
+builtin_import_watch ('qdrant_client',)
+importlib_watch ()
+path_importlib_transient True integrity_verified True
+generation_importlib_transient True integrity_verified True ()
+```
+
+This is guard-wide, not another path-ordering defect. The round-nine placement is correct, but the
+underlying evidence source does not cover the import surface whose absence it attests. Replace or
+supplement the audit-event-only sentinel with a mechanism demonstrably covering real loads through
+both built-in import and `importlib`; protect that observer's own authority and fail closed if it is
+not intact. Regression tests must load harmless temporary modules through both routes in the path
+and backend windows, then remove them before the reachability checkpoint. A synthetic `sys.audit`
+call can remain as a unit test but cannot be the coverage proof.
+
+### Correctness: the static refusal still reads active exception metadata
+
+The exception branch at `p5_b0_run.py:1501-1503` formats `type(exc).__name__`. An exception class
+with a metaclass-controlled `__name__` lookup raised during that formatting step:
+
+```text
+active_exception_name RuntimeError exception type-name callback ran False
+```
+
+This did not publish, so it is not a GREEN bypass, but it escapes instead of returning the promised
+static refusal and prevents the intended cleanup/accounting tail from running. Use a constant
+refusal message without reading the exception type, name, message, or representation.
+
+### Delegated GPT-5.5 and root reconciliation
+
+At Laura's request, the GPT-5.5 coding subagent reviewed the immutable packet before the root pass.
+It returned `CHANGES` for the real-`importlib` coverage gap and active exception metadata while
+confirming the direct round-nine ordering, cleanup, and publication-path repairs. Codex then
+independently reproduced both findings with fresh temporary modules and callback objects. No
+delegated claim is accepted here without a local executable reproduction.
+
+### `d39a830` / `5211405` verification
+
+- Exact spec, harness, runner, test, allowlist, and scorer blobs matched the immutable packet.
+- Four focused P5 modules: `278 passed, 1 skipped in 3.91s`.
+- Changed runner/test Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- Fresh model-free probes confirmed the direct round-nine repairs and reproduced both findings.
+- No Gemma/model forward, GPU use, Qdrant access, injection, deployment, B0 launch, or reviewer
+  implementation/spec/test edit occurred.
+
+### `d39a830` / `5211405` disposition
+
+`CHANGES`. Preserve the corrected path-callback ordering and cleanup, but do not attest transient
+component absence from an audit hook that misses a real supported import route. Repair the
+guard-wide observation mechanism and the non-static exception refusal, then re-review the exact
+successor. Keep #156 open. The unchanged null-estimator GREEN remains module-only. #149, the real
+HF read-only audit, and resolvable protected-sink attestation remain independent launch holds; no
+#155 authorization follows.
