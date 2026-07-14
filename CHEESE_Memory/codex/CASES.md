@@ -274,3 +274,19 @@ evidence supports that promotion.
   create monotonic tamper evidence.
 - Evidence: spec `2072112`, implementation `3e4484e`, review commit `7269cb6`;
   `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
+
+## 2026-07-14 - Enforce Exact Containers Before Protocol Use
+
+- Status: active engineering lesson
+- Domain: active-object boundaries / fail-closed validation
+- Conditions: code promises an exact built-in container and uses identity comparisons for
+  its elements, but calls container protocols before checking the container's type.
+- Finding: identity-only element logic still invoked a list subclass's `__len__`/`insert`
+  before observation. A lying `__getitem__` also made a container without the observer pass
+  checkpoint state, while a tuple raised instead of refusing.
+- Lesson: enforce `type(container) is ExpectedBuiltin` before the first truth, length,
+  iteration, indexing, mutation, or membership operation. On malformed authority state,
+  return the fail-closed verdict without touching the object. Exact leaves do not make an
+  arbitrary container inert.
+- Evidence: spec `c106b09`, implementation `f1fd5df`, review commit `fe927b6`;
+  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
