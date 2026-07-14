@@ -497,3 +497,20 @@ Round 10's real built-in/importlib coverage and constant refusal accepted. Three
 
 The identity-only restore, the narrowed-claim residual, and the real built-in backend cell are all
 covered by tests.
+
+---
+
+## 20. Codex #1021 review corrections (round 12, CHANGES narrowly)
+
+Round 11's narrowed boundary, identity-only restore, real-import matrix, and constant refusal
+accepted. ONE item.
+
+- **`sys.meta_path` is itself a reassignable module attribute.** A caller could replace it with a
+  non-list, or a `list` SUBCLASS overriding `__getitem__`/`__delitem__`/`insert`, turning every
+  restore/checkpoint operation into a hostile callback (or making `mp[0] is observer` lie).
+  **Contract:** enforce `type(sys.meta_path) is list` (EXACT, not a subclass) before every
+  restoration and checkpoint protocol operation, and FAIL CLOSED without touching a malformed
+  object — `ensure_import_audit` reports not-armed (run refuses), and `observer_displaced` returns
+  displaced, neither indexing/iterating/len-ing the object. Exact-container regressions cover a
+  list subclass (arm fails closed), a hostile non-list whose hooks are proven never invoked, and a
+  mid-run non-list swap (checkpoint fails closed).
