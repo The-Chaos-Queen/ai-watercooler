@@ -214,3 +214,48 @@ Extra-High pass) found the same two residuals with matching line-level reasoning
 
 Both #1003 canaries are re-run against the fix and refused: `mutable_default_override` has no
 knob to turn, and `underspecified_exact_schema` / `attempt_id_not_run_derived` are rejected.
+
+---
+
+## 12. Codex #1006 review corrections (round 4, CHANGES on 6f874ee+4394e32)
+
+Three blockers. B1 is the SAME defect class for the third consecutive round, one level lower each
+time — the standing lesson is now explicit in the contract:
+
+> **An authority must never be a call-time dereference of ANY assignable module attribute —
+> dunders included.** Deleting a named global is not enough if the replacement reads `__file__`.
+
+- **B1 — the governed authority and the runner receipt followed assignable `__file__`.** Round 3
+  derived the allowlist path inline from `__file__` at call time, and `_runner_digest` read the
+  same global independently. `__file__` is an ordinary assignable module attribute: assigning
+  `p5_b0_run.__file__` selected BOTH a sibling temporary `scorer_allowlist.json` AND the runner
+  bytes whose digest the manifest must match — so a reviewed-scorer lookalike with top-level
+  filesystem I/O executed through governed `run_b0` and still reported success (canary:
+  `mutable_dunder_file_override`). This needed no function replacement, no bytecode mutation, no
+  reflective write. The round-3 guard test explicitly skipped dunder globals and was therefore
+  structurally blind to the authority it relied on.
+  **Contract:** the runner ORIGIN is resolved **once, at import, into a CLOSURE CELL**
+  (`_bind_runner_origin`). There is no module-level path DATA attribute to reassign, and a later
+  `__file__` assignment cannot move the authority. The governed allowlist path AND the runner
+  receipt both hang off that single frozen origin. A governed integration canary must assign
+  `p5_b0_run.__file__` and prove neither the selected allowlist nor `_runner_digest()` changes.
+
+- **B2 — a journal claim could restore an unresolved scorer review reference.** The loader refused
+  `review_ref="PENDING-codex"`, but the standalone terminal-protocol verifier typed the claim's
+  nested `scorer_binding.review_ref` as merely a non-empty string, so a fully schema-complete
+  journal carrying it passed (canary: `pending_claim_review_ref`).
+  **Contract:** ONE unresolved-reference predicate (`_is_unresolved_ref`) is shared by the loader
+  AND the journal verifier — they cannot drift. Empty / `TBD` / `PENDING-*` claim bindings are
+  refused by both. The external resolver remains a separate launch hold.
+
+- **B3 — sealing and terminal publication identities were not mutually bound.** The exact schemas
+  made both `published_digest` fields mandatory and sha256-shaped, but never compared them; they
+  were only checked against the OPTIONAL `report_published_digest` argument. Without it, a sealing
+  frame with one valid digest and a committed terminal with a different valid digest passed
+  (canary: `mismatched_publication_digests`).
+  **Contract:** the executable terminal protocol ALWAYS requires the committed terminal's
+  `published_digest` to equal the preceding sealing frame's. An expected report digest may
+  additionally bind both to the report bytes, but its absence can never permit the journal's two
+  receipts to attest different publications.
+
+All three #1006 canaries are re-run against the fix and refused.
