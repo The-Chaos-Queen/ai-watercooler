@@ -1799,3 +1799,108 @@ boundary remains incomplete: descriptor root/schema is open, generation is activ
 and the optional path is normalized too late and reread on refusal. Keep #156 open. The unchanged
 null-estimator GREEN remains module-only. #149, the real HF read-only audit, and resolvable
 protected-sink attestation remain independent launch holds; no #155 authorization follows.
+
+## Round-eight path-normalization audit (`fed4323` + `c419078`)
+
+- **Review request:** relayed directly by Laura while the LAN Watercooler endpoint was unavailable.
+- **Spec commit:** `fed43232d79b1217885f6e7d8d56e9132940c133`.
+- **Spec blob:** `dfcf0073f3e99fb241cb9370f252c7b875babef2`.
+- **Implementation commit:** `c419078873d6a377897a8d7a902381115bc63811`.
+- **Harness blob:** `5d056309bfe48d4d66d575ca7b572d7fcbd6a519`.
+- **Runner blob:** `7ed879ffc1c887e4c36cb54b5a47194f930207ef`.
+- **Test blob:** `eb912f3a32c33bcfbf64cf78a52156f87b298f76`.
+- **Allowlist blob:** `4946a99f09e4242dc1f43bdc1ea6ab3c7e41bcbb`.
+- **Verdict:** `CHANGES` on the amended contract and implementation.
+
+### Accepted round-eight repairs
+
+Preserve these repairs:
+
+- backend descriptors now require an exact `dict` root, the exact frozen seven-key set, exact
+  textual field types, and exact boolean `use_cache`; extra fields and list roots refuse cleanly;
+- generation must be an exact built-in `str` immediately after the callback and before digesting,
+  journaling, scoring, or evidence custody;
+- the previous late mutation and raising-`__repr__` cases no longer pass through a second path
+  coercion or active-object refusal message; and
+- every accepted round-seven harness, allowlist, manifest/panel, scalar, and descriptor-leaf
+  repair remains intact. The bounded null-estimator bytes remain unchanged.
+
+Fresh controls confirmed the descriptor and generation closures:
+
+```text
+descriptor_extra_refused False backend descriptor keys mismatch (extra=['extra'], missing=[])
+descriptor_list_refused False backend descriptor root is not a dict (got list)
+generation_subclass_refused B0RunError True False
+```
+
+### Blocker: active path normalization precedes the import guard window
+
+`run_b0` invokes caller-controlled `os.fspath(report_path)` at `p5_b0_run.py:1482-1491`. The
+transient-import sentinel is not armed until line 1497, and the per-run watch is not opened until
+line 1504. Moving an active callback before backend/scorer callbacks did not move it inside the
+governed component window.
+
+A path hook transiently inserted a harmless fake `qdrant_client`, emitted the corresponding audit
+event, removed the module, and returned the declared sink. Even when the process audit hook was
+already installed, the later watch began after that event and skipped it. Reachability then saw no
+resident module and the run published normal success:
+
+```text
+path_transient_import True integrity_verified 1 True
+```
+
+Arm the real audit sentinel and open the run watch before invoking `os.fspath`. Account for that
+normalization window and recheck live reachability before any backend/scorer access. This check
+must run whether normalization succeeds or raises; a transient event cannot disappear behind a
+path refusal.
+
+Two correctness details belong in the same repair:
+
+- lines 1484-1487 catch only `TypeError`, so an ordinary callback exception still escapes instead
+  of becoming the specified static refusal:
+
+```text
+raising_fspath RuntimeError fspath callback ran False
+```
+
+- the original argument remains live in the `run_b0` frame after normalization. A descriptor
+  callback using frame inspection observed the exact object, despite the spec's literal claim that
+  only the inert string is retained:
+
+```text
+path_alias_retained True True 1
+```
+
+Catch ordinary normalization exceptions without formatting the active object, then clear/delete
+both the original argument and any temporary active value before any backend callback. The frame
+alias is secondary because it requires reflection, but removing it is cheap and makes the stated
+discard contract true. Continue deriving publication solely from the exact manifest sink.
+
+### Delegated GPT-5.5 and root reconciliation
+
+At Laura's request, the GPT-5.5 coding subagent completed the immutable packet review before the
+root code audit. It confirmed the descriptor and generation closures and found the pre-sentinel
+path callback, escaped non-`TypeError`, and retained original argument. Codex independently
+reproduced all three cases, while treating frame inspection as a secondary contract/custody issue
+rather than broadening it into a new launch threat model. No delegated claim is accepted here
+without local reproduction.
+
+### `fed4323` / `c419078` verification
+
+- Exact spec, harness, runner, test, allowlist, and scorer blobs matched the immutable packet.
+- Four focused P5 modules: `276 passed, 1 skipped in 3.67s`.
+- Changed runner/test Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- Fresh model-free probes reproduced the path blocker and confirmed the descriptor/generation
+  repairs.
+- No Gemma/model forward, GPU use, Qdrant access, injection, deployment, B0 launch, or reviewer
+  implementation/spec/test edit occurred.
+
+### `fed4323` / `c419078` disposition
+
+`CHANGES`, narrowly. Descriptor and generation boundaries are closed. The remaining launch
+blocker is the active `report_path` callback executing before the import sentinel/watch; ordinary
+callback exceptions and the retained original alias are two smaller manifestations of the same
+unfinished normalization boundary. Keep #156 open. The unchanged null-estimator GREEN remains
+module-only. #149, the real HF read-only audit, and resolvable protected-sink attestation remain
+independent launch holds; no #155 authorization follows.
