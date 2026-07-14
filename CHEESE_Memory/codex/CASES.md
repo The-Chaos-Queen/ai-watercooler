@@ -221,3 +221,19 @@ evidence supports that promotion.
   journals, bind exact frame schemas and cross-frame identity, not only event-name order.
 - Evidence: Watercooler #1000; commit `5ce85c6`;
   `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
+
+## 2026-07-14 - Authority Freezing Is a Call-Graph Property
+
+- Status: active engineering lesson
+- Domain: governed runners / immutable policy and input custody
+- Conditions: one runner module snapshots its local constants while delegating launch
+  authorization to another module and accepting apparently scalar caller/backend values.
+- Finding: freezing only the caller module leaves dependency policy mutable. `isinstance`
+  also preserves active subclasses of primitive types, while repeated string/path coercion
+  and shallow descriptor copies permit validation and execution to observe different values.
+- Lesson: inventory verdict authority across the full call graph and freeze policy at each
+  owning boundary. Reconstruct leaves by exact type, normalize every external scalar/path
+  once before callbacks, and exact-schema-copy callback results before binding or custody.
+  Published documentation copies must never be the objects consulted for a verdict.
+- Evidence: Watercooler #1011; commit `51c32b9`;
+  `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.

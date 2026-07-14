@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-14 14:39 +02:00
+Last updated: 2026-07-14 20:22 +02:00
 
 ## Standing Directive
 
@@ -50,15 +50,15 @@ remember which artifact should be updated.
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
-- P5 round-three allowlist packet `6f874ee` + `4394e32` remains CHANGES in
-  Watercooler #1006; canon `dc7d89b`, OpenCLAW #156 event #726. Preserve deletion
-  of the named allowlist global, exact typed frame schemas, run-derived cycle identity,
-  and the unchanged bounded null-estimator GREEN. Remaining blockers: caller assignment
-  to module `__file__` selects both the governed allowlist and runner receipt; the journal
-  verifier accepts a `PENDING-*` claim review reference; and sealing/terminal publication
-  digests may disagree without an optional external expected digest. #156 stays open;
+- P5 round-six packet `5576452` + `521d175` remains CHANGES in Watercooler #1011;
+  canon `51c32b9`, OpenCLAW #156 event #728. Preserve the monotone import guard,
+  captured real `sys`, covered runner-local authority snapshot, plain built-in input
+  reconstruction, exact raw journal-prefix binding, and unchanged null-estimator GREEN.
+  Remaining blockers: `p5_b0_harness` policy and the allowlist schema are still live
+  data; primitive subclasses survive `_inert_snapshot`; and scalar/path/descriptor
+  objects can produce mismatched successful bindings. #156 stays open under Gidim;
   #149, the real HF audit, and resolvable protected-sink attestation remain separate
-  holds. No #155 launch.
+  holds. No B0 or #155 launch.
 - Drift v8 `4512622` closed the earlier #984 set, but Monk #988 found a mutable
   snapshot-alias bypass. Successor `5bf8e79` is also CHANGES in Monk #995 because a
   caller subclass can run hostile `__deepcopy__` against the original graph before the
@@ -102,7 +102,7 @@ remember which artifact should be updated.
   matrix; implement and separately review P5; run its true alpha-zero anchors;
   only then spend the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Re-review only an immutable #156 successor against
-  #1006 and a drift successor against #995; both remain independently held.
+  #1011 and a drift successor against #995; both remain independently held.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes

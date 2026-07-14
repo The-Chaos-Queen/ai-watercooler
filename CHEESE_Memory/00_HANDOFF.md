@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-14 14:39 +02:00
-- Current owner: Codex returned CHANGES on P5 round-three spec `6f874ee` + implementation `4394e32` in #1006. Gidim owns the next successor.
-- Primary focus: supersede #156 against #1006 and #168 against Monk #995. World Model #170-#173 remain independent integration holds. Do not deploy the drift gate, run B0, or close #155.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-14-session-03.md`
+- Last updated: 2026-07-14 20:22 +02:00
+- Current owner: Codex returned CHANGES on P5 round-six spec `5576452` + implementation `521d175` in #1011. Gidim owns the next successor.
+- Primary focus: supersede #156 against #1011 and #168 against Monk #995. World Model #170-#173 remain independent integration holds. Do not deploy the drift gate, run B0, or close #155.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-14-session-04.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-14-session-03.md`; 10 chunks stored in `exocortex`)
+  - Latest session log ingest: done (`2026-07-14-session-04.md`; 10 chunks stored in `exocortex`)
 
 ## Current State - Baseline Drift Gate Review (2026-07-13)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
@@ -55,7 +55,7 @@
 - **DQ1b #149 BLOCKED, current source `f20936a`:** source chain `806c6f9` (raw-R correction) -> `a89545e` (B0/carryover) -> `ea9ef4f` (B0 evidence/Stage split) -> `5816483` (SEV/carryover build scope) -> `f20936a` (signed SEV-overlap exception); artifact `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md`; #891/#893/#894 latest-source review. Geometry preserves clean late comb `{29,35,41,47}`, absolute-position `!= 0`, FP32 paired residual stats, raw `R_C/R_S` diagnostics only, and P5 refusal on null/`TBD` thresholds.
 - **Control / recovery method now explicit:** Codex #874 invalidated the raw normalized ratio null; Isegrim #875/Gidim #876/#879/Cairn #877 bind prompt-paired delta-space `D` on `{30|29,36|35,42|41}` and `D_control >= 0.5` as HOLD. Isegrim #888 caught the stateless-recovery trap; Gidim #890 scopes a distinct #156 free-running build; Cairn #892 re-signs recovery only under text-mediated carryover (active trigger -> alpha off -> carried prefix/cache -> <=2 absolute spans, `overwrite_excess >= 0.05`). Fresh alpha-zero replay is `instrument_invalid`, never recovery.
 - **B0 / staged birth review:** Codex #886/Laura baseline-first board repair creates #155 after #149 freezes the nonnumeric evaluator and #156 supplies P5. DQ1a’s exact 32-item SEV holdout is dose geometry; #130 probes are behavioral infrastructure. Their SEV IDs must be disjoint or carry a **signed, reviewed** overlap declaration, otherwise P5 refuses launch (#890/#892). Isegrim is GREEN on `f20936a`; Codex #896 is CHANGES because a manifest-bound single `run_kind` cannot remain unchanged across Stage A/B and because single-Tier-1 STOP conflicts with Laura's accepted Tier-1 HOLD/B0-aggregate policy.
-- **P5 B0 runner review:** Round-three allowlist spec `6f874ee` + implementation `4394e32` remain CHANGES in Codex #1006. Preserve deletion of the named allowlist global, exact typed frame schemas, run-derived cycle identity, and unchanged null-estimator module GREEN. Remaining blockers: caller assignment to `p5_b0_run.__file__` selects both governed scorer authority and runner receipt; the journal verifier accepts `PENDING-*` claim authority; and sealing/terminal publication digests may disagree without an optional expected digest. Canon `dc7d89b`; OpenCLAW #156 event #726; no B0 launch.
+- **P5 B0 runner review:** Round-six allowlist spec `5576452` + implementation `521d175` remain CHANGES in Codex #1011. Preserve the monotone import guard, captured real `sys`, covered runner-local authority freeze, plain built-in snapshot behavior, exact raw journal-prefix verification, and unchanged null-estimator module GREEN. Remaining blockers: live `p5_b0_harness` policy and allowlist schema; primitive subclasses retained by `_inert_snapshot`; active scalar/path bindings; and active backend descriptor leaves. Canon `51c32b9`; OpenCLAW #156 event #728; no B0 launch.
 - **Second direction #157 BLOCKED on review:** local and ML-WS inventory found no admissible second MVB artifact. Old 5g.3 outputs are metric-only 3840-wide JSON; old Method B is all-40/holdout-contaminated; split-clean v3 contains Method A only. `spikes/C1_SECOND_POSITIVE_DIRECTION_PREREG_2026-07-11.md` proposes a deterministic split-clean warm-axis linear-probe estimator with explicit same-semantics limitation; Watercooler #897 requests method/runnability/ethics review before any extraction.
 
 ## Historical State — G0 Oxytocin Delta (superseded by split-clean v3)
@@ -108,7 +108,7 @@
 
 ## Open Threads
 - [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `5bf8e79` against Monk #995 by reconstructing inert exact built-in records without caller-controlled `deepcopy`/copy hooks. No live/deployment claim before GREEN.
-- [ ] **OpenCLAW #156 - P5/B0 custody and binding:** supersede `6f874ee` + `4394e32` against Codex #1006 and canon `dc7d89b`. Make direct assignment to module `__file__` unable to select the governed allowlist or runner receipt; reject unresolved nested claim `review_ref` values; and always require sealing/terminal `published_digest` equality. Preserve exact schemas, run-derived cycles, path confinement, loader-side review-ref refusal, and the module-only GREEN for unchanged null-estimator bytes. #149, real HF audit, and resolvable protected-sink preflight remain separate holds. #155 remains blocked; no real B0 model forward.
+- [ ] **OpenCLAW #156 - P5/B0 custody and binding:** supersede `5576452` + `521d175` against Codex #1011 and canon `51c32b9`. Freeze the complete harness/allowlist policy, exact-type-reconstruct primitive leaves, normalize every scalar/path binding before callbacks, derive publication from the inert manifest sink, and inert-copy/exact-schema-check backend results. Preserve the round-six guard, local-authority, plain built-in snapshot, raw-prefix, and unchanged null-estimator repairs. #149, real HF audit, and resolvable protected-sink preflight remain separate holds. #155 remains blocked; no real B0 model forward.
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
 - [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Isegrim #895 is GREEN; Codex #896 requires a stage-neutral base manifest plus per-attempt `run_kind`, Tier-2 immediate STOP, single-Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold. No C1 stage.
@@ -137,19 +137,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Wait for immutable successors to P5 #1006 and drift #995, then re-run only their exact deltas plus preserved canaries. Keep #149 non-executable until its own artifacts and reviews close.
+- Wait for immutable successors to P5 #1011 and drift #995, then re-run only their exact deltas plus preserved canaries. Keep #149 non-executable until its own artifacts and reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #1006, OpenCLAW #156 event #726, canonical review, handoff, Codex current memory)
-- Session log written: yes (`2026-07-14-session-03.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #1011, OpenCLAW #156 event #728, canonical review, handoff, Codex current memory)
+- Session log written: yes (`2026-07-14-session-04.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: done (10 chunks)
-- Git commit in repo: yes (`dc7d89b` round-three review; continuity closure `547274f`)
+- Git commit in repo: yes (`51c32b9` round-six review; continuity closure pending)
 - Watercooler findings reflected in docs: yes (canonical review, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: review-only session; no implementation lane was modified, and blocking corrections are tracked in #156
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-14 20:22 +02:00 | Codex | Returned CHANGES on P5 round-six spec `5576452` + implementation `521d175` in #1011 after delegated GPT-5.5 review and root reproduction. Accepted the monotone import guard, captured real `sys`, covered runner-local authority freeze, plain built-in snapshot repair, raw-prefix binding, and unchanged null-estimator GREEN. Reproduced live harness policy, primitive-subclass alias/binding/TOCTOU, scalar/path binding, and added live allowlist schema plus active backend descriptor leaves. 265 PASS/1 skip; changed Ruff/diff clean. Canon `51c32b9`; OpenCLAW #156 event #728; no model/GPU/injection/B0 action. Session-04 ingested to Qdrant (10 chunks).
 - 2026-07-14 14:39 +02:00 | Codex | Returned CHANGES on P5 round-three spec `6f874ee` + implementation `4394e32` in #1006. Accepted removal of the named allowlist global, exact typed frame schemas, run-derived cycle identity, and unchanged null-estimator GREEN; reproduced `__file__` selecting scorer authority plus runner receipt, a `PENDING-*` claim passing verification, and mismatched sealing/terminal publication digests passing without an external expected digest. 242 PASS/1 skip; changed Ruff/diff clean. Canon `dc7d89b`; continuity `547274f`; OpenCLAW #156 event #726; no model/GPU/injection/B0 action. Session-03 ingested to Qdrant (10 chunks).
 - 2026-07-14 13:05 +02:00 | Codex | Returned CHANGES on P5 round-two spec `7ecbd19` + implementation `664390f` in #1003. Accepted path confinement, review-ref refusal, cycle agreement/ordinals, and unchanged null-estimator GREEN; reproduced caller assignment of `DEFAULT_ALLOWLIST_PATH` executing a temporary scorer and acceptance of under-specified/non-derived event frames. GPT-5.5 independently confirmed both blockers and no additional blocker in #1004. 231 PASS/1 skip; changed Ruff/diff clean. Canon `c38053a` + `30f381f`; continuity `15c7b0f`; no model/GPU/Qdrant experiment/B0 action.
 - 2026-07-14 00:48 +02:00 | Codex | Returned CHANGES on P5 reviewed-scorer spec `7f9b66c` + implementation `b0983d7` in #1000. Accepted the authority move, content-first loader, journal binding, event-order improvement, and terminal report-byte binding; reproduced runtime allowlist substitution with top-level I/O, mismatched cycle identities passing the grammar, and executable `PENDING-codex` review authority. Exact null-estimator bytes are bounded module-only GREEN. 221 PASS/1 skip; Ruff/diff clean. Canon `5ce85c6`; no model/GPU/Qdrant experiment/B0 action. Session-01 ingested to Qdrant (10 chunks).
