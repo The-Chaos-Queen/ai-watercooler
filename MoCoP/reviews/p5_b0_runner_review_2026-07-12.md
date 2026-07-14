@@ -2124,3 +2124,108 @@ and choose an honest containment/threat boundary for temporary import-machinery 
 another implementation round. Keep #156 open. The unchanged null-estimator GREEN remains
 module-only. #149, the real HF read-only audit, and resolvable protected-sink attestation remain
 independent launch holds; no #155 authorization follows.
+
+## Round-eleven exact-list boundary audit (`c106b09` + `f1fd5df`)
+
+- **Review request:** relayed directly by Laura while the LAN Watercooler endpoint was unavailable.
+- **Spec commit:** `c106b0984de6395091d2053215aecd83b0590086`.
+- **Spec blob:** `e075af9e3a67ee89c8f53fe5c80787591f4eedaa`.
+- **Implementation commit:** `f1fd5df4998a812507a8d5428c780d70d9a95542`.
+- **Harness blob:** `5d056309bfe48d4d66d575ca7b572d7fcbd6a519`.
+- **Runner blob:** `feea5686adb486b45b01cb5ba7fd0b4a340f4335`.
+- **Test blob:** `e21de089604c634f45367e3db17dbeaf59077b6d`.
+- **Allowlist blob:** `4946a99f09e4242dc1f43bdc1ea6ab3c7e41bcbb`.
+- **Verdict:** `CHANGES`, narrowly, on the amended contract and implementation.
+
+### Accepted round-eleven repairs
+
+Preserve these repairs:
+
+- on an exact built-in list, observer restoration scans by identity, deletes by index, inserts one
+  observer at position zero, and invokes no finder equality;
+- the guarantee is now honestly bounded to ordinary real imports while the import machinery stays
+  intact; temporary teardown/restore, direct loader execution, function replacement, and bytecode
+  mutation are explicitly the CPython non-TEE residual rather than claimed detections;
+- real built-in `__import__` and `importlib.import_module` are both tested in both the path and
+  backend windows;
+- the residual test deliberately pins the excluded temporary teardown case without clearing
+  observer evidence or disguising it as a covered guarantee; and
+- the constant path refusal and every prior descriptor, generation, path, authority, inert-custody,
+  raw-prefix, and publication repair remain intact.
+
+Fresh controls confirmed that a hostile finder's `__eq__` is not touched during normal-list
+restoration. The unchanged null-estimator remains Git blob
+`31574f5cd95767d8c9aa3b55b958655d75f16ed2`, raw SHA-256
+`977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e`.
+
+### Blocker: the promised exact-list boundary is not enforced
+
+Spec section 19 requires an **EXACT-list, IDENTITY-ONLY** restore. The implementation at
+`p5_b0_run.py:221-225` reads `real_sys.meta_path` and immediately calls `len`, indexing, deletion,
+and `insert` without first requiring `type(mp) is list`. `observer_displaced()` at lines 241-242
+likewise invokes truth and indexing behavior on whatever object currently occupies that attribute.
+The element comparisons are identity-only, but the container operations are still active.
+
+A one-shot active `list` subclass imported and removed the harmless temporary `qdrant_client` from
+its `__len__` during observer restoration, before the watch opened. The runner then inserted the
+observer and published GREEN:
+
+```text
+active_list_subclass_during_ensure True integrity_verified True 1 () ActiveMetaPath
+```
+
+A persistent list replacement contained no observer for real import iteration but lied from
+`mp[0]` during the checkpoint. It imported and removed the component, stayed installed, and also
+published GREEN:
+
+```text
+persistent_liar_metapath True integrity_verified True LiarList False ()
+```
+
+Malformed non-list state raises instead of producing the existing fail-closed sentinel refusal:
+
+```text
+tuple_meta_path AttributeError 'tuple' object has no attribute 'insert' False
+```
+
+These are not the excluded temporary remove/import/restore case. The first occurs inside the
+runner's own pre-watch restoration of the exact structure section 19 says it validates; the second
+is still malformed at the checkpoint; the third demonstrates non-total failure handling. Enforce
+the boundary before touching the container:
+
+- in `ensure_import_audit`, if `type(real_sys.meta_path) is not list`, return `False` without
+  calling any method on it; perform the identity-only restore inside a fail-closed exception guard;
+- in `observer_displaced`, treat any non-exact-list value as displaced before truth/index access;
+  and
+- add regressions for active list subclasses/malformed values and the hostile-equality control.
+
+The current test diff adds the real built-in backend cell and residual test but no test of the
+claimed exact-list/hostile-equality restoration, despite section 19 saying that repair is covered.
+
+### Delegated GPT-5.5 and root reconciliation
+
+At Laura's request, the GPT-5.5 coding subagent reviewed the immutable packet before final
+adjudication. It respected the newly declared non-TEE residual and independently found the missing
+exact-container check, active restoration callback, lying persistent container, and malformed-state
+escape. Codex reproduced the same boundary locally while confirming the identity-only normal-list
+control. No excluded temporary teardown or direct-loader case is used as a verdict blocker.
+
+### `c106b09` / `f1fd5df` verification
+
+- Exact spec, harness, runner, test, allowlist, and scorer blobs matched the immutable packet.
+- Four focused P5 modules: `284 passed, 1 skipped in 4.12s`.
+- Changed runner/test Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- Fresh model-free probes confirmed the accepted identity/boundary repairs and reproduced the
+  exact-container blocker.
+- No Gemma/model forward, GPU use, Qdrant access, injection, deployment, B0 launch, or reviewer
+  implementation/spec/test edit occurred.
+
+### `c106b09` / `f1fd5df` disposition
+
+`CHANGES`, narrowly. The threat boundary is now coherent and the identity-only algorithm is correct
+for its intended container, but the code never proves that container is an exact list before using
+its active protocol. Add the exact-type/fail-closed checks and corresponding regressions, preserving
+the narrowed non-TEE residual and complete real-import matrix. Keep #156 open. The unchanged
+null-estimator GREEN remains module-only. #149, the real HF read-only audit, and resolvable
+protected-sink attestation remain independent launch holds; no #155 authorization follows.
