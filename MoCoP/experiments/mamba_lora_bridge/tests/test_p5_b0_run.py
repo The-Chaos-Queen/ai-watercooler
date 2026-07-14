@@ -1366,6 +1366,66 @@ def test_temporary_metapath_teardown_is_documented_residual(tmp_path, _fake_forb
     assert res.ok is True
 
 
+def test_meta_path_list_subclass_fails_closed(tmp_path, monkeypatch):
+    # Codex #1021: sys.meta_path replaced by a list SUBCLASS is not an EXACT list — arm must fail
+    # closed (the observer cannot be safely installed), not proceed on a subclass.
+    class _SubMeta(list):
+        pass
+    monkeypatch.setattr(sys, "meta_path", _SubMeta(sys.meta_path))
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is False and any("could not be armed" in r for r in res.refusals)
+
+
+def test_meta_path_hostile_object_untouched(tmp_path, monkeypatch):
+    # Codex #1021: a non-list meta_path must fail closed WITHOUT the guard invoking its hooks.
+    touched = {"hit": False}
+
+    class _Hostile:
+        def __getitem__(self, i):
+            touched["hit"] = True
+            return None
+
+        def __len__(self):
+            touched["hit"] = True
+            return 0
+
+        def insert(self, i, x):
+            touched["hit"] = True
+
+    monkeypatch.setattr(sys, "meta_path", _Hostile())
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is False and any("could not be armed" in r for r in res.refusals)
+    assert touched["hit"] is False                       # the malformed object was never indexed
+
+
+def test_meta_path_swapped_mid_run_fails_closed(tmp_path):
+    # Codex #1021: a backend that replaces sys.meta_path with a non-list mid-run must be caught at
+    # the next checkpoint (fail closed) without touching the malformed object.
+    out = tmp_path / "b0_report.json"
+    saved = sys.meta_path
+
+    class _Swapper:
+        def assert_sterile(self):
+            return None
+
+        def descriptor(self):
+            return dict(MODEL)
+
+        def generate(self, prompt, decoding):
+            sys.meta_path = ("not", "a", "list")         # non-list replacement
+            return "gen"
+
+    try:
+        with pytest.raises(B0RunError) as ei:
+            _run(_manifest(PANEL, out), PANEL, _Swapper(), out)
+        assert "observer" in str(ei.value)
+    finally:
+        sys.meta_path = saved                            # restore the process meta_path
+    assert not out.exists()
+
+
 def test_observer_displacement_fails_closed(tmp_path):
     # Codex #1015 B (authority-protected): if the meta_path observer is removed/displaced during a
     # window, the watch fails closed.

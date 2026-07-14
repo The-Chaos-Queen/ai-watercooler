@@ -214,11 +214,18 @@ def _bind_reachability_guard():
             except Exception:  # pragma: no cover - audit hooks unavailable
                 return False
             state["installed"] = True
+        # sys.meta_path is itself a reassignable module attribute (Codex #1021): a caller could
+        # replace it with a non-list, or a list SUBCLASS overriding __getitem__/__delitem__/insert,
+        # and turn every restore/checkpoint op into a hostile callback. Require an EXACT list before
+        # touching it, and FAIL CLOSED (report not-armed) without indexing/iterating a malformed
+        # object.
+        mp = real_sys.meta_path
+        if type(mp) is not list:
+            return False
         # Restore the name-observer to the FRONT via an EXACT-list, IDENTITY-ONLY scan/delete
         # (Codex #1019): `x in mp` / `mp.remove(x)` use __eq__, which a hostile finder could
         # override to make them target the wrong entry. Scan by `is`, delete every identity-match
         # by index, then insert one at index 0 — no equality comparison anywhere.
-        mp = real_sys.meta_path
         for i in range(len(mp) - 1, -1, -1):
             if mp[i] is observer:
                 del mp[i]
@@ -238,7 +245,13 @@ def _bind_reachability_guard():
         # replacement and bytecode mutation, under the CPython-is-not-a-TEE residual (custody #971).
         # The PROVEN guarantee: real __import__ and importlib.import_module loads are caught while
         # the import machinery is intact (i.e. absent active dismantling of it).
+        #
+        # Codex #1021: sys.meta_path may be REPLACED with a non-list / hostile-list-subclass. Require
+        # an EXACT list; a malformed meta_path is a tamper -> displaced (fail closed) WITHOUT indexing
+        # it (so its __getitem__/__bool__ are never invoked).
         mp = real_sys.meta_path
+        if type(mp) is not list:
+            return True
         return not mp or mp[0] is not observer
 
     def live_modules() -> Mapping[str, Any]:
