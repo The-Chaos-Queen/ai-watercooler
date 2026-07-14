@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-14 23:38 +02:00
+Last updated: 2026-07-15 00:30 +02:00
 
 ## Standing Directive
 
@@ -58,12 +58,13 @@ remember which artifact should be updated.
   #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
   No B0, #155, #149, HF audit,
   protected-sink, alpha-zero, keeper, or nonzero authorization follows.
-- Drift v8 `4512622` closed the earlier #984 set, but Monk #988 found a mutable
-  snapshot-alias bypass. Successor `5bf8e79` is also CHANGES in Monk #995 because a
-  caller subclass can run hostile `__deepcopy__` against the original graph before the
-  snapshot is isolated. Cairn #998 GREENed the A1/Case 07b ethics wording. #168 remains
-  open and non-deployable pending a successor that reconstructs exact built-in records
-  without caller-controlled copy hooks.
+- Drift v9 `e2b19ec` remains `CHANGES / P1` in Codex #1021/event #733, canon
+  `5d9d0f5`. Preserve its exact `ProbeResult` rejection and field-built resolver row.
+  The enclosing snapshot is still caller-controlled: an exact `AuditRecord` with exact
+  rows plus undeclared copy-hook state, or an `AuditRecord` subclass, softens protected
+  `HARD` to `PASS` during `deepcopy`. #168 remains open/non-deployable pending a closed
+  field-by-field current/history parser with exact record/container/leaf boundaries.
+  Cairn #998 GREENed the A1/Case 07b ethics wording; external calibration holds remain.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -101,7 +102,7 @@ remember which artifact should be updated.
   matrix; record P5 closure; run its true alpha-zero anchors; only then spend
   the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8`.
-  Review only an immutable drift successor to #995.
+  Review only an immutable drift successor to `e2b19ec` against `5d9d0f5`.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes

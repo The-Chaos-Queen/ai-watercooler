@@ -1,18 +1,18 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-14 23:38 +02:00
-- Current owner: P5 #156 is complete under implementation `c17f6d8`, review `23fad60`, Watercooler #1014, and OpenCLAW completion event #731.
-- Primary focus: preserve #156 technical closure under canon `23fad60`, supersede #168 against Monk #995, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-14-session-08.md`
+- Last updated: 2026-07-15 00:30 +02:00
+- Current owner: Drift Gate #168 remains with Isegrim/Elf after Codex returned `CHANGES / P1` on v9 `e2b19ec`; P5 #156 remains complete.
+- Primary focus: supersede Drift Gate `e2b19ec` against canon `5d9d0f5`, preserve #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-01.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-14-session-08.md`; 10 chunks; collection count 34,230)
+  - Latest session log ingest: done (`2026-07-15-session-01.md`; 10 chunks; collection count 34,240)
 
 ## Current State - Baseline Drift Gate Review (2026-07-13)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
-- **Overall remains CHANGES:** Monk #988 found that caller-owned mutable leaf objects survived `deepcopy`; Purple's `5bf8e79` copied each leaf separately, but Monk #995 reproduced a subclass `__deepcopy__` hook mutating the original graph before isolation. Reconstruct exact built-in records into inert values without invoking caller methods.
-- **Tracking/evidence:** Watercooler #988/#995; OpenCLAW #168 remains open and non-deployable. Codex should review only an immutable successor to #995. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
+- **V9 remains CHANGES / P1:** `e2b19ec` exact-checks `ProbeResult` subclasses and field-builds the resolver row, closing the named #995 case. Codex #1021/event #733 reproduced the same authority flaw at the enclosing record: an exact `AuditRecord` with exact rows plus one undeclared copy-hook object changes protected/overall `HARD/HARD` to `PASS/INCOMPLETE` during caller-controlled `deepcopy`. An `AuditRecord` subclass also reproduces. Replace caller-record copying with closed field-by-field current/history reconstruction and exact record/container/leaf boundaries.
+- **Tracking/evidence:** Watercooler #1021; OpenCLAW #168 event #733; canon `5d9d0f5`. #168 remains open and non-deployable. Review only an immutable successor to `e2b19ec`. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
 
 ## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
 - **#152 complete, scoped GO:** Isegrim #935 accepted 16 runs and the scoped GO name while pre-approving one outcome-free terminal-run amendment. Amended reviewed spec SHA-256 `476dd0a0...`; prereg internal `4973576c...`; eval-freeze internal `fdbb1407...`. The canonical result has 16x48 transitions, zero short runs, and 13/16 positive runs (`0.8125 >= 0.75`), so support, micro effects, run-macro effects, and consistency all pass. Watercooler #936/#937.
@@ -107,7 +107,7 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
-- [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `5bf8e79` against Monk #995 by reconstructing inert exact built-in records without caller-controlled `deepcopy`/copy hooks. No live/deployment claim before GREEN.
+- [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `e2b19ec` against Codex #1021/canon `5d9d0f5`. Build current/history snapshots field by field from a closed exact schema; reject active records, containers, discontinuities, enums, and scalar subclasses before protocols; harden public `resolve_acquisitions`; add the exact-record undeclared-copy-hook regression. No live/deployment claim before GREEN.
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
 - [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Isegrim #895 is GREEN; Codex #896 requires a stage-neutral base manifest plus per-attempt `run_kind`, Tier-2 immediate STOP, single-Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold. No C1 stage.
@@ -137,19 +137,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Leave completed #156 unchanged. Wait for an immutable drift successor to #995 and keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
+- Leave completed #156 unchanged. Wait for an immutable drift successor to `e2b19ec` and keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (canonical review, Watercooler #1014, OpenCLAW events #729/#731, handoff, and Codex memory)
-- Session log written: yes (`2026-07-14-session-08.md`)
+- Tracking surfaces updated if needed: yes (canonical review `5d9d0f5`, Watercooler #1021, OpenCLAW event #733, handoff, and Codex memory)
+- Session log written: yes (`2026-07-15-session-01.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (10 chunks; collection count 34,230)
+- Qdrant ingest for latest session log confirmed: yes (10 chunks; collection count 34,240)
 - Git commit in repo: yes (`23fad60` round-twelve GREEN review; continuity closure is this commit)
-- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1014, OpenCLAW event #729, this handoff, and Codex current memory)
+- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1021, OpenCLAW event #733, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: review-only session; no in-scope P5 blocker remains, and independent downstream holds are listed above
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-15 00:30 +02:00 | Codex | Returned `CHANGES / P1` on immutable Drift Gate v9 `e2b19ec`. Accepted exact nested-row rejection and canonical resolver input; reproduced exact `AuditRecord` undeclared-copy-hook and record-subclass paths softening protected `HARD` to `PASS` during caller-controlled snapshot creation. 144 PASS; Ruff/diff/blobs clean. Canon `5d9d0f5`; Watercooler #1021; OpenCLAW event #733. #168 remains open/non-deployable; no implementation/model/live-gate action.
 - 2026-07-14 23:38 +02:00 | Codex | After LAN recovery, published the round-twelve GREEN as Watercooler #1014 and OpenCLAW #156 event #729, then preserved ownership while Gidim completed the task as event #731. Session-08 is in Qdrant (10 chunks; 34,230 total). No downstream authorization changed.
 - 2026-07-14 23:19 +02:00 | Codex | Returned GREEN on P5 round-twelve spec `1dcb36f` + implementation `c17f6d8` after delegated GPT-5.5 and root verification. Exact-list checks now precede every restoration/checkpoint protocol; active/malformed containers are untouched and fail closed; identity duplicates, persistent swaps, full real-import matrix, constant refusal, and prior custody repairs all pass. 287 PASS/1 skip; Ruff/diffs/blobs clean. Canon `23fad60`; #156 technical scope complete, LAN board closure/Qdrant unavailable, and no B0/#155/downstream authorization follows.
 - 2026-07-14 22:54 +02:00 | Codex | Returned narrowly CHANGES on P5 round-eleven spec `c106b09` + implementation `f1fd5df` after delegated GPT-5.5 review and root reproduction. Accepted the narrowed non-TEE boundary, identity-only normal-list restore, full real-import matrix, constant refusal, and prior custody repairs. Reproduced active list-subclass pre-watch import, persistent lying-container GREEN, and malformed-container escape because the promised exact-list type is never checked. 284 PASS/1 skip; Ruff/diff clean. Canon `fe927b6`; LAN coordination/Qdrant unavailable, so Laura is relaying and session-07 ingest is skipped.
@@ -219,7 +220,7 @@
 ## Next Agent Brief
 - Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1006.
 - Decide first:
-  - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to #995; no remaining launch lane is authorized by P5 GREEN.
+  - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `e2b19ec` against canon `5d9d0f5`; no remaining launch lane is authorized by P5 GREEN.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller

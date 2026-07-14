@@ -292,3 +292,18 @@ evidence supports that promotion.
   `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`.
 - Closure: implementation `c17f6d8` enforces the exact-list check before restoration and
   checkpoint protocols; review `23fad60` returned GREEN with malformed-object hooks untouched.
+
+## 2026-07-15 - Snapshot Authority Covers the Full Record Graph
+
+- Status: active engineering lesson
+- Domain: active-object boundaries / decision-kernel snapshot isolation
+- Conditions: a kernel exact-checks nested row classes, then `deepcopy`s an open caller-owned
+  dataclass before validation and scoring.
+- Finding: an exact record with exact rows can carry undeclared state whose copy hook mutates a
+  protected row before it is copied. Exact nested leaves do not neutralize an active enclosing
+  record, container, discontinuity, or scalar value.
+- Lesson: construct the private graph field by field from one closed exact schema before any
+  caller protocol. Reject active record/container/leaf subclasses and never traverse undeclared
+  state. Public helpers must either repeat that boundary or accept canonical internal records only.
+- Evidence: Drift Gate `e2b19ec`; Watercooler #1021; review `5d9d0f5`;
+  `MoCoP/reviews/drift_gate_v9_review_2026-07-15.md`.
