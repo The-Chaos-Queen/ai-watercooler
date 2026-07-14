@@ -514,3 +514,23 @@ accepted. ONE item.
   displaced, neither indexing/iterating/len-ing the object. Exact-container regressions cover a
   list subclass (arm fails closed), a hostile non-list whose hooks are proven never invoked, and a
   mid-run non-list swap (checkpoint fails closed).
+
+---
+
+## 21. GREEN of record — model-free runner/spec scope CLOSED
+
+**Verdict of record: GREEN** on spec `1dcb36f` + implementation `c17f6d8` (wolf-Codex review
+`23fad60`). This closes **#156's MODEL-FREE runner/spec scope**: the reviewed-scorer allowlist
+contract and the P5 B0 model-free runner are accepted after the full adversarial arc (§10–§20,
+plus the earlier scorer-binding rounds #960→#987). The reviewed null-estimator remains the bounded
+module-only GREEN (raw sha256 `977eb558…f9e`).
+
+**This GREEN authorizes NOTHING downstream.** It explicitly does NOT authorize: an actual B0 run,
+#155 (C1 B0), #149 schema reconciliation, the real HF read-only audit, protected-sink readiness,
+alpha-zero, or any nonzero intervention. Those remain independent, still-open launch holds; runner+
+spec GREEN alone never authorizes a launch (the standing rule from §1 onward).
+
+The security model reached the CPython-is-not-a-TEE boundary (custody split #971): everything up to
+that line is closure-owned, exact-type-reconstructed, or exact-type-guarded; only function
+replacement, bytecode mutation, and active import-machinery teardown remain out of scope, stated
+explicitly and pinned by tests.
