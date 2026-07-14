@@ -1254,3 +1254,108 @@ alternate authority path and B2 remains a partial rather than exact protocol sch
 open. The bounded null-estimator GREEN remains valid only for its unchanged bytes. #149 schema
 reconciliation, the real HF read-only audit, and the resolvable protected-sink attestation remain
 independent launch holds; no #155 authorization follows.
+
+## Round-three scorer-allowlist correction audit (`6f874ee` + `4394e32`)
+
+- **Review request:** Watercooler #1005, relaying Gidim's round-three packet.
+- **Spec commit:** `6f874eee148d423fa00fd74132659eea6b7efc57`.
+- **Spec blob:** `6625204f8397ed463c0543a97757bac7d7826455`.
+- **Implementation commit:** `4394e3202a15d536e421b9175802dee9d532e0d3`.
+- **Runner blob:** `453dd3763fac32e512e0f6a00639a01862314255`.
+- **Test blob:** `28c22915ca15ee77bef54aeb15e1162ca3849338`.
+- **Allowlist blob:** `4946a99f09e4242dc1f43bdc1ea6ab3c7e41bcbb`.
+- **Verdict:** `CHANGES` on the amended contract and implementation.
+
+### Accepted round-three repairs
+
+Preserve these repairs:
+
+- the named `DEFAULT_ALLOWLIST_PATH` authority variable is deleted, `run_b0` still exposes no
+  allowlist argument, and the governed integration test exercises the committed scorer;
+- every frame now has a closed required field set with typed values, the claim binds `run_kind`,
+  manifest/execution digests, and a complete scorer-binding object, and sealing/committed-terminal
+  digest fields are unconditionally present and SHA-256-shaped;
+- probe ordinals advance from zero, every cycle agrees on identity, and `attempt_id` is derived as
+  `{run_id}:{ordinal}`; and
+- the exact null-estimator remains unchanged: Git blob
+  `31574f5cd95767d8c9aa3b55b958655d75f16ed2`, raw SHA-256
+  `977eb558edd6cded15cfbe025f9fca7a3bca0630b397a3742eb5a3af351e2f9e`.
+
+Fresh controls confirmed that the former under-specified claim and non-derived attempt identity
+now fail closed: the first is rejected for missing `run_kind`, and the second for not being
+run-derived.
+
+### Blocker 1: the governed authority and runner receipt follow assignable `__file__`
+
+The replacement authority at `p5_b0_run.py:281-289` derives the allowlist from the module global
+`__file__` at call time. `_runner_digest` independently reads that same global at lines 245-249.
+`__file__` is an ordinary assignable module attribute: assigning
+`p5_b0_run.__file__` to a temporary runner path selects both a sibling temporary
+`scorer_allowlist.json` and the runner bytes whose digest the manifest must match. A temporary
+reviewed-scorer lookalike with top-level filesystem I/O executed through governed `run_b0`; its
+marker appeared and the run still reported normal success:
+
+```text
+mutable_dunder_file_override True True integrity_verified
+```
+
+This uses the same direct module-attribute assignment as the prior `DEFAULT_ALLOWLIST_PATH`
+canary; it does not replace a function, mutate bytecode, or require a reflective write primitive.
+The new guard at `test_p5_b0_run.py:933-943` specifically ignores dunder globals and therefore
+cannot detect the authority it now relies on. Bind runner origin through a call-time path that a
+caller cannot select by assigning module metadata, and use that same fixed origin for the runner
+receipt. Add a governed integration canary that assigns `p5_b0_run.__file__`, then proves neither
+the selected allowlist nor `_runner_digest()` changes.
+
+### Blocker 2: a journal claim can restore an unresolved scorer review reference
+
+The loader correctly refuses unresolved review references, but the standalone terminal-protocol
+verifier does not. `_SCORER_BINDING_SCHEMA` at `p5_b0_run.py:995-998` declares `review_ref` as only
+a non-empty string, and `_typed_field_error` at lines 1001-1018 applies no `TBD`/`PENDING` refusal
+to nested claim bindings. A complete exact-schema journal whose claim used
+`review_ref="PENDING-codex"` passed:
+
+```text
+pending_claim_review_ref True None
+```
+
+This contradicts the section-11 requirement that the claim's `review_ref` be resolved. Apply the
+same local unresolved-reference predicate inside claim verification and add empty, `TBD`, and
+`PENDING-*` claim-frame regressions. The external resolver remains a separate launch hold.
+
+### Blocker 3: sealing and terminal publication identities are not mutually bound
+
+The exact schemas make both `published_digest` fields mandatory and SHA-256-shaped, but they are
+independent values. `verify_terminal_frames` compares either field only when the optional
+`report_published_digest` argument is supplied (`p5_b0_run.py:1205-1211`). Without that external
+argument, a sealing frame with one valid digest and its committed terminal with a different valid
+digest passed:
+
+```text
+mismatched_publication_digests True None
+```
+
+The executable terminal protocol must always require the committed terminal's
+`published_digest` to equal the preceding sealing frame's value. An optional expected report
+digest may additionally bind both to report bytes, but its absence cannot permit the two journal
+receipts to identify different publications.
+
+### `6f874ee` / `4394e32` verification
+
+- Exact spec, runner, test, allowlist, and scorer blobs matched the immutable packet.
+- Four focused P5 modules: `242 passed, 1 skipped`.
+- Changed runner/test Ruff: clean.
+- Both commit-local `git diff --check` ranges: clean.
+- Fresh model-free probes reproduced all three fail-open behaviors above and confirmed the two
+  advertised fail-closed repairs.
+- No Gemma/model forward, GPU use, injection, deployment, B0 launch, or reviewer edit to Gidim's
+  implementation, spec, or tests occurred.
+
+### `6f874ee` / `4394e32` disposition
+
+`CHANGES`. The named allowlist global and the broad exact-schema omissions are repaired, but the
+governed path and runner receipt now follow caller-assignable `__file__`, while the journal
+verifier admits unresolved claim authority and mutually inconsistent publication identities.
+Keep #156 open. The unchanged null-estimator GREEN remains module-only. #149, the real HF
+read-only audit, and resolvable protected-sink attestation remain independent launch holds; no
+#155 authorization follows.
