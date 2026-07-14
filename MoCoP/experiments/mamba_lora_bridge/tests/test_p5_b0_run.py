@@ -303,7 +303,9 @@ def test_forbidden_route_for_exact_match():
 
 def test_import_sentinel_flags_forbidden_transient():
     # Monotone, non-destructive: a per-run watch reads the log suffix since its checkpoint and
-    # advances its own private cursor. No clear/drain is exposed (Codex #1009 B1).
+    # advances its own private cursor. No clear/drain is exposed (Codex #1009 B1). Arm first so the
+    # meta_path observer is installed (else the watch fails closed on a missing observer, #1015 B).
+    _ensure_import_audit()
     watch = _new_import_watch()
     _import_audit_hook("import", ("qdrant_client", None, None, None, None))
     _import_audit_hook("import", ("json", None, None, None, None))   # not forbidden -> ignored
@@ -1254,15 +1256,108 @@ def test_run_b0_report_path_fspath_transient_import_caught(tmp_path):
 
 
 def test_run_b0_report_path_fspath_raise_is_static_refusal(tmp_path):
-    # Codex #1015 B: ANY __fspath__ fault (not only TypeError) is a static refusal, not a crash.
+    # Codex #1015 B: ANY __fspath__ fault (not only TypeError) is a static refusal, not a crash,
+    # AND the refusal is CONSTANT (no attacker-controlled exception type formatted into it).
     out = tmp_path / "b0_report.json"
+
+    class _NamedBoom(Exception):
+        pass
+    _NamedBoom.__name__ = "attacker/../injected"     # would be dangerous if formatted into refusal
 
     class _BoomPath:
         def __fspath__(self):
-            raise RuntimeError("boom")
+            raise _NamedBoom("boom")
 
     res = _run(_manifest(PANEL, out), PANEL, _backend(), out, report_path=_BoomPath())
-    assert res.ok is False and any("normalization failed" in r for r in res.refusals)
+    assert res.ok is False and any(r == "report_path normalization failed; refusing"
+                                   for r in res.refusals)
+    assert not any("injected" in r for r in res.refusals)   # constant refusal, no exc name leak
+    assert not out.exists()
+
+
+@pytest.fixture
+def _fake_forbidden_module(tmp_path, monkeypatch):
+    """A real, importable module whose name is a FORBIDDEN component route."""
+    moddir = tmp_path / "fakemods"
+    moddir.mkdir()
+    (moddir / "qdrant_client.py").write_text("VALUE = 1\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(moddir))
+    yield "qdrant_client"
+    sys.modules.pop("qdrant_client", None)
+
+
+@pytest.mark.parametrize("how", ["builtin", "importlib"])
+def test_observer_catches_real_transient_load_in_path_window(tmp_path, _fake_forbidden_module, how):
+    # Codex #1015 B: the observer must catch REAL built-in (__import__) AND importlib
+    # (import_module) loads — not just synthetic audit events — inside the report_path.__fspath__
+    # window, INCLUDING removal before the reachability snapshot. The meta_path finder fires at
+    # find time for both paths (the audit "import" event fires for __import__ only).
+    out = tmp_path / "b0_report.json"
+    name = _fake_forbidden_module
+
+    class _RealImportPath:
+        def __fspath__(self):
+            import importlib
+            (__import__ if how == "builtin" else importlib.import_module)(name)
+            sys.modules.pop(name, None)            # remove BEFORE the reachability snapshot
+            return str(out)
+
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out, report_path=_RealImportPath())
+    assert res.ok is False and any("qdrant" in r.lower() for r in res.refusals)
+    assert not out.exists()
+
+
+def test_observer_catches_real_transient_load_in_backend_window(tmp_path, _fake_forbidden_module):
+    # Same, in the backend.generate() window: a real importlib load then removal is caught.
+    out = tmp_path / "b0_report.json"
+    name = _fake_forbidden_module
+
+    class _RealImportBackend:
+        def assert_sterile(self):
+            return None
+
+        def descriptor(self):
+            return dict(MODEL)
+
+        def generate(self, prompt, decoding):
+            import importlib
+            importlib.import_module(name)              # importlib path — misses the audit hook,
+            sys.modules.pop(name, None)               # caught by the meta_path observer
+            return "gen"
+
+    with pytest.raises(B0RunError) as ei:
+        _run(_manifest(PANEL, out), PANEL, _RealImportBackend(), out)
+    assert "qdrant" in str(ei.value).lower() or "REACHABLE" in str(ei.value)
+    assert not out.exists()
+
+
+def test_observer_displacement_fails_closed(tmp_path):
+    # Codex #1015 B (authority-protected): if the meta_path observer is removed/displaced during a
+    # window, the watch fails closed.
+    out = tmp_path / "b0_report.json"
+    saved = list(sys.meta_path)
+
+    class _NoopFinder:
+        def find_spec(self, *a, **k):
+            return None
+
+    class _DisplacingBackend:
+        def assert_sterile(self):
+            return None
+
+        def descriptor(self):
+            return dict(MODEL)
+
+        def generate(self, prompt, decoding):
+            sys.meta_path.insert(0, _NoopFinder())     # shove a finder ahead of the observer
+            return "gen"
+
+    try:
+        with pytest.raises(B0RunError) as ei:
+            _run(_manifest(PANEL, out), PANEL, _DisplacingBackend(), out)
+        assert "observer" in str(ei.value)
+    finally:
+        sys.meta_path[:] = saved                       # restore the process meta_path
     assert not out.exists()
 
 

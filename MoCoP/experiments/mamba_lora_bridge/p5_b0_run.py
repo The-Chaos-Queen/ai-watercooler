@@ -182,21 +182,53 @@ def _bind_reachability_guard():
         return None
 
     def import_audit_hook(event: str, args: tuple) -> None:
+        # The "import" audit event fires for the BUILTIN __import__ path only. It does NOT fire for
+        # importlib.import_module (which calls _gcd_import directly) — proven empirically, Codex
+        # #1015 B. So this hook is SUPPLEMENTED, not relied on alone, by the meta_path observer below.
         if event == "import" and args:
             name = args[0]
             if isinstance(name, str) and forbidden_route_for(name):
                 log.append(name)                     # monotone append; nothing is ever removed
 
+    class _ImportObserver:
+        """A sys.meta_path finder that RECORDS (never blocks) any forbidden module by NAME.
+
+        ``_find_and_load`` consults sys.meta_path for BOTH builtin ``__import__`` AND
+        ``importlib.import_module`` (Codex #1015 B), at find time — before the module is added to
+        sys.modules — so this catches transient import-and-remove that the resident snapshot misses,
+        for both load paths, by name. It always returns None (pure observer; the real finders load)."""
+
+        def find_spec(self, fullname, path=None, target=None):
+            if forbidden_route_for(fullname):
+                log.append(fullname)
+            return None
+
+    observer = _ImportObserver()
+
     def ensure_import_audit() -> bool:
-        """Install the transient-import sentinel; False if it could NOT be armed (fail CLOSED,
-        #966). Installed-state is a CLOSURE cell — no reassignable ``_audit_installed`` to spoof."""
+        """Arm the observers; False if the audit hook could NOT be installed (fail CLOSED, #966).
+        Installed-state is a CLOSURE cell — no reassignable ``_audit_installed`` to spoof."""
         if not state["installed"]:
             try:
                 real_sys.addaudithook(import_audit_hook)
             except Exception:  # pragma: no cover - audit hooks unavailable
                 return False
             state["installed"] = True
+        mp = real_sys.meta_path                        # restore the name-observer to the FRONT so it
+        if observer in mp:                             # is consulted before any short-circuiting
+            if mp and mp[0] is not observer:           # finder (benign reordering between runs is ok;
+                mp.remove(observer)                    # mid-run displacement is caught by the watch)
+                mp.insert(0, observer)
+        else:
+            mp.insert(0, observer)
         return state["installed"]
+
+    def observer_displaced() -> bool:
+        # Authority protection (Codex #1015 B): the observer must be present AND first, so it is
+        # consulted before any finder that could short-circuit an import. If a caller removed it
+        # from sys.meta_path or inserted ahead of it during a window, that is a fail-closed tamper.
+        mp = real_sys.meta_path
+        return not mp or mp[0] is not observer
 
     def live_modules() -> Mapping[str, Any]:
         return real_sys.modules                      # the REAL module table, not a reassignable sys
@@ -205,13 +237,17 @@ def _bind_reachability_guard():
         """A per-run window watch with a PRIVATE local cursor into the monotone log. Non-destructive:
         it only reads the log suffix since the last checkpoint and advances its OWN cursor. The
         cursor lives in this closure cell (a run_b0 local) — code running inside a guarded window
-        (a backend/scorer) has no handle to it and cannot erase or skip evidence (Codex #1009 B1)."""
+        (a backend/scorer) has no handle to it and cannot erase or skip evidence (Codex #1009 B1).
+        It also fails CLOSED if the meta_path observer was displaced during the window (#1015 B)."""
         box = {"cursor": len(log)}
 
         def forbidden_since_last() -> tuple[str, ...]:
             cp = box["cursor"]
             box["cursor"] = len(log)
-            return tuple(sorted(set(log[cp:])))
+            hits = list(log[cp:])
+            if observer_displaced():
+                hits.append("<import observer removed/displaced from sys.meta_path>")
+            return tuple(sorted(set(hits)))
 
         return forbidden_since_last
 
@@ -1498,9 +1534,11 @@ def run_b0(
     if not refusals and report_path is not None:
         try:
             _rp = os.fspath(report_path)
-        except Exception as exc:  # noqa: BLE001 - any __fspath__ fault is a static refusal
+        except Exception:  # noqa: BLE001 - any __fspath__ fault is a static refusal
+            # Constant refusal (Codex #1015): never format an attacker-controlled exception type
+            # (a custom exception's __name__ is caller data) into the refusal string.
             _rp = None
-            refusals.append(f"report_path normalization failed ({type(exc).__name__}); refusing")
+            refusals.append("report_path normalization failed; refusing")
         if type(_rp) is str:
             report_path_str = _rp
         elif not refusals:
