@@ -1421,8 +1421,8 @@ class TestCalibrationCorpus:
         (.owner) on an ACQUISITION ProbeResult, then mutated the private name
         row through that alias to flip protected_set HARD -> PASS. Two defenses:
         (1) ProbeResult uses __slots__, rejecting undeclared attributes;
-        (2) resolve_acquisitions passes the resolver a deep copy, not the
-        snapshot row itself."""
+        (2) resolve_acquisitions passes the resolver a canonical rebuild, not
+        the snapshot row itself."""
         import pytest
         chain = _chain(STABLE)
 
@@ -1435,14 +1435,14 @@ class TestCalibrationCorpus:
         with pytest.raises(AttributeError):
             acq_row.owner = "anything"
 
-        # Even without the slots guard, the resolver gets a deep copy:
-        # mutating the copy cannot reach the snapshot's name row.
+        # Even without the slots guard, the resolver gets a canonical
+        # rebuild: mutating it cannot reach the snapshot's name row.
         current = _next_audit(chain, protected_overrides=[name_row, acq_row])
 
         def alias_attack(ref, probe):
             # Try to reach back through the probe into the audit.
             # With slots=True this already failed at setup; if somehow
-            # bypassed, the deep copy in resolve_acquisitions isolates it.
+            # bypassed, the canonical rebuild in resolve_acquisitions isolates it.
             for attr in dir(probe):
                 if not attr.startswith("_"):
                     try:
@@ -1499,8 +1499,6 @@ class TestCalibrationCorpus:
         retains an alias into the private snapshot during canonical
         reconstruction, letting undeclared state mutate the decision.
         The exact-type boundary gate rejects the subclass."""
-        import copy as copy_mod
-
         class HostileAudit(AuditRecord):
             def __deepcopy__(self, memo):
                 return self
@@ -1545,6 +1543,81 @@ class TestCalibrationCorpus:
         outcome = evaluate_audit(current, poisoned_history)
         assert outcome.overall == GateLevel.INCOMPLETE
         assert any("AuditRecord" in r for r in outcome.incomplete_reasons)
+
+    def test_active_float_subclass_diversity_coerced(self):
+        """Fable QA: a float subclass with hostile __sub__/__lt__ survives
+        into score_range_trajectory if not coerced. _canonical_audit must
+        coerce diversity_metric to an exact float via isinstance."""
+        class ActiveFloat(float):
+            def __sub__(self, other):
+                return float.__sub__(float(0.80), other)
+            def __lt__(self, other):
+                return False
+            def __le__(self, other):
+                return True
+
+        chain = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
+        current = _next_audit(chain, diversity=0.5)
+        honest = evaluate_audit(current, chain)
+        assert honest.overall == GateLevel.HARD
+
+        chain2 = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
+        current2 = _next_audit(chain2, diversity=ActiveFloat(0.5))
+        outcome = evaluate_audit(current2, chain2)
+        assert outcome.overall == GateLevel.HARD
+        assert type(outcome.details["range_trajectory"].get(
+            "current", 0.0)) is float
+
+    def test_hostile_probe_list_subclass_cannot_soften_hard(self):
+        """WC #1023 P1: a list subclass for probe_results with a hostile
+        __iter__ that mutates the name row during the type-check scan.
+        The container type gate rejects non-exact lists."""
+        class HostileList(list):
+            def __iter__(self):
+                for item in list.__iter__(self):
+                    if hasattr(item, 'anchor') and item.anchor == 'name':
+                        item.band = 2
+                        item.verdict_class = VerdictClass.PRESENT_RECOVERABLE
+                    yield item
+
+        chain = _chain(STABLE)
+        probes, slots = _battery(protected_overrides=[
+            P("name", -1, VerdictClass.ABSENT, notes="lost")])
+        current = AuditRecord(
+            audit_id="hostile-list",
+            timestamp=_ts(len(chain) + 100001),
+            probe_results=HostileList(probes), diversity_metric=0.80,
+            slot_probe_results=slots,
+            ordinal=len(chain) + 1,
+            predecessor_digest=audit_digest(chain[-1]))
+
+        outcome = evaluate_audit(current, chain)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert outcome.overall != GateLevel.PASS
+        assert any("exact list" in r for r in outcome.incomplete_reasons)
+
+    def test_hostile_history_sequence_cannot_soften_hard(self):
+        """WC #1023 P1: a sequence subclass for history with a hostile
+        __iter__ that rewrites diversity values during enumeration.
+        The container type gate rejects non-exact list/tuple."""
+        class HostileHistory(list):
+            def __iter__(self):
+                for rec in list.__iter__(self):
+                    rec.diversity_metric = 0.80
+                    yield rec
+
+        chain = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
+        current = _next_audit(chain, diversity=0.5)
+        honest = evaluate_audit(current, chain)
+        assert honest.overall == GateLevel.HARD
+
+        chain2 = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
+        current2 = _next_audit(chain2, diversity=0.5)
+        hostile = HostileHistory(chain2)
+        outcome = evaluate_audit(current2, hostile)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert outcome.overall != GateLevel.PASS
+        assert any("exact list or tuple" in r for r in outcome.incomplete_reasons)
 
     def test_coverage_erosion_canary_every_protected_axis(self):
         """Corpus 'Use' (i): every protected anchor must register erosion

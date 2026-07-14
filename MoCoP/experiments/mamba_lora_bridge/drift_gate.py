@@ -18,11 +18,12 @@ composes ADJUDICATED inputs under CUSTODY; it does not adjudicate.
   consistency; duplicate, collision, and finiteness rejection; a typed
   evidence envelope on every row). Malformed external data yields
   INCOMPLETE, never an exception.
-* Inputs are SNAPSHOTTED (Codex #984 blocker 1): evaluate_audit deep-copies
-  the current audit and history exactly once on entry and computes
-  validation, scoring, digests, and the report exclusively from that
-  private snapshot. No caller callback can change the object graph whose
-  gate result is being computed.
+* Inputs are SNAPSHOTTED (Codex #984 blocker 1, #1023 P1): evaluate_audit
+  rebuilds the current audit and history field-by-field into exact
+  canonical types on entry (no copy protocol dispatch on caller-supplied
+  objects) and computes validation, scoring, digests, and the report
+  exclusively from that private snapshot. No caller callback can change
+  the object graph whose gate result is being computed.
 * Custody is chained and DECISION-EXACT (#984 blocker 2): history records
   carry an ordinal and the content digest of their predecessor
   (audit_digest); the digest covers the IEEE-754 hex of the exact
@@ -751,24 +752,42 @@ def _is_hold_row(probe: ProbeResult) -> bool:
             and probe.continuity_provenance == ContinuityProvenance.UNSUPPORTED)
 
 
+def _coerce_str(v: Any) -> Any:
+    """Coerce str subclasses to exact str; pass non-strings through for
+    validation to catch (never mask None as 'None')."""
+    return str(v) if isinstance(v, str) else v
+
+
+def _coerce_int(v: Any) -> Any:
+    """Coerce int subclasses to exact int; reject bool; pass non-ints."""
+    return int(v) if isinstance(v, int) and not isinstance(v, bool) else v
+
+
+def _coerce_float(v: Any) -> Any:
+    """Coerce float/int subclasses to exact float; reject bool."""
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else v
+
+
 def _canonical_probe(probe: ProbeResult) -> ProbeResult:
-    """Field-by-field rebuild into an exact ProbeResult — bypasses any
-    __deepcopy__/__copy__ override on a subclass."""
+    """Field-by-field rebuild into an exact ProbeResult with scalar-leaf
+    coercion — bypasses any __deepcopy__/__copy__/__iter__/__getattr__
+    override on a subclass or active scalar."""
+    rb = probe.reframe_band
     return ProbeResult(
-        anchor=probe.anchor,
-        band=probe.band,
+        anchor=_coerce_str(probe.anchor),
+        band=_coerce_int(probe.band),
         verdict_class=probe.verdict_class,
-        notes=probe.notes,
-        reframe_band=probe.reframe_band,
-        reframe_notes=probe.reframe_notes,
-        smoke_result=probe.smoke_result,
+        notes=_coerce_str(probe.notes),
+        reframe_band=_coerce_int(rb) if rb is not None else None,
+        reframe_notes=_coerce_str(probe.reframe_notes),
+        smoke_result=_coerce_str(probe.smoke_result),
         evidence_type=probe.evidence_type,
-        evidence_ref=probe.evidence_ref,
+        evidence_ref=_coerce_str(probe.evidence_ref),
         continuity_provenance=probe.continuity_provenance,
-        probe_id=probe.probe_id,
-        rubric_version=probe.rubric_version,
-        judge_ref=probe.judge_ref,
-        response_digest=probe.response_digest,
+        probe_id=_coerce_str(probe.probe_id),
+        rubric_version=_coerce_str(probe.rubric_version),
+        judge_ref=_coerce_str(probe.judge_ref),
+        response_digest=_coerce_str(probe.response_digest),
     )
 
 
@@ -778,25 +797,28 @@ def _canonical_discontinuity(
     if event is None:
         return None
     return DiscontinuityEvent(
-        event_ref=event.event_ref,
-        predecessor_chain_digest=event.predecessor_chain_digest,
-        predecessor_audit_count=event.predecessor_audit_count,
-        recorded_by=event.recorded_by,
+        event_ref=_coerce_str(event.event_ref),
+        predecessor_chain_digest=_coerce_str(event.predecessor_chain_digest),
+        predecessor_audit_count=_coerce_int(event.predecessor_audit_count),
+        recorded_by=_coerce_str(event.recorded_by),
     )
 
 
 def _canonical_audit(record: AuditRecord) -> AuditRecord:
-    """Field-by-field rebuild of the full record graph — no copy protocol
-    dispatch on any caller-supplied object. Bypasses __deepcopy__ on
-    AuditRecord, DiscontinuityEvent, and ProbeResult subclasses."""
+    """Field-by-field rebuild of the full record graph with scalar-leaf
+    coercion. No copy/iteration protocol dispatch on any caller-supplied
+    object — containers are materialized to plain lists before element
+    access; scalars are coerced to exact built-in types."""
+    probes = list(record.probe_results)
+    slots = list(record.slot_probe_results)
     return AuditRecord(
-        audit_id=record.audit_id,
-        timestamp=record.timestamp,
-        probe_results=[_canonical_probe(p) for p in record.probe_results],
-        diversity_metric=record.diversity_metric,
-        slot_probe_results=[_canonical_probe(p) for p in record.slot_probe_results],
-        ordinal=record.ordinal,
-        predecessor_digest=record.predecessor_digest,
+        audit_id=_coerce_str(record.audit_id),
+        timestamp=_coerce_str(record.timestamp),
+        probe_results=[_canonical_probe(p) for p in probes],
+        diversity_metric=_coerce_float(record.diversity_metric),
+        slot_probe_results=[_canonical_probe(p) for p in slots],
+        ordinal=_coerce_int(record.ordinal),
+        predecessor_digest=_coerce_str(record.predecessor_digest),
         discontinuity=_canonical_discontinuity(record.discontinuity),
     )
 
@@ -809,11 +831,14 @@ def resolve_acquisitions(
 
     Verdicts and the rejection report both derive from these receipts, so
     they cannot contradict (#984 blocker 4). Resolver exceptions and
-    non-boolean returns are "error" receipts: INCOMPLETE, never GROWTH."""
+    non-boolean returns are "error" receipts: INCOMPLETE, never GROWTH.
+    Rows are canonicalized internally — the resolver receives a
+    field-built exact ProbeResult, never a caller-supplied subclass."""
     receipts: Dict[str, AcquisitionReceipt] = {}
-    rid = resolver.resolver_id if resolver is not None else ""
-    rver = resolver.version if resolver is not None else ""
-    for probe in probes:
+    rid = str(resolver.resolver_id) if resolver is not None else ""
+    rver = str(resolver.version) if resolver is not None else ""
+    canonical_probes = [_canonical_probe(p) for p in list(probes)]
+    for probe in canonical_probes:
         if not isinstance(probe.evidence_type, EvidenceType) or \
                 probe.evidence_type != EvidenceType.ACQUISITION:
             continue
@@ -1141,11 +1166,12 @@ def evaluate_audit(
 ) -> GateOutcome:
     """Run the full drift gate on a single audit record.
 
-    SNAPSHOT ISOLATION (#984 blocker 1): the current audit and history are
-    deep-copied exactly once on entry; validation, scoring, digests, and
-    the report all read the private snapshot. A resolver callback (or any
-    other caller code) mutating the original objects cannot change the
-    result being computed.
+    SNAPSHOT ISOLATION (#984 blocker 1, #1023 P1): the current audit and
+    history are rebuilt field-by-field into exact canonical types on entry
+    (no copy protocol dispatch on caller-supplied objects). Validation,
+    scoring, digests, and the report all read the private snapshot.
+    A resolver callback (or any other caller code) mutating the original
+    objects cannot change the result being computed.
 
     `history` is the content-addressed audit chain (A4): every prior
     AuditRecord in order, root first. The kernel verifies chain integrity;
@@ -1160,36 +1186,67 @@ def evaluate_audit(
     or because the disposition-divergence metric is deferred. HOLD (A1)
     outranks INCOMPLETE. HARD findings on measured axes override
     everything (a halt is never masked)."""
-    # Exact-type boundary gate: a subclass of any input dataclass can
-    # override __deepcopy__ to retain an alias into the private snapshot,
-    # letting a resolver soften a protected HARD (#995/#1021 P1).
-    _type_issues = []
+    # Exact-type boundary gate (#995/#1021/#1023 P1): reject subclasses
+    # of records, rows, containers, discontinuity, and enum/scalar leaves
+    # before any protocol dispatch. Containers are materialized to plain
+    # lists before element access — a list subclass with a hostile
+    # __iter__ never runs.
+    _type_issues: List[str] = []
+
     def _check_record(rec: Any, where: str) -> None:
         if type(rec) is not AuditRecord:
             _type_issues.append(
                 f"{where}: exact type AuditRecord required, "
                 f"got {type(rec).__name__}")
             return
-        for _p in rec.probe_results:
-            if type(_p) is not ProbeResult:
-                _type_issues.append(
-                    f"{where} protected probe "
-                    f"{getattr(_p, 'anchor', '?')!r}: "
-                    f"exact type ProbeResult required, "
-                    f"got {type(_p).__name__}")
-        for _p in rec.slot_probe_results:
-            if type(_p) is not ProbeResult:
-                _type_issues.append(
-                    f"{where} slot probe "
-                    f"{getattr(_p, 'anchor', '?')!r}: "
-                    f"exact type ProbeResult required, "
-                    f"got {type(_p).__name__}")
+        if type(rec.probe_results) is not list:
+            _type_issues.append(
+                f"{where}: probe_results must be an exact list, "
+                f"got {type(rec.probe_results).__name__}")
+        else:
+            for _p in rec.probe_results:
+                if type(_p) is not ProbeResult:
+                    _type_issues.append(
+                        f"{where} protected probe "
+                        f"{getattr(_p, 'anchor', '?')!r}: "
+                        f"exact type ProbeResult required, "
+                        f"got {type(_p).__name__}")
+        if type(rec.slot_probe_results) is not list:
+            _type_issues.append(
+                f"{where}: slot_probe_results must be an exact list, "
+                f"got {type(rec.slot_probe_results).__name__}")
+        else:
+            for _p in rec.slot_probe_results:
+                if type(_p) is not ProbeResult:
+                    _type_issues.append(
+                        f"{where} slot probe "
+                        f"{getattr(_p, 'anchor', '?')!r}: "
+                        f"exact type ProbeResult required, "
+                        f"got {type(_p).__name__}")
         if rec.discontinuity is not None and \
                 type(rec.discontinuity) is not DiscontinuityEvent:
             _type_issues.append(
                 f"{where}: exact type DiscontinuityEvent required, "
                 f"got {type(rec.discontinuity).__name__}")
+
     _check_record(audit, "current")
+    # Require exact container types on history — a list/tuple subclass
+    # with a hostile __iter__ never runs its protocol.
+    if type(history) not in (list, tuple):
+        return GateOutcome(
+            overall=GateLevel.INCOMPLETE,
+            protected_set=GateLevel.INCOMPLETE,
+            range_trajectory=GateLevel.INCOMPLETE,
+            disposition_divergence=GateLevel.INCOMPLETE,
+            details={"type_rejection": [
+                f"history: exact list or tuple required, "
+                f"got {type(history).__name__}"]},
+            incomplete_reasons=[
+                f"history: exact list or tuple required, "
+                f"got {type(history).__name__}"],
+            reasoning=["boundary: rejected non-exact history container"],
+        )
+    # Safe to iterate: type is exactly list or tuple (no __iter__ override).
     for _hi, _rec in enumerate(history):
         _check_record(_rec, f"history[{_hi}]")
     if _type_issues:
@@ -1203,9 +1260,9 @@ def evaluate_audit(
             reasoning=["boundary: rejected non-exact input type(s)"],
         )
 
-    # Canonical snapshot: field-by-field rebuild of the full record graph.
-    # No copy protocol dispatch on caller-supplied objects (#984 blocker 1,
-    # #1021 P1). Replaces copy.deepcopy entirely.
+    # Canonical snapshot: field-by-field rebuild of the full record graph
+    # with scalar-leaf coercion. No copy/iteration protocol dispatch on
+    # any caller-supplied object (#984 blocker 1, #1021/#1023 P1).
     audit = _canonical_audit(audit)
     history = [_canonical_audit(rec) for rec in history]
 
