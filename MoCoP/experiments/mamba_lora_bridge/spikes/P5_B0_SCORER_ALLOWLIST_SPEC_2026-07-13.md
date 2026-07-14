@@ -440,3 +440,32 @@ the FIRST caller callback in the run, and it is now fully inside the guarded reg
 
 The `path_transient_import` and raising-`__fspath__` canaries are re-run against the fix and refused.
 Codex framed this as "one remaining boundary-ordering defect, not another expanding set."
+
+---
+
+## 18. Codex #1017 review corrections (round 10, CHANGES — "everything else reviewed clean")
+
+Round 9 accepted. Two items, both narrow.
+
+- **The audit-"import" sentinel is authority-protected but INCOMPLETE.** Proven empirically: the
+  `"import"` audit event fires for the builtin `__import__` path only — `importlib.import_module`
+  calls `_gcd_import` directly and does NOT raise it, so an `import_module` transient load (removed
+  before the resident snapshot) evaded the observer. The prior tests hid this by calling the hook
+  function directly (synthetic events) instead of performing real loads.
+  **Contract:** SUPPLEMENT the audit hook with a `sys.meta_path` FINDER observer. `_find_and_load`
+  consults `meta_path` by NAME for BOTH `__import__` and `importlib.import_module`, at find time
+  (before the module is added to `sys.modules`), so the finder catches both load paths and the
+  transient add-then-remove. The finder always returns `None` (pure observer). It is
+  authority-protected: `ensure_import_audit` restores it to `meta_path[0]` each run, and the per-run
+  watch FAILS CLOSED if it was removed or displaced from the front during the window. The observer
+  is PROVEN against real `__import__` and real `importlib.import_module` in both the `report_path`
+  and backend windows, including removal before reachability. Residual: a module loaded by manual
+  `spec_from_file_location` + `exec_module` (which consults neither the audit event nor `meta_path`)
+  is manual code execution at the TEE boundary and stays out of scope (custody split #971).
+
+- **The `report_path` normalization refusal formatted the exception type.** A custom exception's
+  `__name__` is caller data. **Contract:** a CONSTANT refusal string, no exception detail.
+
+Both are re-run against the fix and refused (`importlib_transient_load`, real
+`__import__`/`import_module` in path+backend windows, observer-displacement fail-closed, constant
+refusal with no exception-name leak).
