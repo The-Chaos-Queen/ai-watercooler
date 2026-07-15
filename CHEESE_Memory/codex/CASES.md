@@ -308,13 +308,18 @@ evidence supports that promotion.
   enum/formatting hooks, yet still field-copied every other unchecked row leaf. V14 closed the
   full row graph, but read the resolver object before exact-checking its class. Its identifier
   getter could mutate the row before canonicalization and change rejected evidence to resolved;
-  a raising binding subclass also escaped full evaluation. Invalid batches remained silently
-  omitted rather than typed.
+  a raising binding subclass also escaped full evaluation. V15 closed the pre-canonical binding
+  read, but the full evaluator reread the original binding after its callback. An exact frozen
+  binding could therefore publish mutated identity fields while its receipt retained the checked
+  originals; a rejected binding subclass also still escaped during publication. Invalid outer
+  containers, row classes, and malformed evidence-type rows remained silently omitted.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
   Public helpers must either repeat that boundary or accept canonical internal records only.
+  Carry one immutable authority snapshot through callbacks, receipts, digests, diagnostics, and
+  final publication; never return to the caller-owned authority object after a callback begins.
 - Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
-  `da9a1e1`; Watercooler #1021/#1023/#1027/#1030/#1032/#1034; reviews
-  `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`;
-  `MoCoP/reviews/drift_gate_v14_review_2026-07-15.md`.
+  `da9a1e1`/`9061dcc`; Watercooler #1021/#1023/#1027/#1030/#1032/#1034/#1036;
+  reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`/
+  `f5e3c29`; `MoCoP/reviews/drift_gate_v15_review_2026-07-15.md`.
