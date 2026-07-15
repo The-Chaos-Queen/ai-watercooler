@@ -276,12 +276,15 @@ _AUDIT_RECORD_FIELDS = frozenset({
 
 def _audit_instance_complete(rec: AuditRecord) -> List[str]:
     """Verify all eight AuditRecord fields exist in the instance __dict__,
-    not inherited from class-level defaults (#1048 P1). Deleting a field
-    with a default (diversity_metric, ordinal, predecessor_digest,
-    discontinuity) silently falls back to the class attribute; attribute
-    access sees the default and reports no issue. This predicate is
-    shared between the boundary gate and validate_audit_completeness."""
-    missing = _AUDIT_RECORD_FIELDS - set(rec.__dict__)
+    not inherited from class-level defaults (#1048 P1). Also verifies
+    __dict__ itself is an exact dict — a dict subclass with hostile
+    __iter__/__getitem__ is rejected before any mapping protocol (#1050).
+    Shared between the boundary gate and validate_audit_completeness."""
+    storage = object.__getattribute__(rec, '__dict__')
+    if type(storage) is not dict:
+        return [f"__dict__ must be exact dict, "
+                f"got {_safe_type_name(storage)}"]
+    missing = _AUDIT_RECORD_FIELDS - set(storage)
     if missing:
         return [f"missing instance fields (class default fallback): "
                 f"{sorted(missing)}"]
@@ -827,7 +830,7 @@ def _canonical_audit(record: AuditRecord) -> AuditRecord:
     — never reads class-level default fallbacks (#1048 P1). All eight
     fields are verified present in __dict__ by the boundary gate before
     this function is called."""
-    d = record.__dict__
+    d = object.__getattribute__(record, '__dict__')
     return AuditRecord(
         audit_id=d['audit_id'],
         timestamp=d['timestamp'],

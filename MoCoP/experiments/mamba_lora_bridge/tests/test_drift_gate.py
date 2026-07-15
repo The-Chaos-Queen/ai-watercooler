@@ -1905,6 +1905,30 @@ class TestCalibrationCorpus:
         assert any("missing instance fields" in r
                    for r in outcome.incomplete_reasons)
 
+    def test_hostile_dict_subclass_as_instance_dict_rejected(self):
+        """Codex #1050 P1: exact AuditRecord with a dict subclass as
+        __dict__ — hostile __iter__/__getitem__ never runs."""
+        class HostileDict(dict):
+            def __iter__(self):
+                raise RuntimeError("hostile iter")
+            def __getitem__(self, key):
+                if key == "diversity_metric":
+                    return 0.80
+                return dict.__getitem__(self, key)
+
+        chain = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
+        current = _next_audit(chain, diversity=0.5)
+        honest = evaluate_audit(current, chain)
+        assert honest.overall == GateLevel.HARD
+
+        current2 = _next_audit(chain, diversity=0.5)
+        object.__setattr__(current2, '__dict__',
+                           HostileDict(current2.__dict__))
+        outcome = evaluate_audit(current2, chain)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert any("__dict__" in r or "exact dict" in r
+                   for r in outcome.incomplete_reasons)
+
     def test_validate_completeness_also_checks_instance_fields(self):
         """Codex #1048: the shared predicate is used by both the boundary
         gate and validate_audit_completeness."""
