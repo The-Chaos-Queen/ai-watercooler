@@ -314,6 +314,18 @@ The module composes **adjudicated** inputs under **custody**; it does not adjudi
   one is the audit runner's journaled responsibility (P5 pattern). A fabricated but
   internally consistent chain is out of kernel scope by design and in runner scope by
   contract.
+- **Runtime boundary (CPython non-TEE — Codex #1056):** the kernel is ordinary Python
+  running inside the caller's interpreter; CPython is not a trusted execution
+  environment, and no in-process check can attest the interpreter it runs on (the same
+  residual the P5 runner records at #1014). Kernel guarantees therefore cover exactly
+  the object graph reachable through its declared inputs — exact-type boundary checks,
+  canonical private snapshots, a single-read resolver callable. Arbitrary
+  interpreter-authority mutation — rewriting modules, classes, functions, or code
+  objects at runtime — is out of scope by design. A resolver that is not trusted at
+  that level must be executed in a separate process behind a message boundary. With
+  this boundary stated, in-kernel snapshot hardening beyond the declared input graph
+  is CLOSED, not pending: further findings of that shape are residual restatements,
+  not new gate defects.
 - **Corpus discrimination:** not satisfiable by this kernel alone; it is a property of
   the (judge chain × kernel) composition. The executable Cases 01-08 in the kernel's
   suite are ROUTING tests — adjudicated labels in, verdicts out — and are labeled as
@@ -322,4 +334,5 @@ The module composes **adjudicated** inputs under **custody**; it does not adjudi
 
 *Amendments drafted by Isegrim, 2026-07-13, task #168, in response to Codex #979 and
 OpenCLAW #168 events 695-696. Original resolutions text above is Elf's and is retained
-unedited except for the two marked inline pointers.*
+unedited except for the two marked inline pointers. Runtime-boundary bullet added by
+Isegrim, 2026-07-16, per Codex #1056 (drift gate v24).*

@@ -37,6 +37,18 @@ composes ADJUDICATED inputs under CUSTODY; it does not adjudicate.
 * Custody boundary (Gidim/Monk #971 precedent): the kernel verifies chain
   INTEGRITY, not chain ORIGIN. Root-of-chain custody is the audit runner's
   journaled responsibility.
+* Runtime boundary (#1056: CPython is not a trusted execution
+  environment). The kernel is ordinary Python running inside the caller's
+  interpreter. Its guarantees cover the object graph reachable through
+  its declared inputs — exact-type boundary checks, canonical private
+  snapshots, single-read resolver callable. They do NOT cover changes to
+  the interpreter's own authority: a caller or callback that rewrites
+  modules, classes, functions, or code objects at runtime is outside the
+  kernel's scope, because no in-process check can attest the interpreter
+  it runs on (the same residual the P5 runner records, #1014). A resolver
+  that is not trusted at that level must run in a separate process behind
+  a message boundary. In-kernel snapshot hardening beyond the declared
+  input graph is closed by design, not by omission.
 * Corpus discrimination is a property of the (judge chain x kernel)
   composition, not of this kernel alone. The executable Cases 01-08 in the
   test suite are ROUTING tests (adjudicated labels in, verdicts out).
@@ -273,21 +285,41 @@ _AUDIT_RECORD_FIELDS = frozenset({
     'slot_probe_results', 'ordinal', 'predecessor_digest', 'discontinuity',
 })
 
+_PROBE_RESULT_FIELDS = frozenset({
+    'anchor', 'band', 'verdict_class', 'notes', 'reframe_band',
+    'reframe_notes', 'smoke_result', 'evidence_type', 'evidence_ref',
+    'continuity_provenance', 'probe_id', 'rubric_version', 'judge_ref',
+    'response_digest',
+})
+
+_DISCONTINUITY_FIELDS = frozenset({
+    'event_ref', 'predecessor_chain_digest', 'predecessor_audit_count',
+    'recorded_by',
+})
+
+
+def _instance_uninitialized(obj: Any, fields: frozenset) -> List[str]:
+    """Sorted names of uninitialized slot fields on an exact slotted
+    instance (#1052/#1056). Reads via object.__getattribute__ only — no
+    protocol dispatch on the instance. With slots=True there is no
+    __dict__ — no dict-subclass surface, no class default fallback, no
+    undeclared keys; uninitialized slots raise AttributeError."""
+    missing = []
+    for name in fields:
+        try:
+            object.__getattribute__(obj, name)
+        except AttributeError:
+            missing.append(name)
+    return sorted(missing)
+
 
 def _audit_instance_complete(rec: AuditRecord) -> List[str]:
     """Verify all eight AuditRecord slot fields are initialized (#1052).
-    With slots=True there is no __dict__ — no dict subclass attack, no
-    class default fallback, no undeclared keys. Uninitialized slots
-    raise AttributeError. Shared between the boundary gate and
-    validate_audit_completeness."""
-    missing = []
-    for name in _AUDIT_RECORD_FIELDS:
-        try:
-            object.__getattribute__(rec, name)
-        except AttributeError:
-            missing.append(name)
+    Shared between the boundary gate, validate_audit_completeness, and
+    validate_history_chain."""
+    missing = _instance_uninitialized(rec, _AUDIT_RECORD_FIELDS)
     if missing:
-        return [f"uninitialized slot fields: {sorted(missing)}"]
+        return [f"uninitialized slot fields: {missing}"]
     return []
 
 
@@ -372,8 +404,15 @@ def audit_digest(audit: AuditRecord) -> str:
     probe payload, and any discontinuity event. The diversity metric is
     hashed as its exact IEEE-754 hex (#984 blocker 2): the digest is
     decision-exact with respect to the A2 trajectory math. Successor
-    records must carry this value as their predecessor_digest. Total over
-    malformed input: never raises."""
+    records must carry this value as their predecessor_digest.
+
+    INPUT CONTRACT (#1056): canonical-input-only. Requires a fully
+    initialized record graph — the evaluate_audit boundary guarantees
+    this before any digest is taken. On a record with uninitialized or
+    deleted slot fields, attribute access raises AttributeError BY
+    DESIGN: a digest of a partial record would be a false custody
+    statement. Value-LEVEL malformation (wrong types inside initialized
+    fields) never raises — _canon is total over field values."""
     disc = audit.discontinuity
     payload = {
         "audit_id": _canon(audit.audit_id),
@@ -608,7 +647,14 @@ def _validate_probe_row(probe: ProbeResult, where: str) -> List[str]:
 
 
 def validate_audit_completeness(audit: AuditRecord) -> List[str]:
-    """Check probe coverage AND the total closed input schema (H5)."""
+    """Check probe coverage AND the total closed input schema (H5).
+
+    INPUT CONTRACT (#1056): a validator reports, it never raises. Exact
+    records and rows with uninitialized or deleted slot fields are
+    returned as issues. Rows are expected to be ProbeResult instances —
+    the evaluate_audit boundary enforces exact types upstream; rows of
+    foreign types follow the pre-existing attribute-error behavior and
+    are not part of the documented direct surface."""
     issues = []
     if type(audit) is AuditRecord:
         issues.extend(_audit_instance_complete(audit))
@@ -617,6 +663,20 @@ def validate_audit_completeness(audit: AuditRecord) -> List[str]:
     if not isinstance(audit.probe_results, list) or not isinstance(
             audit.slot_probe_results, list):
         return ["probe_results/slot_probe_results must be lists"]
+    # Row slot-completeness before any field read (#1056: previously 12 of
+    # 14 single probe-slot deletions raised and 2 returned silently).
+    row_issues: List[str] = []
+    for label, rows in (("protected", audit.probe_results),
+                        ("slot", audit.slot_probe_results)):
+        for idx, p in enumerate(rows):
+            if type(p) is ProbeResult:
+                missing = _instance_uninitialized(p, _PROBE_RESULT_FIELDS)
+                if missing:
+                    row_issues.append(
+                        f"{label}[{idx}]: uninitialized probe slot "
+                        f"fields: {missing}")
+    if row_issues:
+        return row_issues
     anchor_list = [p.anchor for p in audit.probe_results]
     present_anchors = set(anchor_list)
     missing = REQUIRED_PROTECTED_ANCHORS - present_anchors
@@ -667,6 +727,11 @@ def validate_audit_completeness(audit: AuditRecord) -> List[str]:
 # --- History chain validation (A4 custody; Codex #979 B3 / #984 high 6) ---
 
 def _validate_discontinuity(event: DiscontinuityEvent, where: str) -> List[str]:
+    if type(event) is DiscontinuityEvent:
+        missing = _instance_uninitialized(event, _DISCONTINUITY_FIELDS)
+        if missing:
+            return [f"{where}: uninitialized discontinuity slot fields: "
+                    f"{missing}"]
     issues = []
     if not isinstance(event.event_ref, str) or not event.event_ref.strip():
         issues.append(f"{where}: discontinuity event_ref is empty")
@@ -692,9 +757,26 @@ def validate_history_chain(
     strictly increasing (#984 high 6 — never lexical string order), and
     bind the CURRENT audit to the last historical record. Any violation
     makes the history-dependent axes INCOMPLETE — omission, truncation, or
-    substitution is a custody failure, never a PASS."""
+    substitution is a custody failure, never a PASS.
+
+    INPUT CONTRACT (#1056): a validator reports, it never raises. Exact
+    records with uninitialized or deleted slot fields make the chain
+    unverifiable and are returned as issues before any digest or linkage
+    read."""
     issues: List[str] = []
     records = list(history)
+
+    init_issues: List[str] = []
+    for idx, rec in enumerate(records):
+        if type(rec) is AuditRecord:
+            init_issues.extend(
+                f"history[{idx}]: {msg}"
+                for msg in _audit_instance_complete(rec))
+    if type(current) is AuditRecord:
+        init_issues.extend(
+            f"current: {msg}" for msg in _audit_instance_complete(current))
+    if init_issues:
+        return init_issues
 
     for idx, rec in enumerate(records):
         rec_issues = validate_audit_completeness(rec)
@@ -882,8 +964,10 @@ def _resolve_acquisitions(
     Verdicts and the rejection report both derive from these receipts, so
     they cannot contradict (#984 blocker 4). Resolver exceptions and
     non-boolean returns are "error" receipts: INCOMPLETE, never GROWTH.
-    Rows are canonicalized internally; the callable is snapshotted into a
-    fresh frozen binding so a callback cannot swap it mid-batch (#1038).
+    Rows are canonicalized internally; the validated resolver callable is
+    captured ONCE in a plain local (_resolve_fn) before the first callback
+    and used for every row — neither the instance attribute nor the class
+    descriptor is re-read mid-batch (#1038/#1053).
     _binding_error: if set, all ACQUISITION rows receive this error
     instead of 'unbound' — preserves the upstream typed diagnosis (#1043)."""
     receipts: Dict[str, AcquisitionReceipt] = {}
@@ -897,19 +981,32 @@ def _resolve_acquisitions(
         if type(p) is not ProbeResult:
             continue
         if not _probe_leaves_exact(p):
-            a = p.anchor if type(p.anchor) is str else ""
-            if (type(p.evidence_type) is EvidenceType
-                    and p.evidence_type == EvidenceType.ACQUISITION):
+            # anchor/evidence_type may themselves be deleted slots
+            # (#1056): read them defensively. An unreadable evidence_type
+            # is treated as an ACQUISITION row — fail closed: an "error"
+            # receipt contributes INCOMPLETE and can never mint GROWTH.
+            try:
+                a = p.anchor if type(p.anchor) is str else ""
+            except AttributeError:
+                a = ""
+            try:
+                is_acq = (type(p.evidence_type) is EvidenceType
+                          and p.evidence_type == EvidenceType.ACQUISITION)
+            except AttributeError:
+                is_acq = True
+            if is_acq:
                 receipts[a] = AcquisitionReceipt(
                     anchor=a, locator="", status="error",
-                    reason="row has non-exact scalar leaves",
+                    reason="row has missing or non-exact scalar leaves",
                     resolver_id="", resolver_version="")
             continue
         canonical_probes.append(_canonical_probe(p))
 
-    # Phase 2: validate and snapshot resolver binding (#1038/#1040/#1043 P1).
-    # Identity + callable snapshotted into a fresh frozen binding; the
-    # callback cannot swap .resolve mid-batch via object.__setattr__.
+    # Phase 2: validate the resolver binding (#1038/#1040/#1043 P1).
+    # Identity and callable are read once here into plain locals; nothing
+    # re-reads them after this point, so a callback cannot swap .resolve
+    # mid-batch — neither on the instance (object.__setattr__) nor on the
+    # class (descriptor replacement, #1053).
     # Field-deleted or uninitialized bindings are caught by AttributeError.
     rid = ""
     rver = ""
@@ -1287,7 +1384,12 @@ def evaluate_audit(
     the total closed schema, breaks the chain, produced resolver errors,
     or because the disposition-divergence metric is deferred. HOLD (A1)
     outranks INCOMPLETE. HARD findings on measured axes override
-    everything (a halt is never masked)."""
+    everything (a halt is never masked).
+
+    RUNTIME BOUNDARY (#1056): see the module AUTHORITY MODEL — arbitrary
+    in-process interpreter-authority mutation (rewriting modules, classes,
+    functions, or code objects) is out of scope; a resolver not trusted at
+    that level must run process-isolated."""
     # Exact-type boundary gate (#995/#1021/#1023 P1): reject subclasses
     # of records, rows, containers, discontinuity, enum, and scalar
     # leaves before any protocol dispatch. No __str__/__int__/__float__/
@@ -1447,11 +1549,12 @@ def evaluate_audit(
             f"history chain: BROKEN ({len(chain_issues)} issue(s)) — "
             f"trajectory and slot escalation not evaluable")
 
-    # Snapshot resolver identity AND callable ONCE into a fresh frozen
-    # binding before any callback (#1036/#1038 P1). The callback cannot
-    # mutate the snapshot (we hold the only reference), and .resolve is
-    # read once — a callback replacing the original's .resolve via
-    # object.__setattr__ cannot affect subsequent rows.
+    # Snapshot resolver identity AND callable ONCE before any callback
+    # (#1036/#1038 P1). The private snapshot binding carries them to
+    # _resolve_acquisitions, which captures the callable in a plain local
+    # (#1053) — after this read, neither the instance attribute nor the
+    # class descriptor is consulted again, so no callback can swap the
+    # callable mid-batch on any path.
     _resolver_id = ""
     _resolver_version = ""
     _resolver_snapshot: Optional[EvidenceResolverBinding] = None

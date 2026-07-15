@@ -1657,9 +1657,11 @@ class TestCalibrationCorpus:
         assert any(r.status == "error" for r in receipts.values())
 
     def test_class_level_descriptor_replacement_cannot_swap_callable(self):
-        """Codex #1053 P1: callback replaces EvidenceResolverBinding.resolve
-        at CLASS level. snapped.resolve re-reads through the descriptor
-        and gets the replacement. _resolve_fn is a plain local — immune."""
+        """Codex #1053 P1 / #1056 closure proof, direct path: the first
+        callback replaces EvidenceResolverBinding.resolve at CLASS level.
+        _resolve_fn is a plain local — the original must run for BOTH
+        rows in order, both receipts must exist as 'rejected' under the
+        original identity, and no GROWTH may be mintable from them."""
         call_log = []
         original_descriptor = EvidenceResolverBinding.resolve
 
@@ -1667,28 +1669,85 @@ class TestCalibrationCorpus:
             call_log.append(("original", ref))
             EvidenceResolverBinding.resolve = property(
                 lambda self: replacement)
-            return ref == "ruling:opus-4.8/wc#633"
+            return False
 
         def replacement(ref, probe):
             call_log.append(("replacement", ref))
             return True
 
+        probes = [
+            P("acq1", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="ruling:opus-4.8/wc#633"),
+            P("acq2", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="judge:unknown/nowhere#0")]
         try:
             binding = EvidenceResolverBinding("resolver:test", "v1",
                                               original_resolve)
-            probes = [
-                P("acq1", 2, VerdictClass.PRESENT_RECOVERABLE,
-                  evidence_type=EvidenceType.ACQUISITION,
-                  evidence_ref="ruling:opus-4.8/wc#633"),
-                P("acq2", 2, VerdictClass.PRESENT_RECOVERABLE,
-                  evidence_type=EvidenceType.ACQUISITION,
-                  evidence_ref="judge:unknown/nowhere#0")]
             receipts = _resolve_acquisitions(probes, binding)
-            assert all(src == "original" for src, _ in call_log)
-            assert receipts.get("acq2", None) is None or \
-                receipts["acq2"].status != "resolved"
         finally:
             EvidenceResolverBinding.resolve = original_descriptor
+
+        # Exact call order and count: the original ran exactly twice;
+        # the replacement never ran.
+        assert call_log == [("original", "ruling:opus-4.8/wc#633"),
+                            ("original", "judge:unknown/nowhere#0")]
+        # Both receipts present, both rejected, both under the original
+        # resolver identity — no receipt loss permitted.
+        assert set(receipts) == {"acq1", "acq2"}
+        for anchor in ("acq1", "acq2"):
+            assert receipts[anchor].status == "rejected", anchor
+            assert receipts[anchor].resolver_id == "resolver:test", anchor
+            assert receipts[anchor].resolver_version == "v1", anchor
+        # Verdict pin: these receipts cannot mint GROWTH on the scoring
+        # path.
+        level, verdicts = score_protected_set(probes, receipts)
+        assert Verdict.GROWTH not in verdicts.values()
+
+    def test_class_level_descriptor_replacement_full_evaluate_audit(self):
+        """Codex #1056 closure proof, full path: the same class-descriptor
+        replacement canary through evaluate_audit. The original must run
+        for both rows in order; both published receipts must be 'rejected'
+        under the original identity; no GROWTH may appear in the
+        outcome."""
+        call_log = []
+        original_descriptor = EvidenceResolverBinding.resolve
+
+        def original_resolve(ref, probe):
+            call_log.append(("original", ref))
+            EvidenceResolverBinding.resolve = property(
+                lambda self: replacement)
+            return False
+
+        def replacement(ref, probe):
+            call_log.append(("replacement", ref))
+            return True
+
+        chain = _chain(STABLE)
+        current = _next_audit(chain, protected_overrides=[
+            P("acq1", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="ruling:opus-4.8/wc#633"),
+            P("acq2", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="judge:unknown/nowhere#0")])
+        try:
+            binding = EvidenceResolverBinding("resolver:test", "v1",
+                                              original_resolve)
+            outcome = evaluate_audit(current, chain, resolver=binding)
+        finally:
+            EvidenceResolverBinding.resolve = original_descriptor
+
+        assert call_log == [("original", "ruling:opus-4.8/wc#633"),
+                            ("original", "judge:unknown/nowhere#0")]
+        published = outcome.details["acquisition_receipts"]
+        for anchor in ("acq1", "acq2"):
+            assert published[anchor]["status"] == "rejected", anchor
+            assert published[anchor]["resolver_id"] == "resolver:test", anchor
+        assert outcome.details["evidence_resolver"]["resolver_id"] == \
+            "resolver:test"
+        assert Verdict.GROWTH not in outcome.verdicts.values()
 
     def test_direct_callable_swap_cannot_affect_subsequent_rows(self):
         """Codex #1040 P1: on the direct resolve_acquisitions path,
@@ -2014,3 +2073,166 @@ class TestCalibrationCorpus:
             outcome = evaluate_audit(current, chain)
             assert outcome.verdicts[anchor] == Verdict.EROSION, anchor
             assert outcome.overall == GateLevel.HARD, anchor
+
+
+class TestDeletionMatricesAndTotality:
+    """Codex #1056: the complete single-slot deletion matrices, committed
+    so the totality-vs-canonical-only decision stays executable rather
+    than reviewer-local.
+
+    Decision of record (v24):
+    * audit_digest is CANONICAL-INPUT-ONLY — digesting a partial record
+      would be a false custody statement, so slot-deleted/uninitialized
+      records raise AttributeError by documented contract.
+    * The validators (validate_audit_completeness, validate_history_chain)
+      and the kernel-internal acquisition path are TOTAL over slot-deleted
+      exact records: they report issues or typed receipts, never raise.
+    """
+
+    AUDIT_FIELDS = sorted((
+        "audit_id", "timestamp", "probe_results", "diversity_metric",
+        "slot_probe_results", "ordinal", "predecessor_digest",
+        "discontinuity"))
+    PROBE_FIELDS = sorted((
+        "anchor", "band", "verdict_class", "notes", "reframe_band",
+        "reframe_notes", "smoke_result", "evidence_type", "evidence_ref",
+        "continuity_provenance", "probe_id", "rubric_version", "judge_ref",
+        "response_digest"))
+    DISC_FIELDS = sorted((
+        "event_ref", "predecessor_chain_digest", "predecessor_audit_count",
+        "recorded_by"))
+    BINDING_FIELDS = sorted(("resolver_id", "version", "resolve"))
+
+    @staticmethod
+    def _acq_probe():
+        return P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                 evidence_type=EvidenceType.ACQUISITION,
+                 evidence_ref="judge:laura/audit-log#12")
+
+    def test_audit_digest_deletion_matrix_raises_by_contract(self):
+        """audit_digest, all 8 single audit-slot deletions: AttributeError
+        by documented canonical-input-only contract (8/8), plus the fully
+        uninitialized record."""
+        import pytest
+        for fname in self.AUDIT_FIELDS:
+            rec = _next_audit([])
+            object.__delattr__(rec, fname)
+            with pytest.raises(AttributeError):
+                audit_digest(rec)
+        with pytest.raises(AttributeError):
+            audit_digest(object.__new__(AuditRecord))
+
+    def test_completeness_audit_deletion_matrix_total(self):
+        """validate_audit_completeness, all 8 single audit-slot deletions:
+        an uninitialized-field issue naming the field; never a raise;
+        never a clean return."""
+        for fname in self.AUDIT_FIELDS:
+            rec = _next_audit([])
+            object.__delattr__(rec, fname)
+            issues = validate_audit_completeness(rec)
+            assert any("uninitialized" in i and fname in i
+                       for i in issues), fname
+
+    def test_completeness_probe_deletion_matrix_total(self):
+        """validate_audit_completeness, all 14 single probe-slot deletions:
+        an uninitialized-field issue naming the field; never a raise; never
+        a clean return (#1056: 12 cells previously raised and the
+        reframe_notes/smoke_result cells returned silently clean)."""
+        for fname in self.PROBE_FIELDS:
+            rec = _next_audit([])
+            object.__delattr__(rec.probe_results[0], fname)
+            issues = validate_audit_completeness(rec)
+            assert any("uninitialized" in i and fname in i
+                       for i in issues), fname
+
+    def test_completeness_slot_row_deletion_total(self):
+        """The slot-probe list gets the same row completeness check as the
+        protected list."""
+        rec = _next_audit([])
+        object.__delattr__(rec.slot_probe_results[0], "anchor")
+        issues = validate_audit_completeness(rec)
+        assert any("uninitialized" in i and "slot[0]" in i for i in issues)
+
+    def test_history_chain_uninitialized_current_total(self):
+        """validate_history_chain([], uninitialized current) reports,
+        never raises (#1056: previously AttributeError)."""
+        issues = validate_history_chain([], object.__new__(AuditRecord))
+        assert any("current" in i and "uninitialized" in i for i in issues)
+
+    def test_history_chain_current_deletion_matrix_total(self):
+        """validate_history_chain, all 8 single-slot deletions on the
+        current record: reported, never raised."""
+        for fname in self.AUDIT_FIELDS:
+            chain = _chain(STABLE)
+            current = _next_audit(chain)
+            object.__delattr__(current, fname)
+            issues = validate_history_chain(chain, current)
+            assert any("uninitialized" in i and fname in i
+                       for i in issues), fname
+
+    def test_history_chain_record_deletion_matrix_total(self):
+        """validate_history_chain, all 8 single-slot deletions on a
+        mid-chain history record: reported with the record's position,
+        never raised (the digest/linkage reads never run on a partial
+        record)."""
+        for fname in self.AUDIT_FIELDS:
+            chain = _chain(STABLE)
+            current = _next_audit(chain)
+            object.__delattr__(chain[2], fname)
+            issues = validate_history_chain(chain, current)
+            assert any("history[2]" in i and "uninitialized" in i
+                       and fname in i for i in issues), fname
+
+    def test_discontinuity_deletion_matrix_total(self):
+        """Root discontinuity event, all 4 single-slot deletions: chain
+        validation reports, never raises (4/4)."""
+        for fname in self.DISC_FIELDS:
+            event = DiscontinuityEvent(
+                event_ref="task:168/event-696",
+                predecessor_chain_digest="a" * 64,
+                predecessor_audit_count=7,
+                recorded_by="isegrim")
+            object.__delattr__(event, fname)
+            current = _next_audit([], discontinuity=event)
+            issues = validate_history_chain([], current)
+            assert any("uninitialized" in i and fname in i
+                       for i in issues), fname
+
+    def test_resolve_acquisitions_probe_deletion_matrix_total(self):
+        """_resolve_acquisitions, all 14 single probe-slot deletions on an
+        ACQUISITION row: never raises; every cell yields exactly one typed
+        'error' receipt — INCOMPLETE, never GROWTH (#1056: the anchor and
+        evidence_type cells previously escaped as AttributeError). A row
+        whose anchor is unreadable is keyed by the empty anchor; a row
+        whose kind is unreadable is treated as an ACQUISITION row (fail
+        closed)."""
+        for fname in self.PROBE_FIELDS:
+            probe = self._acq_probe()
+            object.__delattr__(probe, fname)
+            receipts = _resolve_acquisitions([probe], RESOLVER)
+            expected_key = "" if fname == "anchor" else "acq"
+            assert set(receipts) == {expected_key}, fname
+            assert receipts[expected_key].status == "error", fname
+            assert "missing or non-exact" in receipts[expected_key].reason
+
+    def test_binding_deletion_matrix_direct_and_full(self):
+        """EvidenceResolverBinding, all 3 single-field deletions: typed
+        'missing fields' error receipts on the direct path AND typed
+        incomplete_reasons on the full path (3/3), never a raise."""
+        for fname in self.BINDING_FIELDS:
+            binding = EvidenceResolverBinding("resolver:test", "v1",
+                                              lambda r, p: True)
+            object.__delattr__(binding, fname)
+            receipts = _resolve_acquisitions([self._acq_probe()], binding)
+            assert receipts["acq"].status == "error", fname
+            assert "missing fields" in receipts["acq"].reason, fname
+
+            chain = _chain(STABLE)
+            current = _next_audit(chain,
+                                  protected_overrides=[self._acq_probe()])
+            binding_full = EvidenceResolverBinding("resolver:test", "v1",
+                                                   lambda r, p: True)
+            object.__delattr__(binding_full, fname)
+            outcome = evaluate_audit(current, chain, resolver=binding_full)
+            assert any("missing fields" in r
+                       for r in outcome.incomplete_reasons), fname
