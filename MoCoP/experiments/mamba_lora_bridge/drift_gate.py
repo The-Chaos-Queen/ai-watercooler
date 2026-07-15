@@ -842,18 +842,18 @@ def _probe_leaves_exact(probe: ProbeResult) -> bool:
     return True
 
 
-def resolve_acquisitions(
+def _resolve_acquisitions(
     probes: Sequence[ProbeResult],
     resolver: Optional[EvidenceResolverBinding] = None,
 ) -> Dict[str, AcquisitionReceipt]:
-    """Resolve every ACQUISITION row EXACTLY ONCE into a typed receipt.
+    """Kernel-internal acquisition resolution (#1040: privatized).
 
+    Resolve every ACQUISITION row EXACTLY ONCE into a typed receipt.
     Verdicts and the rejection report both derive from these receipts, so
     they cannot contradict (#984 blocker 4). Resolver exceptions and
     non-boolean returns are "error" receipts: INCOMPLETE, never GROWTH.
-    Rows are canonicalized internally — the resolver receives a
-    field-built exact ProbeResult, never a caller-supplied subclass.
-    Rows with non-exact scalar leaves are silently skipped (#1032 P1)."""
+    Rows are canonicalized internally; the callable is snapshotted into a
+    fresh frozen binding so a callback cannot swap it mid-batch (#1038)."""
     receipts: Dict[str, AcquisitionReceipt] = {}
     if type(probes) not in (list, tuple):
         return receipts
@@ -875,30 +875,29 @@ def resolve_acquisitions(
             continue
         canonical_probes.append(_canonical_probe(p))
 
-    # Phase 2: validate resolver binding — exact type required (#1034 P1).
-    # EvidenceResolverBinding is frozen: exact type means attribute access
-    # goes through the frozen dataclass descriptor, no override possible.
+    # Phase 2: validate and snapshot resolver binding (#1038/#1040 P1).
+    # Identity + callable snapshotted into a fresh frozen binding; the
+    # callback cannot swap .resolve mid-batch via object.__setattr__.
     rid = ""
     rver = ""
-    resolver_valid = False
+    snapped: Optional[EvidenceResolverBinding] = None
+    binding_error = ""
     if resolver is not None:
         if type(resolver) is not EvidenceResolverBinding:
-            for probe in canonical_probes:
-                if probe.evidence_type == EvidenceType.ACQUISITION:
-                    receipts[probe.anchor] = AcquisitionReceipt(
-                        anchor=probe.anchor,
-                        locator=str.strip(probe.evidence_ref),
-                        status="error",
-                        reason="resolver is not exact EvidenceResolverBinding",
-                        resolver_id="", resolver_version="")
-            return receipts
-        if (type(resolver.resolver_id) is str
-                and str.strip(resolver.resolver_id)
-                and type(resolver.version) is str
-                and str.strip(resolver.version)):
-            rid = resolver.resolver_id
-            rver = resolver.version
-            resolver_valid = True
+            binding_error = "resolver is not exact EvidenceResolverBinding"
+        else:
+            r_id = resolver.resolver_id
+            r_ver = resolver.version
+            if type(r_id) is not str or type(r_ver) is not str:
+                binding_error = "resolver identity/version must be exact str"
+            elif not str.strip(r_id) or not str.strip(r_ver):
+                binding_error = "resolver identity/version must be non-empty"
+            else:
+                rid = r_id
+                rver = r_ver
+                snapped = EvidenceResolverBinding(
+                    resolver_id=r_id, version=r_ver,
+                    resolve=resolver.resolve)
 
     # Phase 3: process canonical probes (all scalars are exact).
     for probe in canonical_probes:
@@ -923,12 +922,11 @@ def resolve_acquisitions(
         elif resolver is None:
             receipts[anchor] = receipt(
                 "unbound", "no evidence resolver bound")
-        elif not resolver_valid:
-            receipts[anchor] = receipt(
-                "error", "resolver binding lacks identity/version")
+        elif binding_error:
+            receipts[anchor] = receipt("error", binding_error)
         else:
             try:
-                result = resolver.resolve(ref, _canonical_probe(probe))
+                result = snapped.resolve(ref, _canonical_probe(probe))
             except Exception:
                 receipts[anchor] = receipt(
                     "error", "resolver raised an exception")
@@ -944,6 +942,9 @@ def resolve_acquisitions(
                     f"resolver returned non-boolean "
                     f"type {_safe_type_name(result)}")
     return receipts
+
+
+resolve_acquisitions = _resolve_acquisitions
 
 
 def receipts_digest(receipts: Mapping[str, AcquisitionReceipt]) -> str:
@@ -1416,7 +1417,7 @@ def evaluate_audit(
                     resolve=resolver.resolve)
 
     # Single-shot acquisition resolution into typed receipts (#984 B4).
-    receipts = resolve_acquisitions(audit.probe_results, _resolver_snapshot)
+    receipts = _resolve_acquisitions(audit.probe_results, _resolver_snapshot)
     receipt_errors = [r for r in receipts.values() if r.status == "error"]
     if receipt_errors:
         for r in receipt_errors:

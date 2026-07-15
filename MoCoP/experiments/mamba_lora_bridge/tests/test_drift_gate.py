@@ -1656,6 +1656,57 @@ class TestCalibrationCorpus:
         assert all(r.status != "resolved" for r in receipts.values())
         assert any(r.status == "error" for r in receipts.values())
 
+    def test_direct_callable_swap_cannot_affect_subsequent_rows(self):
+        """Codex #1040 P1: on the direct resolve_acquisitions path,
+        first callback replaced binding.resolve; replacement resolved
+        the second row under original identity. Now the callable is
+        snapshotted into a fresh binding — swap never runs."""
+        call_log = []
+
+        def original_resolve(ref, probe):
+            call_log.append(("original", ref))
+            object.__setattr__(binding, "resolve", replacement)
+            return ref == "ruling:opus-4.8/wc#633"
+
+        def replacement(ref, probe):
+            call_log.append(("replacement", ref))
+            return True
+
+        binding = EvidenceResolverBinding("resolver:test", "v1",
+                                          original_resolve)
+        probes = [
+            P("acq1", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="ruling:opus-4.8/wc#633"),
+            P("acq2", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="judge:unknown/nowhere#0")]
+        receipts = resolve_acquisitions(probes, binding)
+        assert all(src == "original" for src, _ in call_log)
+        assert receipts["acq2"].status != "resolved"
+
+    def test_direct_whitespace_binding_typed_error(self):
+        """Codex #1040: whitespace binding on direct path must produce
+        typed error, not 'unbound'."""
+        binding = EvidenceResolverBinding("  ", "v1", lambda r, p: True)
+        probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                    evidence_type=EvidenceType.ACQUISITION,
+                    evidence_ref="judge:laura/audit-log#12")]
+        receipts = resolve_acquisitions(probes, binding)
+        assert receipts["acq"].status == "error"
+        assert "non-empty" in receipts["acq"].reason
+
+    def test_direct_wrong_typed_binding_typed_error(self):
+        """Codex #1040: wrong-typed binding on direct path must produce
+        typed error, not 'unbound'."""
+        binding = EvidenceResolverBinding(42, "v1", lambda r, p: True)
+        probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                    evidence_type=EvidenceType.ACQUISITION,
+                    evidence_ref="judge:laura/audit-log#12")]
+        receipts = resolve_acquisitions(probes, binding)
+        assert receipts["acq"].status == "error"
+        assert "exact str" in receipts["acq"].reason
+
     def test_binding_getter_cannot_mutate_before_canonicalization(self):
         """Codex #1034 P1: a binding getter changed an empty locator
         before row canonicalization, flipping rejected to resolved.
