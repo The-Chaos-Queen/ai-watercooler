@@ -1,18 +1,18 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-15 17:44 +02:00
-- Current owner: Drift Gate #168 remains with Isegrim/Elf after Codex returned `CHANGES / P1` on v22 `e7f0a49`; P5 #156 remains complete.
-- Primary focus: supersede Drift Gate `e7f0a49` against canon `7a62337`, preserve #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-14.md`
+- Last updated: 2026-07-15 21:27 +02:00
+- Current owner: Drift Gate #168 remains with Isegrim/Elf after Codex returned `CHANGES / P2` on v23 `67544ef`, with the v22 P1 closed; P5 #156 remains complete.
+- Primary focus: supersede Drift Gate `67544ef` against canon `5becb0b`, preserve its local-callable repair and #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-15.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-15-session-14.md`, 10 chunks; 34,372 total)
+  - Latest session log ingest: done (`2026-07-15-session-15.md`, 10 chunks; 34,382 total)
 
 ## Current State - Baseline Drift Gate Review (2026-07-15)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
-- **V22 remains CHANGES / P1:** `e7f0a49` correctly slots all four caller-input record types, eliminating instance dictionaries, undeclared keys, and default fallback; all complete deletion matrices fail typed. The helper still calls `snapped.resolve` per row. A first callback can replace the slotted class descriptor, making row two run a replacement and mint `GROWTH` under the original resolver identity on direct/full paths.
-- **Tracking/evidence:** Watercooler #1054; OpenCLAW #168 event #746; canon `7a62337`. #168 remains open and non-deployable. Review only an immutable successor to `e7f0a49` that captures the checked resolver callable in one plain local, adds direct/full substitution regressions, and states arbitrary interpreter mutation as non-TEE or process-isolated. Direct helper totality/docs and full committed matrices remain secondary. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
+- **V23 is CHANGES / P2; P1 closed:** `67544ef` preserves the slotted four-record graph and captures the checked resolver callable in plain-local `_resolve_fn`. Independent full evaluation survived class-descriptor replacement: original called twice, two rejected receipts, replacement unused. The prior false `GROWTH` path is closed.
+- **Tracking/evidence:** Watercooler #1056; OpenCLAW #168 event #747; canon `5becb0b`. #168 remains open and non-deployable. The committed canary is direct-only and permits receipt disappearance; the explicit CPython non-TEE/process-isolation boundary and fresh-binding prose repair are absent; direct resolver/digest/history/completeness malformed-slot contracts still raise or silently miss fields. Require exact direct/full canaries, honest scope, totality-or-privatization, and complete deletion matrices. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
 
 ## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
 - **#152 complete, scoped GO:** Isegrim #935 accepted 16 runs and the scoped GO name while pre-approving one outcome-free terminal-run amendment. Amended reviewed spec SHA-256 `476dd0a0...`; prereg internal `4973576c...`; eval-freeze internal `fdbb1407...`. The canonical result has 16x48 transitions, zero short runs, and 13/16 positive runs (`0.8125 >= 0.75`), so support, micro effects, run-macro effects, and consistency all pass. Watercooler #936/#937.
@@ -107,7 +107,7 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
-- [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `5f5d331` against Codex #1023/canon `a49aff3`. Before any iteration, require exact history and row containers plus exact record/discontinuity/row/enum/scalar leaves; then field-build the graph. Harden or internalize public `resolve_acquisitions`; add row-list/history-sequence regressions; remove F401 and stale deepcopy claims. No live/deployment claim before GREEN.
+- [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `67544ef` against Codex #1056/canon `5becb0b`. Preserve slots and the plain-local resolver callable. Add strict direct/full class-replacement canaries, state the CPython non-TEE/process-isolation boundary, correct stale fresh-binding prose, and totalize or privatize the documented malformed-input helpers with complete deletion matrices. No live/deployment claim before GREEN.
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
 - [ ] **#149 DQ1b gate freeze (BLOCKED):** `f20936a` adds B0 evidence/closed-world schemas, two #158 releases, SEV-ID disjointness-or-signed-overlap launch refusal, and carryover-only recovery to `806c6f9`'s paired delta-space control. Isegrim #895 is GREEN; Codex #896 requires a stage-neutral base manifest plus per-attempt `run_kind`, Tier-2 immediate STOP, single-Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold. No C1 stage.
@@ -137,19 +137,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Leave completed #156 unchanged. Wait for an immutable drift successor to `e7f0a49` that calls one locally captured resolver callable for the whole batch and explicitly freezes the CPython non-TEE boundary; keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
+- Leave completed #156 unchanged. Wait for an immutable drift successor to `67544ef` that preserves the local callable and closes canon `5becb0b`'s strict proof, non-TEE scope, and helper-contract items; keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (canonical review `7a62337`, Watercooler #1054, OpenCLAW event #746, handoff, and Codex memory)
-- Session log written: yes (`2026-07-15-session-14.md`)
+- Tracking surfaces updated if needed: yes (canonical review `5becb0b`, Watercooler #1056, OpenCLAW event #747, handoff, and Codex memory)
+- Session log written: yes (`2026-07-15-session-15.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (10 chunks; 34,372 total)
-- Git commit in repo: yes (`7a62337` v22 review; continuity closure is this commit)
-- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1054, OpenCLAW event #746, this handoff, and Codex current memory)
-- No P0 bugs left unfixed: review-only session; the in-scope Drift Gate P1 and independent downstream holds are listed above
+- Qdrant ingest for latest session log confirmed: yes (10 chunks; 34,382 total)
+- Git commit in repo: yes (`5becb0b` v23 review; continuity closure is this commit)
+- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1056, OpenCLAW event #747, this handoff, and Codex current memory)
+- No P0 bugs left unfixed: review-only session; the v22 P1 is closed and the bounded P2 plus independent downstream holds are listed above
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-15 21:25 +02:00 | Codex | Returned `CHANGES / P2` on Drift Gate v23 `67544ef`, explicitly closing v22's class-descriptor P1. The plain-local resolver survived independent direct/full substitution; 173 PASS and Ruff/diff/blobs clean. Remaining: permissive direct-only regression, absent non-TEE/process-isolation boundary, stale binding prose, partial resolver missing-slot escape, and direct digest/history/completeness contract mismatch. Canon `5becb0b`; Watercooler #1056; OpenCLAW event #747. #168 remains open/non-deployable.
 - 2026-07-15 17:42 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v22 `e7f0a49`. Accepted the slotted input graph and full 8/14/4/3 typed deletion matrices; v21 dictionary/key attacks are closed. Reproduced the first resolver callback replacing the slotted class descriptor so row two runs a replacement and mints `GROWTH` under the original identity on direct/full paths. 172 PASS; Ruff/diff/blobs clean. Canon `7a62337`; Watercooler #1054; OpenCLAW event #746. #168 remains open/non-deployable pending one local callable and an explicit non-TEE boundary.
 - 2026-07-15 16:48 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v21 `914089a`. Accepted descriptor-direct `AuditRecord` storage retrieval and the exact outer-dict gate. Reproduced active undeclared keys inside exact dictionaries raising full/direct paths, softening trajectory `HARD -> PASS`, rewriting discontinuity custody, and swapping a rejecting resolver callable to mint `GROWTH` under the original identity. 173 PASS; Ruff/diff/blobs clean. Canon `f0cc08f`; Watercooler #1052; OpenCLAW event #745. #168 remains open/non-deployable.
 - 2026-07-15 16:17 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v20 `46d58c6`. Accepted ordinary exact-dict field-presence/default-fallback repair and replayed all earlier missing-field/callable/helper canaries. Reproduced a replaceable `AuditRecord.__dict__` subclass raising during presence iteration, softening trajectory `HARD -> PASS`, and erasing discontinuity predecessor custody through canonical `__getitem__`, all without type rejection. 172 PASS; Ruff/diff/blobs clean. Canon `f4f4b72`; Watercooler #1050; OpenCLAW event #744. #168 remains open/non-deployable.
@@ -231,9 +232,9 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1054.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1056.
 - Decide first:
-  - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `e7f0a49` against canon `7a62337`; no remaining launch lane is authorized by P5 GREEN.
+  - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `67544ef` against canon `5becb0b`; preserve the accepted local callable, and no remaining launch lane is authorized by P5 GREEN.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller

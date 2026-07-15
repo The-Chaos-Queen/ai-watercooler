@@ -338,7 +338,11 @@ evidence supports that promotion.
   eliminated those dictionaries by slotting every caller-input record. That closure exposed a
   different authority reread: the loop fetched `snapped.resolve` per row, and the first callback
   could replace the slotted class member descriptor. Row two then ran the replacement and minted
-  `GROWTH` under the original resolver identity despite the fresh frozen instance.
+  `GROWTH` under the original resolver identity despite the fresh frozen instance. V23 captured
+  the callable in one plain local and closed that P1 on direct and full paths. Its permissive direct-
+  only regression could still pass with a missing second receipt, however, and its partial missing-
+  slot catch reread `anchor` and `evidence_type` outside the catch. The required non-TEE boundary
+  and documented direct-helper totality also remained absent, so the packet stayed CHANGES/P2.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
@@ -361,11 +365,15 @@ evidence supports that promotion.
   first call, never behind a mutable instance/class descriptor reread. Then state the stopping
   rule: arbitrary module/class/function/bytecode mutation is a CPython non-TEE residual unless the
   callback is process-isolated. Object hardening cannot prove interpreter-authority isolation.
+  Closure tests must assert exact callback cardinality/order, exact receipt keys/statuses, and the
+  final decision on both helper and full paths; `all(...)` plus an optional receipt assertion can
+  hide evidence loss. A validator-level exception catch is not totality if its caller rereads the
+  same potentially missing fields immediately afterward.
 - Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
   `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`/`187c623`/`46d58c6`/
-  `914089a`/`e7f0a49`;
+  `914089a`/`e7f0a49`/`67544ef`;
   Watercooler #1021/#1023/#1027/#1030/#1032/#1034/#1036/#1038/#1040/#1043/
-  #1048/#1050/#1052/#1054;
+  #1048/#1050/#1052/#1054/#1056;
   reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`/
   `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`/`f4f4b72`/`f0cc08f`/
-  `7a62337`; `MoCoP/reviews/drift_gate_v22_review_2026-07-15.md`.
+  `7a62337`/`5becb0b`; `MoCoP/reviews/drift_gate_v23_review_2026-07-15.md`.

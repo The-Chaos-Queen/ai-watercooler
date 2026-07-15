@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-15 17:41 +02:00
+Last updated: 2026-07-15 21:25 +02:00
 
 ## Standing Directive
 
@@ -58,14 +58,14 @@ remember which artifact should be updated.
   #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
   No B0, #155, #149, HF audit,
   protected-sink, alpha-zero, keeper, or nonzero authorization follows.
-- Drift v22 `e7f0a49` remains `CHANGES / P1` in Codex #1054/event #746, canon
-  `7a62337`. Preserve its slotted `ProbeResult`/`DiscontinuityEvent`/`AuditRecord`/
-  `EvidenceResolverBinding` graph: all dictionary/key attacks and default fallback are closed, and
-  every 8/14/4/3 slot-deletion cell fails typed. The helper still rereads `snapped.resolve` per row;
-  the first callback can replace the slotted class descriptor, so row two runs a replacement and
-  mints `GROWTH` under the original identity. #168 stays open/non-deployable pending one plain-local
-  callable across the batch, direct/full regressions, and an explicit CPython non-TEE boundary for
-  arbitrary interpreter mutation. Direct digest/history/completeness totality/docs are secondary.
+- Drift v23 `67544ef` is `CHANGES / P2` in Codex #1056/event #747, canon
+  `5becb0b`; the v22 P1 is closed. Preserve the slotted four-record graph and
+  plain-local `_resolve_fn`: independent full substitution called the original twice and rejected
+  both rows. #168 remains open/non-deployable because the committed canary is direct-only and
+  permits receipt loss, the CPython non-TEE/process-isolation boundary is unstated, stale frozen-
+  binding prose remains, and documented direct helper totality still raises (resolver 2/14 probe
+  deletions; digest 8/8 audit deletions; completeness 12/14 probe deletions). Require exact direct/
+  full regressions, honest scope, helper totality-or-privatization, and complete matrices.
   External calibration/custody/deployment holds remain.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
@@ -104,7 +104,7 @@ remember which artifact should be updated.
   matrix; record P5 closure; run its true alpha-zero anchors; only then spend
   the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8`.
-  Review only an immutable drift successor to `e7f0a49` against `7a62337`.
+  Review only an immutable drift successor to `67544ef` against `5becb0b`.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
