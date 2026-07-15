@@ -857,11 +857,41 @@ def resolve_acquisitions(
     receipts: Dict[str, AcquisitionReceipt] = {}
     if type(probes) not in (list, tuple):
         return receipts
-    # Validate resolver binding fields BEFORE reading them (#1032 P1).
+
+    # Phase 1: canonicalize probes BEFORE any resolver access (#1034 P1).
+    # Non-exact rows produce typed error receipts, not silent drops.
+    canonical_probes: List[ProbeResult] = []
+    for p in probes:
+        if type(p) is not ProbeResult:
+            continue
+        if not _probe_leaves_exact(p):
+            a = p.anchor if type(p.anchor) is str else ""
+            if (type(p.evidence_type) is EvidenceType
+                    and p.evidence_type == EvidenceType.ACQUISITION):
+                receipts[a] = AcquisitionReceipt(
+                    anchor=a, locator="", status="error",
+                    reason="row has non-exact scalar leaves",
+                    resolver_id="", resolver_version="")
+            continue
+        canonical_probes.append(_canonical_probe(p))
+
+    # Phase 2: validate resolver binding — exact type required (#1034 P1).
+    # EvidenceResolverBinding is frozen: exact type means attribute access
+    # goes through the frozen dataclass descriptor, no override possible.
     rid = ""
     rver = ""
     resolver_valid = False
     if resolver is not None:
+        if type(resolver) is not EvidenceResolverBinding:
+            for probe in canonical_probes:
+                if probe.evidence_type == EvidenceType.ACQUISITION:
+                    receipts[probe.anchor] = AcquisitionReceipt(
+                        anchor=probe.anchor,
+                        locator=str.strip(probe.evidence_ref),
+                        status="error",
+                        reason="resolver is not exact EvidenceResolverBinding",
+                        resolver_id="", resolver_version="")
+            return receipts
         if (type(resolver.resolver_id) is str
                 and str.strip(resolver.resolver_id)
                 and type(resolver.version) is str
@@ -869,8 +899,8 @@ def resolve_acquisitions(
             rid = resolver.resolver_id
             rver = resolver.version
             resolver_valid = True
-    canonical_probes = [_canonical_probe(p) for p in probes
-                        if type(p) is ProbeResult and _probe_leaves_exact(p)]
+
+    # Phase 3: process canonical probes (all scalars are exact).
     for probe in canonical_probes:
         if probe.evidence_type != EvidenceType.ACQUISITION:
             continue

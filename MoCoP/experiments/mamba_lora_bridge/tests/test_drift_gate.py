@@ -1620,9 +1620,9 @@ class TestCalibrationCorpus:
         assert any("ProbeResult" in r for r in outcome.incomplete_reasons)
 
     def test_active_notes_leaf_cannot_reach_resolver(self):
-        """Codex #1032 P1: an active notes str subclass reached the
+        """Codex #1032/#1034 P1: an active notes str subclass reached the
         resolver by identity via _canonical_probe's field copy. Now
-        resolve_acquisitions skips rows with non-exact scalar leaves."""
+        resolve_acquisitions produces a typed error receipt."""
         mutation_log = []
 
         class ActiveNotes(str):
@@ -1635,22 +1635,17 @@ class TestCalibrationCorpus:
                     evidence_ref="judge:laura/audit-log#12",
                     notes=ActiveNotes("hostile notes"))]
         receipts = resolve_acquisitions(probes, RESOLVER)
-        assert "acq_anchor" not in receipts
+        assert receipts["acq_anchor"].status == "error"
+        assert "non-exact" in receipts["acq_anchor"].reason
         assert mutation_log == []
 
     def test_resolver_fields_validated_before_read(self):
-        """Codex #1032 P1: resolver.resolver_id and .version were read
-        before exact-type validation. Now validated first."""
-        read_log = []
-
-        class ActiveStr(str):
-            def __str__(self):
-                read_log.append("str called")
-                return str.__str__(self)
-
+        """Codex #1032/#1034 P1: resolver binding must be exact
+        EvidenceResolverBinding. Non-exact bindings produce error
+        receipts; attribute access on non-exact objects never runs."""
         class BadBinding:
-            resolver_id = ActiveStr("bad")
-            version = ActiveStr("v1")
+            resolver_id = "bad"
+            version = "v1"
             def resolve(self, ref, probe):
                 return True
 
@@ -1659,6 +1654,58 @@ class TestCalibrationCorpus:
                     evidence_ref="judge:laura/audit-log#12")]
         receipts = resolve_acquisitions(probes, BadBinding())
         assert all(r.status != "resolved" for r in receipts.values())
+        assert any(r.status == "error" for r in receipts.values())
+
+    def test_binding_getter_cannot_mutate_before_canonicalization(self):
+        """Codex #1034 P1: a binding getter changed an empty locator
+        before row canonicalization, flipping rejected to resolved.
+        Now probes are canonicalized BEFORE any resolver access."""
+        probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                    evidence_type=EvidenceType.ACQUISITION,
+                    evidence_ref="")]
+
+        class MutatingBinding(EvidenceResolverBinding):
+            def __init__(self):
+                pass
+            @property
+            def resolver_id(self):
+                if probes:
+                    probes[0].evidence_ref = "judge:laura/audit-log#12"
+                return "resolver:mutant"
+
+        # Non-exact EvidenceResolverBinding subclass → rejected
+        receipts = resolve_acquisitions(probes, MutatingBinding())
+        assert all(r.status != "resolved" for r in receipts.values())
+
+    def test_raising_binding_subclass_produces_error_receipt(self):
+        """Codex #1034 P1: a raising binding subclass escaped full
+        evaluation. Non-exact bindings now produce typed error receipts
+        instead of propagating exceptions."""
+        class RaisingBinding:
+            @property
+            def resolver_id(self):
+                raise RuntimeError("hostile getter")
+
+        probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                    evidence_type=EvidenceType.ACQUISITION,
+                    evidence_ref="judge:laura/audit-log#12")]
+        receipts = resolve_acquisitions(probes, RaisingBinding())
+        assert all(r.status == "error" for r in receipts.values())
+
+    def test_non_exact_row_produces_typed_receipt(self):
+        """Codex #1034: invalid rows must produce typed custody evidence,
+        not silent drops."""
+        class ActiveNotes(str):
+            pass
+
+        probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                    evidence_type=EvidenceType.ACQUISITION,
+                    evidence_ref="judge:laura/audit-log#12",
+                    notes=ActiveNotes("hostile"))]
+        receipts = resolve_acquisitions(probes, RESOLVER)
+        assert "acq" in receipts
+        assert receipts["acq"].status == "error"
+        assert "non-exact" in receipts["acq"].reason
 
     def test_hostile_probe_list_subclass_cannot_soften_hard(self):
         """WC #1023 P1: a list subclass for probe_results with a hostile
