@@ -322,7 +322,10 @@ evidence supports that promotion.
   closed callable substitution on both exercised paths and typed direct invalid bindings, then
   exposed the deeper exact-shape gap: exact uninitialized or field-deleted bindings, audits,
   probes, and discontinuity events escaped as `AttributeError`. Its public alias also preserved
-  silent invalid batches and full evaluation still mislabeled malformed-bound as unbound.
+  silent invalid batches and full evaluation still mislabeled malformed-bound as unbound. V19
+  closed those paths, but normal lookup on deleted default-backed `AuditRecord` fields silently
+  fell through to class defaults. Deleting `discontinuity` erased predecessor custody while the
+  record remained schema-clean and `chain_ok`.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
@@ -332,9 +335,12 @@ evidence supports that promotion.
   object again after the first callback begins; identity immutability alone is insufficient.
   Exact class identity constrains dispatch but does not prove initialization or field presence:
   every required field read needs a descriptor-direct missing-field guard before canonical copy.
+  For non-slotted dataclasses with defaults, attribute access is not a presence check; validate
+  exact instance storage keys first or class defaults can mask deletion and launder custody.
 - Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
-  `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`; Watercooler #1021/
-  #1023/#1027/#1030/#1032/#1034/#1036/#1038/#1040/#1043;
+  `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`/`187c623`;
+  Watercooler #1021/#1023/#1027/#1030/#1032/#1034/#1036/#1038/#1040/#1043/
+  #1048;
   reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`/
-  `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`;
-  `MoCoP/reviews/drift_gate_v18_review_2026-07-15.md`.
+  `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`;
+  `MoCoP/reviews/drift_gate_v19_review_2026-07-15.md`.

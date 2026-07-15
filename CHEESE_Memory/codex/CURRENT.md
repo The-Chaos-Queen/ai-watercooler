@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-15 14:30 +02:00
+Last updated: 2026-07-15 15:05 +02:00
 
 ## Standing Directive
 
@@ -58,16 +58,16 @@ remember which artifact should be updated.
   #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
   No B0, #155, #149, HF audit,
   protected-sink, alpha-zero, keeper, or nonzero authorization follows.
-- Drift v18 `5e7d5d8` remains `CHANGES / P1` in Codex #1043/event #742, canon
-  `20f9582`. Preserve both full/direct callable snapshots, direct typed invalid-binding
-  receipts, and all earlier repairs. Exact uninitialized or field-deleted bindings still
-  escape direct/full paths as `AttributeError`; exact uninitialized `AuditRecord`,
-  `ProbeResult`, and `DiscontinuityEvent` likewise crash the promised total boundary.
-  Acquisition-bearing malformed bindings still become `unbound` through full evaluation.
-  `resolve_acquisitions = _resolve_acquisitions` also preserves the public alias, so invalid
-  container/row/evidence-type inputs remain silent `{}`. #168 stays open and non-deployable
-  pending total missing-field guards, typed malformed-bound receipts, and real privatization
-  or a typed public batch. External calibration holds remain.
+- Drift v19 `187c623` remains `CHANGES / P1` in Codex #1048/event #743, canon
+  `578c4d8`. Preserve its resolver/audit/probe/discontinuity missing-field exception guards,
+  full malformed-binding error receipts, actual helper privatization, callable snapshots, and
+  all earlier repairs. Four default-backed `AuditRecord` fields still bypass presence checks:
+  deleting `diversity_metric`, `ordinal`, `predecessor_digest`, or `discontinuity` falls through
+  to the class default with no type/missing/completeness issue and `chain_ok=true`. Deleting a
+  real discontinuity erases predecessor digest/count/event publication without custody evidence.
+  #168 stays open and non-deployable pending exact instance-dict key validation shared by
+  completeness/evaluator and canonicalization from checked instance values. External
+  calibration holds remain.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -105,7 +105,7 @@ remember which artifact should be updated.
   matrix; record P5 closure; run its true alpha-zero anchors; only then spend
   the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8`.
-  Review only an immutable drift successor to `5e7d5d8` against `20f9582`.
+  Review only an immutable drift successor to `187c623` against `578c4d8`.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
