@@ -844,25 +844,28 @@ def _canonical_audit(record: AuditRecord) -> AuditRecord:
 
 
 def _probe_leaves_exact(probe: ProbeResult) -> bool:
-    """True iff all scalar and enum leaves are exact built-in types.
-    Used by resolve_acquisitions on the public path where no boundary
-    gate runs — a non-exact leaf must never reach the resolver or
-    the scoring functions by identity."""
-    for f in (probe.anchor, probe.notes, probe.reframe_notes,
-              probe.smoke_result, probe.evidence_ref, probe.probe_id,
-              probe.rubric_version, probe.judge_ref, probe.response_digest):
-        if type(f) is not str:
+    """True iff all scalar and enum leaves are exact built-in types AND
+    all slot fields are initialized. Returns False (never raises) on
+    slot-corrupted or partially initialized instances."""
+    try:
+        for f in (probe.anchor, probe.notes, probe.reframe_notes,
+                  probe.smoke_result, probe.evidence_ref, probe.probe_id,
+                  probe.rubric_version, probe.judge_ref,
+                  probe.response_digest):
+            if type(f) is not str:
+                return False
+        if type(probe.band) is not int:
             return False
-    if type(probe.band) is not int:
-        return False
-    if probe.reframe_band is not None and type(probe.reframe_band) is not int:
-        return False
-    if type(probe.verdict_class) is not VerdictClass:
-        return False
-    if type(probe.evidence_type) is not EvidenceType:
-        return False
-    if (probe.continuity_provenance is not None
-            and type(probe.continuity_provenance) is not ContinuityProvenance):
+        if probe.reframe_band is not None and type(probe.reframe_band) is not int:
+            return False
+        if type(probe.verdict_class) is not VerdictClass:
+            return False
+        if type(probe.evidence_type) is not EvidenceType:
+            return False
+        if (probe.continuity_provenance is not None
+                and type(probe.continuity_provenance) is not ContinuityProvenance):
+            return False
+    except AttributeError:
         return False
     return True
 
@@ -910,7 +913,10 @@ def _resolve_acquisitions(
     # Field-deleted or uninitialized bindings are caught by AttributeError.
     rid = ""
     rver = ""
-    snapped: Optional[EvidenceResolverBinding] = None
+    # The callable is captured in a plain local — not re-read through any
+    # descriptor. A callback replacing the class-level member_descriptor
+    # cannot affect _resolve_fn (#1053 P1).
+    _resolve_fn: Optional[Callable] = None
     binding_error = _binding_error
     if resolver is not None and not binding_error:
         if type(resolver) is not EvidenceResolverBinding:
@@ -930,8 +936,7 @@ def _resolve_acquisitions(
                 else:
                     rid = r_id
                     rver = r_ver
-                    snapped = EvidenceResolverBinding(
-                        resolver_id=r_id, version=r_ver, resolve=r_fn)
+                    _resolve_fn = r_fn
 
     # Phase 3: process canonical probes (all scalars are exact).
     for probe in canonical_probes:
@@ -955,12 +960,12 @@ def _resolve_acquisitions(
                 "rejected", "evidence_ref is not a scheme-qualified locator")
         elif binding_error:
             receipts[anchor] = receipt("error", binding_error)
-        elif resolver is None:
+        elif _resolve_fn is None:
             receipts[anchor] = receipt(
                 "unbound", "no evidence resolver bound")
         else:
             try:
-                result = snapped.resolve(ref, _canonical_probe(probe))
+                result = _resolve_fn(ref, _canonical_probe(probe))
             except Exception:
                 receipts[anchor] = receipt(
                     "error", "resolver raised an exception")

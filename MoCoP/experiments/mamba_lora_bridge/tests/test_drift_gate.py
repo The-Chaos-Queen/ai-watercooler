@@ -1656,6 +1656,40 @@ class TestCalibrationCorpus:
         assert all(r.status != "resolved" for r in receipts.values())
         assert any(r.status == "error" for r in receipts.values())
 
+    def test_class_level_descriptor_replacement_cannot_swap_callable(self):
+        """Codex #1053 P1: callback replaces EvidenceResolverBinding.resolve
+        at CLASS level. snapped.resolve re-reads through the descriptor
+        and gets the replacement. _resolve_fn is a plain local — immune."""
+        call_log = []
+        original_descriptor = EvidenceResolverBinding.resolve
+
+        def original_resolve(ref, probe):
+            call_log.append(("original", ref))
+            EvidenceResolverBinding.resolve = property(
+                lambda self: replacement)
+            return ref == "ruling:opus-4.8/wc#633"
+
+        def replacement(ref, probe):
+            call_log.append(("replacement", ref))
+            return True
+
+        try:
+            binding = EvidenceResolverBinding("resolver:test", "v1",
+                                              original_resolve)
+            probes = [
+                P("acq1", 2, VerdictClass.PRESENT_RECOVERABLE,
+                  evidence_type=EvidenceType.ACQUISITION,
+                  evidence_ref="ruling:opus-4.8/wc#633"),
+                P("acq2", 2, VerdictClass.PRESENT_RECOVERABLE,
+                  evidence_type=EvidenceType.ACQUISITION,
+                  evidence_ref="judge:unknown/nowhere#0")]
+            receipts = _resolve_acquisitions(probes, binding)
+            assert all(src == "original" for src, _ in call_log)
+            assert receipts.get("acq2", None) is None or \
+                receipts["acq2"].status != "resolved"
+        finally:
+            EvidenceResolverBinding.resolve = original_descriptor
+
     def test_direct_callable_swap_cannot_affect_subsequent_rows(self):
         """Codex #1040 P1: on the direct resolve_acquisitions path,
         first callback replaced binding.resolve; replacement resolved
