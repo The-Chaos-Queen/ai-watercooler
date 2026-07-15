@@ -243,7 +243,7 @@ class ProbeResult:
     response_digest: str = ""  # sha256 hex of the raw probed response
 
 
-@dataclass
+@dataclass(slots=True)
 class DiscontinuityEvent:
     """Typed discontinuity record (A4). Replaces the v6 caller boolean.
 
@@ -256,7 +256,7 @@ class DiscontinuityEvent:
     recorded_by: str
 
 
-@dataclass
+@dataclass(slots=True)
 class AuditRecord:
     audit_id: str
     timestamp: str  # ISO-8601 with explicit offset (UTC); parsed, not compared as text
@@ -275,19 +275,19 @@ _AUDIT_RECORD_FIELDS = frozenset({
 
 
 def _audit_instance_complete(rec: AuditRecord) -> List[str]:
-    """Verify all eight AuditRecord fields exist in the instance __dict__,
-    not inherited from class-level defaults (#1048 P1). Also verifies
-    __dict__ itself is an exact dict — a dict subclass with hostile
-    __iter__/__getitem__ is rejected before any mapping protocol (#1050).
-    Shared between the boundary gate and validate_audit_completeness."""
-    storage = object.__getattribute__(rec, '__dict__')
-    if type(storage) is not dict:
-        return [f"__dict__ must be exact dict, "
-                f"got {_safe_type_name(storage)}"]
-    missing = _AUDIT_RECORD_FIELDS - set(storage)
+    """Verify all eight AuditRecord slot fields are initialized (#1052).
+    With slots=True there is no __dict__ — no dict subclass attack, no
+    class default fallback, no undeclared keys. Uninitialized slots
+    raise AttributeError. Shared between the boundary gate and
+    validate_audit_completeness."""
+    missing = []
+    for name in _AUDIT_RECORD_FIELDS:
+        try:
+            object.__getattribute__(rec, name)
+        except AttributeError:
+            missing.append(name)
     if missing:
-        return [f"missing instance fields (class default fallback): "
-                f"{sorted(missing)}"]
+        return [f"uninitialized slot fields: {sorted(missing)}"]
     return []
 
 
@@ -304,7 +304,7 @@ class AcquisitionReceipt:
     resolver_version: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class EvidenceResolverBinding:
     """Bound acquisition-evidence resolver (#984 blocker 4): identity and
     version travel into the decision artifact; the callable receives the
@@ -826,21 +826,20 @@ def _canonical_discontinuity(
 
 
 def _canonical_audit(record: AuditRecord) -> AuditRecord:
-    """Field-by-field copy of the full record graph from instance __dict__
-    — never reads class-level default fallbacks (#1048 P1). All eight
-    fields are verified present in __dict__ by the boundary gate before
-    this function is called."""
-    d = object.__getattribute__(record, '__dict__')
+    """Field-by-field copy of the full record graph via slot descriptors.
+    AuditRecord uses slots=True (#1052) — no __dict__, no dict subclass,
+    no undeclared keys, no class default fallback. All fields verified
+    initialized by the boundary gate before this function is called."""
     return AuditRecord(
-        audit_id=d['audit_id'],
-        timestamp=d['timestamp'],
-        probe_results=[_canonical_probe(p) for p in d['probe_results']],
-        diversity_metric=d['diversity_metric'],
+        audit_id=record.audit_id,
+        timestamp=record.timestamp,
+        probe_results=[_canonical_probe(p) for p in record.probe_results],
+        diversity_metric=record.diversity_metric,
         slot_probe_results=[_canonical_probe(p)
-                            for p in d['slot_probe_results']],
-        ordinal=d['ordinal'],
-        predecessor_digest=d['predecessor_digest'],
-        discontinuity=_canonical_discontinuity(d['discontinuity']),
+                            for p in record.slot_probe_results],
+        ordinal=record.ordinal,
+        predecessor_digest=record.predecessor_digest,
+        discontinuity=_canonical_discontinuity(record.discontinuity),
     )
 
 

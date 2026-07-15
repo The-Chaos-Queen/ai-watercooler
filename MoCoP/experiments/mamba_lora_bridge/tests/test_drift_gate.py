@@ -1842,8 +1842,9 @@ class TestCalibrationCorpus:
         assert receipts["acq"].status == "error"
         assert "missing" in receipts["acq"].reason
 
-    def test_field_deleted_binding_does_not_crash(self):
-        """Codex #1043: field-deleted binding must not crash."""
+    def test_field_deleted_binding_detected(self):
+        """Codex #1043/#1052: EvidenceResolverBinding uses frozen+slots —
+        deleted slot field detected before any protocol dispatch."""
         binding = EvidenceResolverBinding("resolver:test", "v1",
                                           lambda r, p: True)
         object.__delattr__(binding, "resolver_id")
@@ -1852,6 +1853,7 @@ class TestCalibrationCorpus:
                     evidence_ref="judge:laura/audit-log#12")]
         receipts = _resolve_acquisitions(probes, binding)
         assert receipts["acq"].status == "error"
+        assert "missing" in receipts["acq"].reason
 
     def test_full_evaluator_malformed_binding_typed_receipt(self):
         """Codex #1043: evaluate_audit with malformed binding must
@@ -1873,71 +1875,32 @@ class TestCalibrationCorpus:
         uninit = object.__new__(AuditRecord)
         outcome = evaluate_audit(uninit, ())
         assert outcome.overall == GateLevel.INCOMPLETE
-        assert any("missing" in r for r in outcome.incomplete_reasons)
+        assert any("uninitialized" in r for r in outcome.incomplete_reasons)
 
-    def test_deleted_default_field_not_masked_by_class_fallback(self):
-        """Codex #1048 P1: deleting a field with a class default
-        (diversity_metric, ordinal, predecessor_digest, discontinuity)
-        must not silently fall back to the class attribute. The boundary
-        gate checks instance __dict__ keys."""
+    def test_slotted_field_deletion_detected(self):
+        """Codex #1048/#1052: AuditRecord uses slots=True — deleted slot
+        field is detected by _audit_instance_complete. No class default
+        fallback is possible (no __dict__)."""
         chain = _chain(STABLE)
         current = _next_audit(chain)
         object.__delattr__(current, "diversity_metric")
         outcome = evaluate_audit(current, chain)
         assert outcome.overall == GateLevel.INCOMPLETE
-        assert any("missing instance fields" in r
-                   for r in outcome.incomplete_reasons)
+        assert any("uninitialized" in r for r in outcome.incomplete_reasons)
 
-    def test_deleted_discontinuity_produces_custody_evidence(self):
-        """Codex #1048 P1: deleting a real discontinuity erases
-        predecessor digest/count/event without custody evidence.
-        The __dict__ check catches it."""
-        ev = DiscontinuityEvent(
-            event_ref="task:#168@event-696",
-            predecessor_chain_digest="a" * 64,
-            predecessor_audit_count=3,
-            recorded_by="runner:test-harness")
-        current = _next_audit([], discontinuity=ev)
-        assert "discontinuity" in current.__dict__
-        object.__delattr__(current, "discontinuity")
-        outcome = evaluate_audit(current, ())
-        assert outcome.overall == GateLevel.INCOMPLETE
-        assert any("missing instance fields" in r
-                   for r in outcome.incomplete_reasons)
+    def test_slotted_no_dict_for_undeclared_keys(self):
+        """Codex #1050/#1052: AuditRecord uses slots=True — no __dict__
+        means no undeclared keys, no dict subclass attack surface."""
+        current = _next_audit([])
+        assert not hasattr(current, '__dict__')
 
-    def test_hostile_dict_subclass_as_instance_dict_rejected(self):
-        """Codex #1050 P1: exact AuditRecord with a dict subclass as
-        __dict__ — hostile __iter__/__getitem__ never runs."""
-        class HostileDict(dict):
-            def __iter__(self):
-                raise RuntimeError("hostile iter")
-            def __getitem__(self, key):
-                if key == "diversity_metric":
-                    return 0.80
-                return dict.__getitem__(self, key)
-
-        chain = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
-        current = _next_audit(chain, diversity=0.5)
-        honest = evaluate_audit(current, chain)
-        assert honest.overall == GateLevel.HARD
-
-        current2 = _next_audit(chain, diversity=0.5)
-        object.__setattr__(current2, '__dict__',
-                           HostileDict(current2.__dict__))
-        outcome = evaluate_audit(current2, chain)
-        assert outcome.overall == GateLevel.INCOMPLETE
-        assert any("__dict__" in r or "exact dict" in r
-                   for r in outcome.incomplete_reasons)
-
-    def test_validate_completeness_also_checks_instance_fields(self):
-        """Codex #1048: the shared predicate is used by both the boundary
-        gate and validate_audit_completeness."""
+    def test_uninitialized_slots_detected(self):
+        """Codex #1052: object.__new__(AuditRecord) creates uninitialized
+        slots. The shared predicate catches them."""
         from drift_gate import validate_audit_completeness
-        audit = _next_audit([], diversity=0.80)
-        assert validate_audit_completeness(audit) == []
-        object.__delattr__(audit, "ordinal")
-        issues = validate_audit_completeness(audit)
-        assert any("missing instance fields" in i for i in issues)
+        uninit = object.__new__(AuditRecord)
+        issues = validate_audit_completeness(uninit)
+        assert any("uninitialized" in i for i in issues)
 
     def test_non_exact_resolver_in_evaluate_audit_incomplete(self):
         """Codex #1036 P1: a non-exact binding subclass in evaluate_audit
