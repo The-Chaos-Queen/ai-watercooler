@@ -1875,6 +1875,46 @@ class TestCalibrationCorpus:
         assert outcome.overall == GateLevel.INCOMPLETE
         assert any("missing" in r for r in outcome.incomplete_reasons)
 
+    def test_deleted_default_field_not_masked_by_class_fallback(self):
+        """Codex #1048 P1: deleting a field with a class default
+        (diversity_metric, ordinal, predecessor_digest, discontinuity)
+        must not silently fall back to the class attribute. The boundary
+        gate checks instance __dict__ keys."""
+        chain = _chain(STABLE)
+        current = _next_audit(chain)
+        object.__delattr__(current, "diversity_metric")
+        outcome = evaluate_audit(current, chain)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert any("missing instance fields" in r
+                   for r in outcome.incomplete_reasons)
+
+    def test_deleted_discontinuity_produces_custody_evidence(self):
+        """Codex #1048 P1: deleting a real discontinuity erases
+        predecessor digest/count/event without custody evidence.
+        The __dict__ check catches it."""
+        ev = DiscontinuityEvent(
+            event_ref="task:#168@event-696",
+            predecessor_chain_digest="a" * 64,
+            predecessor_audit_count=3,
+            recorded_by="runner:test-harness")
+        current = _next_audit([], discontinuity=ev)
+        assert "discontinuity" in current.__dict__
+        object.__delattr__(current, "discontinuity")
+        outcome = evaluate_audit(current, ())
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert any("missing instance fields" in r
+                   for r in outcome.incomplete_reasons)
+
+    def test_validate_completeness_also_checks_instance_fields(self):
+        """Codex #1048: the shared predicate is used by both the boundary
+        gate and validate_audit_completeness."""
+        from drift_gate import validate_audit_completeness
+        audit = _next_audit([], diversity=0.80)
+        assert validate_audit_completeness(audit) == []
+        object.__delattr__(audit, "ordinal")
+        issues = validate_audit_completeness(audit)
+        assert any("missing instance fields" in i for i in issues)
+
     def test_non_exact_resolver_in_evaluate_audit_incomplete(self):
         """Codex #1036 P1: a non-exact binding subclass in evaluate_audit
         must produce INCOMPLETE, not crash on attribute access."""

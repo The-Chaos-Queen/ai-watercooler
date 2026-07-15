@@ -268,6 +268,26 @@ class AuditRecord:
     discontinuity: Optional[DiscontinuityEvent] = None  # roots only
 
 
+_AUDIT_RECORD_FIELDS = frozenset({
+    'audit_id', 'timestamp', 'probe_results', 'diversity_metric',
+    'slot_probe_results', 'ordinal', 'predecessor_digest', 'discontinuity',
+})
+
+
+def _audit_instance_complete(rec: AuditRecord) -> List[str]:
+    """Verify all eight AuditRecord fields exist in the instance __dict__,
+    not inherited from class-level defaults (#1048 P1). Deleting a field
+    with a default (diversity_metric, ordinal, predecessor_digest,
+    discontinuity) silently falls back to the class attribute; attribute
+    access sees the default and reports no issue. This predicate is
+    shared between the boundary gate and validate_audit_completeness."""
+    missing = _AUDIT_RECORD_FIELDS - set(rec.__dict__)
+    if missing:
+        return [f"missing instance fields (class default fallback): "
+                f"{sorted(missing)}"]
+    return []
+
+
 @dataclass(frozen=True)
 class AcquisitionReceipt:
     """Typed, single-shot resolution record for one ACQUISITION row (#984
@@ -587,6 +607,10 @@ def _validate_probe_row(probe: ProbeResult, where: str) -> List[str]:
 def validate_audit_completeness(audit: AuditRecord) -> List[str]:
     """Check probe coverage AND the total closed input schema (H5)."""
     issues = []
+    if type(audit) is AuditRecord:
+        issues.extend(_audit_instance_complete(audit))
+        if issues:
+            return issues
     if not isinstance(audit.probe_results, list) or not isinstance(
             audit.slot_probe_results, list):
         return ["probe_results/slot_probe_results must be lists"]
@@ -799,22 +823,21 @@ def _canonical_discontinuity(
 
 
 def _canonical_audit(record: AuditRecord) -> AuditRecord:
-    """Field-by-field copy of the full record graph. No conversion hooks,
-    no iteration protocol dispatch — containers are read as exact lists
-    (guaranteed by the boundary gate) and probe elements are exact
-    ProbeResult (also guaranteed). The only protocol dispatched is
-    attribute access via the standard descriptor protocol on exact types
-    and list.__iter__ on exact lists."""
+    """Field-by-field copy of the full record graph from instance __dict__
+    — never reads class-level default fallbacks (#1048 P1). All eight
+    fields are verified present in __dict__ by the boundary gate before
+    this function is called."""
+    d = record.__dict__
     return AuditRecord(
-        audit_id=record.audit_id,
-        timestamp=record.timestamp,
-        probe_results=[_canonical_probe(p) for p in record.probe_results],
-        diversity_metric=record.diversity_metric,
+        audit_id=d['audit_id'],
+        timestamp=d['timestamp'],
+        probe_results=[_canonical_probe(p) for p in d['probe_results']],
+        diversity_metric=d['diversity_metric'],
         slot_probe_results=[_canonical_probe(p)
-                            for p in record.slot_probe_results],
-        ordinal=record.ordinal,
-        predecessor_digest=record.predecessor_digest,
-        discontinuity=_canonical_discontinuity(record.discontinuity),
+                            for p in d['slot_probe_results']],
+        ordinal=d['ordinal'],
+        predecessor_digest=d['predecessor_digest'],
+        discontinuity=_canonical_discontinuity(d['discontinuity']),
     )
 
 
@@ -1309,6 +1332,10 @@ def evaluate_audit(
             _type_issues.append(
                 f"{where}: exact type AuditRecord required, "
                 f"got {_safe_type_name(rec)}")
+            return
+        inst_issues = _audit_instance_complete(rec)
+        if inst_issues:
+            _type_issues.extend(f"{where}: {i}" for i in inst_issues)
             return
         try:
             _leaf(rec.audit_id, str, where, "audit_id")
