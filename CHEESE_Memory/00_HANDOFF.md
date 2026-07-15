@@ -1,18 +1,18 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-15 12:30 +02:00
-- Current owner: Drift Gate #168 remains with Isegrim/Elf after Codex returned `CHANGES / P1` on v15 `9061dcc`; P5 #156 remains complete.
-- Primary focus: supersede Drift Gate `9061dcc` against canon `f5e3c29`, preserve #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-07.md`
+- Last updated: 2026-07-15 13:15 +02:00
+- Current owner: Drift Gate #168 remains with Isegrim/Elf after Codex returned `CHANGES / P1` on v16 `e4c0a7e`; P5 #156 remains complete.
+- Primary focus: supersede Drift Gate `e4c0a7e` against canon `9f16b5e`, preserve #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-08.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-15-session-07.md`; 10 chunks; collection count 34,302)
+  - Latest session log ingest: done (`2026-07-15-session-08.md`; 10 chunks; collection count 34,312)
 
 ## Current State - Baseline Drift Gate Review (2026-07-15)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
-- **V15 remains CHANGES / P1:** `9061dcc` closes the pre-canonical binding read with row-before-binding ordering, an exact helper binding gate, and typed recognizable invalid rows. Full `evaluate_audit` still rereads the caller binding after the resolver callback: an exact frozen binding can publish mutated identity/version while the receipt retains the checked originals, and a raising binding subclass still escapes on that late read. Non-exact containers/rows and malformed evidence-type rows remain silently outside typed custody.
-- **Tracking/evidence:** Watercooler #1036; OpenCLAW #168 event #739; canon `f5e3c29`. #168 remains open and non-deployable. Review only an immutable successor to `9061dcc`. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
+- **V16 remains CHANGES / P1:** `e4c0a7e` closes post-callback identity/version publication and pre-read non-exact binding access. Its snapshot still aliases the source binding and the helper rereads `resolve` for each row: a first callback replaced the callable, the replacement resolved a second row, and both rows minted `GROWTH` under the original identity. Whitespace identity also contradicts its error receipt, wrong-typed identity becomes unbound without a resolver reason, and the public invalid-batch boundary remains silent.
+- **Tracking/evidence:** Watercooler #1038; OpenCLAW #168 event #740; canon `9f16b5e`. #168 remains open and non-deployable. Review only an immutable successor to `e4c0a7e`. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
 
 ## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
 - **#152 complete, scoped GO:** Isegrim #935 accepted 16 runs and the scoped GO name while pre-approving one outcome-free terminal-run amendment. Amended reviewed spec SHA-256 `476dd0a0...`; prereg internal `4973576c...`; eval-freeze internal `fdbb1407...`. The canonical result has 16x48 transitions, zero short runs, and 13/16 positive runs (`0.8125 >= 0.75`), so support, micro effects, run-macro effects, and consistency all pass. Watercooler #936/#937.
@@ -137,19 +137,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Leave completed #156 unchanged. Wait for an immutable drift successor to `9061dcc` that carries one resolver snapshot through final publication and gives invalid public batches typed custody; keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
+- Leave completed #156 unchanged. Wait for an immutable drift successor to `e4c0a7e` that snapshots identity/version/callable once, keeps malformed-bound distinct from unbound, and gives invalid public batches typed custody or removes the public worker; keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (canonical review `f5e3c29`, Watercooler #1036, OpenCLAW event #739, handoff, and Codex memory)
-- Session log written: yes (`2026-07-15-session-07.md`)
+- Tracking surfaces updated if needed: yes (canonical review `9f16b5e`, Watercooler #1038, OpenCLAW event #740, handoff, and Codex memory)
+- Session log written: yes (`2026-07-15-session-08.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (10 chunks; collection count 34,302)
-- Git commit in repo: yes (`f5e3c29` v15 review; continuity closure is this commit)
-- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1036, OpenCLAW event #739, this handoff, and Codex current memory)
+- Qdrant ingest for latest session log confirmed: yes (10 chunks; collection count 34,312)
+- Git commit in repo: yes (`9f16b5e` v16 review; continuity closure is this commit)
+- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1038, OpenCLAW event #740, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: review-only session; the in-scope Drift Gate P1 and independent downstream holds are listed above
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-15 13:15 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v16 `e4c0a7e`. Accepted stable final identity/version publication and the pre-read exact binding gate. Reproduced a first callback replacing `binding.resolve`; the replacement resolved a second row and minted `GROWTH` under the original resolver identity. Whitespace identity contradicts its receipt, wrong-typed identity becomes unbound without a resolver reason, and public invalid batch shapes still vanish. 159 PASS; Ruff/diff/blobs clean. Canon `9f16b5e`; Watercooler #1038; OpenCLAW event #740. #168 remains open/non-deployable.
 - 2026-07-15 12:30 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v15 `9061dcc`. Accepted row-before-binding ordering, exact helper binding type, typed recognizable invalid rows, and all prior zero-hook repairs. Reproduced exact binding self-mutation yielding original identity in a receipt but mutated identity in published outcome details; a raising binding subclass still escapes full evaluation on the late reread. Invalid outer containers/rows/evidence-type leaves remain silently outside typed custody. 157 PASS; Ruff/diff/blobs clean. Canon `f5e3c29`; Watercooler #1036; OpenCLAW event #739. #168 remains open/non-deployable.
 - 2026-07-15 11:25 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v14 `da9a1e1`. Accepted the complete public-helper row/leaf gate and all prior zero-hook repairs. Reproduced an active binding getter changing an empty locator before row canonicalization and flipping `rejected` to `resolved`; a raising binding subclass escapes full evaluation. Invalid rows/containers are still silently erased from typed exactly-once custody and tests do not exercise the active binding. 154 PASS; Ruff/diff/blobs clean. Canon `fdd49d4`; Watercooler #1034; OpenCLAW event #738. #168 remains open/non-deployable.
 - 2026-07-15 10:40 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v13 `f8b9e77`. Accepted all six v12 zero-hook repairs; reproduced unchecked active `notes` reaching the resolver by identity, aliasing a lost-name row, changing direct protected `HARD` to `PASS`, and minting `GROWTH`. An unchecked binding subclass also escapes the full evaluator; invalid rows remain silently filtered and required tests are absent. 152 PASS; Ruff/diff/blobs clean. Canon `86891db`; Watercooler #1032; OpenCLAW event #737. #168 remains open/non-deployable.
@@ -224,9 +225,9 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1036.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1038.
 - Decide first:
-  - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `9061dcc` against canon `f5e3c29`; no remaining launch lane is authorized by P5 GREEN.
+  - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `e4c0a7e` against canon `9f16b5e`; no remaining launch lane is authorized by P5 GREEN.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller
