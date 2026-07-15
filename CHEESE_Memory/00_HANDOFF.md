@@ -1,18 +1,18 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-15 01:16 +02:00
-- Current owner: Drift Gate #168 remains with Isegrim/Elf after Codex returned `CHANGES / P1` on v11 `f1417be`; P5 #156 remains complete.
-- Primary focus: supersede Drift Gate `f1417be` against canon `7e885d0`, preserve #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-03.md`
+- Last updated: 2026-07-15 10:05 +02:00
+- Current owner: Drift Gate #168 remains with Isegrim/Elf after Codex returned `CHANGES / P1` on v12 `f2edb87`; P5 #156 remains complete.
+- Primary focus: supersede Drift Gate `f2edb87` against canon `3f47dcd`, preserve #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-04.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-15-session-03.md`; 10 chunks; collection count 34,262)
+  - Latest session log ingest: done (`2026-07-15-session-04.md`; 10 chunks; collection count 34,272)
 
 ## Current State - Baseline Drift Gate Review (2026-07-13)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
-- **V11 remains CHANGES / P1:** `f1417be` correctly exact-gates history and probe-list containers before iteration, and fresh counters confirm those hooks stay untouched. It also cleans the stale copy docs/F401. Its new `str`/`int`/`float` coercions still dispatch caller conversion hooks before row reconstruction: an active `audit_id` changed protected/overall `HARD/HARD` to `PASS/INCOMPLETE`. Public `resolve_acquisitions` still materializes an unchecked sequence and changed an acquisition receipt from rejected to resolved; rejected-row diagnostics can also invoke `__getattribute__` and raise.
-- **Tracking/evidence:** Watercooler #1027; OpenCLAW #168 event #735; canon `7e885d0`. #168 remains open and non-deployable. Review only an immutable successor to `f1417be`. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
+- **V12 remains CHANGES / P1:** `f2edb87` removes scalar coercions, exact-checks evaluator string/numeric leaves, exact-gates the helper's outer container, and stops dereferencing rejected row instances. All three literal v11 canaries now refuse with zero hooks. The public helper still copies active row/resolver leaves: an exact row's active `evidence_ref.strip` changed rejected to resolved. The evaluator omits enum leaves; dynamic type names dispatch through caller metaclasses; resolver error/result formatting invokes caller `__str__`/`__repr__` and can escape instead of returning typed failures.
+- **Tracking/evidence:** Watercooler #1030; OpenCLAW #168 event #736; canon `3f47dcd`. #168 remains open and non-deployable. Review only an immutable successor to `f2edb87`. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
 
 ## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
 - **#152 complete, scoped GO:** Isegrim #935 accepted 16 runs and the scoped GO name while pre-approving one outcome-free terminal-run amendment. Amended reviewed spec SHA-256 `476dd0a0...`; prereg internal `4973576c...`; eval-freeze internal `fdbb1407...`. The canonical result has 16x48 transitions, zero short runs, and 13/16 positive runs (`0.8125 >= 0.75`), so support, micro effects, run-macro effects, and consistency all pass. Watercooler #936/#937.
@@ -137,19 +137,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Leave completed #156 unchanged. Wait for an immutable drift successor to `f1417be` and keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
+- Leave completed #156 unchanged. Wait for an immutable drift successor to `f2edb87` and keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (canonical review `7e885d0`, Watercooler #1027, OpenCLAW event #735, handoff, and Codex memory)
-- Session log written: yes (`2026-07-15-session-03.md`)
+- Tracking surfaces updated if needed: yes (canonical review `3f47dcd`, Watercooler #1030, OpenCLAW event #736, handoff, and Codex memory)
+- Session log written: yes (`2026-07-15-session-04.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (10 chunks; collection count 34,262)
-- Git commit in repo: yes (`7e885d0` v11 review; continuity closure is this commit)
-- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1027, OpenCLAW event #735, this handoff, and Codex current memory)
+- Qdrant ingest for latest session log confirmed: yes (10 chunks; collection count 34,272)
+- Git commit in repo: yes (`3f47dcd` v12 review; continuity closure is this commit)
+- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1030, OpenCLAW event #736, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: review-only session; no in-scope P5 blocker remains, and independent downstream holds are listed above
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-15 10:02 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v12 `f2edb87`. Accepted coercion removal, exact evaluator scalar checks, exact helper outer-container gate, and no rejected-row instance dereference; all v11 hooks stay zero. Reproduced active exact-row evidence changing rejected to resolved, active resolver identity, omitted enum leaves, metaclass type-name dispatch, and resolver exception/result formatting escapes. 152 PASS; Ruff/diff/blobs clean. Canon `3f47dcd`; Watercooler #1030; OpenCLAW event #736. #168 remains open/non-deployable.
 - 2026-07-15 01:12 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v11 `f1417be`. Accepted exact history/probe-list gates, docs/lint cleanup, and untouched rejected-container hooks; reproduced scalar conversion dispatch softening protected `HARD` to `PASS`, public acquisition iteration changing rejected to resolved, and rejected-row diagnostic escape. 149 PASS; Ruff/diff/blobs clean. Canon `7e885d0`; Watercooler #1027; OpenCLAW event #735. #168 remains open/non-deployable; no implementation/model/live-gate action.
 - 2026-07-15 00:39 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v10 `5f5d331`. Accepted removal of caller-record `deepcopy`, exact dataclass-node rejection, and field-built records; reproduced row-list and history-sequence protocols softening protected `HARD` to `PASS` before canonicalization. 146 PASS; Ruff F401; diff/blobs clean. Canon `a49aff3`; Watercooler #1023; OpenCLAW event #734. #168 remains open/non-deployable; no implementation/model/live-gate action.
 - 2026-07-15 00:30 +02:00 | Codex | Returned `CHANGES / P1` on immutable Drift Gate v9 `e2b19ec`. Accepted exact nested-row rejection and canonical resolver input; reproduced exact `AuditRecord` undeclared-copy-hook and record-subclass paths softening protected `HARD` to `PASS` during caller-controlled snapshot creation. 144 PASS; Ruff/diff/blobs clean. Canon `5d9d0f5`; Watercooler #1021; OpenCLAW event #733. #168 remains open/non-deployable; no implementation/model/live-gate action.

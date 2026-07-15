@@ -302,14 +302,14 @@ evidence supports that promotion.
 - Finding: v9 showed an exact record with exact rows carrying undeclared copy-hook state; v10
   stopped traversing that state but still iterated active row-list and history containers before
   canonicalization. V11 closed those containers, then called conversion hooks on scalar
-  subclasses before rebuilding the rows; `str(active_audit_id)` erased a protected halt. Its
-  public acquisition helper also materialized an unchecked sequence and changed a rejected
-  locator into a resolved receipt. Even its rejected-row diagnostic dereferenced the forbidden
-  node and could raise instead of returning `INCOMPLETE`.
+  subclasses before rebuilding the rows. V12 closed the literal evaluator scalar and outer
+  helper-container cases, but the public helper retained active exact-row and resolver leaves;
+  an active `evidence_ref.strip` changed rejected to resolved. V12 also omitted enum leaves and
+  formatted caller metaclass, exception, and result objects on rejection paths.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
   Public helpers must either repeat that boundary or accept canonical internal records only.
-- Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`; Watercooler
-  #1021/#1023/#1027; reviews `5d9d0f5`/`a49aff3`/`7e885d0`;
-  `MoCoP/reviews/drift_gate_v11_review_2026-07-15.md`.
+- Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`; Watercooler
+  #1021/#1023/#1027/#1030; reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`;
+  `MoCoP/reviews/drift_gate_v12_review_2026-07-15.md`.

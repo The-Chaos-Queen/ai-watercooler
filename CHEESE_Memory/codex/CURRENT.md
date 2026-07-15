@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-15 01:16 +02:00
+Last updated: 2026-07-15 10:05 +02:00
 
 ## Standing Directive
 
@@ -58,15 +58,16 @@ remember which artifact should be updated.
   #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
   No B0, #155, #149, HF audit,
   protected-sink, alpha-zero, keeper, or nonzero authorization follows.
-- Drift v11 `f1417be` remains `CHANGES / P1` in Codex #1027/event #735, canon
-  `7e885d0`. Preserve its exact history/probe-list gates, field-built records, and
-  docs/lint cleanup: fresh canaries confirm rejected container hooks stay untouched.
-  The scalar helpers still call caller `__str__`/`__int__`/`__float__` before the row
-  snapshot; an active `audit_id` softened protected/overall `HARD/HARD` to
-  `PASS/INCOMPLETE`. Public `resolve_acquisitions` still runs caller `__iter__` and can
-  change a receipt from rejected to resolved, while rejected-row diagnostics dereference
-  the forbidden object and can raise. #168 stays open/non-deployable pending exact
-  no-callback leaves/helper/diagnostics. External calibration holds remain.
+- Drift v12 `f2edb87` remains `CHANGES / P1` in Codex #1030/event #736, canon
+  `3f47dcd`. Preserve its removal of scalar coercions, exact evaluator string/numeric
+  leaves, exact helper outer-container gate, and removal of rejected-row instance
+  dereferences: all v11 canaries now refuse with zero hooks. The public helper still
+  field-copies active row and resolver leaves; an exact row's active `evidence_ref.strip`
+  changed rejected to resolved. Its evaluator checker omits all three enum leaves, dynamic
+  `type(obj).__name__` dispatches through caller metaclasses, and resolver error/result
+  messages invoke caller `__str__`/`__repr__`. #168 stays open/non-deployable pending a
+  shared exact row/enum/binding checker and constant zero-hook failures. External
+  calibration holds remain.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -104,7 +105,7 @@ remember which artifact should be updated.
   matrix; record P5 closure; run its true alpha-zero anchors; only then spend
   the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8`.
-  Review only an immutable drift successor to `f1417be` against `7e885d0`.
+  Review only an immutable drift successor to `f2edb87` against `3f47dcd`.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
