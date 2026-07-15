@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-15 10:42 +02:00
+Last updated: 2026-07-15 11:28 +02:00
 
 ## Standing Directive
 
@@ -58,16 +58,16 @@ remember which artifact should be updated.
   #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
   No B0, #155, #149, HF audit,
   protected-sink, alpha-zero, keeper, or nonzero authorization follows.
-- Drift v13 `f8b9e77` remains `CHANGES / P1` in Codex #1032/event #737, canon
-  `86891db`. Preserve its exact evidence-ref handling, all enum checks,
-  descriptor-direct type names, and safe resolver failure reporting: all six v12 hook
-  canaries now pass with zero hooks. The public helper still field-copies unchecked exact-row
-  leaves and reads resolver fields before an exact binding gate. An active `notes` leaf
-  reached the resolver by identity, aliased the caller's lost-name row, changed direct
-  protected scoring `HARD` to `PASS`, and minted `GROWTH`; a binding subclass also escapes
-  full evaluation. Invalid rows remain silently filtered and required regressions are absent.
-  #168 stays open/non-deployable pending one shared row/leaf parser, exact binding-before-read,
-  and a typed or private canonical-only batch boundary. External calibration holds remain.
+- Drift v14 `da9a1e1` remains `CHANGES / P1` in Codex #1034/event #738, canon
+  `fdd49d4`. Preserve its complete direct-helper row/leaf gate: the notes alias is closed,
+  protected scoring stays `HARD`, and all prior hooks remain zero. The resolver object is
+  still read before an exact binding gate; an active `resolver_id` getter changes an empty
+  locator before row canonicalization and flips `rejected` to `resolved`, while a raising
+  binding subclass escapes full evaluation. The original binding is reread in outcome details.
+  Invalid rows/containers are also deliberately collapsed to `{}`, outside typed exactly-once
+  custody, and the binding regression is passive. #168 stays open/non-deployable pending exact
+  binding-before-read/local capture plus a typed or private invalid-batch boundary. External
+  calibration holds remain.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -105,7 +105,7 @@ remember which artifact should be updated.
   matrix; record P5 closure; run its true alpha-zero anchors; only then spend
   the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8`.
-  Review only an immutable drift successor to `f8b9e77` against `86891db`.
+  Review only an immutable drift successor to `da9a1e1` against `fdd49d4`.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes

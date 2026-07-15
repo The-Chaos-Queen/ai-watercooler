@@ -305,14 +305,16 @@ evidence supports that promotion.
   subclasses before rebuilding the rows. V12 closed the literal evaluator scalar and outer
   helper-container cases, but the public helper retained active exact-row and resolver leaves;
   an active `evidence_ref.strip` changed rejected to resolved. V13 closed that literal leaf plus
-  enum/formatting hooks, yet still field-copied every other unchecked row leaf. An active `notes`
-  object carried a caller-graph alias through the canonical row, allowing the resolver to erase
-  a protected halt and mint growth. Resolver binding subclasses also remained unchecked.
+  enum/formatting hooks, yet still field-copied every other unchecked row leaf. V14 closed the
+  full row graph, but read the resolver object before exact-checking its class. Its identifier
+  getter could mutate the row before canonicalization and change rejected evidence to resolved;
+  a raising binding subclass also escaped full evaluation. Invalid batches remained silently
+  omitted rather than typed.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
   Public helpers must either repeat that boundary or accept canonical internal records only.
-- Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`;
-  Watercooler #1021/#1023/#1027/#1030/#1032; reviews
-  `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`;
-  `MoCoP/reviews/drift_gate_v13_review_2026-07-15.md`.
+- Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
+  `da9a1e1`; Watercooler #1021/#1023/#1027/#1030/#1032/#1034; reviews
+  `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`;
+  `MoCoP/reviews/drift_gate_v14_review_2026-07-15.md`.
