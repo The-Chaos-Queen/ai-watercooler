@@ -318,8 +318,11 @@ evidence supports that promotion.
   wrong-typed identity fields also diverged between evaluator and helper validity semantics.
   V17 built the correct fresh snapshot for the full evaluator, but the separately public helper
   still fetched the callable per row and remained substitutable. Invalid binding fields gained
-  evaluator reasons but acquisition receipts still mislabeled them as absent/unbound. Invalid
-  outer containers, row classes, and malformed evidence-type rows remained silent.
+  evaluator reasons but acquisition receipts still mislabeled them as absent/unbound. V18
+  closed callable substitution on both exercised paths and typed direct invalid bindings, then
+  exposed the deeper exact-shape gap: exact uninitialized or field-deleted bindings, audits,
+  probes, and discontinuity events escaped as `AttributeError`. Its public alias also preserved
+  silent invalid batches and full evaluation still mislabeled malformed-bound as unbound.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
@@ -327,9 +330,11 @@ evidence supports that promotion.
   Carry one immutable authority snapshot, including the callable itself, through every row,
   receipt, digest, diagnostic, and final publication. Never fetch authority from the caller-owned
   object again after the first callback begins; identity immutability alone is insufficient.
+  Exact class identity constrains dispatch but does not prove initialization or field presence:
+  every required field read needs a descriptor-direct missing-field guard before canonical copy.
 - Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
-  `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`; Watercooler #1021/#1023/#1027/
-  #1030/#1032/#1034/#1036/#1038/#1040;
+  `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`; Watercooler #1021/
+  #1023/#1027/#1030/#1032/#1034/#1036/#1038/#1040/#1043;
   reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`/
-  `f5e3c29`/`9f16b5e`/`cd6749a`;
-  `MoCoP/reviews/drift_gate_v17_review_2026-07-15.md`.
+  `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`;
+  `MoCoP/reviews/drift_gate_v18_review_2026-07-15.md`.
