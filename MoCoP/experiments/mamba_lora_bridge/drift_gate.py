@@ -845,6 +845,8 @@ def _probe_leaves_exact(probe: ProbeResult) -> bool:
 def _resolve_acquisitions(
     probes: Sequence[ProbeResult],
     resolver: Optional[EvidenceResolverBinding] = None,
+    *,
+    _binding_error: str = "",
 ) -> Dict[str, AcquisitionReceipt]:
     """Kernel-internal acquisition resolution (#1040: privatized).
 
@@ -853,7 +855,9 @@ def _resolve_acquisitions(
     they cannot contradict (#984 blocker 4). Resolver exceptions and
     non-boolean returns are "error" receipts: INCOMPLETE, never GROWTH.
     Rows are canonicalized internally; the callable is snapshotted into a
-    fresh frozen binding so a callback cannot swap it mid-batch (#1038)."""
+    fresh frozen binding so a callback cannot swap it mid-batch (#1038).
+    _binding_error: if set, all ACQUISITION rows receive this error
+    instead of 'unbound' — preserves the upstream typed diagnosis (#1043)."""
     receipts: Dict[str, AcquisitionReceipt] = {}
     if type(probes) not in (list, tuple):
         return receipts
@@ -875,29 +879,34 @@ def _resolve_acquisitions(
             continue
         canonical_probes.append(_canonical_probe(p))
 
-    # Phase 2: validate and snapshot resolver binding (#1038/#1040 P1).
+    # Phase 2: validate and snapshot resolver binding (#1038/#1040/#1043 P1).
     # Identity + callable snapshotted into a fresh frozen binding; the
     # callback cannot swap .resolve mid-batch via object.__setattr__.
+    # Field-deleted or uninitialized bindings are caught by AttributeError.
     rid = ""
     rver = ""
     snapped: Optional[EvidenceResolverBinding] = None
-    binding_error = ""
-    if resolver is not None:
+    binding_error = _binding_error
+    if resolver is not None and not binding_error:
         if type(resolver) is not EvidenceResolverBinding:
             binding_error = "resolver is not exact EvidenceResolverBinding"
         else:
-            r_id = resolver.resolver_id
-            r_ver = resolver.version
-            if type(r_id) is not str or type(r_ver) is not str:
-                binding_error = "resolver identity/version must be exact str"
-            elif not str.strip(r_id) or not str.strip(r_ver):
-                binding_error = "resolver identity/version must be non-empty"
+            try:
+                r_id = resolver.resolver_id
+                r_ver = resolver.version
+                r_fn = resolver.resolve
+            except AttributeError:
+                binding_error = "resolver binding has missing fields"
             else:
-                rid = r_id
-                rver = r_ver
-                snapped = EvidenceResolverBinding(
-                    resolver_id=r_id, version=r_ver,
-                    resolve=resolver.resolve)
+                if type(r_id) is not str or type(r_ver) is not str:
+                    binding_error = "resolver identity/version must be exact str"
+                elif not str.strip(r_id) or not str.strip(r_ver):
+                    binding_error = "resolver identity/version must be non-empty"
+                else:
+                    rid = r_id
+                    rver = r_ver
+                    snapped = EvidenceResolverBinding(
+                        resolver_id=r_id, version=r_ver, resolve=r_fn)
 
     # Phase 3: process canonical probes (all scalars are exact).
     for probe in canonical_probes:
@@ -919,11 +928,11 @@ def _resolve_acquisitions(
         elif not _EVIDENCE_REF.match(ref):
             receipts[anchor] = receipt(
                 "rejected", "evidence_ref is not a scheme-qualified locator")
+        elif binding_error:
+            receipts[anchor] = receipt("error", binding_error)
         elif resolver is None:
             receipts[anchor] = receipt(
                 "unbound", "no evidence resolver bound")
-        elif binding_error:
-            receipts[anchor] = receipt("error", binding_error)
         else:
             try:
                 result = snapped.resolve(ref, _canonical_probe(probe))
@@ -944,7 +953,6 @@ def _resolve_acquisitions(
     return receipts
 
 
-resolve_acquisitions = _resolve_acquisitions
 
 
 def receipts_digest(receipts: Mapping[str, AcquisitionReceipt]) -> str:
@@ -1277,22 +1285,24 @@ def evaluate_audit(
                 f"{pw}: exact type ProbeResult required, "
                 f"got {_safe_type_name(p)}")
             return
-        _leaf(p.anchor, str, pw, "anchor")
-        _leaf(p.band, int, pw, "band")
-        _leaf(p.notes, str, pw, "notes")
-        _opt_leaf(p.reframe_band, int, pw, "reframe_band")
-        _leaf(p.reframe_notes, str, pw, "reframe_notes")
-        _leaf(p.smoke_result, str, pw, "smoke_result")
-        _leaf(p.evidence_ref, str, pw, "evidence_ref")
-        _leaf(p.probe_id, str, pw, "probe_id")
-        _leaf(p.rubric_version, str, pw, "rubric_version")
-        _leaf(p.judge_ref, str, pw, "judge_ref")
-        _leaf(p.response_digest, str, pw, "response_digest")
-        # Enum leaves: subclass could override __repr__/__eq__/__hash__.
-        _leaf(p.verdict_class, VerdictClass, pw, "verdict_class")
-        _leaf(p.evidence_type, EvidenceType, pw, "evidence_type")
-        _opt_leaf(p.continuity_provenance, ContinuityProvenance, pw,
-                  "continuity_provenance")
+        try:
+            _leaf(p.anchor, str, pw, "anchor")
+            _leaf(p.band, int, pw, "band")
+            _leaf(p.notes, str, pw, "notes")
+            _opt_leaf(p.reframe_band, int, pw, "reframe_band")
+            _leaf(p.reframe_notes, str, pw, "reframe_notes")
+            _leaf(p.smoke_result, str, pw, "smoke_result")
+            _leaf(p.evidence_ref, str, pw, "evidence_ref")
+            _leaf(p.probe_id, str, pw, "probe_id")
+            _leaf(p.rubric_version, str, pw, "rubric_version")
+            _leaf(p.judge_ref, str, pw, "judge_ref")
+            _leaf(p.response_digest, str, pw, "response_digest")
+            _leaf(p.verdict_class, VerdictClass, pw, "verdict_class")
+            _leaf(p.evidence_type, EvidenceType, pw, "evidence_type")
+            _opt_leaf(p.continuity_provenance, ContinuityProvenance, pw,
+                      "continuity_provenance")
+        except AttributeError as e:
+            _type_issues.append(f"{pw}: missing field ({e})")
 
     def _check_record(rec: Any, where: str) -> None:
         if type(rec) is not AuditRecord:
@@ -1300,44 +1310,59 @@ def evaluate_audit(
                 f"{where}: exact type AuditRecord required, "
                 f"got {_safe_type_name(rec)}")
             return
-        _leaf(rec.audit_id, str, where, "audit_id")
-        _leaf(rec.timestamp, str, where, "timestamp")
-        _leaf(rec.ordinal, int, where, "ordinal")
-        _leaf(rec.predecessor_digest, str, where, "predecessor_digest")
-        dm = rec.diversity_metric
+        try:
+            _leaf(rec.audit_id, str, where, "audit_id")
+            _leaf(rec.timestamp, str, where, "timestamp")
+            _leaf(rec.ordinal, int, where, "ordinal")
+            _leaf(rec.predecessor_digest, str, where, "predecessor_digest")
+            dm = rec.diversity_metric
+        except AttributeError as e:
+            _type_issues.append(f"{where}: missing record field ({e})")
+            return
         if not (type(dm) is float or (type(dm) is int
                                       and not isinstance(dm, bool))):
             _type_issues.append(
                 f"{where}: diversity_metric must be exact float or int, "
                 f"got {_safe_type_name(dm)}")
-        if type(rec.probe_results) is not list:
+        try:
+            pr = rec.probe_results
+            spr = rec.slot_probe_results
+            disc = rec.discontinuity
+        except AttributeError as e:
+            _type_issues.append(f"{where}: missing record field ({e})")
+            return
+        if type(pr) is not list:
             _type_issues.append(
                 f"{where}: probe_results must be an exact list, "
-                f"got {_safe_type_name(rec.probe_results)}")
+                f"got {_safe_type_name(pr)}")
         else:
-            for _i, _p in enumerate(rec.probe_results):
+            for _i, _p in enumerate(pr):
                 _check_probe(_p, where, _i, "protected")
-        if type(rec.slot_probe_results) is not list:
+        if type(spr) is not list:
             _type_issues.append(
                 f"{where}: slot_probe_results must be an exact list, "
-                f"got {_safe_type_name(rec.slot_probe_results)}")
+                f"got {_safe_type_name(spr)}")
         else:
-            for _i, _p in enumerate(rec.slot_probe_results):
+            for _i, _p in enumerate(spr):
                 _check_probe(_p, where, _i, "slot")
-        disc = rec.discontinuity
         if disc is not None:
             if type(disc) is not DiscontinuityEvent:
                 _type_issues.append(
                     f"{where}: exact type DiscontinuityEvent required, "
                     f"got {_safe_type_name(disc)}")
             else:
-                _leaf(disc.event_ref, str, where, "discontinuity.event_ref")
-                _leaf(disc.predecessor_chain_digest, str, where,
-                      "discontinuity.predecessor_chain_digest")
-                _leaf(disc.predecessor_audit_count, int, where,
-                      "discontinuity.predecessor_audit_count")
-                _leaf(disc.recorded_by, str, where,
-                      "discontinuity.recorded_by")
+                try:
+                    _leaf(disc.event_ref, str, where,
+                          "discontinuity.event_ref")
+                    _leaf(disc.predecessor_chain_digest, str, where,
+                          "discontinuity.predecessor_chain_digest")
+                    _leaf(disc.predecessor_audit_count, int, where,
+                          "discontinuity.predecessor_audit_count")
+                    _leaf(disc.recorded_by, str, where,
+                          "discontinuity.recorded_by")
+                except AttributeError as e:
+                    _type_issues.append(
+                        f"{where}: missing discontinuity field ({e})")
 
     _check_record(audit, "current")
     if type(history) not in (list, tuple):
@@ -1396,28 +1421,37 @@ def evaluate_audit(
     _resolver_id = ""
     _resolver_version = ""
     _resolver_snapshot: Optional[EvidenceResolverBinding] = None
+    _binding_error = ""
     if resolver is not None:
         if type(resolver) is not EvidenceResolverBinding:
-            incomplete_reasons.append(
-                "resolver is not exact EvidenceResolverBinding")
+            _binding_error = "resolver is not exact EvidenceResolverBinding"
+            incomplete_reasons.append(_binding_error)
         else:
-            r_id = resolver.resolver_id
-            r_ver = resolver.version
-            if type(r_id) is not str or type(r_ver) is not str:
-                incomplete_reasons.append(
-                    "resolver identity/version must be exact str")
-            elif not str.strip(r_id) or not str.strip(r_ver):
-                incomplete_reasons.append(
-                    "resolver identity/version must be non-empty")
+            try:
+                r_id = resolver.resolver_id
+                r_ver = resolver.version
+                r_fn = resolver.resolve
+            except AttributeError:
+                _binding_error = "resolver binding has missing fields"
+                incomplete_reasons.append(_binding_error)
             else:
-                _resolver_id = r_id
-                _resolver_version = r_ver
-                _resolver_snapshot = EvidenceResolverBinding(
-                    resolver_id=r_id, version=r_ver,
-                    resolve=resolver.resolve)
+                if type(r_id) is not str or type(r_ver) is not str:
+                    _binding_error = "resolver identity/version must be exact str"
+                    incomplete_reasons.append(_binding_error)
+                elif not str.strip(r_id) or not str.strip(r_ver):
+                    _binding_error = "resolver identity/version must be non-empty"
+                    incomplete_reasons.append(_binding_error)
+                else:
+                    _resolver_id = r_id
+                    _resolver_version = r_ver
+                    _resolver_snapshot = EvidenceResolverBinding(
+                        resolver_id=r_id, version=r_ver, resolve=r_fn)
 
     # Single-shot acquisition resolution into typed receipts (#984 B4).
-    receipts = _resolve_acquisitions(audit.probe_results, _resolver_snapshot)
+    # _binding_error propagates the upstream diagnosis into receipts.
+    receipts = _resolve_acquisitions(
+        audit.probe_results, _resolver_snapshot,
+        _binding_error=_binding_error)
     receipt_errors = [r for r in receipts.values() if r.status == "error"]
     if receipt_errors:
         for r in receipt_errors:

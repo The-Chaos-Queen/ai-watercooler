@@ -27,7 +27,7 @@ from drift_gate import (
     compose_axes,
     evaluate_audit,
     rejected_acquisitions,
-    resolve_acquisitions,
+    _resolve_acquisitions,
     validate_audit_completeness,
     validate_history_chain,
     ProbeResult,
@@ -705,7 +705,7 @@ class TestGrowthAuthority:
                   evidence_type=EvidenceType.ACQUISITION, evidence_ref=ref)]
 
     def _score(self, probes, binding):
-        receipts = resolve_acquisitions(probes, binding)
+        receipts = _resolve_acquisitions(probes, binding)
         level, verdicts = score_protected_set(probes, receipts)
         return level, verdicts, receipts
 
@@ -768,7 +768,7 @@ class TestGrowthAuthority:
                 "resolver:stateful", "v1",
                 lambda ref, probe, c=calls: c.pop(0))
             probes = self._acq("judge:laura/audit-log#12")
-            receipts = resolve_acquisitions(probes, binding)
+            receipts = _resolve_acquisitions(probes, binding)
             _, verdicts = score_protected_set(probes, receipts)
             rejected = rejected_acquisitions(receipts)
             minted = verdicts["new_relationship"] == Verdict.GROWTH
@@ -1593,7 +1593,7 @@ class TestCalibrationCorpus:
                         evidence_type=EvidenceType.ACQUISITION,
                         evidence_ref="judge:laura/audit-log#12")
 
-        receipts = resolve_acquisitions(HostileSeq(), RESOLVER)
+        receipts = _resolve_acquisitions(HostileSeq(), RESOLVER)
         assert receipts == {}
 
     def test_type_gate_diagnostic_does_not_dereference(self):
@@ -1634,7 +1634,7 @@ class TestCalibrationCorpus:
                     evidence_type=EvidenceType.ACQUISITION,
                     evidence_ref="judge:laura/audit-log#12",
                     notes=ActiveNotes("hostile notes"))]
-        receipts = resolve_acquisitions(probes, RESOLVER)
+        receipts = _resolve_acquisitions(probes, RESOLVER)
         assert receipts["acq_anchor"].status == "error"
         assert "non-exact" in receipts["acq_anchor"].reason
         assert mutation_log == []
@@ -1652,7 +1652,7 @@ class TestCalibrationCorpus:
         probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
                     evidence_type=EvidenceType.ACQUISITION,
                     evidence_ref="judge:laura/audit-log#12")]
-        receipts = resolve_acquisitions(probes, BadBinding())
+        receipts = _resolve_acquisitions(probes, BadBinding())
         assert all(r.status != "resolved" for r in receipts.values())
         assert any(r.status == "error" for r in receipts.values())
 
@@ -1681,7 +1681,7 @@ class TestCalibrationCorpus:
             P("acq2", 2, VerdictClass.PRESENT_RECOVERABLE,
               evidence_type=EvidenceType.ACQUISITION,
               evidence_ref="judge:unknown/nowhere#0")]
-        receipts = resolve_acquisitions(probes, binding)
+        receipts = _resolve_acquisitions(probes, binding)
         assert all(src == "original" for src, _ in call_log)
         assert receipts["acq2"].status != "resolved"
 
@@ -1692,7 +1692,7 @@ class TestCalibrationCorpus:
         probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
                     evidence_type=EvidenceType.ACQUISITION,
                     evidence_ref="judge:laura/audit-log#12")]
-        receipts = resolve_acquisitions(probes, binding)
+        receipts = _resolve_acquisitions(probes, binding)
         assert receipts["acq"].status == "error"
         assert "non-empty" in receipts["acq"].reason
 
@@ -1703,7 +1703,7 @@ class TestCalibrationCorpus:
         probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
                     evidence_type=EvidenceType.ACQUISITION,
                     evidence_ref="judge:laura/audit-log#12")]
-        receipts = resolve_acquisitions(probes, binding)
+        receipts = _resolve_acquisitions(probes, binding)
         assert receipts["acq"].status == "error"
         assert "exact str" in receipts["acq"].reason
 
@@ -1725,7 +1725,7 @@ class TestCalibrationCorpus:
                 return "resolver:mutant"
 
         # Non-exact EvidenceResolverBinding subclass → rejected
-        receipts = resolve_acquisitions(probes, MutatingBinding())
+        receipts = _resolve_acquisitions(probes, MutatingBinding())
         assert all(r.status != "resolved" for r in receipts.values())
 
     def test_raising_binding_subclass_produces_error_receipt(self):
@@ -1740,7 +1740,7 @@ class TestCalibrationCorpus:
         probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
                     evidence_type=EvidenceType.ACQUISITION,
                     evidence_ref="judge:laura/audit-log#12")]
-        receipts = resolve_acquisitions(probes, RaisingBinding())
+        receipts = _resolve_acquisitions(probes, RaisingBinding())
         assert all(r.status == "error" for r in receipts.values())
 
     def test_non_exact_row_produces_typed_receipt(self):
@@ -1753,7 +1753,7 @@ class TestCalibrationCorpus:
                     evidence_type=EvidenceType.ACQUISITION,
                     evidence_ref="judge:laura/audit-log#12",
                     notes=ActiveNotes("hostile"))]
-        receipts = resolve_acquisitions(probes, RESOLVER)
+        receipts = _resolve_acquisitions(probes, RESOLVER)
         assert "acq" in receipts
         assert receipts["acq"].status == "error"
         assert "non-exact" in receipts["acq"].reason
@@ -1830,6 +1830,50 @@ class TestCalibrationCorpus:
         outcome = evaluate_audit(current, chain, resolver=binding)
         assert any("exact str" in r for r in outcome.incomplete_reasons)
         assert not any("unbound" in r for r in outcome.incomplete_reasons)
+
+    def test_uninitialized_binding_does_not_crash(self):
+        """Codex #1043: exact-but-uninitialized EvidenceResolverBinding
+        (via object.__new__) must not crash — produces typed error."""
+        uninit = object.__new__(EvidenceResolverBinding)
+        probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                    evidence_type=EvidenceType.ACQUISITION,
+                    evidence_ref="judge:laura/audit-log#12")]
+        receipts = _resolve_acquisitions(probes, uninit)
+        assert receipts["acq"].status == "error"
+        assert "missing" in receipts["acq"].reason
+
+    def test_field_deleted_binding_does_not_crash(self):
+        """Codex #1043: field-deleted binding must not crash."""
+        binding = EvidenceResolverBinding("resolver:test", "v1",
+                                          lambda r, p: True)
+        object.__delattr__(binding, "resolver_id")
+        probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                    evidence_type=EvidenceType.ACQUISITION,
+                    evidence_ref="judge:laura/audit-log#12")]
+        receipts = _resolve_acquisitions(probes, binding)
+        assert receipts["acq"].status == "error"
+
+    def test_full_evaluator_malformed_binding_typed_receipt(self):
+        """Codex #1043: evaluate_audit with malformed binding must
+        produce typed error receipts, not 'unbound'."""
+        chain = _chain(STABLE)
+        current = _next_audit(chain, protected_overrides=[
+            P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="judge:laura/audit-log#12")])
+        binding = EvidenceResolverBinding(42, "v1", lambda r, p: True)
+        outcome = evaluate_audit(current, chain, resolver=binding)
+        r = outcome.details.get("acquisition_receipts", {}).get("acq", {})
+        assert r.get("status") == "error"
+        assert "exact str" in r.get("reason", "")
+
+    def test_uninitialized_audit_record_does_not_crash(self):
+        """Codex #1043: exact-but-uninitialized AuditRecord must not
+        crash the boundary gate."""
+        uninit = object.__new__(AuditRecord)
+        outcome = evaluate_audit(uninit, ())
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert any("missing" in r for r in outcome.incomplete_reasons)
 
     def test_non_exact_resolver_in_evaluate_audit_incomplete(self):
         """Codex #1036 P1: a non-exact binding subclass in evaluate_audit
