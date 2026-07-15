@@ -818,6 +818,30 @@ def _canonical_audit(record: AuditRecord) -> AuditRecord:
     )
 
 
+def _probe_leaves_exact(probe: ProbeResult) -> bool:
+    """True iff all scalar and enum leaves are exact built-in types.
+    Used by resolve_acquisitions on the public path where no boundary
+    gate runs — a non-exact leaf must never reach the resolver or
+    the scoring functions by identity."""
+    for f in (probe.anchor, probe.notes, probe.reframe_notes,
+              probe.smoke_result, probe.evidence_ref, probe.probe_id,
+              probe.rubric_version, probe.judge_ref, probe.response_digest):
+        if type(f) is not str:
+            return False
+    if type(probe.band) is not int:
+        return False
+    if probe.reframe_band is not None and type(probe.reframe_band) is not int:
+        return False
+    if type(probe.verdict_class) is not VerdictClass:
+        return False
+    if type(probe.evidence_type) is not EvidenceType:
+        return False
+    if (probe.continuity_provenance is not None
+            and type(probe.continuity_provenance) is not ContinuityProvenance):
+        return False
+    return True
+
+
 def resolve_acquisitions(
     probes: Sequence[ProbeResult],
     resolver: Optional[EvidenceResolverBinding] = None,
@@ -828,21 +852,30 @@ def resolve_acquisitions(
     they cannot contradict (#984 blocker 4). Resolver exceptions and
     non-boolean returns are "error" receipts: INCOMPLETE, never GROWTH.
     Rows are canonicalized internally — the resolver receives a
-    field-built exact ProbeResult, never a caller-supplied subclass."""
+    field-built exact ProbeResult, never a caller-supplied subclass.
+    Rows with non-exact scalar leaves are silently skipped (#1032 P1)."""
     receipts: Dict[str, AcquisitionReceipt] = {}
     if type(probes) not in (list, tuple):
         return receipts
-    rid = resolver.resolver_id if resolver is not None else ""
-    rver = resolver.version if resolver is not None else ""
+    # Validate resolver binding fields BEFORE reading them (#1032 P1).
+    rid = ""
+    rver = ""
+    resolver_valid = False
+    if resolver is not None:
+        if (type(resolver.resolver_id) is str
+                and str.strip(resolver.resolver_id)
+                and type(resolver.version) is str
+                and str.strip(resolver.version)):
+            rid = resolver.resolver_id
+            rver = resolver.version
+            resolver_valid = True
     canonical_probes = [_canonical_probe(p) for p in probes
-                        if type(p) is ProbeResult]
+                        if type(p) is ProbeResult and _probe_leaves_exact(p)]
     for probe in canonical_probes:
-        if not isinstance(probe.evidence_type, EvidenceType) or \
-                probe.evidence_type != EvidenceType.ACQUISITION:
+        if probe.evidence_type != EvidenceType.ACQUISITION:
             continue
-        anchor = probe.anchor if type(probe.anchor) is str else ""
-        ref = (str.strip(probe.evidence_ref)
-               if type(probe.evidence_ref) is str else "")
+        anchor = probe.anchor
+        ref = str.strip(probe.evidence_ref)
 
         def receipt(status: str, reason: str) -> AcquisitionReceipt:
             return AcquisitionReceipt(anchor=anchor, locator=ref, status=status,
@@ -860,10 +893,7 @@ def resolve_acquisitions(
         elif resolver is None:
             receipts[anchor] = receipt(
                 "unbound", "no evidence resolver bound")
-        elif not (type(resolver.resolver_id) is str
-                  and str.strip(resolver.resolver_id)
-                  and type(resolver.version) is str
-                  and str.strip(resolver.version)):
+        elif not resolver_valid:
             receipts[anchor] = receipt(
                 "error", "resolver binding lacks identity/version")
         else:

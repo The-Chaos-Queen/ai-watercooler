@@ -1619,6 +1619,47 @@ class TestCalibrationCorpus:
         assert outcome.overall == GateLevel.INCOMPLETE
         assert any("ProbeResult" in r for r in outcome.incomplete_reasons)
 
+    def test_active_notes_leaf_cannot_reach_resolver(self):
+        """Codex #1032 P1: an active notes str subclass reached the
+        resolver by identity via _canonical_probe's field copy. Now
+        resolve_acquisitions skips rows with non-exact scalar leaves."""
+        mutation_log = []
+
+        class ActiveNotes(str):
+            def __repr__(self):
+                mutation_log.append("repr called")
+                return str.__repr__(self)
+
+        probes = [P("acq_anchor", 2, VerdictClass.PRESENT_RECOVERABLE,
+                    evidence_type=EvidenceType.ACQUISITION,
+                    evidence_ref="judge:laura/audit-log#12",
+                    notes=ActiveNotes("hostile notes"))]
+        receipts = resolve_acquisitions(probes, RESOLVER)
+        assert "acq_anchor" not in receipts
+        assert mutation_log == []
+
+    def test_resolver_fields_validated_before_read(self):
+        """Codex #1032 P1: resolver.resolver_id and .version were read
+        before exact-type validation. Now validated first."""
+        read_log = []
+
+        class ActiveStr(str):
+            def __str__(self):
+                read_log.append("str called")
+                return str.__str__(self)
+
+        class BadBinding:
+            resolver_id = ActiveStr("bad")
+            version = ActiveStr("v1")
+            def resolve(self, ref, probe):
+                return True
+
+        probes = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                    evidence_type=EvidenceType.ACQUISITION,
+                    evidence_ref="judge:laura/audit-log#12")]
+        receipts = resolve_acquisitions(probes, BadBinding())
+        assert all(r.status != "resolved" for r in receipts.values())
+
     def test_hostile_probe_list_subclass_cannot_soften_hard(self):
         """WC #1023 P1: a list subclass for probe_results with a hostile
         __iter__ that mutates the name row during the type-check scan.
