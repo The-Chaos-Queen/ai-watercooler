@@ -1707,6 +1707,43 @@ class TestCalibrationCorpus:
         assert receipts["acq"].status == "error"
         assert "non-exact" in receipts["acq"].reason
 
+    def test_resolver_identity_snapshot_survives_callback_mutation(self):
+        """Codex #1036 P1: a callback mutated the frozen binding via
+        object.__setattr__; the late reread in details showed different
+        identity than the receipts. Now resolver identity is snapshotted
+        once before any callback."""
+        chain = _chain(STABLE)
+        current = _next_audit(chain, protected_overrides=[
+            P("acq_anchor", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="ruling:opus-4.8/wc#633")])
+
+        def mutating_resolve(ref, probe):
+            object.__setattr__(binding, "resolver_id", "resolver:mutated")
+            return ref in KNOWN_EVIDENCE
+        binding = EvidenceResolverBinding("resolver:original", "v1",
+                                          mutating_resolve)
+        outcome = evaluate_audit(current, chain, resolver=binding)
+        assert outcome.details["evidence_resolver"]["resolver_id"] == \
+            "resolver:original"
+        receipt = outcome.details["acquisition_receipts"]["acq_anchor"]
+        assert receipt["resolver_id"] == "resolver:original"
+
+    def test_non_exact_resolver_in_evaluate_audit_incomplete(self):
+        """Codex #1036 P1: a non-exact binding subclass in evaluate_audit
+        must produce INCOMPLETE, not crash on attribute access."""
+        class FakeBinding:
+            resolver_id = "fake"
+            version = "v1"
+            def resolve(self, ref, probe):
+                return True
+
+        chain = _chain(STABLE)
+        current = _next_audit(chain)
+        outcome = evaluate_audit(current, chain, resolver=FakeBinding())
+        assert any("EvidenceResolverBinding" in r
+                   for r in outcome.incomplete_reasons)
+
     def test_hostile_probe_list_subclass_cannot_soften_hard(self):
         """WC #1023 P1: a list subclass for probe_results with a hostile
         __iter__ that mutates the name row during the type-check scan.

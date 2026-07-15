@@ -1387,8 +1387,26 @@ def evaluate_audit(
             f"history chain: BROKEN ({len(chain_issues)} issue(s)) — "
             f"trajectory and slot escalation not evaluable")
 
+    # Snapshot resolver identity ONCE before any callback (#1036 P1).
+    # A callback can mutate a frozen binding via object.__setattr__;
+    # the snapshot ensures receipts, details, and diagnostics see the
+    # same identity. Exact type required (resolve_acquisitions also
+    # gates independently for the public path).
+    _resolver_id = ""
+    _resolver_version = ""
+    _resolver_snapshot: Optional[EvidenceResolverBinding] = None
+    if resolver is not None:
+        if type(resolver) is not EvidenceResolverBinding:
+            incomplete_reasons.append(
+                "resolver is not exact EvidenceResolverBinding")
+        elif (type(resolver.resolver_id) is str
+              and type(resolver.version) is str):
+            _resolver_id = resolver.resolver_id
+            _resolver_version = resolver.version
+            _resolver_snapshot = resolver
+
     # Single-shot acquisition resolution into typed receipts (#984 B4).
-    receipts = resolve_acquisitions(audit.probe_results, resolver)
+    receipts = resolve_acquisitions(audit.probe_results, _resolver_snapshot)
     receipt_errors = [r for r in receipts.values() if r.status == "error"]
     if receipt_errors:
         for r in receipt_errors:
@@ -1485,9 +1503,9 @@ def evaluate_audit(
             } for anchor, r in receipts.items()
         }
         details["acquisition_receipts_digest"] = receipts_digest(receipts)
-    if resolver is not None:
+    if _resolver_id:
         details["evidence_resolver"] = {
-            "resolver_id": resolver.resolver_id, "version": resolver.version,
+            "resolver_id": _resolver_id, "version": _resolver_version,
         }
     if holds:
         details["continuity_holds"] = holds
