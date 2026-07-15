@@ -334,7 +334,11 @@ evidence supports that promotion.
   then materialized every key from an exact dictionary with `set(storage)`. A caller-inserted
   non-string collision key could execute equality, soften trajectory, rewrite nested
   discontinuity custody, or replace a rejecting resolver callable and mint `GROWTH` under the
-  original identity. Raising variants also escaped full evaluation and direct helpers.
+  original identity. Raising variants also escaped full evaluation and direct helpers. V22
+  eliminated those dictionaries by slotting every caller-input record. That closure exposed a
+  different authority reread: the loop fetched `snapped.resolve` per row, and the first callback
+  could replace the slotted class member descriptor. Row two then ran the replacement and minted
+  `GROWTH` under the original resolver identity despite the fresh frozen instance.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
@@ -353,11 +357,15 @@ evidence supports that promotion.
   lookup, require the exact declared key set and prove each key is exact `str` using only built-in
   iteration plus identity checks. Prefer slotted dataclasses for caller-owned boundary records
   when compatibility permits; this removes the open instance-dictionary surface by construction.
+  Authority that must remain stable across callbacks belongs in a plain local captured before the
+  first call, never behind a mutable instance/class descriptor reread. Then state the stopping
+  rule: arbitrary module/class/function/bytecode mutation is a CPython non-TEE residual unless the
+  callback is process-isolated. Object hardening cannot prove interpreter-authority isolation.
 - Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
   `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`/`187c623`/`46d58c6`/
-  `914089a`;
+  `914089a`/`e7f0a49`;
   Watercooler #1021/#1023/#1027/#1030/#1032/#1034/#1036/#1038/#1040/#1043/
-  #1048/#1050/#1052;
+  #1048/#1050/#1052/#1054;
   reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`/
-  `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`/`f4f4b72`/`f0cc08f`;
-  `MoCoP/reviews/drift_gate_v21_review_2026-07-15.md`.
+  `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`/`f4f4b72`/`f0cc08f`/
+  `7a62337`; `MoCoP/reviews/drift_gate_v22_review_2026-07-15.md`.
