@@ -325,7 +325,12 @@ evidence supports that promotion.
   silent invalid batches and full evaluation still mislabeled malformed-bound as unbound. V19
   closed those paths, but normal lookup on deleted default-backed `AuditRecord` fields silently
   fell through to class defaults. Deleting `discontinuity` erased predecessor custody while the
-  record remained schema-clean and `chain_ok`.
+  record remained schema-clean and `chain_ok`. V20 checked ordinary instance keys and read them
+  during canonicalization, but did not prove the instance dictionary itself was an exact built-in
+  `dict`. An exact `AuditRecord` with an active dictionary subclass could therefore raise from
+  presence-check iteration, substitute a safe diversity value to change trajectory `HARD` to
+  `PASS`, or return `None` for a real discontinuity and erase predecessor custody while remaining
+  type-clean and `chain_ok`.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
@@ -337,10 +342,13 @@ evidence supports that promotion.
   every required field read needs a descriptor-direct missing-field guard before canonical copy.
   For non-slotted dataclasses with defaults, attribute access is not a presence check; validate
   exact instance storage keys first or class defaults can mask deletion and launder custody.
+  Exact record type also does not make its replaceable `__dict__` inert: fetch storage through
+  `object.__getattribute__`, require `type(storage) is dict` before iteration/indexing, and carry
+  only that checked built-in storage or inert values into canonicalization.
 - Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
-  `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`/`187c623`;
+  `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`/`187c623`/`46d58c6`;
   Watercooler #1021/#1023/#1027/#1030/#1032/#1034/#1036/#1038/#1040/#1043/
-  #1048;
+  #1048/#1050;
   reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`/
-  `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`;
-  `MoCoP/reviews/drift_gate_v19_review_2026-07-15.md`.
+  `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`/`f4f4b72`;
+  `MoCoP/reviews/drift_gate_v20_review_2026-07-15.md`.

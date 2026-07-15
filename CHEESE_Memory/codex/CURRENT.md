@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-15 15:05 +02:00
+Last updated: 2026-07-15 16:16 +02:00
 
 ## Standing Directive
 
@@ -58,16 +58,15 @@ remember which artifact should be updated.
   #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
   No B0, #155, #149, HF audit,
   protected-sink, alpha-zero, keeper, or nonzero authorization follows.
-- Drift v19 `187c623` remains `CHANGES / P1` in Codex #1048/event #743, canon
-  `578c4d8`. Preserve its resolver/audit/probe/discontinuity missing-field exception guards,
-  full malformed-binding error receipts, actual helper privatization, callable snapshots, and
-  all earlier repairs. Four default-backed `AuditRecord` fields still bypass presence checks:
-  deleting `diversity_metric`, `ordinal`, `predecessor_digest`, or `discontinuity` falls through
-  to the class default with no type/missing/completeness issue and `chain_ok=true`. Deleting a
-  real discontinuity erases predecessor digest/count/event publication without custody evidence.
-  #168 stays open and non-deployable pending exact instance-dict key validation shared by
-  completeness/evaluator and canonicalization from checked instance values. External
-  calibration holds remain.
+- Drift v20 `46d58c6` remains `CHANGES / P1` in Codex #1050/event #744, canon
+  `f4f4b72`. Preserve its ordinary instance-key/default-fallback repair plus every resolver,
+  record-graph, callable-snapshot, receipt, and helper-privatization repair accepted through v19.
+  An exact `AuditRecord` can still carry a `dict` subclass as `__dict__`: the presence check
+  dispatches hostile iteration and can raise, while canonical `d[...]` reads can substitute
+  values. Fresh canaries softened trajectory `HARD -> PASS` and erased discontinuity predecessor
+  custody with no type rejection and `chain_ok=true`. #168 stays open and non-deployable pending
+  `object.__getattribute__`, an exact built-in-dict gate before any protocol, and canonicalization
+  from the same inert checked storage. External calibration/custody/deployment holds remain.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -105,7 +104,7 @@ remember which artifact should be updated.
   matrix; record P5 closure; run its true alpha-zero anchors; only then spend
   the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8`.
-  Review only an immutable drift successor to `187c623` against `578c4d8`.
+  Review only an immutable drift successor to `46d58c6` against `f4f4b72`.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes

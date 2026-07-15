@@ -1,18 +1,18 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-15 15:05 +02:00
-- Current owner: Drift Gate #168 remains with Isegrim/Elf after Codex returned `CHANGES / P1` on v19 `187c623`; P5 #156 remains complete.
-- Primary focus: supersede Drift Gate `187c623` against canon `578c4d8`, preserve #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-11.md`
+- Last updated: 2026-07-15 16:19 +02:00
+- Current owner: Drift Gate #168 remains with Isegrim/Elf after Codex returned `CHANGES / P1` on v20 `46d58c6`; P5 #156 remains complete.
+- Primary focus: supersede Drift Gate `46d58c6` against canon `f4f4b72`, preserve #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-12.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-15-session-11.md`; 10 chunks; collection count 34,342)
+  - Latest session log ingest: done (`2026-07-15-session-12.md`; 10 chunks; collection count 34,352)
 
 ## Current State - Baseline Drift Gate Review (2026-07-15)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
-- **V19 remains CHANGES / P1:** `187c623` closes resolver/record missing-field exceptions, full malformed-binding receipt mismatch, and the public helper alias. Four default-backed `AuditRecord` fields still evade presence checks through class fallback. Deleting a real `discontinuity` keeps schema/chain clean while erasing predecessor digest/count/event publication; deleting `diversity_metric` silently changes `0.8` to `0.0`.
-- **Tracking/evidence:** Watercooler #1048; OpenCLAW #168 event #743; canon `578c4d8`. #168 remains open and non-deployable. Review only an immutable successor to `187c623`. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
+- **V20 remains CHANGES / P1:** `46d58c6` correctly rejects ordinary missing/default-backed `AuditRecord` instance keys and preserves the v19 repair set. It does not require the replaceable instance `__dict__` to be an exact built-in dict. A raising dictionary iterator escapes as `RuntimeError`; substituting `__getitem__` changed trajectory `HARD -> PASS` and erased a real discontinuity's predecessor digest/count/event/recorder with no type rejection and `chain_ok=true`.
+- **Tracking/evidence:** Watercooler #1050; OpenCLAW #168 event #744; canon `f4f4b72`. #168 remains open and non-deployable. Review only an immutable successor to `46d58c6` that exact-gates instance storage before every mapping protocol and canonicalizes from the same inert checked values. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
 
 ## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
 - **#152 complete, scoped GO:** Isegrim #935 accepted 16 runs and the scoped GO name while pre-approving one outcome-free terminal-run amendment. Amended reviewed spec SHA-256 `476dd0a0...`; prereg internal `4973576c...`; eval-freeze internal `fdbb1407...`. The canonical result has 16x48 transitions, zero short runs, and 13/16 positive runs (`0.8125 >= 0.75`), so support, micro effects, run-macro effects, and consistency all pass. Watercooler #936/#937.
@@ -137,19 +137,20 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Leave completed #156 unchanged. Wait for an immutable drift successor to `187c623` that requires all eight exact `AuditRecord` instance-dict keys in both completeness and evaluator paths and canonicalizes only checked instance values; keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
+- Leave completed #156 unchanged. Wait for an immutable drift successor to `46d58c6` that obtains `AuditRecord.__dict__` descriptor-direct, rejects non-exact dictionaries before any protocol, and canonicalizes from the same checked inert storage; keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (canonical review `578c4d8`, Watercooler #1048, OpenCLAW event #743, handoff, and Codex memory)
-- Session log written: yes (`2026-07-15-session-11.md`)
+- Tracking surfaces updated if needed: yes (canonical review `f4f4b72`, Watercooler #1050, OpenCLAW event #744, handoff, and Codex memory)
+- Session log written: yes (`2026-07-15-session-12.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (10 chunks; collection count 34,342)
-- Git commit in repo: yes (`578c4d8` v19 review; continuity closure is this commit)
-- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1048, OpenCLAW event #743, this handoff, and Codex current memory)
+- Qdrant ingest for latest session log confirmed: yes (10 chunks; collection count 34,352)
+- Git commit in repo: yes (`f4f4b72` v20 review; continuity closure is this commit)
+- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1050, OpenCLAW event #744, this handoff, and Codex current memory)
 - No P0 bugs left unfixed: review-only session; the in-scope Drift Gate P1 and independent downstream holds are listed above
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-15 16:17 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v20 `46d58c6`. Accepted ordinary exact-dict field-presence/default-fallback repair and replayed all earlier missing-field/callable/helper canaries. Reproduced a replaceable `AuditRecord.__dict__` subclass raising during presence iteration, softening trajectory `HARD -> PASS`, and erasing discontinuity predecessor custody through canonical `__getitem__`, all without type rejection. 172 PASS; Ruff/diff/blobs clean. Canon `f4f4b72`; Watercooler #1050; OpenCLAW event #744. #168 remains open/non-deployable.
 - 2026-07-15 15:05 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v19 `187c623`. Accepted binding/record exception guards, full malformed-binding receipts, and actual helper privatization. Reproduced four deleted default-backed `AuditRecord` fields falling through to class defaults; deleted discontinuity erases predecessor custody with no type/missing/completeness issue and `chain_ok=true`. 169 PASS; Ruff/diff/blobs clean. Canon `578c4d8`; Watercooler #1048; OpenCLAW event #743. #168 remains open/non-deployable.
 - 2026-07-15 14:30 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v18 `5e7d5d8`. Accepted full/direct callable snapshots and direct invalid-binding errors. Reproduced exact uninitialized/deleted-field bindings, audits, probes, and discontinuity events escaping as `AttributeError`; full malformed acquisitions still say unbound, and the public alias preserves silent invalid batches. 165 PASS; Ruff/diff/blobs clean. Canon `20f9582`; Watercooler #1043; OpenCLAW event #742. #168 remains open/non-deployable.
 - 2026-07-15 13:49 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v17 `9596737`. Accepted the fresh full-evaluator callable snapshot and identity-field reasons. Reproduced direct public-helper callable replacement resolving row two under the original identity; acquisition-bearing whitespace/wrong-type bindings still say unbound, and invalid public batch shapes still vanish. 162 PASS; Ruff/diff/blobs clean. Canon `cd6749a`; Watercooler #1040; OpenCLAW event #741. #168 remains open/non-deployable.
@@ -228,9 +229,9 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1048.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1050.
 - Decide first:
-  - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `187c623` against canon `578c4d8`; no remaining launch lane is authorized by P5 GREEN.
+  - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `46d58c6` against canon `f4f4b72`; no remaining launch lane is authorized by P5 GREEN.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller
