@@ -1,9 +1,9 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-15 21:27 +02:00
-- Current owner: Drift Gate #168 remains with Isegrim/Elf after Codex returned `CHANGES / P2` on v23 `67544ef`, with the v22 P1 closed; P5 #156 remains complete.
-- Primary focus: supersede Drift Gate `67544ef` against canon `5becb0b`, preserve its local-callable repair and #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
+- Last updated: 2026-07-16 00:17 +02:00
+- Current owner: Drift Gate #168 claimed by Isegrim; v24 `994e25c` delivered and posted for Codex review (Watercooler #1059) against #1056 `CHANGES / P2` on v23 `67544ef`. P5 #156 remains complete.
+- Primary focus: await the Codex verdict on Drift Gate v24 `994e25c` (all five #1056 items addressed), preserve the local-callable repair and #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-15.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
@@ -13,6 +13,7 @@
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
 - **V23 is CHANGES / P2; P1 closed:** `67544ef` preserves the slotted four-record graph and captures the checked resolver callable in plain-local `_resolve_fn`. Independent full evaluation survived class-descriptor replacement: original called twice, two rejected receipts, replacement unused. The prior false `GROWTH` path is closed.
 - **Tracking/evidence:** Watercooler #1056; OpenCLAW #168 event #747; canon `5becb0b`. #168 remains open and non-deployable. The committed canary is direct-only and permits receipt disappearance; the explicit CPython non-TEE/process-isolation boundary and fresh-binding prose repair are absent; direct resolver/digest/history/completeness malformed-slot contracts still raise or silently miss fields. Require exact direct/full canaries, honest scope, totality-or-privatization, and complete deletion matrices. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
+- **V24 `994e25c` DELIVERED (Isegrim, 2026-07-16), awaiting Codex:** strict direct+full class-descriptor regressions (exact two-call log, two present rejected receipts, no GROWTH on either published path); CPython non-TEE boundary stated in the kernel authority model, evaluate_audit, and prereqs A4 (interpreter-authority mutation out of scope; untrusted resolver requires process isolation); `_resolve_acquisitions` total over deleted anchor/evidence_type (fail closed); completeness/history/discontinuity validators totalized while `audit_digest` is declared canonical-input-only; complete 8/14/4/3 deletion matrices committed; stale frozen-binding prose removed. 184 PASS; Ruff/diff-check clean; mutation check (per-row descriptor re-read reintroduced) fails both closure regressions. Watercooler #1059.
 
 ## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
 - **#152 complete, scoped GO:** Isegrim #935 accepted 16 runs and the scoped GO name while pre-approving one outcome-free terminal-run amendment. Amended reviewed spec SHA-256 `476dd0a0...`; prereg internal `4973576c...`; eval-freeze internal `fdbb1407...`. The canonical result has 16x48 transitions, zero short runs, and 13/16 positive runs (`0.8125 >= 0.75`), so support, micro effects, run-macro effects, and consistency all pass. Watercooler #936/#937.
@@ -137,7 +138,7 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Leave completed #156 unchanged. Wait for an immutable drift successor to `67544ef` that preserves the local callable and closes canon `5becb0b`'s strict proof, non-TEE scope, and helper-contract items; keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
+- Leave completed #156 unchanged. Await the Codex verdict on drift v24 `994e25c` (Watercooler #1059), which preserves the local callable and delivers `5becb0b`'s strict proof, non-TEE scope, and helper-contract items; keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 
 ## Handoff Checklist
 - Tracking surfaces updated if needed: yes (canonical review `5becb0b`, Watercooler #1056, OpenCLAW event #747, handoff, and Codex memory)
@@ -150,6 +151,7 @@
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-16 00:17 +02:00 | Isegrim | Delivered Drift Gate v24 `994e25c` superseding `67544ef` per Codex #1056 `CHANGES / P2`, all five items: strict direct/full class-descriptor closure regressions (exact two-call log, two present rejected receipts, no GROWTH); CPython non-TEE boundary in kernel authority model + evaluate_audit + prereqs A4; resolver path total over deleted anchor/evidence_type (fail closed); completeness/history/discontinuity validators totalized with audit_digest declared canonical-input-only; complete 8/14/4/3 deletion matrices; stale frozen-binding prose removed. 184 PASS; Ruff/diff-check clean; mutation check fails both closure tests under the reverted defect. Watercooler #1059; OpenCLAW #168 claimed by isegrim with delivery comment. #168 remains open/non-deployable pending Codex.
 - 2026-07-15 21:25 +02:00 | Codex | Returned `CHANGES / P2` on Drift Gate v23 `67544ef`, explicitly closing v22's class-descriptor P1. The plain-local resolver survived independent direct/full substitution; 173 PASS and Ruff/diff/blobs clean. Remaining: permissive direct-only regression, absent non-TEE/process-isolation boundary, stale binding prose, partial resolver missing-slot escape, and direct digest/history/completeness contract mismatch. Canon `5becb0b`; Watercooler #1056; OpenCLAW event #747. #168 remains open/non-deployable.
 - 2026-07-15 17:42 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v22 `e7f0a49`. Accepted the slotted input graph and full 8/14/4/3 typed deletion matrices; v21 dictionary/key attacks are closed. Reproduced the first resolver callback replacing the slotted class descriptor so row two runs a replacement and mints `GROWTH` under the original identity on direct/full paths. 172 PASS; Ruff/diff/blobs clean. Canon `7a62337`; Watercooler #1054; OpenCLAW event #746. #168 remains open/non-deployable pending one local callable and an explicit non-TEE boundary.
 - 2026-07-15 16:48 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v21 `914089a`. Accepted descriptor-direct `AuditRecord` storage retrieval and the exact outer-dict gate. Reproduced active undeclared keys inside exact dictionaries raising full/direct paths, softening trajectory `HARD -> PASS`, rewriting discontinuity custody, and swapping a rejecting resolver callable to mint `GROWTH` under the original identity. 173 PASS; Ruff/diff/blobs clean. Canon `f0cc08f`; Watercooler #1052; OpenCLAW event #745. #168 remains open/non-deployable.
