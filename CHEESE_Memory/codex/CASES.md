@@ -330,7 +330,11 @@ evidence supports that promotion.
   `dict`. An exact `AuditRecord` with an active dictionary subclass could therefore raise from
   presence-check iteration, substitute a safe diversity value to change trajectory `HARD` to
   `PASS`, or return `None` for a real discontinuity and erase predecessor custody while remaining
-  type-clean and `chain_ok`.
+  type-clean and `chain_ok`. V21 rejected the non-exact outer dictionary before its hooks, but
+  then materialized every key from an exact dictionary with `set(storage)`. A caller-inserted
+  non-string collision key could execute equality, soften trajectory, rewrite nested
+  discontinuity custody, or replace a rejecting resolver callable and mint `GROWTH` under the
+  original identity. Raising variants also escaped full evaluation and direct helpers.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
@@ -344,11 +348,16 @@ evidence supports that promotion.
   exact instance storage keys first or class defaults can mask deletion and launder custody.
   Exact record type also does not make its replaceable `__dict__` inert: fetch storage through
   `object.__getattribute__`, require `type(storage) is dict` before iteration/indexing, and carry
-  only that checked built-in storage or inert values into canonicalization.
+  only that checked built-in storage or inert values into canonicalization. Exact container type
+  does not make contained keys inert: before hashing, equality, membership, or ordinary attribute
+  lookup, require the exact declared key set and prove each key is exact `str` using only built-in
+  iteration plus identity checks. Prefer slotted dataclasses for caller-owned boundary records
+  when compatibility permits; this removes the open instance-dictionary surface by construction.
 - Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
-  `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`/`187c623`/`46d58c6`;
+  `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`/`187c623`/`46d58c6`/
+  `914089a`;
   Watercooler #1021/#1023/#1027/#1030/#1032/#1034/#1036/#1038/#1040/#1043/
-  #1048/#1050;
+  #1048/#1050/#1052;
   reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`/
-  `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`/`f4f4b72`;
-  `MoCoP/reviews/drift_gate_v20_review_2026-07-15.md`.
+  `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`/`f4f4b72`/`f0cc08f`;
+  `MoCoP/reviews/drift_gate_v21_review_2026-07-15.md`.
