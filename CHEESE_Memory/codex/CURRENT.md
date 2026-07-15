@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-15 13:15 +02:00
+Last updated: 2026-07-15 13:49 +02:00
 
 ## Standing Directive
 
@@ -58,16 +58,16 @@ remember which artifact should be updated.
   #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
   No B0, #155, #149, HF audit,
   protected-sink, alpha-zero, keeper, or nonzero authorization follows.
-- Drift v16 `e4c0a7e` remains `CHANGES / P1` in Codex #1038/event #740, canon
-  `9f16b5e`. Preserve its stable final identity/version publication, pre-read exact binding
-  gate, and all earlier repairs. Its `_resolver_snapshot` is still the original binding and
-  the helper rereads `resolver.resolve` for every row: the first callback can replace the
-  callable, allowing the replacement to resolve a second row and mint `GROWTH` under the
-  original identity. Whitespace identity is published against an empty-identity error receipt;
-  wrong-typed identity is silently demoted to unbound; public invalid container/row/evidence-
-  type inputs still disappear as `{}`. #168 stays open and non-deployable pending one inert
-  identity/version/callable snapshot, typed malformed-bound semantics, and a typed batch result
-  or private canonical-only worker. External calibration holds remain.
+- Drift v17 `9596737` remains `CHANGES / P1` in Codex #1040/event #741, canon
+  `cd6749a`. Preserve its fresh full-evaluator identity/version/callable snapshot, exact
+  field-validation reasons, and all earlier repairs. Direct public `resolve_acquisitions`
+  still rereads `resolver.resolve` per row: its first callback can replace the callable and
+  the replacement resolves row two under the original identity. Acquisition-bearing
+  whitespace/wrong-type bindings still produce `unbound / no evidence resolver bound`
+  receipts despite malformed-bound outcome reasons. Public invalid container/row/evidence-
+  type inputs also remain `{}`. #168 stays open and non-deployable pending helper-local
+  callable capture, typed malformed-bound receipts, and a typed batch result or private
+  canonical-only worker. External calibration holds remain.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -105,7 +105,7 @@ remember which artifact should be updated.
   matrix; record P5 closure; run its true alpha-zero anchors; only then spend
   the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8`.
-  Review only an immutable drift successor to `e4c0a7e` against `9f16b5e`.
+  Review only an immutable drift successor to `9596737` against `cd6749a`.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
