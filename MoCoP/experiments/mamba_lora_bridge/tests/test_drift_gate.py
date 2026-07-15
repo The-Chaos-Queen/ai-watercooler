@@ -1729,6 +1729,57 @@ class TestCalibrationCorpus:
         receipt = outcome.details["acquisition_receipts"]["acq_anchor"]
         assert receipt["resolver_id"] == "resolver:original"
 
+    def test_callable_swap_cannot_affect_subsequent_rows(self):
+        """Codex #1038 P1: first callback replaced binding.resolve;
+        second acquisition used the replacement. Both became GROWTH
+        under original identity. Now the callable is snapshotted into
+        a fresh binding — the replacement never runs."""
+        call_log = []
+
+        def original_resolve(ref, probe):
+            call_log.append(("original", ref))
+            object.__setattr__(binding, "resolve", replacement)
+            return ref == "ruling:opus-4.8/wc#633"
+
+        def replacement(ref, probe):
+            call_log.append(("replacement", ref))
+            return True
+
+        binding = EvidenceResolverBinding("resolver:test", "v1",
+                                          original_resolve)
+        chain = _chain(STABLE)
+        current = _next_audit(chain, protected_overrides=[
+            P("acq1", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="ruling:opus-4.8/wc#633"),
+            P("acq2", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="judge:unknown/nowhere#0")])
+        outcome = evaluate_audit(current, chain, resolver=binding)
+        assert all(src == "original" for src, _ in call_log)
+        assert outcome.verdicts.get("acq2") != Verdict.GROWTH
+
+    def test_whitespace_identity_not_published(self):
+        """Codex #1038: whitespace-only resolver_id was published in
+        details while receipts had empty identity. Now rejected with
+        typed reason."""
+        binding = EvidenceResolverBinding("  ", "v1", lambda r, p: True)
+        chain = _chain(STABLE)
+        current = _next_audit(chain)
+        outcome = evaluate_audit(current, chain, resolver=binding)
+        assert "evidence_resolver" not in outcome.details
+        assert any("non-empty" in r for r in outcome.incomplete_reasons)
+
+    def test_wrong_typed_identity_not_mislabeled_unbound(self):
+        """Codex #1038: wrong-typed resolver_id produced 'unbound'
+        instead of a resolver-specific error."""
+        binding = EvidenceResolverBinding(42, "v1", lambda r, p: True)
+        chain = _chain(STABLE)
+        current = _next_audit(chain)
+        outcome = evaluate_audit(current, chain, resolver=binding)
+        assert any("exact str" in r for r in outcome.incomplete_reasons)
+        assert not any("unbound" in r for r in outcome.incomplete_reasons)
+
     def test_non_exact_resolver_in_evaluate_audit_incomplete(self):
         """Codex #1036 P1: a non-exact binding subclass in evaluate_audit
         must produce INCOMPLETE, not crash on attribute access."""

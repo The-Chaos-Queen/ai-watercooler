@@ -1387,11 +1387,11 @@ def evaluate_audit(
             f"history chain: BROKEN ({len(chain_issues)} issue(s)) — "
             f"trajectory and slot escalation not evaluable")
 
-    # Snapshot resolver identity ONCE before any callback (#1036 P1).
-    # A callback can mutate a frozen binding via object.__setattr__;
-    # the snapshot ensures receipts, details, and diagnostics see the
-    # same identity. Exact type required (resolve_acquisitions also
-    # gates independently for the public path).
+    # Snapshot resolver identity AND callable ONCE into a fresh frozen
+    # binding before any callback (#1036/#1038 P1). The callback cannot
+    # mutate the snapshot (we hold the only reference), and .resolve is
+    # read once — a callback replacing the original's .resolve via
+    # object.__setattr__ cannot affect subsequent rows.
     _resolver_id = ""
     _resolver_version = ""
     _resolver_snapshot: Optional[EvidenceResolverBinding] = None
@@ -1399,11 +1399,21 @@ def evaluate_audit(
         if type(resolver) is not EvidenceResolverBinding:
             incomplete_reasons.append(
                 "resolver is not exact EvidenceResolverBinding")
-        elif (type(resolver.resolver_id) is str
-              and type(resolver.version) is str):
-            _resolver_id = resolver.resolver_id
-            _resolver_version = resolver.version
-            _resolver_snapshot = resolver
+        else:
+            r_id = resolver.resolver_id
+            r_ver = resolver.version
+            if type(r_id) is not str or type(r_ver) is not str:
+                incomplete_reasons.append(
+                    "resolver identity/version must be exact str")
+            elif not str.strip(r_id) or not str.strip(r_ver):
+                incomplete_reasons.append(
+                    "resolver identity/version must be non-empty")
+            else:
+                _resolver_id = r_id
+                _resolver_version = r_ver
+                _resolver_snapshot = EvidenceResolverBinding(
+                    resolver_id=r_id, version=r_ver,
+                    resolve=resolver.resolve)
 
     # Single-shot acquisition resolution into typed receipts (#984 B4).
     receipts = resolve_acquisitions(audit.probe_results, _resolver_snapshot)
