@@ -752,6 +752,16 @@ def _is_hold_row(probe: ProbeResult) -> bool:
             and probe.continuity_provenance == ContinuityProvenance.UNSUPPORTED)
 
 
+def _safe_type_name(obj: Any) -> str:
+    """Type name without calling any overridable protocol on the instance
+    or its metaclass. Uses the __name__ descriptor from type.__dict__
+    directly, bypassing any metaclass __getattribute__."""
+    try:
+        return type.__dict__['__name__'].__get__(type(obj))
+    except Exception:
+        return "<unknown>"
+
+
 def _canonical_probe(probe: ProbeResult) -> ProbeResult:
     """Field-by-field copy into an exact ProbeResult. No conversion hooks
     — all fields are read via slot descriptors on an exact ProbeResult
@@ -830,8 +840,9 @@ def resolve_acquisitions(
         if not isinstance(probe.evidence_type, EvidenceType) or \
                 probe.evidence_type != EvidenceType.ACQUISITION:
             continue
-        anchor = probe.anchor if isinstance(probe.anchor, str) else repr(probe.anchor)
-        ref = probe.evidence_ref.strip() if isinstance(probe.evidence_ref, str) else ""
+        anchor = probe.anchor if type(probe.anchor) is str else ""
+        ref = (str.strip(probe.evidence_ref)
+               if type(probe.evidence_ref) is str else "")
 
         def receipt(status: str, reason: str) -> AcquisitionReceipt:
             return AcquisitionReceipt(anchor=anchor, locator=ref, status=status,
@@ -842,32 +853,36 @@ def resolve_acquisitions(
             receipts[anchor] = receipt("rejected", "ACQUISITION without evidence_ref")
         elif anchor in REQUIRED_PROTECTED_ANCHORS:
             receipts[anchor] = receipt(
-                "rejected", "protected anchor cannot be 'acquired'")
+                "rejected", "protected anchor cannot be acquired")
         elif not _EVIDENCE_REF.match(ref):
             receipts[anchor] = receipt(
-                "rejected", f"evidence_ref {ref!r} is not a scheme-qualified locator")
+                "rejected", "evidence_ref is not a scheme-qualified locator")
         elif resolver is None:
             receipts[anchor] = receipt(
-                "unbound", "no evidence resolver bound — GROWTH not mintable")
-        elif not isinstance(resolver.resolver_id, str) or not resolver.resolver_id.strip() \
-                or not isinstance(resolver.version, str) or not resolver.version.strip():
+                "unbound", "no evidence resolver bound")
+        elif not (type(resolver.resolver_id) is str
+                  and str.strip(resolver.resolver_id)
+                  and type(resolver.version) is str
+                  and str.strip(resolver.version)):
             receipts[anchor] = receipt(
                 "error", "resolver binding lacks identity/version")
         else:
             try:
                 result = resolver.resolve(ref, _canonical_probe(probe))
-            except Exception as exc:  # typed non-authorizing result, never a crash
+            except Exception:
                 receipts[anchor] = receipt(
-                    "error", f"resolver raised {type(exc).__name__}: {exc}")
+                    "error", "resolver raised an exception")
                 continue
             if result is True:
                 receipts[anchor] = receipt("resolved", "evidence vouched by resolver")
             elif result is False:
                 receipts[anchor] = receipt(
-                    "rejected", f"evidence_ref {ref!r} did not resolve")
+                    "rejected", "evidence_ref did not resolve")
             else:
                 receipts[anchor] = receipt(
-                    "error", f"resolver returned non-boolean {result!r}")
+                    "error",
+                    f"resolver returned non-boolean "
+                    f"type {_safe_type_name(result)}")
     return receipts
 
 
@@ -1177,29 +1192,29 @@ def evaluate_audit(
     # Exact-type boundary gate (#995/#1021/#1023 P1): reject subclasses
     # of records, rows, containers, discontinuity, enum, and scalar
     # leaves before any protocol dispatch. No __str__/__int__/__float__/
-    # __iter__/__getattribute__ is ever called on a rejected object —
-    # diagnostics use only type(obj).__name__ (safe: reads the type
-    # object, not the instance).
+    # __iter__/__getattribute__ is ever called on a rejected object.
+    # Diagnostics use _safe_type_name (descriptor-direct, bypasses any
+    # custom metaclass __getattribute__).
     _type_issues: List[str] = []
 
     def _leaf(v: Any, exact: type, where: str, fname: str) -> None:
         if type(v) is not exact:
             _type_issues.append(
                 f"{where}: {fname} must be exact {exact.__name__}, "
-                f"got {type(v).__name__}")
+                f"got {_safe_type_name(v)}")
 
     def _opt_leaf(v: Any, exact: type, where: str, fname: str) -> None:
         if v is not None and type(v) is not exact:
             _type_issues.append(
                 f"{where}: {fname} must be exact {exact.__name__} or None, "
-                f"got {type(v).__name__}")
+                f"got {_safe_type_name(v)}")
 
     def _check_probe(p: Any, where: str, idx: int, label: str) -> None:
         pw = f"{where} {label}[{idx}]"
         if type(p) is not ProbeResult:
             _type_issues.append(
                 f"{pw}: exact type ProbeResult required, "
-                f"got {type(p).__name__}")
+                f"got {_safe_type_name(p)}")
             return
         _leaf(p.anchor, str, pw, "anchor")
         _leaf(p.band, int, pw, "band")
@@ -1212,12 +1227,17 @@ def evaluate_audit(
         _leaf(p.rubric_version, str, pw, "rubric_version")
         _leaf(p.judge_ref, str, pw, "judge_ref")
         _leaf(p.response_digest, str, pw, "response_digest")
+        # Enum leaves: subclass could override __repr__/__eq__/__hash__.
+        _leaf(p.verdict_class, VerdictClass, pw, "verdict_class")
+        _leaf(p.evidence_type, EvidenceType, pw, "evidence_type")
+        _opt_leaf(p.continuity_provenance, ContinuityProvenance, pw,
+                  "continuity_provenance")
 
     def _check_record(rec: Any, where: str) -> None:
         if type(rec) is not AuditRecord:
             _type_issues.append(
                 f"{where}: exact type AuditRecord required, "
-                f"got {type(rec).__name__}")
+                f"got {_safe_type_name(rec)}")
             return
         _leaf(rec.audit_id, str, where, "audit_id")
         _leaf(rec.timestamp, str, where, "timestamp")
@@ -1228,18 +1248,18 @@ def evaluate_audit(
                                       and not isinstance(dm, bool))):
             _type_issues.append(
                 f"{where}: diversity_metric must be exact float or int, "
-                f"got {type(dm).__name__}")
+                f"got {_safe_type_name(dm)}")
         if type(rec.probe_results) is not list:
             _type_issues.append(
                 f"{where}: probe_results must be an exact list, "
-                f"got {type(rec.probe_results).__name__}")
+                f"got {_safe_type_name(rec.probe_results)}")
         else:
             for _i, _p in enumerate(rec.probe_results):
                 _check_probe(_p, where, _i, "protected")
         if type(rec.slot_probe_results) is not list:
             _type_issues.append(
                 f"{where}: slot_probe_results must be an exact list, "
-                f"got {type(rec.slot_probe_results).__name__}")
+                f"got {_safe_type_name(rec.slot_probe_results)}")
         else:
             for _i, _p in enumerate(rec.slot_probe_results):
                 _check_probe(_p, where, _i, "slot")
@@ -1248,7 +1268,7 @@ def evaluate_audit(
             if type(disc) is not DiscontinuityEvent:
                 _type_issues.append(
                     f"{where}: exact type DiscontinuityEvent required, "
-                    f"got {type(disc).__name__}")
+                    f"got {_safe_type_name(disc)}")
             else:
                 _leaf(disc.event_ref, str, where, "discontinuity.event_ref")
                 _leaf(disc.predecessor_chain_digest, str, where,
@@ -1266,11 +1286,9 @@ def evaluate_audit(
             range_trajectory=GateLevel.INCOMPLETE,
             disposition_divergence=GateLevel.INCOMPLETE,
             details={"type_rejection": [
-                f"history: exact list or tuple required, "
-                f"got {type(history).__name__}"]},
+                "history: exact list or tuple required"]},
             incomplete_reasons=[
-                f"history: exact list or tuple required, "
-                f"got {type(history).__name__}"],
+                "history: exact list or tuple required"],
             reasoning=["boundary: rejected non-exact history container"],
         )
     for _hi, _rec in enumerate(history):

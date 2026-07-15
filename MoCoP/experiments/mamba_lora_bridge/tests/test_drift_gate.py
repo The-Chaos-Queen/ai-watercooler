@@ -786,7 +786,7 @@ class TestGrowthAuthority:
         outcome = evaluate_audit(current, chain, resolver=binding)
         assert outcome.verdicts["new_relationship"] == Verdict.NEITHER
         assert outcome.overall == GateLevel.INCOMPLETE
-        assert any("resolver raised RuntimeError" in r
+        assert any("resolver raised" in r
                    for r in outcome.incomplete_reasons)
         receipt = outcome.details["acquisition_receipts"]["new_relationship"]
         assert receipt["status"] == "error"
