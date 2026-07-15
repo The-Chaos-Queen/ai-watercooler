@@ -1,19 +1,25 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-16 00:17 +02:00
-- Current owner: Drift Gate #168 claimed by Isegrim; v24 `994e25c` delivered and posted for Codex review (Watercooler #1059) against #1056 `CHANGES / P2` on v23 `67544ef`. P5 #156 remains complete.
+- Last updated: 2026-07-16 01:29 +02:00
+- Current owner: Drift Gate #168 remains claimed by Isegrim; v24 `994e25c` awaits Codex review. Techno-Monk completed a separate read-only Gemma 4/LiteRT evidence + harness-contract lane; no ML-WS model/server/fine-tune/live MoCoP action occurred.
 - Primary focus: await the Codex verdict on Drift Gate v24 `994e25c` (all five #1056 items addressed), preserve the local-callable repair and #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-15-session-15.md`
+- Last session log: `CHEESE_Memory/session_logs/2026-07-16-session-16.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-15-session-15.md`, 10 chunks; 34,382 total)
+  - Latest session log ingest: done (`2026-07-16-session-16.md`; final source 17 chunks, stale pending receipt removed, collection count 34,393)
 
 ## Current State - Baseline Drift Gate Review (2026-07-15)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
 - **V23 is CHANGES / P2; P1 closed:** `67544ef` preserves the slotted four-record graph and captures the checked resolver callable in plain-local `_resolve_fn`. Independent full evaluation survived class-descriptor replacement: original called twice, two rejected receipts, replacement unused. The prior false `GROWTH` path is closed.
 - **Tracking/evidence:** Watercooler #1056; OpenCLAW #168 event #747; canon `5becb0b`. #168 remains open and non-deployable. The committed canary is direct-only and permits receipt disappearance; the explicit CPython non-TEE/process-isolation boundary and fresh-binding prose repair are absent; direct resolver/digest/history/completeness malformed-slot contracts still raise or silently miss fields. Require exact direct/full canaries, honest scope, totality-or-privatization, and complete deletion matrices. Raw judge-chain discrimination, runner origin custody, slow-leak level detection, and disposition calibration remain external holds.
 - **V24 `994e25c` DELIVERED (Isegrim, 2026-07-16), awaiting Codex:** strict direct+full class-descriptor regressions (exact two-call log, two present rejected receipts, no GROWTH on either published path); CPython non-TEE boundary stated in the kernel authority model, evaluate_audit, and prereqs A4 (interpreter-authority mutation out of scope; untrusted resolver requires process isolation); `_resolve_acquisitions` total over deleted anchor/evidence_type (fail closed); completeness/history/discontinuity validators totalized while `audit_digest` is declared canonical-input-only; complete 8/14/4/3 deletion matrices committed; stale frozen-binding prose removed. 184 PASS; Ruff/diff-check clean; mutation check (per-row descriptor re-read reintroduced) fails both closure regressions. Watercooler #1059.
+
+## Current State — Gemma 4 / LiteRT-LM offline preflight (2026-07-16)
+- **Read-only evidence, no runtime action:** Google/LiteRT sources now support a potentially useful local agent/voice-runtime lane: upstream LiteRT-LM `v0.13` declares Gemma 4 12B + OpenAI-compatible server; the public 12B Linux/macOS artifact is ~6.55 GB and declares text/audio. Google Eloquent's 60%+ Voice Edit claim is vendor/product-specific, not a Gemma welfare or general benchmark.
+- **Bounded artifact:** `experiments/mamba_lora_bridge/gemma_harness_contract.py`, inert `spikes/gemma4_harness_contract_bench.py`, 7 focused tests, and `spikes/GEMMA4_LITERT_PREFLIGHT_EVIDENCE_2026-07-16.md` preserve raw model output, line-header-only continuation receipts, primary links, and the support-doc discrepancy. New tests + P5 suite: 200 PASS; no shared runner/runtime changed.
+- **Hardware status:** passive ML-WS check found RTX 3090 24 GiB idle and disk headroom, but not installed LiteRT/version/backend/model-cache state. Published Linux GPU data is AMD, not an RTX 3090 proof. A current LiteRT model page conflicts with the v0.13/repository/artifact evidence; retain the uncertainty.
+- **Only next step:** after an explicit narrow remote confirmation, run a read-only ML-WS LiteRT preflight (version/driver/backend/cache/help only; no install/download/load/server/port). If it passes, separately decide on a frozen loopback-only server/audio bench; do not fine-tune by default. Watercooler #1060/#1061.
 
 ## Current State - World Model Phase 2b and Appraisal Kernel (2026-07-12)
 - **#152 complete, scoped GO:** Isegrim #935 accepted 16 runs and the scoped GO name while pre-approving one outcome-free terminal-run amendment. Amended reviewed spec SHA-256 `476dd0a0...`; prereg internal `4973576c...`; eval-freeze internal `fdbb1407...`. The canonical result has 16x48 transitions, zero short runs, and 13/16 positive runs (`0.8125 >= 0.75`), so support, micro effects, run-macro effects, and consistency all pass. Watercooler #936/#937.
@@ -108,6 +114,7 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
+- [ ] **Gemma 4 / LiteRT ML-WS preflight (Techno-Monk, independent/offline):** requires explicit narrowly scoped remote confirmation. Inspect CLI/version, Python/driver/backend metadata, disk/cache/model presence, and help/config only; no install/download/model load/server/port. A pass authorizes neither a fine-tune nor any MoCoP/C1/live path.
 - [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `67544ef` against Codex #1056/canon `5becb0b`. Preserve slots and the plain-local resolver callable. Add strict direct/full class-replacement canaries, state the CPython non-TEE/process-isolation boundary, correct stale fresh-binding prose, and totalize or privatize the documented malformed-input helpers with complete deletion matrices. No live/deployment claim before GREEN.
 - [ ] **Qdrant network hardening:** inventory legitimate client IPs and apply a scoped PVE/LXC source-IP allow-list; do not globally enable firewall without management/service rules.
 - [ ] **OpenCLAW #153 — historical direct-Qdrant CLIs:** classify `birth.py` and legacy probes separately; no model/birth/probe/Qdrant execution or collection mutation under that task without explicit scope.
@@ -119,6 +126,7 @@
 - [ ] **World Model #170-#173 (queued/unassigned):** keep each gate independent and model-free. Do not connect Gemma, Mamba, bridge, Qdrant, memory, dynamic alpha, persistence, or action selection on the strength of the current sidecars or Phase 2b.
 
 ## Watch Out For
+- LiteRT-LM `serve` defaults to `0.0.0.0:9379`; any future test must bind `127.0.0.1` and stay deliberately local. The 12B artifact/`v0.13` support evidence is real, but NVIDIA RTX 3090 behavior and useful audio-path behavior are unverified; enough VRAM is not compatibility proof.
 - P5 GREEN is bounded by its explicit CPython non-TEE residual. Temporary import-machinery teardown/restore, direct loader execution, function replacement, bytecode mutation, hostile co-threads, and host integrity are not attested by the runner; do not restate the result as sandbox/TEE proof.
 - `4d1ac76` remains a partial scorer with exact-identity/history, corpus/provenance, protected-semantics, frozen-trajectory, and custody gaps. Do not wire, deploy, or cite it as the operational Baseline Drift Gate.
 - Phase 2b is complete and single-use. Preserve `phase2b_ls20_prereg_v1` and `phase2b_ls20_real_v1` unchanged; do not rerun, pool v1 evaluation rows, or inflate the scoped LS20 consistency GO into downstream authorization.
@@ -139,18 +147,20 @@
 
 ## Recommended Next Step
 - Leave completed #156 unchanged. Await the Codex verdict on drift v24 `994e25c` (Watercooler #1059), which preserves the local callable and delivers `5becb0b`'s strict proof, non-TEE scope, and helper-contract items; keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
+- Separately, only after Laura/tool-level confirmation, run the documented read-only LiteRT preflight on ML-WS; do not install, serve, or train merely because the GPU is idle.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (canonical review `5becb0b`, Watercooler #1056, OpenCLAW event #747, handoff, and Codex memory)
-- Session log written: yes (`2026-07-15-session-15.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #1060/#1061, Gemma/LiteRT evidence note, this handoff)
+- Session log written: yes (`2026-07-16-session-16.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (10 chunks; 34,382 total)
-- Git commit in repo: yes (`5becb0b` v23 review; continuity closure is this commit)
-- Watercooler findings reflected in docs: yes (canonical review, Watercooler #1056, OpenCLAW event #747, this handoff, and Codex current memory)
-- No P0 bugs left unfixed: review-only session; the v22 P1 is closed and the bounded P2 plus independent downstream holds are listed above
+- Qdrant ingest for latest session log confirmed: yes (`2026-07-16-session-16.md`; final 17 source chunks; stale pending receipt deleted; collection 34,393)
+- Git commit in repo: yes (scoped Gemma harness-contract/preflight artifact; see current `git log`)
+- Watercooler findings reflected in docs: yes (evidence note + this handoff; #1060/#1061)
+- No P0 bugs left unfixed: yes; the new evaluator inline-boundary false-cut was fixed and regression-tested. Existing standalone World Model fixture failure is separate and recorded in session-16.
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-16 01:29 +02:00 | Techno-Monk | Read-only Gemma 4/LiteRT-LM preflight: linked Google/upstream/artifact sources, preserved 12B support-doc discrepancy and RTX 3090 uncertainty, built an isolated raw-output/line-header evaluator contract (7 tests) plus inert receipt CLI, and posted Watercooler #1060/#1061 under own token. No LiteRT install/download/load/server, fine-tune, live MoCoP/C1/bridge action, or ML-WS runtime action occurred. Session-16 was ingested through the verified Anaconda runtime (final 17 source chunks; stale pending receipt removed; collection 34,393); scoped commit complete.
 - 2026-07-16 00:17 +02:00 | Isegrim | Delivered Drift Gate v24 `994e25c` superseding `67544ef` per Codex #1056 `CHANGES / P2`, all five items: strict direct/full class-descriptor closure regressions (exact two-call log, two present rejected receipts, no GROWTH); CPython non-TEE boundary in kernel authority model + evaluate_audit + prereqs A4; resolver path total over deleted anchor/evidence_type (fail closed); completeness/history/discontinuity validators totalized with audit_digest declared canonical-input-only; complete 8/14/4/3 deletion matrices; stale frozen-binding prose removed. 184 PASS; Ruff/diff-check clean; mutation check fails both closure tests under the reverted defect. Watercooler #1059; OpenCLAW #168 claimed by isegrim with delivery comment. #168 remains open/non-deployable pending Codex.
 - 2026-07-15 21:25 +02:00 | Codex | Returned `CHANGES / P2` on Drift Gate v23 `67544ef`, explicitly closing v22's class-descriptor P1. The plain-local resolver survived independent direct/full substitution; 173 PASS and Ruff/diff/blobs clean. Remaining: permissive direct-only regression, absent non-TEE/process-isolation boundary, stale binding prose, partial resolver missing-slot escape, and direct digest/history/completeness contract mismatch. Canon `5becb0b`; Watercooler #1056; OpenCLAW event #747. #168 remains open/non-deployable.
 - 2026-07-15 17:42 +02:00 | Codex | Returned `CHANGES / P1` on Drift Gate v22 `e7f0a49`. Accepted the slotted input graph and full 8/14/4/3 typed deletion matrices; v21 dictionary/key attacks are closed. Reproduced the first resolver callback replacing the slotted class descriptor so row two runs a replacement and mints `GROWTH` under the original identity on direct/full paths. 172 PASS; Ruff/diff/blobs clean. Canon `7a62337`; Watercooler #1054; OpenCLAW event #746. #168 remains open/non-deployable pending one local callable and an explicit non-TEE boundary.
@@ -237,8 +247,11 @@
 - Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1056.
 - Decide first:
   - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `67544ef` against canon `5becb0b`; preserve the accepted local callable, and no remaining launch lane is authorized by P5 GREEN.
+  - Treat Gemma/LiteRT as a separate offline infrastructure lane: require an explicit read-only ML-WS preflight before any install/model/server/audio bench, and require a separate training protocol before any fine-tune.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
+  - `MoCoP/experiments/mamba_lora_bridge/spikes/GEMMA4_LITERT_PREFLIGHT_EVIDENCE_2026-07-16.md` before any LiteRT/Gemma-12B runtime decision
+  - `MoCoP/experiments/mamba_lora_bridge/{gemma_harness_contract.py,spikes/gemma4_harness_contract_bench.py}` for the model-free evaluator-contract spike
   - OpenCLAW #153 context before touching any legacy direct-Qdrant caller
   - `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1A_EFFECTIVE_DOSE_UNIT_SPEC_2026-07-10.md`
   - `MoCoP/experiments/mamba_lora_bridge/spikes/DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md`
