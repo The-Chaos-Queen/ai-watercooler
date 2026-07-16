@@ -571,6 +571,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     split_path = _root_relative(args.split_manifest, root)
     out = _root_relative(args.out, root)
     protocol = _root_relative(args.protocol, root)
+    if out.exists():
+        raise FileExistsError(f"refusing to overwrite existing refit result before capture: {out}")
     if not protocol.is_file():
         raise SystemExit(f"protocol is missing: {protocol}")
     manifest = load_and_validate_bridge_refit_split(

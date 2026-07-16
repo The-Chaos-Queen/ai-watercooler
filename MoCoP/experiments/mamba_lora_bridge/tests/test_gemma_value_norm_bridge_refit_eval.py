@@ -100,6 +100,39 @@ def test_captured_delta_hashes_bind_each_matrix_and_change_with_content():
     assert first != second
 
 
+def test_main_refuses_existing_output_before_any_capture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    manifest = refit.build_bridge_refit_split(corpus_path=CORPUS, primary_holdout_path=PRIMARY)
+    split_path = tmp_path / "valid.split.json"
+    refit.write_bridge_refit_split_no_overwrite(manifest, split_path)
+    protocol = tmp_path / "protocol.md"
+    protocol.write_text("test protocol", encoding="utf-8")
+    output = tmp_path / "already_exists.pt"
+    output.write_bytes(b"existing artifact must survive")
+
+    def capture_must_not_run(*args, **kwargs):
+        raise AssertionError("capture must not start when output already exists")
+
+    monkeypatch.setattr(refit.microtrain, "capture_training_records", capture_must_not_run)
+    with pytest.raises(FileExistsError, match="overwrite"):
+        refit.main(
+            [
+                "--mode",
+                "capture_train_eval",
+                "--split-manifest",
+                str(split_path),
+                "--out",
+                str(output),
+                "--protocol",
+                str(protocol),
+                "--corpus",
+                str(CORPUS),
+                "--primary-holdout",
+                str(PRIMARY),
+            ]
+        )
+    assert output.read_bytes() == b"existing artifact must survive"
+
+
 def test_main_refuses_tampered_split_before_any_capture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     manifest = refit.build_bridge_refit_split(corpus_path=CORPUS, primary_holdout_path=PRIMARY)
     manifest["training"]["pairs"][0]["scenario_id"] = "craft_1_warm"
