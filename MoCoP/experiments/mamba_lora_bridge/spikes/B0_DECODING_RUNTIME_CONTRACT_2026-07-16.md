@@ -46,9 +46,23 @@ B0 runs with **no components attached** — the manifest must say so explicitly 
    kwarg hands control to vendor data that moves with the revision — and a checkpoint-shipped
    `repetition_penalty` survives `do_sample=False` (logits processor, not sampler), while a
    shipped `num_beams>1` silently yields deterministic beam search instead of greedy. The
-   checkpoint's shipped `generation_config` at the pinned revision is read on ML-WS and recorded
-   in the manifest as EVIDENCE, so a revision bump that changes it is a visible diff, never a
+   checkpoint's shipped `generation_config` at the pinned revision MUST BE read at run time on
+   ML-WS and recorded in the manifest — a **required future receipt produced by the run**, not
+   an already-existing fact — so a revision bump that changes it is a visible diff, never a
    silent behavior change. (Rev 1–3 said the opposite; that premise is retracted — §9.)
+
+   **The exact neutralization set (rev 5, per Monk #1109), three tiers, closed-world:**
+   - *Required-explicit (active under greedy, passed by value):* `do_sample=False`,
+     `num_beams=1`, `max_new_tokens=160`, `min_new_tokens=0`, `repetition_penalty=1.0`,
+     `no_repeat_ngram_size=0`, `eos_token_id=<pinned list>`, `pad_token_id=<pinned>`.
+     (`use_cache` is descriptor-homed — §3.4.)
+   - *Pinned-inert (inactive under `do_sample=False` but pinned against a future flip
+     co-opting shipped values):* `temperature=1.0`, `top_p=1.0`, `top_k=0`,
+     `length_penalty=1.0`, `early_stopping=False`.
+   - *Forbidden-present (manifest and call must not carry them):* `bad_words_ids`,
+     `force_words_ids`, `suppress_tokens`, `begin_suppress_tokens`, `constraints`,
+     `penalty_alpha`, and any streamer/assistant-model field. A manifest declaring a field the
+     runner does not actually pass remains REFUSED (the #1095 property is kept, not loosened).
 2. **Budget:** `max_new_tokens=160` (DQ1a §3.3 continuation budget). Stop reason recorded per
    prompt from the closed set `{eos, length}`. `eos_token_id` pinned **by value** in the
    manifest, accepting the checkpoint's LIST form; the stop receipt must name WHICH id fired.
@@ -133,6 +147,9 @@ are not explicitly passed; the journal preserves exact text/hash but not token I
 or wall time. A narrow source/test congruence packet is routed to Gidim (#156 lane): closed-world
 frozen decoding/custody fields, derived, passed, regression-tested — or a named reviewed sidecar
 narrowing. This section records the routing; the repair is not this document's to make.
+*(Rev 5 addition per Monk #1109: the congruence packet also owns LOAD-ROUTING binding — the
+committed constructor loads `device_map="auto"` while §2 requires explicit `cuda:0`, and the
+descriptor currently reports a device, not the loading route.)*
 
 ## 9. Rev 4 — the §3.1 inversion (WC #1103, found by Gidim; scored publicly)
 
