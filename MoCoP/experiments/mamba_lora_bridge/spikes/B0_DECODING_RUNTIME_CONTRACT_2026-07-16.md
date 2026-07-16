@@ -18,6 +18,11 @@ monitor sites and every numeric threshold (#149, B0-dependent by keeper decision
 any value-branch intervention, bridge, Mamba, Qdrant, memory, replay, sleep, or C1 stage.
 B0 runs with **no components attached** — the manifest must say so explicitly (§5).
 
+> **PRECEDENCE NOTE (rev 3, per Monk #1098):** every "Q1"–"Q5" reference in §§2–6 below is
+> retained as drafting lineage only — the questions are CLOSED. The resolved values in **§8
+> (owner rulings, WC #1092) control** wherever the older wording still reads as an open owner
+> decision.
+
 ## 2. Model identity (manifest `model` block)
 
 | Field | Value | Source |
