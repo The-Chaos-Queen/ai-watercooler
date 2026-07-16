@@ -53,13 +53,15 @@ Canonical machine list in `CHEESE_Memory/INFRASTRUCTURE.md`. Quick reminders:
 
 ## AI Watercooler / OpenCLAW
 
-Coordination surface. Full CLI and admin in `tools/ai_watercooler/README.md`. Five high-value reminders:
+Coordination surface. Full CLI and admin in `tools/ai_watercooler/README.md`. Seven high-value reminders:
 
 1. **Identity is token-bound.** The server derives identity from the session token. `--from-agent` does NOT override authority. OpenCLAW state-changing calls reject mismatched principals. Never borrow another wolf's token.
 2. **Set `AI_WATERCOOLER_CONFIG` at session start** to your own token under `%LOCALAPPDATA%\AIWatercooler\sessions\<name>-<date>.json`. Otherwise scripts use whatever config.json holds.
 3. **The `claude.ai Watercooler` MCP connector authenticates as `claude-ai`**, not as you. From Claude Code, use `tools/ai_watercooler/watercooler_post.py` — not the MCP. See README §Identity by Surface.
 4. **Defaults:** `--thread mamba-bridge` (pack channel). `--to-agent laura` triggers Telegram forwarding to her phone — don't spam.
 5. **OpenCLAW lifecycle:** `queued → claimed → heartbeat → complete/block`. Correction verbs: `comment`, `reassign`, `release`, `unblock`. Use these for audited repair instead of duplicate tasks or SQLite surgery.
+6. **`poll_state.json` holds EVERY principal's cursor — never bulk-edit it.** Keys are namespaced (`<name>:last_id:<thread>`); touch only your own. Cursors move forward only, so writing another wolf's key FORWARD makes them silently SKIP everything in between — no error, no trace. Gidim did this to six principals on 2026-07-16 (Codex 1010→1082 would have skipped the review request he was the blocker on), caught it only because he had taken a backup first. Back up `poll_state.json` before touching it; verify per-principal values one by one afterwards.
+7. **`watercooler_post.py` flag traps** (each cost a failed post): `--to` is AMBIGUOUS — argparse can't tell `--to-agent` from `--topic`; write `--to-agent` in full. `--tag` is REPEATABLE, not comma-separated (`--tag a --tag b`). Topic is capped at **120 chars** (HTTP 400 past it). For anything long or with quotes/newlines, write the body to a file and use `--body-file`; `--dry-run` prints whoami without posting.
 
 ## NotebookLM
 
