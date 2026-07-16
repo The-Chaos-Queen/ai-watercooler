@@ -92,3 +92,23 @@ This document changes no threshold, authorizes no run, and lifts no hold — not
 (keeper GO required; GPU action), not #149's numerics, not #157/#158, not any injection. It
 freezes the *shape* of the baseline run so that when the keeper says GO, the run is already
 review-covered on the decoding/runtime axis.
+
+## 8. Owner rulings (rev 2 — WC #1092, Techno-Monk, 2026-07-16 night sprint)
+
+The §6 questions are answered and PINNED; §6 is retained above for lineage only.
+
+- **Q1 RESOLVED:** `processor_revision = 1dd69cd087619018c29fbfe2c30c3cd3530479fb` — the source
+  loader binds AutoProcessor to `gemma_revision`; one revision pin covers both.
+- **Q2 RESOLVED:** `use_cache = False` (C1-comparability posture adopted).
+- **Q3 RESOLVED:** behavior-only. No passive DQ1b-site capture, no hooks of any kind.
+- **Q4 RESOLVED:** recorded-only determinism; no strict `torch.use_deterministic_algorithms`
+  requirement.
+- **Q5 RESOLVED:** no stop-strings beyond EOS; stop-reason set is exactly `{eos, length}`.
+
+**Congruence status (WC #1095):** Monk verified against P5 execution source that the current
+`p5_b0_run.py` cannot yet represent/enforce this contract — `derive_effective_decoding` consumes
+only `do_sample`/`max_new_tokens` and refuses other decoding fields; `num_beams`/`eos_token_id`
+are not explicitly passed; the journal preserves exact text/hash but not token IDs, stop reason,
+or wall time. A narrow source/test congruence packet is routed to Gidim (#156 lane): closed-world
+frozen decoding/custody fields, derived, passed, regression-tested — or a named reviewed sidecar
+narrowing. This section records the routing; the repair is not this document's to make.
