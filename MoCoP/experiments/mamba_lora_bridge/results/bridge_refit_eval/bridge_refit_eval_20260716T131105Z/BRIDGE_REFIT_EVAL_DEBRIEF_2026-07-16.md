@@ -33,7 +33,7 @@ The copied local artifact was loaded CPU-only after the run.  Its split was re-d
 
 - Local relevant tests: **14 passed** (new refit runner plus existing microtrain tests).
 - ML-WS target-native no-model refit tests: **7 passed**.
-- Two delegated independent reviews timed out without producing findings.  The fallback was an explicit local static/source audit, frozen input hashes, exact target-native test run, and post-run artifact recomputation.  This is recorded as a review limitation, not silently treated as a pass.
+- Three delegated independent reviews timed out without producing findings.  The fallback was an explicit local static/source audit, frozen input hashes, exact target-native test run, and post-run artifact recomputation.  This is recorded as a review limitation, not silently treated as a pass.
 - The broad mixed suite is not green: B0 tests pass in a fresh process (**193 passed**) but fail after bridge-module collection due pre-existing test-harness residency; one unrelated World Model Phase-2 test independently fails on a committed-tool-argv mismatch.  Neither failure was used as evidence about this bridge result.
 
 ## Train fit
