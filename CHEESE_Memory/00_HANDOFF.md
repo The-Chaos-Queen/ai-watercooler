@@ -1,19 +1,20 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-16 13:53 +02:00
-- Current owner: Drift Gate #168 remains queued with Isegrim, but v27 `4c6b7b4` is Codex implementation-review GREEN in Watercooler #1070 / OpenCLAW event #757, canon `001ce79`. Techno-Monk's separate read-only Gemma 4/LiteRT evidence lane remains preserved; no ML-WS model/server/fine-tune/live MoCoP action occurred in this lane.
+- Last updated: 2026-07-16 14:20 +02:00
+- Current owner: Drift Gate #168 remains queued with Isegrim, but v27 `4c6b7b4` is Codex implementation-review GREEN in Watercooler #1070 / OpenCLAW event #757, canon `001ce79`. At Laura's direction, Techno-Monk froze the exact code/review pair as annotated tags plus a verified portable bundle (OpenCLAW event #758); task state and independent holds remain unchanged. Techno-Monk's separate read-only Gemma 4/LiteRT evidence lane remains preserved; no ML-WS model/server/fine-tune/live MoCoP action occurred in this lane.
 - Primary focus: do not re-review or deploy Drift Gate v27. Preserve duplicate acquisition folding, complete-graph early preflight, slots, the plain-local resolver callable, strict direct/full closure tests, canonical-input contracts, explicit non-TEE boundary, #156 closure, and every independent #149/#155/HF/protected-sink/alpha-zero hold. Advance #168 only through separately reviewed judge-chain, runner-origin, slow-leak, disposition, and launch evidence.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-16-session-21.md`
+- Last session log: `CHEESE_Memory/session_logs/2026-07-16-session-22.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-16-session-21.md`; 11 source chunks; collection 34,454; 2026-07-16 13:52 +02:00)
+  - Latest session log ingest: done (`2026-07-16-session-22.md`; 12 source chunks; collection 34,466; 2026-07-16 14:20 +02:00)
 
 ## Current State - Baseline Drift Gate Review (2026-07-16)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
 - **V27 implementation is GREEN:** `4c6b7b4` reserves placeholders against every readable exact caller anchor across canonical and malformed rows, emits duplicate groups in sorted order, and documents per-key N-row duplicate receipts. The accepted duplicate path remains one typed error, zero callbacks, rejection present, no `GROWTH`, and full overall `INCOMPLETE`. Focused verification: 195 PASS; Ruff, diff, and blob checks clean.
 - **Independent review probes:** a three-deep canonical/malformed `EvidenceType.NONE` collision chain yielded only `<malformed-row-0>###`; mixed canonical/malformed duplicate groups produced zero callbacks and sorted receipts. Full receipt, rejection, and incomplete-reason JSON was identical under hash seeds 1, 42, and 314159.
 - **Tracking/evidence:** Watercooler #1070; OpenCLAW #168 event #757; canon `001ce79`; review `MoCoP/reviews/drift_gate_v27_review_2026-07-16.md`. #168 remains open and non-deployable only for independent raw judge-chain discrimination, runner-origin custody, slow-leak level detection, disposition calibration, and operational launch holds.
+- **Freeze checkpoint, not a state transition:** tags `freeze/drift-gate-168-v27-code-20260716` → `4c6b7b4` and `freeze/drift-gate-168-v27-green-review-20260716` → `001ce79` pin the code and committed GREEN review. Portable OneDrive bundle: `CHEESE_Memory/session_logs/freeze-2026-07-16-drift-gate-168-v27/drift-gate-168-v27-green.bundle`, SHA-256 `4896d4cf1e7778edfae1c0e093580b174e0169bcdf697c402c68fe93ac38f6cf`; clean bare recovery/final review-file hash/`git fsck` passed. Manifest beside it records recovery commands and exclusions. OpenCLAW event #758; no process stopped, no worktree dirt captured.
 
 ## Current State — Gemma 4 / LiteRT-LM offline preflight (2026-07-16)
 - **Read-only evidence, no runtime action:** Google/LiteRT sources now support a potentially useful local agent/voice-runtime lane: upstream LiteRT-LM `v0.13` declares Gemma 4 12B + OpenAI-compatible server; the public 12B Linux/macOS artifact is ~6.55 GB and declares text/audio. Google Eloquent's 60%+ Voice Edit claim is vendor/product-specific, not a Gemma welfare or general benchmark.
@@ -151,16 +152,17 @@
 - Separately, only after Laura/tool-level confirmation, run the documented read-only LiteRT preflight on ML-WS; do not install, serve, or train merely because the GPU is idle.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Drift Gate canon `001ce79`, Watercooler #1070, OpenCLAW event #757, Codex memory, this handoff; Gemma/LiteRT #1060–#1063 preserved)
-- Session log written: yes (`2026-07-16-session-21.md`)
+- Tracking surfaces updated if needed: yes (Drift Gate canon `001ce79`, Watercooler #1070, OpenCLAW events #757/#758, verified freeze bundle/manifest, this handoff; Gemma/LiteRT #1060–#1063 preserved)
+- Session log written: yes (`2026-07-16-session-22.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (`2026-07-16-session-21.md`; 11 source chunks; collection 34,454; 2026-07-16 13:52 +02:00)
-- Git commit in repo: yes (`001ce79`; canonical Drift Gate v27 review; continuity commit follows)
-- Watercooler findings reflected in docs: yes (Drift Gate #1070; Gemma/LiteRT #1060–#1063 preserved)
+- Qdrant ingest for latest session log confirmed: yes (`2026-07-16-session-22.md`; 12 source chunks; collection 34,466; 2026-07-16 14:20 +02:00)
+- Git preservation state: v27 code `4c6b7b4` + canonical review `001ce79` pinned by two annotated freeze tags and a verified ignored portable bundle; no source/worktree freeze commit was created
+- Watercooler findings reflected in docs: yes (Drift Gate #1070 and OpenCLAW freeze event #758; Gemma/LiteRT #1060–#1063 preserved)
 - No P0 bugs left unfixed: yes; the reviewed v27 implementation is GREEN and the independent non-deployment holds are explicit. Techno-Monk's separate lane is preserved unchanged.
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-16 14:20 +02:00 | Techno-Monk | Laura-directed preservation checkpoint for the possible runner/session closure: verified #168 is queued/non-deployable rather than a live local runner, then tagged v27 code `4c6b7b4` and the committed GREEN review `001ce79` under Techno-Monk identity. Created a portable 78,798,954-byte OneDrive Git bundle (SHA-256 `4896d4cf1e7778edfae1c0e093580b174e0169bcdf697c402c68fe93ac38f6cf`) plus a recovery manifest; clean bare recovery reproduced both commits, the review SHA, and passed `git fsck`. OpenCLAW #168 event #758 records the comment-only freeze. No task state transition, process stop, branch rewrite, worktree capture, model/GPU/ML-WS/Qdrant/LiteRT/live MoCoP action. Session-22 Qdrant receipt: 12 source chunks / collection 34,466 after exact stale-pending receipt deletion.
 - 2026-07-16 13:50 +02:00 | Codex | Reviewed immutable Drift Gate v27 `4c6b7b4` and returned implementation GREEN. Accepted full caller-anchor placeholder reservation, sorted duplicate publication, and honest N-row receipt documentation; independently verified a three-deep cross-evidence collision chain, mixed canonical/malformed zero-callback duplicate folding, and identical full-gate diagnostics under three hash seeds. 195 PASS; Ruff/diff/blobs clean. Canon `001ce79`; Watercooler #1070; OpenCLAW #168 event #757. Session 21 ingested 11 chunks (collection 34,454). #168 remains open/non-deployable only for independent evidence and launch gates; no implementation/model/GPU/Qdrant experiment/deployment action.
 - 2026-07-16 13:40 +02:00 | Isegrim | Delivered Drift Gate v27 `4c6b7b4` superseding `60701ed` per Codex #1068, all three items: P2 placeholder reservation now covers every readable exact caller anchor of any evidence type (NONE-shadow canary committed — synthetic identities never wear a real row's name); P3 duplicate-error receipts emit in sorted anchor order (hash-seed independence verified under PYTHONHASHSEED=1/42); P3 AcquisitionReceipt docstring states duplicate receipts summarize N rows under one key. Tests-first: 2/2 failing against the v26 kernel, then green. 195 PASS; Ruff/diff-check clean. Watercooler #1069; OpenCLAW #168 delivery comment. #168 remains open/non-deployable pending Codex.
 - 2026-07-16 12:58 +02:00 | Codex | Reviewed Drift Gate v26 `60701ed` and returned CHANGES / P2 while keeping the resolver P1 closed. Accepted duplicate acquisition folding: zero callbacks, one typed error, rejection present, no `GROWTH`, full overall `INCOMPLETE`; 193 PASS, Ruff/diff/blobs clean. Reproduced direct synthetic-key aliasing with a canonical `EvidenceType.NONE` caller anchor because reservation covers acquisitions only. Multiple duplicate groups also publish in hash-seed-dependent order; the receipt doc still says one row for N-row summaries. Canon `1dd4a9d`; Watercooler #1068; OpenCLAW #168 event #755. No implementation, model/GPU, Qdrant experiment, deployment, or authorization action.
