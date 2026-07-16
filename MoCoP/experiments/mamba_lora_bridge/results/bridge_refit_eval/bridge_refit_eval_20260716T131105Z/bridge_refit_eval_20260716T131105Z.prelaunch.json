@@ -1,0 +1,88 @@
+{
+  "created_utc": "2026-07-16T13:21:36Z",
+  "expected_inputs": {
+    "c1_overlap": 0,
+    "evaluation_pairs": 8,
+    "train_pairs": 24
+  },
+  "launch": {
+    "argv": [
+      "/home/isabell/venvs/gemma4-mocop/bin/python",
+      "spikes/run_gemma_value_norm_bridge_refit_eval.py",
+      "--mode",
+      "capture_train_eval",
+      "--split-manifest",
+      "results/bridge_refit_eval/bridge_refit_eval_20260716T131105Z/bridge_refit_eval_20260716T131105Z.split.json",
+      "--out",
+      "results/bridge_refit_eval/bridge_refit_eval_20260716T131105Z/bridge_refit_eval_20260716T131105Z.pt",
+      "--protocol",
+      "spikes/BRIDGE_REFIT_EVAL_PROTOCOL_2026-07-16.md",
+      "--steps",
+      "256",
+      "--lr",
+      "0.01",
+      "--hidden-dim",
+      "64",
+      "--bridge-seed",
+      "20260716",
+      "--shuffle-seed",
+      "20260717",
+      "--shuffle-count",
+      "128",
+      "--mamba-layer",
+      "3",
+      "--max-mamba-tokens",
+      "256",
+      "--capture-progress-every",
+      "1",
+      "--train-progress-every",
+      "16",
+      "--bridge-device",
+      "cuda",
+      "--local-files-only"
+    ],
+    "cwd": "/home/isabell/mocop/bridge_refit_eval_20260716T131105Z",
+    "log_path": "results/bridge_refit_eval/bridge_refit_eval_20260716T131105Z/bridge_refit_eval_20260716T131105Z.log"
+  },
+  "local_input_sha256": {
+    "fixtures/sev_disposition_v0/primary_holdout_v2.json": "59a0276373ab69fc5f5b27c7beee2b51e4190c9250996aa714b33a7095244a04",
+    "fixtures/sev_disposition_v0/sev_disposition_v0.jsonl": "687efbc1c113d2931b448f346f0a2d2abb50c36943074bb35c05266781b11fb9",
+    "gemma4_value_norm_runtime.py": "825a1fc0a0686a6ba43bca3a7bf0d41bf14191a4b6c589f0485eaa442eb4c5bf",
+    "mamba_runtime_compat.py": "62df95862afba9d3309898fad6907455e1705f7fae033a64bd1a5ec11dbcbe86",
+    "results/bridge_refit_eval/bridge_refit_eval_20260716T131105Z/bridge_refit_eval_20260716T131105Z.split.json": "35e7e64b191a23fe00c64c33d80e3fbb5d432d7ee458fa3dfa1b04b230d958fd",
+    "spikes/BRIDGE_REFIT_EVAL_PROTOCOL_2026-07-16.md": "13bb02bc46ccfb15424a8fc45fd4dc65e262198d2241af7ffba1dd64cf204f89",
+    "spikes/run_gemma_value_norm_bridge_refit_eval.py": "12371bc37081fe60d9d5004bf0f600b87292e5a67e89781b9b0a3b4afc0ce882",
+    "spikes/train_gemma_value_norm_bridge_microtrain.py": "ea109d7cf7042891c9585df8b9926a5f387c03c973c15dea0311493539064e1f",
+    "tests/test_gemma_value_norm_bridge_refit_eval.py": "cb9427d20ba4641338ecc492bd8377477ebdaaf1b6b6d2dfe261b513cc70733b"
+  },
+  "prelaunch_holds": [
+    "independent immutable spec review pending",
+    "independent quality review pending"
+  ],
+  "remote": {
+    "cuda13_library_dir": "/home/isabell/miniforge3/envs/torch311/lib/python3.11/site-packages/nvidia/cu13/lib",
+    "host_alias": "ml-ws",
+    "overlay_python": "/home/isabell/venvs/gemma4-mocop/bin/python",
+    "preflight": {
+      "cuda_available": true,
+      "hf_environment": "HF_HOME/HF_HUB_CACHE/TRANSFORMERS_CACHE were unset; --local-files-only uses the existing proven local cache path",
+      "torch": "2.11.0+cu130",
+      "transformers": "5.10.0.dev0"
+    },
+    "proven_bundle": "/home/isabell/mocop/gemma_value_norm_microtrain_20260711T2015Z",
+    "stage_path": "/home/isabell/mocop/bridge_refit_eval_20260716T131105Z"
+  },
+  "run_id": "bridge_refit_eval_20260716T131105Z",
+  "schema_version": "gemma-value-norm-bridge-refit-prelaunch-v1",
+  "scope": {
+    "c1_b0": false,
+    "generation": false,
+    "memory": false,
+    "nonzero_injection": false,
+    "offline_training_only": true,
+    "qdrant": false,
+    "replay": false,
+    "sleep": false
+  },
+  "source_commit": "3580021ec2f3f28ed586f4f376e346d0c898fc64"
+}
