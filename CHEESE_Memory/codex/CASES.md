@@ -354,7 +354,11 @@ evidence supports that promotion.
   could overwrite that error as resolved, and malformed duplicate usable anchors still collapsed.
   The same anchor-addressed map lost a canonical duplicate on the full path: resolver results
   `[False, True]` became one resolved receipt, `GROWTH`, and no rejection line. Overall remained
-  `INCOMPLETE`, so the resolver P1 stayed closed, but exactly-once custody was still false.
+  `INCOMPLETE`, so the resolver P1 stayed closed, but exactly-once custody was still false. V26
+  closed that overwrite by folding duplicate acquisitions into one typed error with zero callbacks,
+  but reserved placeholders only against acquisition anchors. A canonical non-acquisition row
+  could still share the synthetic receipt key and make its rejection identity ambiguous. Iterating
+  the new duplicate set also made report ordering vary by process hash seed.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
@@ -389,13 +393,17 @@ evidence supports that promotion.
   schema is invalid, stop before external callbacks and scoring; otherwise carry an immutable
   row-unique key through the receipt, verdict, rejection report, digest, and publication. Test
   callback order and receipt/rejection cardinality together, including collisions between generated
-  keys, malformed rows, and canonical duplicates.
+  keys, malformed rows, and canonical duplicates. A reserved synthetic namespace must include every
+  readable caller label, not only rows that currently emit that artifact; otherwise cross-domain
+  joins remain ambiguous. Never derive journal-facing list order from a set: sort it or retain first-
+  input order. When policy intentionally folds N rows into one error, document custody as per key,
+  not per row.
 - Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
   `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`/`187c623`/`46d58c6`/
-  `914089a`/`e7f0a49`/`67544ef`/`994e25c`/`6e0e01e`;
+  `914089a`/`e7f0a49`/`67544ef`/`994e25c`/`6e0e01e`/`60701ed`;
   Watercooler #1021/#1023/#1027/#1030/#1032/#1034/#1036/#1038/#1040/#1043/
-  #1048/#1050/#1052/#1054/#1056/#1064/#1066;
+  #1048/#1050/#1052/#1054/#1056/#1064/#1066/#1068;
   reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`/
   `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`/`f4f4b72`/`f0cc08f`/
-  `7a62337`/`5becb0b`/`a910caf`/`8e60019`;
-  `MoCoP/reviews/drift_gate_v25_review_2026-07-16.md`.
+  `7a62337`/`5becb0b`/`a910caf`/`8e60019`/`1dd4a9d`;
+  `MoCoP/reviews/drift_gate_v26_review_2026-07-16.md`.
