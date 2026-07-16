@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-16 10:44 +02:00
+Last updated: 2026-07-16 11:16 +02:00
 
 ## Standing Directive
 
@@ -58,16 +58,16 @@ remember which artifact should be updated.
   #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
   No B0, #155, #149, HF audit,
   protected-sink, alpha-zero, keeper, or nonzero authorization follows.
-- Drift v24 `994e25c` is `CHANGES / P2` in Codex #1064/event #751, canon
-  `a910caf`; the resolver P1 remains closed. Preserve slots, plain-local `_resolve_fn`, exact
-  direct/full two-call rejection tests, and the explicit CPython non-TEE/process-isolation
-  boundary. #168 remains open/non-deployable because history preflights only outer
-  `AuditRecord` slots before digesting partial nested graphs (historical probe deletion 14/14
-  raises; root discontinuity 4/4 raises; current nested deletion returns clean), direct
-  wrong-value totality/digest claims still dispatch caller protocols, and two unreadable
-  acquisition anchors collapse to one receipt. Require complete-graph preflight, precise
-  canonical-only contracts, and non-colliding malformed receipts. External
-  calibration/custody/deployment holds remain.
+- Drift v25 `6e0e01e` is `CHANGES / P2` in Codex #1066/event #753, canon
+  `8e60019`; the resolver P1 remains closed. Preserve complete-graph early preflight, slots,
+  plain-local `_resolve_fn`, strict direct/full substitution tests, narrowed canonical-input
+  contracts, and the explicit CPython non-TEE/process-isolation boundary. #168 remains
+  open/non-deployable because receipts are anchor-addressed rather than row-addressed: direct
+  placeholder/caller and duplicate-malformed anchors erase errors, while full exact duplicate
+  acquisitions with resolver `[False, True]` publish one resolved receipt, `GROWTH`, and no
+  rejection line (overall remains `INCOMPLETE`). `_canon` also retains a false any-value
+  totality claim and two test descriptions are stale. Require row-unique custody or a
+  pre-resolution duplicate-schema stop plus exact collision regressions. External holds remain.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -105,7 +105,7 @@ remember which artifact should be updated.
   matrix; record P5 closure; run its true alpha-zero anchors; only then spend
   the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8`.
-  Review only an immutable drift successor to `994e25c` against `a910caf`.
+  Review only an immutable drift successor to `6e0e01e` against `8e60019`.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes

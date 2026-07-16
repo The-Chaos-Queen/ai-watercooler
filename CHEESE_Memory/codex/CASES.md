@@ -348,7 +348,13 @@ evidence supports that promotion.
   them: deleting any of 14 historical probe slots or four root-discontinuity slots still raised,
   while deleting a current nested probe slot could return a clean history result. Direct
   wrong-value inputs could also invoke caller `hash`/`repr`/iteration protocols, and two rows with
-  unreadable anchors collapsed into one error receipt under the shared empty-string key.
+  unreadable anchors collapsed into one error receipt under the shared empty-string key. V25
+  closed the complete-graph preflight and narrowed the public direct domains, but used positional
+  strings in the caller-anchor namespace for malformed receipt keys. A canonical caller anchor
+  could overwrite that error as resolved, and malformed duplicate usable anchors still collapsed.
+  The same anchor-addressed map lost a canonical duplicate on the full path: resolver results
+  `[False, True]` became one resolved receipt, `GROWTH`, and no rejection line. Overall remained
+  `INCOMPLETE`, so the resolver P1 stayed closed, but exactly-once custody was still false.
 - Lesson: construct the private graph field by field from one closed exact schema before any
   caller protocol. Conversion and diagnostic formatting are protocols too. Reject active
   record/container/leaf subclasses without reading their fields; normalize only exact built-ins.
@@ -379,11 +385,17 @@ evidence supports that promotion.
   matrices at every context in which a record may appear, and test malformed multi-row cardinality;
   otherwise one valid-looking error receipt can conceal key collisions. If a helper is total only
   over canonical internal values, say so precisely instead of claiming totality over typed records.
+  Receipt identity must be row identity, not a caller-controlled semantic label. If duplicate
+  schema is invalid, stop before external callbacks and scoring; otherwise carry an immutable
+  row-unique key through the receipt, verdict, rejection report, digest, and publication. Test
+  callback order and receipt/rejection cardinality together, including collisions between generated
+  keys, malformed rows, and canonical duplicates.
 - Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
   `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`/`187c623`/`46d58c6`/
-  `914089a`/`e7f0a49`/`67544ef`/`994e25c`;
+  `914089a`/`e7f0a49`/`67544ef`/`994e25c`/`6e0e01e`;
   Watercooler #1021/#1023/#1027/#1030/#1032/#1034/#1036/#1038/#1040/#1043/
-  #1048/#1050/#1052/#1054/#1056/#1064;
+  #1048/#1050/#1052/#1054/#1056/#1064/#1066;
   reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`/
   `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`/`f4f4b72`/`f0cc08f`/
-  `7a62337`/`5becb0b`/`a910caf`; `MoCoP/reviews/drift_gate_v24_review_2026-07-16.md`.
+  `7a62337`/`5becb0b`/`a910caf`/`8e60019`;
+  `MoCoP/reviews/drift_gate_v25_review_2026-07-16.md`.
