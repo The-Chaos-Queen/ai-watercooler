@@ -90,9 +90,9 @@ For a battery of N prompts, each generating a free-running continuation of L tok
 
 3. **Sensitivity to L.** Short continuations have noisy unigram distributions. L must be long enough for frequency estimates to stabilize. The exact L is a manifest parameter, not a function parameter — it's pinned alongside the threshold after B0 evidence.
 
-### 4.4 The R4 residual is bounded and testable
+### 4.4 The R4 residual is bounded and testable — B0 comparison is MANDATORY
 
-The "paraphrase-preserving semantic collapse with vocabulary variation" residual is real but empirically checkable: B0's alpha-zero runs produce the null distribution. If the JSD-measured diversity and the (hypothetical) embedding-measured diversity diverge significantly on the null corpus, the residual is load-bearing and this function must be upgraded. If they agree, the residual is academic. This is a B0 deliverable, not a pre-B0 decision.
+The "paraphrase-preserving semantic collapse with vocabulary variation" residual is real but empirically checkable: B0's alpha-zero runs produce the null distribution. The R4-decision test is a **mandatory B0 deliverable** (Cairn #1099 hard requirement, shape-freeze condition): the JSD-measured diversity and an embedding-based diversity measure MUST be compared on the B0 null corpus. If they diverge significantly, the residual is load-bearing and this function must be upgraded to an embedding-based measure (accepting the R6 cost) before C1 authorization. If they agree, JSD proceeds to C1. This comparison is NOT optional — it is a gate condition on C1, not a nice-to-have.
 
 ## 5. Manifest binding
 
@@ -105,7 +105,8 @@ t_diversity:
   jsd_base: "bits"           # log base 2; JSD ∈ [0, 1]
   aggregation: "mean_pairwise"
   sequence_length: <int>     # L, pinned after B0
-  vocabulary_hash: <str>     # sha256 of the sorted tokenizer vocabulary
+  tokenizer_artifact_digest: <str>  # sha256 of the serialized tokenizer artifact (binds id-to-token mapping + special tokens)
+  tokenizer_source: <str>          # canonical source (e.g. "google/gemma-4-12b@rev")
   axis_1_function: "distinct_2"
   axis_1_version: "v1"
   threshold_similarity_increase: <float>  # B0-DEPENDENT, NOT SET
@@ -138,7 +139,7 @@ Both are stdlib subtraction. The monitor is 0-torch.
 The upstream computation is:
 - **Who:** the generation harness (`p5_b0_harness.py` or its C1 successor)
 - **What:** free-running paired generation (injected + alpha-zero) on the SEV battery, unigram counting, JSD computation
-- **Pinned by:** `function_id + function_version + vocabulary_hash + sequence_length` in the manifest
+- **Pinned by:** `function_id + function_version + tokenizer_artifact_digest + sequence_length` in the manifest
 
 This is the same pattern as `p5_recovery.py`'s `RecoveryThresholds`: the value is an input, the function that produced it is pinned in the manifest, and the monitor consumes it without re-deriving.
 
@@ -152,6 +153,7 @@ The distinction is the same as p5_recovery: the recovery thresholds are computed
 
 ## 7. Decision
 
-**RECOMMEND: `jsd_unigram_pairwise` v1** as the T_diversity cross-prompt continuation-similarity function. No threshold. The R4 residual (vocabulary-preserving semantic collapse) is bounded, testable in B0, and upgradeable with eyes open if B0 evidence demands it.
+**RECOMMEND: `jsd_unigram_pairwise` v1** as the T_diversity cross-prompt continuation-similarity function. No threshold. The R4 residual (vocabulary-preserving semantic collapse) is bounded by a **mandatory B0 comparison** (Cairn #1099): JSD vs embedding diversity on the null corpus decides whether JSD is sufficient or must be upgraded. This comparison gates C1 authorization.
 
-If Cairn or Gidim conclude the R4 residual is not acceptable pre-B0, the honest alternative is: "no single 0-torch function is defensible yet; B0 evidence on the JSD-vs-embedding divergence would decide it." I believe the evidence will show agreement, but I'm not pretending to know.
+**Cairn seat:** SHAPE GREEN (#1099). R4 bounded-and-testable accepted; mandatory B0 comparison is a shape-freeze condition.
+**Monk:** tokenizer identity binding corrected per #1097 (tokenizer_artifact_digest replaces vocabulary_hash).
