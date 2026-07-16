@@ -105,8 +105,8 @@ t_diversity:
   jsd_base: "bits"           # log base 2; JSD ∈ [0, 1]
   aggregation: "mean_pairwise"
   sequence_length: <int>     # L, pinned after B0
-  tokenizer_artifact_digest: <str>  # sha256 of the serialized tokenizer artifact (binds id-to-token mapping + special tokens)
-  tokenizer_source: <str>          # canonical source (e.g. "google/gemma-4-12b@rev")
+  tokenizer_artifact_digest: <str>  # sha256 of the canonical tokenizer bytes (see §5.4)
+  tokenizer_source: <str>          # immutable locator (e.g. "hf://google/gemma-4-12b@<commit-sha>/tokenizer.json")
   axis_1_function: "distinct_2"
   axis_1_version: "v1"
   threshold_similarity_increase: <float>  # B0-DEPENDENT, NOT SET
@@ -143,6 +143,25 @@ The upstream computation is:
 
 This is the same pattern as `p5_recovery.py`'s `RecoveryThresholds`: the value is an input, the function that produced it is pinned in the manifest, and the monitor consumes it without re-deriving.
 
+### 5.4 Tokenizer artifact binding (#1107)
+
+The `tokenizer_artifact_digest` is the sha256 of the **canonical tokenizer bytes**, defined as:
+
+- **Format:** the HuggingFace `tokenizer.json` file (the fast-tokenizer serialization that encodes the complete id-to-token mapping, merges, special tokens, and post-processing rules in a single deterministic JSON).
+- **Locator:** `tokenizer_source` is an immutable HuggingFace Hub locator including the commit SHA (e.g., `hf://google/gemma-4-12b@abc123def/tokenizer.json`). A mutable ref (branch, `main`, `latest`) is NOT acceptable.
+- **Digest computation:** `sha256(open(tokenizer.json, "rb").read())` — raw file bytes, no re-serialization. A verifier downloads the locator, hashes the bytes, and compares. Identical hash = identical id-to-token mapping, identical special tokens, identical tokenization behavior.
+- **Scope:** this binds the tokenizer for JSD unigram computation. The `processor.revision` key in the #155 runtime contract separately binds the tokenizer for generation/decoding — these MAY be the same artifact but are independently pinned.
+
+### 5.5 R4 B0 comparison contract (#1099/#1107)
+
+The mandatory R4 JSD-vs-embedding comparison is a **preregistered B0 deliverable** with the following executable binding:
+
+- **Evaluator:** sentence-transformers `all-MiniLM-L6-v2` (or successor, pinned by model ID + revision SHA in the comparison manifest).
+- **Input:** the same SEV battery + same free-running continuations used for the T_diversity B0 measurement. Same-input receipts: the comparison consumes the generation harness's output digest, not a separate run.
+- **Output:** per-prompt-pair embedding cosine similarity, aggregated to mean pairwise. Output digest (sha256 of the comparison result JSON) bound into the B0 evidence record.
+- **Divergence rule (preregistered):** JSD pairwise diversity and embedding pairwise diversity are compared by Spearman rank correlation across prompt pairs. If rho < 0.7 (moderate agreement threshold), the R4 residual is load-bearing: JSD must be replaced with the embedding-based function before C1 authorization. If rho >= 0.7, JSD proceeds.
+- **Provenance:** the comparison is a B0 sidecar (Gidim's lane), not a P5-monitor dependency. It runs outside the monitor process and produces an evidence artifact reviewed by Cairn + Gidim before C1.
+
 ## 6. Gidim's "laundering" question
 
 > "That may be right or may be laundering the dependency one layer up."
@@ -156,4 +175,5 @@ The distinction is the same as p5_recovery: the recovery thresholds are computed
 **RECOMMEND: `jsd_unigram_pairwise` v1** as the T_diversity cross-prompt continuation-similarity function. No threshold. The R4 residual (vocabulary-preserving semantic collapse) is bounded by a **mandatory B0 comparison** (Cairn #1099): JSD vs embedding diversity on the null corpus decides whether JSD is sufficient or must be upgraded. This comparison gates C1 authorization.
 
 **Cairn seat:** SHAPE GREEN (#1099). R4 bounded-and-testable accepted; mandatory B0 comparison is a shape-freeze condition.
-**Monk:** tokenizer identity binding corrected per #1097 (tokenizer_artifact_digest replaces vocabulary_hash).
+**Monk:** tokenizer identity binding corrected per #1097; executable comparison contract added per #1107 (§5.4, §5.5).
+**Gidim seat:** pending.
