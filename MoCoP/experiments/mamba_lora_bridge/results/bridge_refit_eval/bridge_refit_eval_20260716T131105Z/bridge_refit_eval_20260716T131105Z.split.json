@@ -1,0 +1,321 @@
+{
+  "corpus": {
+    "filename": "sev_disposition_v0.jsonl",
+    "sha256": "687efbc1c113d2931b448f346f0a2d2abb50c36943074bb35c05266781b11fb9"
+  },
+  "counts": {
+    "eligible_non_c1_pairs": 32,
+    "eval_pairs": 8,
+    "train_pairs": 24
+  },
+  "evaluation": {
+    "pairs": [
+      {
+        "neutral_id": "conflict_5_neutral",
+        "scenario_id": "conflict_5_warm",
+        "selection_digest": "39fa89f5a6045e23c3ddfc53a4addb69caf146789bd58351b887db484e7bf408",
+        "skeleton_id": "conflict_5",
+        "topic": "conflict-of-plans"
+      },
+      {
+        "neutral_id": "craft_4_neutral",
+        "scenario_id": "craft_4_warm",
+        "selection_digest": "708180b7771a53afe80615faf52124734b235c71c74a0902324b08a12ff4c890",
+        "skeleton_id": "craft_4",
+        "topic": "craft/work"
+      },
+      {
+        "neutral_id": "discovery_4_neutral",
+        "scenario_id": "discovery_4_warm",
+        "selection_digest": "52ce138de0cb111b1d9398008e14093b850b03688553e370863d2ec5728bbd20",
+        "skeleton_id": "discovery_4",
+        "topic": "discovery/learning"
+      },
+      {
+        "neutral_id": "family_5_neutral",
+        "scenario_id": "family_5_warm",
+        "selection_digest": "781966aa4de8bd58e41741f8916150b3a26e5dadb35a137c9979493236db5738",
+        "skeleton_id": "family_5",
+        "topic": "family"
+      },
+      {
+        "neutral_id": "food_1_neutral",
+        "scenario_id": "food_1_warm",
+        "selection_digest": "5b1568124fc033ae9f55e93ee999b82fd4488a03f0d9841b3c22768deb81295f",
+        "skeleton_id": "food_1",
+        "topic": "food"
+      },
+      {
+        "neutral_id": "illness_2_neutral",
+        "scenario_id": "illness_2_warm",
+        "selection_digest": "5963319e970419c26ab39b8d0960e44022c6be29aecd2bbf103e461cb4d14d6c",
+        "skeleton_id": "illness_2",
+        "topic": "illness/care"
+      },
+      {
+        "neutral_id": "travel_2_neutral",
+        "scenario_id": "travel_2_warm",
+        "selection_digest": "04742e6e31b6bdb96ac73b0aaae21a787f1374fd5cebeff6a6730bf3dee8c8f0",
+        "skeleton_id": "travel_2",
+        "topic": "travel"
+      },
+      {
+        "neutral_id": "weather_3_neutral",
+        "scenario_id": "weather_3_warm",
+        "selection_digest": "55801fe130b0bc6ae162af7c2494b8591c305f45c5fefe4bc8c23800a98e3fd9",
+        "skeleton_id": "weather_3",
+        "topic": "weather/nature"
+      }
+    ],
+    "skeleton_ids": [
+      "conflict_5",
+      "craft_4",
+      "discovery_4",
+      "family_5",
+      "food_1",
+      "illness_2",
+      "travel_2",
+      "weather_3"
+    ],
+    "topics": [
+      "conflict-of-plans",
+      "craft/work",
+      "discovery/learning",
+      "family",
+      "food",
+      "illness/care",
+      "travel",
+      "weather/nature"
+    ]
+  },
+  "interpretation_boundary": "The prior exploratory full-32 fit saw this corpus; this split supports a predeclared fresh refit test, not a pristine never-seen-corpus generalization claim.",
+  "primary_c1_holdout": {
+    "filename": "primary_holdout_v2.json",
+    "sha256": "59a0276373ab69fc5f5b27c7beee2b51e4190c9250996aa714b33a7095244a04",
+    "skeleton_ids": [
+      "conflict_2",
+      "craft_5",
+      "discovery_3",
+      "family_2",
+      "food_4",
+      "illness_3",
+      "travel_5",
+      "weather_1"
+    ]
+  },
+  "schema_version": "gemma-value-norm-bridge-refit-split-v1",
+  "scope": {
+    "c1_primary_holdout_consumed": false,
+    "generation": false,
+    "memory": false,
+    "nonzero_injection": false,
+    "offline_training_only": true,
+    "qdrant": false,
+    "replay": false,
+    "sleep": false
+  },
+  "selection": {
+    "domain": "mocop-bridge-refit-eval-v1",
+    "outcome_free": true,
+    "rule": "one lexicographically-lowest domain-separated full-skeleton content hash per topic"
+  },
+  "split_id": "4cc6030c0a7485b8cc17c93da6862f602cf0294bceb6a41db5dc08c512d5e3f3",
+  "training": {
+    "pairs": [
+      {
+        "neutral_id": "conflict_1_neutral",
+        "scenario_id": "conflict_1_warm",
+        "selection_digest": "64ff9c4fb7cff2bd8ec227a87c6c62b1e556ecb18088159e13aa9bedc79533df",
+        "skeleton_id": "conflict_1",
+        "topic": "conflict-of-plans"
+      },
+      {
+        "neutral_id": "conflict_3_neutral",
+        "scenario_id": "conflict_3_warm",
+        "selection_digest": "edb19f3697a2baba4054eae59fdbe49daf00eaf559184597391a7ec9d4387ec0",
+        "skeleton_id": "conflict_3",
+        "topic": "conflict-of-plans"
+      },
+      {
+        "neutral_id": "conflict_4_neutral",
+        "scenario_id": "conflict_4_warm",
+        "selection_digest": "a353885cefda0be0ebc68f244097bc76dc99bcd6f720785b8ca40ae2794c3d3c",
+        "skeleton_id": "conflict_4",
+        "topic": "conflict-of-plans"
+      },
+      {
+        "neutral_id": "craft_1_neutral",
+        "scenario_id": "craft_1_warm",
+        "selection_digest": "77512f7a1c4347acee6499330a271f55e550955189fbab399065ccd0b28e311c",
+        "skeleton_id": "craft_1",
+        "topic": "craft/work"
+      },
+      {
+        "neutral_id": "craft_2_neutral",
+        "scenario_id": "craft_2_warm",
+        "selection_digest": "748c32eca445eee8f24beb228d61089e157364cd033fba8eb50e4f8522b384ad",
+        "skeleton_id": "craft_2",
+        "topic": "craft/work"
+      },
+      {
+        "neutral_id": "craft_3_neutral",
+        "scenario_id": "craft_3_warm",
+        "selection_digest": "d1325fe59eb3a2ac34baba7120d21ec3c717a8a05f9907224dd48e5b7497dc05",
+        "skeleton_id": "craft_3",
+        "topic": "craft/work"
+      },
+      {
+        "neutral_id": "discovery_1_neutral",
+        "scenario_id": "discovery_1_warm",
+        "selection_digest": "c24da99921f48a5ed735cbdb2bccf4777bd656e45126ee76edd2547632c5d3c9",
+        "skeleton_id": "discovery_1",
+        "topic": "discovery/learning"
+      },
+      {
+        "neutral_id": "discovery_2_neutral",
+        "scenario_id": "discovery_2_warm",
+        "selection_digest": "a50b621ddd38554e20a1613e6afc94258807d0ea5ef1c2f757216fc786c18c70",
+        "skeleton_id": "discovery_2",
+        "topic": "discovery/learning"
+      },
+      {
+        "neutral_id": "discovery_5_neutral",
+        "scenario_id": "discovery_5_warm",
+        "selection_digest": "dd99ab448a7bb6f24c4c74ab4aca42e7c2e7bd05b663ee22e4c3d7a1d070b782",
+        "skeleton_id": "discovery_5",
+        "topic": "discovery/learning"
+      },
+      {
+        "neutral_id": "family_1_neutral",
+        "scenario_id": "family_1_warm",
+        "selection_digest": "e605650d3e499856fc1cf58d920cab6e1598f6ac1f586cababe080683a633b1b",
+        "skeleton_id": "family_1",
+        "topic": "family"
+      },
+      {
+        "neutral_id": "family_3_neutral",
+        "scenario_id": "family_3_warm",
+        "selection_digest": "f92bfd415e19657b11918df4b599530b2530284aa152e79d43db6d6c2283ee85",
+        "skeleton_id": "family_3",
+        "topic": "family"
+      },
+      {
+        "neutral_id": "family_4_neutral",
+        "scenario_id": "family_4_warm",
+        "selection_digest": "9af2b901951108afac30997ffa796d089a65dfdcc550596d5f26d3b20de49f23",
+        "skeleton_id": "family_4",
+        "topic": "family"
+      },
+      {
+        "neutral_id": "food_2_neutral",
+        "scenario_id": "food_2_warm",
+        "selection_digest": "f95efa9fe146c91a114b326e58c053f7b12eefcf7fec5696e940ee365db57243",
+        "skeleton_id": "food_2",
+        "topic": "food"
+      },
+      {
+        "neutral_id": "food_3_neutral",
+        "scenario_id": "food_3_warm",
+        "selection_digest": "f65a7f4f78cbfa023867bd4041a4e1873870f855dc095faddbb13b352445d9f7",
+        "skeleton_id": "food_3",
+        "topic": "food"
+      },
+      {
+        "neutral_id": "food_5_neutral",
+        "scenario_id": "food_5_warm",
+        "selection_digest": "ec38b7954d79f68c95d8ef6ff1fe73421ca545de5e21e25641feacbb7cd9b3f5",
+        "skeleton_id": "food_5",
+        "topic": "food"
+      },
+      {
+        "neutral_id": "illness_1_neutral",
+        "scenario_id": "illness_1_warm",
+        "selection_digest": "e83078eb6db83f2804f598617e7157396aa6c3cb30f81ca40783a331e376865d",
+        "skeleton_id": "illness_1",
+        "topic": "illness/care"
+      },
+      {
+        "neutral_id": "illness_4_neutral",
+        "scenario_id": "illness_4_warm",
+        "selection_digest": "b5bc20cb2e3661ab1539dba9cf280fa923d0401f3836d2b392be7baa26790a76",
+        "skeleton_id": "illness_4",
+        "topic": "illness/care"
+      },
+      {
+        "neutral_id": "illness_5_neutral",
+        "scenario_id": "illness_5_warm",
+        "selection_digest": "fbf04399ad55d37c34c008cbd80d0b307c4b375168f1c0e2aa0bc791f09ccc8e",
+        "skeleton_id": "illness_5",
+        "topic": "illness/care"
+      },
+      {
+        "neutral_id": "travel_1_neutral",
+        "scenario_id": "travel_1_warm",
+        "selection_digest": "f91a420e8714c11fbd0663d8e1701a400efdd125eccd9c586409dd5b1c9a4b05",
+        "skeleton_id": "travel_1",
+        "topic": "travel"
+      },
+      {
+        "neutral_id": "travel_3_neutral",
+        "scenario_id": "travel_3_warm",
+        "selection_digest": "b1ded65264cdb90b235341b61e5f8e579d49aa1796b8926f6e01174eca3a8c42",
+        "skeleton_id": "travel_3",
+        "topic": "travel"
+      },
+      {
+        "neutral_id": "travel_4_neutral",
+        "scenario_id": "travel_4_warm",
+        "selection_digest": "c2a033a141be23941a5bb9b100680ad0cacef784c9ab2db3f23eb9fd68588b27",
+        "skeleton_id": "travel_4",
+        "topic": "travel"
+      },
+      {
+        "neutral_id": "weather_2_neutral",
+        "scenario_id": "weather_2_warm",
+        "selection_digest": "85d1b89797cddc926d2d59bd141e31abccd0d75df33d97eb85c1a08a9135fc01",
+        "skeleton_id": "weather_2",
+        "topic": "weather/nature"
+      },
+      {
+        "neutral_id": "weather_4_neutral",
+        "scenario_id": "weather_4_warm",
+        "selection_digest": "5f965f4bfb9e577d162a5c939c67e336687fc6990dfddf512fdeef87f76010d6",
+        "skeleton_id": "weather_4",
+        "topic": "weather/nature"
+      },
+      {
+        "neutral_id": "weather_5_neutral",
+        "scenario_id": "weather_5_warm",
+        "selection_digest": "58f9778e4b56f0a645cb9c2a53c52223fbc7ed3e8f1495f3be5c7c3737ad655c",
+        "skeleton_id": "weather_5",
+        "topic": "weather/nature"
+      }
+    ],
+    "skeleton_ids": [
+      "conflict_1",
+      "conflict_3",
+      "conflict_4",
+      "craft_1",
+      "craft_2",
+      "craft_3",
+      "discovery_1",
+      "discovery_2",
+      "discovery_5",
+      "family_1",
+      "family_3",
+      "family_4",
+      "food_2",
+      "food_3",
+      "food_5",
+      "illness_1",
+      "illness_4",
+      "illness_5",
+      "travel_1",
+      "travel_3",
+      "travel_4",
+      "weather_2",
+      "weather_4",
+      "weather_5"
+    ]
+  }
+}
