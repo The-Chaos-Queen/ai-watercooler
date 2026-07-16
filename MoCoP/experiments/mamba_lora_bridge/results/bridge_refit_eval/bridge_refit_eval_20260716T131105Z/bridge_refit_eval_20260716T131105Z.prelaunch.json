@@ -1,5 +1,5 @@
 {
-  "created_utc": "2026-07-16T13:21:36Z",
+  "created_utc": "2026-07-16T13:27:28Z",
   "expected_inputs": {
     "c1_overlap": 0,
     "evaluation_pairs": 8,
@@ -51,9 +51,9 @@
     "mamba_runtime_compat.py": "62df95862afba9d3309898fad6907455e1705f7fae033a64bd1a5ec11dbcbe86",
     "results/bridge_refit_eval/bridge_refit_eval_20260716T131105Z/bridge_refit_eval_20260716T131105Z.split.json": "35e7e64b191a23fe00c64c33d80e3fbb5d432d7ee458fa3dfa1b04b230d958fd",
     "spikes/BRIDGE_REFIT_EVAL_PROTOCOL_2026-07-16.md": "13bb02bc46ccfb15424a8fc45fd4dc65e262198d2241af7ffba1dd64cf204f89",
-    "spikes/run_gemma_value_norm_bridge_refit_eval.py": "12371bc37081fe60d9d5004bf0f600b87292e5a67e89781b9b0a3b4afc0ce882",
+    "spikes/run_gemma_value_norm_bridge_refit_eval.py": "bd7774d01fbeafa2bb67caf19f9e454966aa2792210111d0cad74b39a92b751c",
     "spikes/train_gemma_value_norm_bridge_microtrain.py": "ea109d7cf7042891c9585df8b9926a5f387c03c973c15dea0311493539064e1f",
-    "tests/test_gemma_value_norm_bridge_refit_eval.py": "cb9427d20ba4641338ecc492bd8377477ebdaaf1b6b6d2dfe261b513cc70733b"
+    "tests/test_gemma_value_norm_bridge_refit_eval.py": "76d88e6180dfb842a1aa87eddcca34176fd2aa580abe575d7dc85e5fe15a7df7"
   },
   "prelaunch_holds": [
     "independent immutable spec review pending",
@@ -84,5 +84,5 @@
     "replay": false,
     "sleep": false
   },
-  "source_commit": "3580021ec2f3f28ed586f4f376e346d0c898fc64"
+  "source_commit": "e245c5e19b2736153ef2c88a34d1605ef1cd3fda"
 }
