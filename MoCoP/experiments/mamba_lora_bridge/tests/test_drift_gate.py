@@ -2429,3 +2429,38 @@ class TestReceiptKeyCustody:
         assert receipts["<malformed-row-0>#"].status == "error"
         assert ("missing or non-exact"
                 in receipts["<malformed-row-0>#"].reason)
+
+    def test_none_row_anchor_cannot_be_shadowed_by_placeholder(self):
+        """Codex #1068 P2: placeholder reservation must cover EVERY
+        readable caller anchor, not only acquisition anchors. A
+        deleted-anchor acquisition row plus a canonical NONE row anchored
+        '<malformed-row-0>' must not publish the synthetic error under
+        the NONE row's real identity."""
+        malformed = P("gone", 2, VerdictClass.PRESENT_RECOVERABLE,
+                      evidence_type=EvidenceType.ACQUISITION,
+                      evidence_ref="judge:laura/audit-log#12")
+        object.__delattr__(malformed, "anchor")
+        none_row = P("<malformed-row-0>", 2,
+                     VerdictClass.PRESENT_RECOVERABLE)
+        receipts = _resolve_acquisitions([malformed, none_row], RESOLVER)
+        assert set(receipts) == {"<malformed-row-0>#"}
+        assert receipts["<malformed-row-0>#"].status == "error"
+        assert ("missing or non-exact"
+                in receipts["<malformed-row-0>#"].reason)
+
+    def test_duplicate_receipt_order_deterministic(self):
+        """Codex #1068 P3: duplicate-error receipts emit in sorted anchor
+        order, so receipt, rejection-line, and incomplete-reason ordering
+        cannot vary across PYTHONHASHSEED."""
+        def two_rows(anchor):
+            return [P(anchor, 2, VerdictClass.PRESENT_RECOVERABLE,
+                      evidence_type=EvidenceType.ACQUISITION,
+                      evidence_ref="judge:laura/audit-log#12")
+                    for _ in range(2)]
+        probes = two_rows("zeta") + two_rows("alpha") + two_rows("mid")
+        receipts = _resolve_acquisitions(probes, RESOLVER)
+        assert list(receipts) == ["alpha", "mid", "zeta"]
+        assert rejected_acquisitions(receipts) == [
+            f"{a}: duplicate acquisition anchor (2 rows): "
+            "exactly-once resolution unavailable"
+            for a in ("alpha", "mid", "zeta")]

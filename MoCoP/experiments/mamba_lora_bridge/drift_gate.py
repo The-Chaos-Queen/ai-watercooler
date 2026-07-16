@@ -359,9 +359,12 @@ def _record_graph_uninitialized(rec: AuditRecord, where: str) -> List[str]:
 
 @dataclass(frozen=True)
 class AcquisitionReceipt:
-    """Typed, single-shot resolution record for one ACQUISITION row (#984
-    blocker 4). status: resolved | rejected | unbound | error. Only
-    "resolved" can mint GROWTH; "error" contributes INCOMPLETE."""
+    """Typed, single-shot resolution record for one receipt key (#984
+    blocker 4): normally one ACQUISITION row; for a duplicated anchor,
+    ONE receipt summarizes all N rows of that anchor as a typed
+    duplicate error (#1066/#1068). status: resolved | rejected |
+    unbound | error. Only "resolved" can mint GROWTH; "error"
+    contributes INCOMPLETE."""
     anchor: str
     locator: str
     status: str
@@ -1026,6 +1029,7 @@ def _resolve_acquisitions(
     # Non-exact rows produce typed error receipts, not silent drops.
     canonical_probes: List[ProbeResult] = []
     malformed_acq_rows: List[Tuple[int, str]] = []
+    seen_anchors: set = set()
     for i, p in enumerate(probes):
         if type(p) is not ProbeResult:
             continue
@@ -1038,6 +1042,8 @@ def _resolve_acquisitions(
                 a = p.anchor if type(p.anchor) is str else ""
             except AttributeError:
                 a = ""
+            if a:
+                seen_anchors.add(a)
             try:
                 is_acq = (type(p.evidence_type) is EvidenceType
                           and p.evidence_type == EvidenceType.ACQUISITION)
@@ -1046,6 +1052,7 @@ def _resolve_acquisitions(
             if is_acq:
                 malformed_acq_rows.append((i, a))
             continue
+        seen_anchors.add(p.anchor)
         canonical_probes.append(_canonical_probe(p))
 
     # Phase 1.5: receipt-key custody (#1066). Exactly-once resolution is
@@ -1053,8 +1060,11 @@ def _resolve_acquisitions(
     # malformed) is a schema failure: it publishes ONE typed error
     # receipt, the resolver is never invoked for any of its rows, and
     # nothing is overwritten. Malformed rows without a usable anchor get
-    # positional placeholder keys extended until they collide with no
-    # caller anchor.
+    # positional placeholder keys extended until they collide with NO
+    # readable caller anchor of any evidence type (#1068 — a synthetic
+    # identity must never wear a real row's name). Duplicate receipts
+    # emit in sorted anchor order so receipt/rejection/reason ordering
+    # is hash-seed independent (#1068).
     anchor_counts: Dict[str, int] = {}
     for cp in canonical_probes:
         if cp.evidence_type == EvidenceType.ACQUISITION:
@@ -1063,8 +1073,8 @@ def _resolve_acquisitions(
         if a:
             anchor_counts[a] = anchor_counts.get(a, 0) + 1
     duplicated = {a for a, n in anchor_counts.items() if n > 1}
-    taken = set(anchor_counts)
-    for a in duplicated:
+    taken = set(anchor_counts) | seen_anchors
+    for a in sorted(duplicated):
         receipts[a] = AcquisitionReceipt(
             anchor=a, locator="", status="error",
             reason=(f"duplicate acquisition anchor ({anchor_counts[a]} "
