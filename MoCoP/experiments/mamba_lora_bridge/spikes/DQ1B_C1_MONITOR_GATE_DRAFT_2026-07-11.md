@@ -259,7 +259,8 @@ A valid P5 pre-run stage-neutral base manifest must include, at minimum:
 ```text
 schema_version
 schema_variant = closed_world_b0 | closed_world_c1
-base_manifest_id + base_manifest_digest
+base_manifest_id
+*(The canonical base_manifest_digest is computed externally over this complete base; it is a required reference on each attempt and Stage-B sidecar, never a self-field of the base.)*
 *(Note: run_kind is excluded from the immutable base manifest; it must be supplied per-attempt to permit Stage A and Stage B to share the exact same base manifest.)*
 model_id + model_revision + dtype + backend + device map
 runner/runtime/spec revisions and hashes
@@ -286,7 +287,11 @@ DQ1a instrument cap (3.0) and alpha-zero identity requirement
 DOL status = out_of_scope | exploratory_alarm_only (never clearance)
 ```
 
-`schema_variant` is a discriminated closed-world union: a B0 manifest may not contain C1 actuator/direction/GO fields, and a C1 manifest may not omit or rename any required field. `T_secondary` is deliberately excluded from the final numeric C1 clearance set because it is calibration-only/non-authorizing; `T_DOL` is excluded because it is out of scope/alarm-only. The runner must refuse a B0 launch if its no-component/frozen-evaluator/runtime-denial/evidence-sink requirements are incomplete, and must refuse C1 launch if any required key is absent, unknown, null, `TBD`, uses an unpinned artifact, differs from the keeper-ratified base contract, or if the per-attempt run-kind field is inapplicable. A Stage-B release is an append-only sidecar referencing the unchanged base manifest and Stage-A report; it may not amend either. `secondary_calibration_only` is an explicitly non-authorizing state, not a clearance or threshold waiver. A report must distinguish:
+`schema_variant` is a discriminated closed-world union: a B0 manifest may not contain C1 actuator/direction/GO fields, and a C1 manifest may not omit or rename any required field. `T_secondary` is deliberately excluded from the final numeric C1 clearance set because it is calibration-only/non-authorizing; `T_DOL` is excluded because it is out of scope/alarm-only. The runner must refuse a B0 launch if its no-component/frozen-evaluator/runtime-denial/evidence-sink requirements are incomplete, and must refuse C1 launch if any required key is absent, unknown, null, `TBD`, uses an unpinned artifact, differs from the keeper-ratified base contract, or if the per-attempt run-kind field is inapplicable. A Stage-B release is an append-only sidecar referencing the unchanged base manifest and Stage-A report; it may not amend either. `secondary_calibration_only` is an explicitly non-authorizing state, not a clearance or threshold waiver.
+
+`base_manifest_digest` is the externally computed canonical digest of the **complete** base, never a base field. Each attempt/referrer binds `base_manifest_id` plus that digest. The existing B0 journal `claim.manifest_digest` is the normative legacy alias for `base_manifest_digest`: it MUST equal both `execution_descriptor.base_manifest_digest` and the preserved `execution_descriptor.manifest_digest`. New C1 attempt records and every Stage-B sidecar use the explicit `base_manifest_digest` field. This preserves the existing B0 journal schema without giving a verifier two semantically different base references.
+
+A report must distinguish:
 
 - instrument invalid / monitor unlegible;
 - welfare or behavior hard failure;
@@ -323,3 +328,5 @@ It must never silently rewrite an attempt after the fact.
 - Watercooler #888 / `HISPA_STATE_INTEGRITY_MINITEST_SPEC_2026-07-11.md` (`cb4125b`) — Isegrim method GREEN with binding statelessness-trap correction; intended concat norm-weighting and carryover/absolute-span recovery contract.
 - Watercooler #890 — Gidim runnability GREEN: recovery is a distinct free-running #156 build with mid-sequence alpha toggle; DQ1a 32-item geometry and #130 behavioral probe contexts are layered SEV uses, requiring manifest-enforced SEV-ID disjointness or reviewed overlap.
 - Watercooler #892 — Cairn re-signs `T_recovery` only under the free-running carryover measurement space; approves B0 evidence/no-post-tampering and Stage-A/B chain; strengthens SEV overlap exception to a signed, reviewed declaration.
+- Watercooler #896 — Codex’s required repair: stage-neutral base plus per-attempt `run_kind`, Tier-2 immediate STOP, single Tier-1 HOLD/HITL, and B0-derived repeated-Tier-1 STOP threshold.
+- Watercooler #1077–#1078 — B0-executable base-digest invariant and the DQ1b-owner reference-only digest ruling; the later C1-capable fixture owns the two-variant same-base assertion.
