@@ -67,13 +67,17 @@ routing). Exactly three cases:
 Composition order: HARD > HOLD > INCOMPLETE > SOFT > PASS.
 
 ACQUISITION RECEIPTS (#984 blocker 4). Growth authority is bound, typed,
-and single-shot: every ACQUISITION row is resolved EXACTLY ONCE into an
-AcquisitionReceipt by an EvidenceResolverBinding (identity + version +
-callable receiving the locator AND the complete row). Resolver exceptions
-or non-boolean returns are typed "error" receipts: they contribute
-INCOMPLETE and can never mint GROWTH. Verdicts and the rejection report
-derive from the same receipts, so they cannot contradict. Receipts and
-their digest are bound into the decision artifact (GateOutcome.details).
+and single-shot: every uniquely-anchored ACQUISITION row is resolved
+EXACTLY ONCE into an AcquisitionReceipt by an EvidenceResolverBinding
+(identity + version + callable receiving the locator AND the complete
+row). Exactly-once custody is per receipt key (#1066): a duplicated
+acquisition anchor is a schema failure that publishes one typed error
+receipt and never invokes the resolver — no last-write-wins. Resolver
+exceptions or non-boolean returns are typed "error" receipts: they
+contribute INCOMPLETE and can never mint GROWTH. Verdicts and the
+rejection report derive from the same receipts, so they cannot
+contradict. Receipts and their digest are bound into the decision
+artifact (GateOutcome.details).
 
 RANGE TRAJECTORY (amendment A2 — the frozen equation, single authority;
 implementation fuzz-matched an independent reference on 69,000 randomized
@@ -391,8 +395,11 @@ class GateOutcome:
 # --- Content addressing (A4 custody; #984 blocker 2 decision-exact) ---
 
 def _canon(value: Any) -> Any:
-    """Total canonicalization: JSON-safe representation for any field value
-    (#984 high 5 — the digest must never crash on malformed input)."""
+    """JSON-safe representation of canonical leaf values: str/int/bool/
+    None, floats (non-finite via repr), and Enums — total over those
+    (#984 high 5). Foreign objects fall through to repr(), which MAY
+    itself raise (#1066): boundary-gated canonical inputs never contain
+    such objects, and audit_digest's contract is canonical-input-only."""
     if isinstance(value, Enum):
         return value.value
     if isinstance(value, float):
@@ -997,14 +1004,18 @@ def _resolve_acquisitions(
 ) -> Dict[str, AcquisitionReceipt]:
     """Kernel-internal acquisition resolution (#1040: privatized).
 
-    Resolve every ACQUISITION row EXACTLY ONCE into a typed receipt.
-    Verdicts and the rejection report both derive from these receipts, so
-    they cannot contradict (#984 blocker 4). Resolver exceptions and
-    non-boolean returns are "error" receipts: INCOMPLETE, never GROWTH.
-    Rows are canonicalized internally; the validated resolver callable is
-    captured ONCE in a plain local (_resolve_fn) before the first callback
-    and used for every row — neither the instance attribute nor the class
-    descriptor is re-read mid-batch (#1038/#1053).
+    Resolve every uniquely-anchored ACQUISITION row EXACTLY ONCE into a
+    typed receipt. Exactly-once custody is per receipt KEY (#1066): a
+    duplicated acquisition anchor — canonical or malformed — is a schema
+    failure that publishes ONE typed error receipt and never invokes the
+    resolver; there is no last-write-wins. Verdicts and the rejection
+    report both derive from these receipts, so they cannot contradict
+    (#984 blocker 4). Resolver exceptions and non-boolean returns are
+    "error" receipts: INCOMPLETE, never GROWTH. Rows are canonicalized
+    internally; the validated resolver callable is captured ONCE in a
+    plain local (_resolve_fn) before the first callback and used for
+    every row — neither the instance attribute nor the class descriptor
+    is re-read mid-batch (#1038/#1053).
     _binding_error: if set, all ACQUISITION rows receive this error
     instead of 'unbound' — preserves the upstream typed diagnosis (#1043)."""
     receipts: Dict[str, AcquisitionReceipt] = {}
@@ -1014,6 +1025,7 @@ def _resolve_acquisitions(
     # Phase 1: canonicalize probes BEFORE any resolver access (#1034 P1).
     # Non-exact rows produce typed error receipts, not silent drops.
     canonical_probes: List[ProbeResult] = []
+    malformed_acq_rows: List[Tuple[int, str]] = []
     for i, p in enumerate(probes):
         if type(p) is not ProbeResult:
             continue
@@ -1022,9 +1034,6 @@ def _resolve_acquisitions(
             # (#1056): read them defensively. An unreadable evidence_type
             # is treated as an ACQUISITION row — fail closed: an "error"
             # receipt contributes INCOMPLETE and can never mint GROWTH.
-            # A row without a usable anchor is keyed by an inert
-            # positional placeholder so distinct malformed rows keep
-            # distinct exactly-once receipts (#1064).
             try:
                 a = p.anchor if type(p.anchor) is str else ""
             except AttributeError:
@@ -1035,13 +1044,45 @@ def _resolve_acquisitions(
             except AttributeError:
                 is_acq = True
             if is_acq:
-                key = a if a else f"<malformed-row-{i}>"
-                receipts[key] = AcquisitionReceipt(
-                    anchor=key, locator="", status="error",
-                    reason="row has missing or non-exact scalar leaves",
-                    resolver_id="", resolver_version="")
+                malformed_acq_rows.append((i, a))
             continue
         canonical_probes.append(_canonical_probe(p))
+
+    # Phase 1.5: receipt-key custody (#1066). Exactly-once resolution is
+    # per receipt key, so a duplicated acquisition anchor (canonical or
+    # malformed) is a schema failure: it publishes ONE typed error
+    # receipt, the resolver is never invoked for any of its rows, and
+    # nothing is overwritten. Malformed rows without a usable anchor get
+    # positional placeholder keys extended until they collide with no
+    # caller anchor.
+    anchor_counts: Dict[str, int] = {}
+    for cp in canonical_probes:
+        if cp.evidence_type == EvidenceType.ACQUISITION:
+            anchor_counts[cp.anchor] = anchor_counts.get(cp.anchor, 0) + 1
+    for _i, a in malformed_acq_rows:
+        if a:
+            anchor_counts[a] = anchor_counts.get(a, 0) + 1
+    duplicated = {a for a, n in anchor_counts.items() if n > 1}
+    taken = set(anchor_counts)
+    for a in duplicated:
+        receipts[a] = AcquisitionReceipt(
+            anchor=a, locator="", status="error",
+            reason=(f"duplicate acquisition anchor ({anchor_counts[a]} "
+                    f"rows): exactly-once resolution unavailable"),
+            resolver_id="", resolver_version="")
+    for i, a in malformed_acq_rows:
+        if a in duplicated:
+            continue
+        key = a
+        if not key:
+            key = f"<malformed-row-{i}>"
+            while key in taken:
+                key = key + "#"
+            taken.add(key)
+        receipts[key] = AcquisitionReceipt(
+            anchor=key, locator="", status="error",
+            reason="row has missing or non-exact scalar leaves",
+            resolver_id="", resolver_version="")
 
     # Phase 2: validate the resolver binding (#1038/#1040/#1043 P1).
     # Identity and callable are read once here into plain locals; nothing
@@ -1081,6 +1122,10 @@ def _resolve_acquisitions(
         if probe.evidence_type != EvidenceType.ACQUISITION:
             continue
         anchor = probe.anchor
+        if anchor in duplicated:
+            # Already carries the typed duplicate-error receipt (#1066);
+            # the resolver must not run for an ambiguous anchor.
+            continue
         ref = str.strip(probe.evidence_ref)
 
         def receipt(status: str, reason: str) -> AcquisitionReceipt:

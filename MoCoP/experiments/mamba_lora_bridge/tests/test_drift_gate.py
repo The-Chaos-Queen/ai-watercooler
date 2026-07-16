@@ -1753,7 +1753,7 @@ class TestCalibrationCorpus:
         """Codex #1040 P1: on the direct resolve_acquisitions path,
         first callback replaced binding.resolve; replacement resolved
         the second row under original identity. Now the callable is
-        snapshotted into a fresh binding — swap never runs."""
+        captured once in a plain local (#1053) — swap never runs."""
         call_log = []
 
         def original_resolve(ref, probe):
@@ -1876,8 +1876,9 @@ class TestCalibrationCorpus:
     def test_callable_swap_cannot_affect_subsequent_rows(self):
         """Codex #1038 P1: first callback replaced binding.resolve;
         second acquisition used the replacement. Both became GROWTH
-        under original identity. Now the callable is snapshotted into
-        a fresh binding — the replacement never runs."""
+        under original identity. Now identity and callable are read
+        once before any callback and the helper captures the callable
+        in a plain local (#1053) — the replacement never runs."""
         call_log = []
 
         def original_resolve(ref, probe):
@@ -2203,11 +2204,10 @@ class TestDeletionMatricesAndTotality:
         ACQUISITION row: never raises; every cell yields exactly one typed
         'error' receipt — INCOMPLETE, never GROWTH (#1056: the anchor and
         evidence_type cells previously escaped as AttributeError). A row
-        whose anchor is unreadable is keyed by the empty anchor; a row
         whose kind is unreadable is treated as an ACQUISITION row (fail
-        closed). A row without a usable anchor is keyed by an inert
-        positional placeholder so distinct rows keep distinct receipts
-        (#1064)."""
+        closed); a row without a usable anchor is keyed by an inert
+        positional placeholder, extended until collision-free, so
+        distinct rows keep distinct receipts (#1064/#1066)."""
         for fname in self.PROBE_FIELDS:
             probe = self._acq_probe()
             object.__delattr__(probe, fname)
@@ -2297,7 +2297,10 @@ class TestDeletionMatricesAndTotality:
     def test_binding_deletion_matrix_direct_and_full(self):
         """EvidenceResolverBinding, all 3 single-field deletions: typed
         'missing fields' error receipts on the direct path AND typed
-        incomplete_reasons on the full path (3/3), never a raise."""
+        incomplete_reasons on the full path (3/3), never a raise.
+
+        (Placed before TestReceiptKeyCustody's duplicate-anchor rules:
+        these single-row matrices are unaffected by key custody.)"""
         for fname in self.BINDING_FIELDS:
             binding = EvidenceResolverBinding("resolver:test", "v1",
                                               lambda r, p: True)
@@ -2315,3 +2318,114 @@ class TestDeletionMatricesAndTotality:
             outcome = evaluate_audit(current, chain, resolver=binding_full)
             assert any("missing fields" in r
                        for r in outcome.incomplete_reasons), fname
+
+
+class TestReceiptKeyCustody:
+    """Codex #1066: exactly-once custody is per receipt KEY, never
+    last-write-wins. Duplicated acquisition anchors are a schema failure
+    — the resolver is never invoked for them and exactly one typed error
+    receipt is published. Malformed-row placeholder keys are chosen
+    outside the caller-anchor namespace."""
+
+    def test_duplicate_acquisition_anchors_stop_resolution_direct(self):
+        """Two exact rows sharing one acquisition anchor: zero resolver
+        calls, exactly one 'error' receipt naming the duplication, and
+        no GROWTH mintable from it."""
+        call_log = []
+
+        def resolve(ref, probe):
+            call_log.append(ref)
+            return ref == "ruling:opus-4.8/wc#633"
+
+        binding = EvidenceResolverBinding("resolver:test", "v1", resolve)
+        probes = [
+            P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="judge:unknown/nowhere#0"),
+            P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="ruling:opus-4.8/wc#633")]
+        receipts = _resolve_acquisitions(probes, binding)
+        assert call_log == []
+        assert set(receipts) == {"acq"}
+        assert receipts["acq"].status == "error"
+        assert "duplicate" in receipts["acq"].reason
+        level, verdicts = score_protected_set(probes, receipts)
+        assert Verdict.GROWTH not in verdicts.values()
+
+    def test_duplicate_acquisition_anchors_full_no_growth(self):
+        """Codex #1066 canary: full evaluate_audit with two exact
+        duplicate acquisition anchors and resolver results [False, True]
+        previously invoked both callbacks and published one later
+        'resolved' receipt, GROWTH, and no rejection line. Now: zero
+        calls, one typed duplicate-error receipt, a rejection line, no
+        GROWTH, overall INCOMPLETE."""
+        call_log = []
+
+        def resolve(ref, probe):
+            call_log.append(ref)
+            return ref == "ruling:opus-4.8/wc#633"
+
+        binding = EvidenceResolverBinding("resolver:test", "v1", resolve)
+        chain = _chain(STABLE)
+        probes, slots = _battery()
+        probes = probes + [
+            P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="judge:unknown/nowhere#0"),
+            P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+              evidence_type=EvidenceType.ACQUISITION,
+              evidence_ref="ruling:opus-4.8/wc#633")]
+        current = AuditRecord(
+            audit_id="dup-acq-current",
+            timestamp=_ts(len(chain) + 100001),
+            probe_results=probes, diversity_metric=0.80,
+            slot_probe_results=slots,
+            ordinal=len(chain) + 1,
+            predecessor_digest=audit_digest(chain[-1]))
+        outcome = evaluate_audit(current, chain, resolver=binding)
+        assert call_log == []
+        receipt = outcome.details["acquisition_receipts"]["acq"]
+        assert receipt["status"] == "error"
+        assert "duplicate" in receipt["reason"]
+        assert Verdict.GROWTH not in outcome.verdicts.values()
+        assert any("acq" in line
+                   for line in outcome.details["acquisition_rejected"])
+        assert outcome.overall == GateLevel.INCOMPLETE
+
+    def test_two_malformed_rows_same_anchor_fold_to_duplicate_error(self):
+        """Two malformed rows sharing a usable anchor are a duplication:
+        one typed duplicate-error receipt, not a silent last-write-wins
+        collapse under the malformed reason."""
+        class ActiveNotes(str):
+            pass
+
+        rows = [P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
+                  evidence_type=EvidenceType.ACQUISITION,
+                  evidence_ref="judge:laura/audit-log#12",
+                  notes=ActiveNotes("x"))
+                for _ in range(2)]
+        receipts = _resolve_acquisitions(rows, RESOLVER)
+        assert set(receipts) == {"acq"}
+        assert receipts["acq"].status == "error"
+        assert "duplicate" in receipts["acq"].reason
+
+    def test_caller_anchor_cannot_shadow_malformed_placeholder(self):
+        """A valid acquisition row whose anchor equals a would-be
+        placeholder must not overwrite (or be overwritten by) the
+        malformed row's receipt: the placeholder shifts until
+        collision-free and both receipts survive with exact statuses."""
+        malformed = P("gone", 2, VerdictClass.PRESENT_RECOVERABLE,
+                      evidence_type=EvidenceType.ACQUISITION,
+                      evidence_ref="judge:laura/audit-log#12")
+        object.__delattr__(malformed, "anchor")
+        shadow = P("<malformed-row-0>", 2,
+                   VerdictClass.PRESENT_RECOVERABLE,
+                   evidence_type=EvidenceType.ACQUISITION,
+                   evidence_ref="ruling:opus-4.8/wc#633")
+        receipts = _resolve_acquisitions([malformed, shadow], RESOLVER)
+        assert len(receipts) == 2
+        assert receipts["<malformed-row-0>"].status == "resolved"
+        assert receipts["<malformed-row-0>#"].status == "error"
+        assert ("missing or non-exact"
+                in receipts["<malformed-row-0>#"].reason)
