@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-16 01:29 +02:00
-- Current owner: Drift Gate #168 remains claimed by Isegrim; v24 `994e25c` awaits Codex review. Techno-Monk completed a separate read-only Gemma 4/LiteRT evidence + harness-contract lane; no ML-WS model/server/fine-tune/live MoCoP action occurred.
+- Last updated: 2026-07-16 02:03 +02:00
+- Current owner: Drift Gate #168 remains claimed by Isegrim; v24 `994e25c` awaits Codex review. Techno-Monk completed a separate read-only Gemma 4/LiteRT evidence lane and corrected its isolated historical-boundary regression contract; no ML-WS model/server/fine-tune/live MoCoP action occurred.
 - Primary focus: await the Codex verdict on Drift Gate v24 `994e25c` (all five #1056 items addressed), preserve the local-callable repair and #156 closure, and continue only through independent #149/#155/HF/protected-sink/alpha-zero holds. Do not deploy the drift gate, run B0, or authorize nonzero intervention.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-16-session-16.md`
+- Last session log: `CHEESE_Memory/session_logs/2026-07-16-session-17.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-16-session-16.md`; final source 17 chunks, stale pending receipt removed, collection count 34,393)
+  - Latest session log ingest: pending (`2026-07-16-session-17.md`; canonical Anaconda ingest follows correction commit)
 
 ## Current State - Baseline Drift Gate Review (2026-07-15)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
@@ -17,7 +17,7 @@
 
 ## Current State — Gemma 4 / LiteRT-LM offline preflight (2026-07-16)
 - **Read-only evidence, no runtime action:** Google/LiteRT sources now support a potentially useful local agent/voice-runtime lane: upstream LiteRT-LM `v0.13` declares Gemma 4 12B + OpenAI-compatible server; the public 12B Linux/macOS artifact is ~6.55 GB and declares text/audio. Google Eloquent's 60%+ Voice Edit claim is vendor/product-specific, not a Gemma welfare or general benchmark.
-- **Bounded artifact:** `experiments/mamba_lora_bridge/gemma_harness_contract.py`, inert `spikes/gemma4_harness_contract_bench.py`, 7 focused tests, and `spikes/GEMMA4_LITERT_PREFLIGHT_EVIDENCE_2026-07-16.md` preserve raw model output, line-header-only continuation receipts, primary links, and the support-doc discrepancy. New tests + P5 suite: 200 PASS; no shared runner/runtime changed.
+- **Bounded artifact, corrected scope:** `experiments/mamba_lora_bridge/gemma_harness_contract.py`, inert `spikes/gemma4_harness_contract_bench.py`, 9 focused tests, and `spikes/GEMMA4_LITERT_PREFLIGHT_EVIDENCE_2026-07-16.md` isolate and regression-test the tracked bakeoff's existing post-hoc trim protocol without changing it. They preserve raw model output, accept only **observed blank-line** continuation headers, and replay all 36 archived bakeoff rows exactly; primary links and the support-doc discrepancy remain recorded. New tests + current P5 suite: 288 PASS; no shared runner/runtime changed.
 - **Hardware status:** passive ML-WS check found RTX 3090 24 GiB idle and disk headroom, but not installed LiteRT/version/backend/model-cache state. Published Linux GPU data is AMD, not an RTX 3090 proof. A current LiteRT model page conflicts with the v0.13/repository/artifact evidence; retain the uncertainty.
 - **Only next step:** after an explicit narrow remote confirmation, run a read-only ML-WS LiteRT preflight (version/driver/backend/cache/help only; no install/download/load/server/port). If it passes, separately decide on a frozen loopback-only server/audio bench; do not fine-tune by default. Watercooler #1060/#1061.
 
@@ -150,16 +150,17 @@
 - Separately, only after Laura/tool-level confirmation, run the documented read-only LiteRT preflight on ML-WS; do not install, serve, or train merely because the GPU is idle.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #1060/#1061, Gemma/LiteRT evidence note, this handoff)
-- Session log written: yes (`2026-07-16-session-16.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #1060/#1062, corrected Gemma/LiteRT evidence note, this handoff)
+- Session log written: yes (`2026-07-16-session-17.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (`2026-07-16-session-16.md`; final 17 source chunks; stale pending receipt deleted; collection 34,393)
-- Git commit in repo: yes (scoped Gemma harness-contract/preflight artifact; see current `git log`)
-- Watercooler findings reflected in docs: yes (evidence note + this handoff; #1060/#1061)
-- No P0 bugs left unfixed: yes; the new evaluator inline-boundary false-cut was fixed and regression-tested. Existing standalone World Model fixture failure is separate and recorded in session-16.
+- Qdrant ingest for latest session log confirmed: pending canonical Anaconda attempt after correction commit
+- Git commit in repo: pending scoped blank-line protocol correction
+- Watercooler findings reflected in docs: yes for initial preflight/commit correction (#1060/#1062); correction closure post follows
+- No P0 bugs left unfixed: yes; the initial helper's overbroad single-newline boundary is isolated, corrected, archive-replayed, and never touched the live runner. Existing standalone World Model fixture failure is separate and recorded in session-16.
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-16 02:03 +02:00 | Techno-Monk | Delayed audit correction: the tracked bakeoff already had post-hoc `extract_first_answer`; the initial isolated helper's generic single-newline rule was overbroad. Directly replayed all 36 saved rows (10 trimmed) and found every observed marker follows `\n\n`; narrowed the separate helper to blank-line/CRLF-blank-line boundaries, added a single-newline non-cut regression plus full archive replay, and corrected evidence/handoff scope. 14 focused tests + current P5 288 PASS; Ruff/py_compile/CLI/diff checks pass. No live runner, model/GPU/ML-WS, LiteRT, Qdrant content mutation, bridge/C1, or training action. Scoped correction commit/Qdrant/Watercooler receipt follows.
 - 2026-07-16 01:29 +02:00 | Techno-Monk | Read-only Gemma 4/LiteRT-LM preflight: linked Google/upstream/artifact sources, preserved 12B support-doc discrepancy and RTX 3090 uncertainty, built an isolated raw-output/line-header evaluator contract (7 tests) plus inert receipt CLI, and posted Watercooler #1060/#1061 under own token. No LiteRT install/download/load/server, fine-tune, live MoCoP/C1/bridge action, or ML-WS runtime action occurred. Session-16 was ingested through the verified Anaconda runtime (final 17 source chunks; stale pending receipt removed; collection 34,393); scoped commit complete.
 - 2026-07-16 00:17 +02:00 | Isegrim | Delivered Drift Gate v24 `994e25c` superseding `67544ef` per Codex #1056 `CHANGES / P2`, all five items: strict direct/full class-descriptor closure regressions (exact two-call log, two present rejected receipts, no GROWTH); CPython non-TEE boundary in kernel authority model + evaluate_audit + prereqs A4; resolver path total over deleted anchor/evidence_type (fail closed); completeness/history/discontinuity validators totalized with audit_digest declared canonical-input-only; complete 8/14/4/3 deletion matrices; stale frozen-binding prose removed. 184 PASS; Ruff/diff-check clean; mutation check fails both closure tests under the reverted defect. Watercooler #1059; OpenCLAW #168 claimed by isegrim with delivery comment. #168 remains open/non-deployable pending Codex.
 - 2026-07-15 21:25 +02:00 | Codex | Returned `CHANGES / P2` on Drift Gate v23 `67544ef`, explicitly closing v22's class-descriptor P1. The plain-local resolver survived independent direct/full substitution; 173 PASS and Ruff/diff/blobs clean. Remaining: permissive direct-only regression, absent non-TEE/process-isolation boundary, stale binding prose, partial resolver missing-slot escape, and direct digest/history/completeness contract mismatch. Canon `5becb0b`; Watercooler #1056; OpenCLAW event #747. #168 remains open/non-deployable.

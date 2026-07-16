@@ -71,15 +71,21 @@ def _validate_markers(markers: Sequence[str]) -> tuple[str, ...]:
     return normalized
 
 
-def _find_line_header(raw_text: str, marker: str) -> int:
-    """Return the first marker occurrence at the start of a visible line."""
+def _find_blank_line_header(raw_text: str, marker: str) -> int:
+    """Return the first marker occurrence after an observed blank line.
+
+    Historical bakeoff continuations began after ``\n\n``. A single newline can
+    be legitimate quoted/structured answer text, so it is intentionally not a
+    continuation boundary here. CRLF blank lines are accepted for captured
+    Windows output.
+    """
 
     search_from = 0
     while True:
         index = raw_text.find(marker, search_from)
         if index < 0:
             return -1
-        if index == 0 or raw_text[index - 1] in "\r\n":
+        if raw_text[:index].endswith(("\n\n", "\r\n\r\n")):
             return index
         search_from = index + 1
 
@@ -88,9 +94,10 @@ def find_text_boundary(
     raw_text: str,
     markers: Sequence[str] = DEFAULT_TEXT_BOUNDARIES,
 ) -> TextBoundaryMatch | None:
-    """Find the earliest configured continuation header at the start of a line.
+    """Find the earliest configured continuation header after a blank line.
 
-    Inline mentions of a marker remain part of the answer. If multiple markers
+    Inline mentions and single-newline headings remain part of the answer. This
+    matches the observed archived bakeoff continuations. If multiple markers
     begin at the same character offset, prefer the longest marker. That yields
     deterministic receipts for overlapping markers.
     """
@@ -99,7 +106,7 @@ def find_text_boundary(
         raise TypeError("raw_text must be a string")
     best: TextBoundaryMatch | None = None
     for marker in _validate_markers(markers):
-        index = _find_line_header(raw_text, marker)
+        index = _find_blank_line_header(raw_text, marker)
         if index < 0:
             continue
         candidate = TextBoundaryMatch(marker=marker, index=index)

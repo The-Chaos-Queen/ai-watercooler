@@ -5,6 +5,7 @@ No torch, transformers, model weights, or ML-WS access is required here.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from gemma_harness_contract import (
     TokenSuffixMatcher,
@@ -52,14 +53,46 @@ def test_inline_boundary_literal_is_not_treated_as_a_continuation_header():
     assert result.boundary is None
 
 
-def test_first_line_header_wins_after_an_inline_boundary_literal():
-    raw = "A note names [Memory evidence] inline.\n[Memory evidence]\nCopied prompt"
+def test_blank_line_header_wins_after_an_inline_boundary_literal():
+    raw = "A note names [Memory evidence] inline.\n\n[Memory evidence]\nCopied prompt"
 
     result = finalize_answer(raw)
 
     assert result.answer == "A note names [Memory evidence] inline."
     assert result.boundary is not None
     assert result.boundary.index == raw.rindex("[Memory evidence]")
+
+
+def test_single_newline_header_remains_visible_answer_text():
+    raw = "Quoted material follows.\nQuestion: this heading is part of the answer."
+
+    result = finalize_answer(raw)
+
+    assert result.raw_text == raw
+    assert result.answer == raw
+    assert result.continuation_detected is False
+    assert result.boundary is None
+
+
+def test_blank_line_protocol_replays_all_stored_bakeoff_rows():
+    root = Path(__file__).resolve().parents[1]
+    paths = (
+        root / "results/base_improv_bakeoff/bakeoff_5g1_strict_20260703T163858Z.json",
+        root / "results/base_improv_bakeoff/gemma4_base_5g1_trimonly_20260703T170742Z.json",
+        root / "results/base_improv_bakeoff/qwen3_14b_5g1_trimonly_20260703T183744Z.json",
+    )
+    rows = [
+        row
+        for path in paths
+        for row in json.loads(path.read_text(encoding="utf-8"))["results"]
+    ]
+
+    assert len(rows) == 36
+    for row in rows:
+        result = finalize_answer(row["raw_answer"])
+        assert result.answer == row["answer"].strip()
+        assert result.continuation_detected is row["continuation_trimmed"]
+        assert (result.boundary.marker if result.boundary else None) == row["continuation_marker"]
 
 
 def test_token_suffix_matcher_prefers_longest_match_at_same_endpoint():

@@ -69,4 +69,4 @@ Only if that passes should a separate decision be made between:
 
 ## Related local artifact
 
-`gemma_harness_contract.py` and `spikes/gemma4_harness_contract_bench.py` were built as a separate, model-free evaluator-contract spike. They preserve raw output, identify first line-header continuations, and include pure token-suffix matching utilities. They do not import model libraries or load a model by default.
+`gemma_harness_contract.py` and `spikes/gemma4_harness_contract_bench.py` are a separate, model-free extraction/regression spike around the historical bakeoff's post-hoc trim pattern. They preserve raw output, identify **observed blank-line** continuation headers, replay all 36 saved bakeoff rows without changing their scored answers, and include pure token-suffix matching utilities. They do not import model libraries or load a model by default; they do not claim the tracked bakeoff harness lacked a parser.
