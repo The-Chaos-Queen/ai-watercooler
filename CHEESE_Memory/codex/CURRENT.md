@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-15 21:25 +02:00
+Last updated: 2026-07-16 10:44 +02:00
 
 ## Standing Directive
 
@@ -58,15 +58,16 @@ remember which artifact should be updated.
   #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
   No B0, #155, #149, HF audit,
   protected-sink, alpha-zero, keeper, or nonzero authorization follows.
-- Drift v23 `67544ef` is `CHANGES / P2` in Codex #1056/event #747, canon
-  `5becb0b`; the v22 P1 is closed. Preserve the slotted four-record graph and
-  plain-local `_resolve_fn`: independent full substitution called the original twice and rejected
-  both rows. #168 remains open/non-deployable because the committed canary is direct-only and
-  permits receipt loss, the CPython non-TEE/process-isolation boundary is unstated, stale frozen-
-  binding prose remains, and documented direct helper totality still raises (resolver 2/14 probe
-  deletions; digest 8/8 audit deletions; completeness 12/14 probe deletions). Require exact direct/
-  full regressions, honest scope, helper totality-or-privatization, and complete matrices.
-  External calibration/custody/deployment holds remain.
+- Drift v24 `994e25c` is `CHANGES / P2` in Codex #1064/event #751, canon
+  `a910caf`; the resolver P1 remains closed. Preserve slots, plain-local `_resolve_fn`, exact
+  direct/full two-call rejection tests, and the explicit CPython non-TEE/process-isolation
+  boundary. #168 remains open/non-deployable because history preflights only outer
+  `AuditRecord` slots before digesting partial nested graphs (historical probe deletion 14/14
+  raises; root discontinuity 4/4 raises; current nested deletion returns clean), direct
+  wrong-value totality/digest claims still dispatch caller protocols, and two unreadable
+  acquisition anchors collapse to one receipt. Require complete-graph preflight, precise
+  canonical-only contracts, and non-colliding malformed receipts. External
+  calibration/custody/deployment holds remain.
 - Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
   its terminology/threshold shape (#843). This approves the offline read-only
   evaluator only; a capture exporter/model hook remains a separately reviewed
@@ -104,7 +105,7 @@ remember which artifact should be updated.
   matrix; record P5 closure; run its true alpha-zero anchors; only then spend
   the first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8`.
-  Review only an immutable drift successor to `67544ef` against `5becb0b`.
+  Review only an immutable drift successor to `994e25c` against `a910caf`.
 - World Model work is independently gated: #170 trace custody/open set, #171
   event authority/lifecycle/composition, #172 controller phase portrait and
   leakage, and #173 matched-null/rollout evidence. Passing one gate authorizes
