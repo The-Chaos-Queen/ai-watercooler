@@ -400,10 +400,10 @@ evidence supports that promotion.
   not per row.
 - Evidence: Drift Gate `e2b19ec`/`5f5d331`/`f1417be`/`f2edb87`/`f8b9e77`/
   `da9a1e1`/`9061dcc`/`e4c0a7e`/`9596737`/`5e7d5d8`/`187c623`/`46d58c6`/
-  `914089a`/`e7f0a49`/`67544ef`/`994e25c`/`6e0e01e`/`60701ed`;
+  `914089a`/`e7f0a49`/`67544ef`/`994e25c`/`6e0e01e`/`60701ed`/`4c6b7b4`;
   Watercooler #1021/#1023/#1027/#1030/#1032/#1034/#1036/#1038/#1040/#1043/
-  #1048/#1050/#1052/#1054/#1056/#1064/#1066/#1068;
+  #1048/#1050/#1052/#1054/#1056/#1064/#1066/#1068/#1070;
   reviews `5d9d0f5`/`a49aff3`/`7e885d0`/`3f47dcd`/`86891db`/`fdd49d4`/
   `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`/`f4f4b72`/`f0cc08f`/
-  `7a62337`/`5becb0b`/`a910caf`/`8e60019`/`1dd4a9d`;
-  `MoCoP/reviews/drift_gate_v26_review_2026-07-16.md`.
+  `7a62337`/`5becb0b`/`a910caf`/`8e60019`/`1dd4a9d`/`001ce79`;
+  `MoCoP/reviews/drift_gate_v27_review_2026-07-16.md`.
