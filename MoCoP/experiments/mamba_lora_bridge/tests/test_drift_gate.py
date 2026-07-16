@@ -2205,15 +2205,94 @@ class TestDeletionMatricesAndTotality:
         evidence_type cells previously escaped as AttributeError). A row
         whose anchor is unreadable is keyed by the empty anchor; a row
         whose kind is unreadable is treated as an ACQUISITION row (fail
-        closed)."""
+        closed). A row without a usable anchor is keyed by an inert
+        positional placeholder so distinct rows keep distinct receipts
+        (#1064)."""
         for fname in self.PROBE_FIELDS:
             probe = self._acq_probe()
             object.__delattr__(probe, fname)
             receipts = _resolve_acquisitions([probe], RESOLVER)
-            expected_key = "" if fname == "anchor" else "acq"
+            expected_key = ("<malformed-row-0>" if fname == "anchor"
+                            else "acq")
             assert set(receipts) == {expected_key}, fname
             assert receipts[expected_key].status == "error", fname
             assert "missing or non-exact" in receipts[expected_key].reason
+
+    def test_history_chain_nested_probe_deletion_matrix_total(self):
+        """validate_history_chain, all 14 single probe-slot deletions on a
+        mid-history record's row: reported with the record position, never
+        raised (#1064: previously raised 14/14 via audit_digest on the
+        linkage read)."""
+        for fname in self.PROBE_FIELDS:
+            chain = _chain(STABLE)
+            current = _next_audit(chain)
+            object.__delattr__(chain[2].probe_results[0], fname)
+            issues = validate_history_chain(chain, current)
+            assert any("history[2]" in i and "uninitialized" in i
+                       and fname in i for i in issues), fname
+
+    def test_history_chain_current_nested_probe_deletion_reported(self):
+        """validate_history_chain: a deleted probe slot on the CURRENT
+        record is reported (#1064: previously returned clean [])."""
+        for fname in self.PROBE_FIELDS:
+            chain = _chain(STABLE)
+            current = _next_audit(chain)
+            object.__delattr__(current.probe_results[0], fname)
+            issues = validate_history_chain(chain, current)
+            assert any("current" in i and "uninitialized" in i
+                       and fname in i for i in issues), fname
+
+    def test_history_chain_root_discontinuity_deletion_matrix_total(self):
+        """validate_history_chain, all 4 single-slot deletions on a
+        HISTORICAL root's discontinuity event: reported, never raised
+        (#1064: previously raised 4/4 via audit_digest on the linkage
+        read)."""
+        for fname in self.DISC_FIELDS:
+            chain = _chain(STABLE, root_event=_event())
+            current = _next_audit(chain)
+            object.__delattr__(chain[0].discontinuity, fname)
+            issues = validate_history_chain(chain, current)
+            assert any("history[0]" in i and "uninitialized" in i
+                       and fname in i for i in issues), fname
+
+    def test_two_deleted_anchor_rows_distinct_receipts(self):
+        """_resolve_acquisitions (#1064): two ACQUISITION rows that both
+        lost their anchor slot must keep two DISTINCT exactly-once error
+        receipts, not collapse onto one shared key."""
+        probe_a = self._acq_probe()
+        probe_b = P("acq2", 2, VerdictClass.PRESENT_RECOVERABLE,
+                    evidence_type=EvidenceType.ACQUISITION,
+                    evidence_ref="ruling:opus-4.8/wc#633")
+        object.__delattr__(probe_a, "anchor")
+        object.__delattr__(probe_b, "anchor")
+        receipts = _resolve_acquisitions([probe_a, probe_b], RESOLVER)
+        assert len(receipts) == 2
+        assert all(r.status == "error" for r in receipts.values())
+        assert all("missing or non-exact" in r.reason
+                   for r in receipts.values())
+
+    def test_audit_digest_non_canonical_values_may_raise(self):
+        """audit_digest (#1064): the documented contract is canonical
+        values only. Initialized fields holding foreign objects (raising
+        __repr__) or wrong containers (probe_results=42) MAY raise on the
+        direct path — pinned here so the narrowed claim stays
+        executable. The evaluate_audit boundary rejects both shapes
+        before any digest is taken."""
+        import pytest
+
+        class RaisingRepr:
+            def __repr__(self):
+                raise RuntimeError("non-canonical leaf")
+
+        rec = _next_audit([])
+        rec.probe_results[0].notes = RaisingRepr()
+        with pytest.raises(RuntimeError):
+            audit_digest(rec)
+
+        rec2 = _next_audit([])
+        rec2.probe_results = 42
+        with pytest.raises(TypeError):
+            audit_digest(rec2)
 
     def test_binding_deletion_matrix_direct_and_full(self):
         """EvidenceResolverBinding, all 3 single-field deletions: typed

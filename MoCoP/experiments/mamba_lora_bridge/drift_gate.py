@@ -323,6 +323,36 @@ def _audit_instance_complete(rec: AuditRecord) -> List[str]:
     return []
 
 
+def _record_graph_uninitialized(rec: AuditRecord, where: str) -> List[str]:
+    """Slot-completeness of the FULL record graph (#1064): the outer
+    record, every probe row in both lists, and any discontinuity event.
+    Outer slots are verified first, so nested reads only run on records
+    whose own slots are initialized. Reports, never raises."""
+    outer = _audit_instance_complete(rec)
+    if outer:
+        return [f"{where}: {i}" for i in outer]
+    issues: List[str] = []
+    for label, rows in (("protected", rec.probe_results),
+                        ("slot", rec.slot_probe_results)):
+        if type(rows) is not list:
+            continue
+        for idx, p in enumerate(rows):
+            if type(p) is ProbeResult:
+                missing = _instance_uninitialized(p, _PROBE_RESULT_FIELDS)
+                if missing:
+                    issues.append(
+                        f"{where} {label}[{idx}]: uninitialized probe "
+                        f"slot fields: {missing}")
+    disc = rec.discontinuity
+    if type(disc) is DiscontinuityEvent:
+        missing = _instance_uninitialized(disc, _DISCONTINUITY_FIELDS)
+        if missing:
+            issues.append(
+                f"{where}: uninitialized discontinuity slot fields: "
+                f"{missing}")
+    return issues
+
+
 @dataclass(frozen=True)
 class AcquisitionReceipt:
     """Typed, single-shot resolution record for one ACQUISITION row (#984
@@ -406,13 +436,17 @@ def audit_digest(audit: AuditRecord) -> str:
     decision-exact with respect to the A2 trajectory math. Successor
     records must carry this value as their predecessor_digest.
 
-    INPUT CONTRACT (#1056): canonical-input-only. Requires a fully
-    initialized record graph — the evaluate_audit boundary guarantees
-    this before any digest is taken. On a record with uninitialized or
-    deleted slot fields, attribute access raises AttributeError BY
-    DESIGN: a digest of a partial record would be a false custody
-    statement. Value-LEVEL malformation (wrong types inside initialized
-    fields) never raises — _canon is total over field values."""
+    INPUT CONTRACT (#1056/#1064): canonical-input-only. Requires a fully
+    initialized record graph with canonical values — as produced by the
+    evaluate_audit boundary plus _canonical_audit before any digest is
+    taken. On a record with uninitialized or deleted slot fields,
+    attribute access raises AttributeError BY DESIGN: a digest of a
+    partial record would be a false custody statement. _canon is total
+    over canonical leaf values (str/int/bool/None, floats including
+    non-finite, Enums); NON-canonical initialized values — foreign
+    objects with raising protocols, wrong container types — fall through
+    to repr()/iteration and may raise. Boundary-gated snapshots never
+    contain such values."""
     disc = audit.discontinuity
     payload = {
         "audit_id": _canon(audit.audit_id),
@@ -649,12 +683,13 @@ def _validate_probe_row(probe: ProbeResult, where: str) -> List[str]:
 def validate_audit_completeness(audit: AuditRecord) -> List[str]:
     """Check probe coverage AND the total closed input schema (H5).
 
-    INPUT CONTRACT (#1056): a validator reports, it never raises. Exact
-    records and rows with uninitialized or deleted slot fields are
-    returned as issues. Rows are expected to be ProbeResult instances —
-    the evaluate_audit boundary enforces exact types upstream; rows of
-    foreign types follow the pre-existing attribute-error behavior and
-    are not part of the documented direct surface."""
+    INPUT CONTRACT (#1056/#1064): a validator reports, it never raises,
+    over slot-deleted or uninitialized exact records and rows — those are
+    returned as issues. Values INSIDE initialized leaves are expected
+    canonical (the evaluate_audit boundary guarantees this); direct calls
+    with foreign leaf objects (raising __hash__/__repr__, wrong container
+    types) or non-ProbeResult rows may raise and are outside the
+    documented direct surface."""
     issues = []
     if type(audit) is AuditRecord:
         issues.extend(_audit_instance_complete(audit))
@@ -759,10 +794,14 @@ def validate_history_chain(
     makes the history-dependent axes INCOMPLETE — omission, truncation, or
     substitution is a custody failure, never a PASS.
 
-    INPUT CONTRACT (#1056): a validator reports, it never raises. Exact
-    records with uninitialized or deleted slot fields make the chain
-    unverifiable and are returned as issues before any digest or linkage
-    read."""
+    INPUT CONTRACT (#1056/#1064): a validator reports, it never raises,
+    over slot-deleted or uninitialized exact record GRAPHS — the outer
+    record, every probe row, and any discontinuity event, on the current
+    audit and every history record — checked before any ID, chronology,
+    linkage, or digest read. Values INSIDE initialized leaves are expected
+    canonical (the evaluate_audit boundary guarantees this); direct calls
+    with foreign leaf objects (raising protocols, wrong containers) may
+    raise and are outside the documented direct surface."""
     issues: List[str] = []
     records = list(history)
 
@@ -770,11 +809,9 @@ def validate_history_chain(
     for idx, rec in enumerate(records):
         if type(rec) is AuditRecord:
             init_issues.extend(
-                f"history[{idx}]: {msg}"
-                for msg in _audit_instance_complete(rec))
+                _record_graph_uninitialized(rec, f"history[{idx}]"))
     if type(current) is AuditRecord:
-        init_issues.extend(
-            f"current: {msg}" for msg in _audit_instance_complete(current))
+        init_issues.extend(_record_graph_uninitialized(current, "current"))
     if init_issues:
         return init_issues
 
@@ -977,7 +1014,7 @@ def _resolve_acquisitions(
     # Phase 1: canonicalize probes BEFORE any resolver access (#1034 P1).
     # Non-exact rows produce typed error receipts, not silent drops.
     canonical_probes: List[ProbeResult] = []
-    for p in probes:
+    for i, p in enumerate(probes):
         if type(p) is not ProbeResult:
             continue
         if not _probe_leaves_exact(p):
@@ -985,6 +1022,9 @@ def _resolve_acquisitions(
             # (#1056): read them defensively. An unreadable evidence_type
             # is treated as an ACQUISITION row — fail closed: an "error"
             # receipt contributes INCOMPLETE and can never mint GROWTH.
+            # A row without a usable anchor is keyed by an inert
+            # positional placeholder so distinct malformed rows keep
+            # distinct exactly-once receipts (#1064).
             try:
                 a = p.anchor if type(p.anchor) is str else ""
             except AttributeError:
@@ -995,8 +1035,9 @@ def _resolve_acquisitions(
             except AttributeError:
                 is_acq = True
             if is_acq:
-                receipts[a] = AcquisitionReceipt(
-                    anchor=a, locator="", status="error",
+                key = a if a else f"<malformed-row-{i}>"
+                receipts[key] = AcquisitionReceipt(
+                    anchor=key, locator="", status="error",
                     reason="row has missing or non-exact scalar leaves",
                     resolver_id="", resolver_version="")
             continue
