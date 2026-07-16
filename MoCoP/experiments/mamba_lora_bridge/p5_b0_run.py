@@ -51,6 +51,7 @@ from p5_b0_harness import (
     assert_strict_json,
     authorize_b0_launch,
     canonical_digest,
+    check_run_kind_applicable,  # per-attempt run_kind vs base schema_variant (DQ1b §7)
     estimate_null_channel,  # noqa: F401  (re-exported for B0 null estimation)
 )
 
@@ -1160,8 +1161,12 @@ _BINDING = "binding"     # the claim's scorer_binding object
 _REF = "review_ref"      # a RESOLVED review reference (not empty/TBD/PENDING) — same rule as loader
 
 _FRAME_SCHEMAS: dict[str, dict[str, str]] = {
-    "claim": {"run_id": _STR, "run_kind": _STR, "manifest_digest": _SHA,
-              "execution_descriptor_digest": _SHA, "scorer_binding": _BINDING, "utc": _STR},
+    # run_kind is the per-attempt stage binding (DQ1b §7); schema_variant + base_manifest_id name
+    # the stage-neutral base this attempt referenced. All three are exact-schema bound: a claim that
+    # names no base, or no stage, is not a governed claim.
+    "claim": {"run_id": _STR, "run_kind": _STR, "schema_variant": _STR, "base_manifest_id": _STR,
+              "manifest_digest": _SHA, "execution_descriptor_digest": _SHA,
+              "scorer_binding": _BINDING, "utc": _STR},
     "attempt": {"attempt_id": _STR, "ordinal": _ORD, "probe_id": _STR,
                 "prompt_sha256": _SHA, "utc": _STR},
     "generated": {"attempt_id": _STR, "ordinal": _ORD, "probe_id": _STR,
@@ -1506,15 +1511,25 @@ def run_b0(
     panel: Sequence[tuple[str, str]],
     backend: GenerationBackend,
     *,
+    run_kind: str,
     rubric_version: str | None = None,
     processor_revision: str | None = None,
     decoding_hash: str | None = None,
     runtime_hash: str | None = None,
     report_path: Path | None = None,
 ) -> B0RunResult:
-    """Run a read-only B0 baseline. Refuses (zero forwards) on ANY gate violation."""
+    """Run a read-only B0 baseline. Refuses (zero forwards) on ANY gate violation.
+
+    ``run_kind`` is a REQUIRED per-attempt binding, not a base-manifest field (DQ1b §7 /
+    reconciliation spec rev 2 `6b2347e`). The stage lives on the attempt so Stage A and Stage B can
+    share a byte-identical base manifest; its applicability is checked against the base's
+    ``schema_variant``. A refused inapplicable attempt leaves the base digest defined and unchanged
+    (spec §4a(ii)).
+    """
     _A = _authority()                                             # frozen verdict authority (#1009 B2)
-    B0_RUN_KIND = _A.b0_run_kind
+    # No local b0_run_kind binding: the stage gate is the harness's applicability check against the
+    # base's schema_variant (one policy home, one frozen snapshot). _A.b0_run_kind remains the
+    # journal verifier's authority for what a B0 claim frame must say.
     INTEGRITY_VERIFIED = _A.integrity_verified
     COMMITTED_INDETERMINATE = _A.committed_indeterminate
     # BLOCKER-3 (#1009): snapshot the caller-owned inputs to inert built-ins BEFORE anything else,
@@ -1527,6 +1542,10 @@ def run_b0(
 
     decision = authorize_b0_launch(manifest)
     refusals = list(decision.refusals)
+    # The per-attempt run kind must be applicable to the BASE's variant (DQ1b §7). The base carries
+    # no run_kind to check against any more, so this is the whole of the stage gate — it runs here,
+    # before any forward, and its refusal does not touch the base or its digest (spec §4a(ii)).
+    refusals.extend(check_run_kind_applicable(manifest, run_kind))
     # Codex #1011 B3: normalize the external SCALAR bindings before they are compared — an
     # equality-overriding str subclass must not pass against a different manifest value.
     for _sname, _sval in (("rubric_version", rubric_version),
@@ -1665,11 +1684,23 @@ def run_b0(
             "processor_revision": processor_revision,
             "runtime_hash": runtime_hash,
             "runner_digest": _runner_digest(),
+            # Which base was run, and which stage ran it — without the base being stage-specific
+            # (spec §3). schema_variant/base_manifest_id are read from the inert manifest snapshot;
+            # run_kind comes from the ATTEMPT rather than a hashed base field (not B0-observable —
+            # see the report note below and spec §4a).
+            "schema_variant": manifest.get("schema_variant"),
+            "base_manifest_id": manifest.get("base_manifest_id"),
+            "run_kind": run_kind,
+            # The digest lives in the REFERRER, never the referent (DQ1b owner ruling, WC #1078):
+            # this descriptor references the unchanged base it ran.
+            "base_manifest_digest": decision.manifest_digest,
             "manifest_digest": decision.manifest_digest,
         }
         bundle = B0EvidenceBundle(manifest_digest=decision.manifest_digest or "")
         journal.event({
-            "event": "claim", "run_id": run_id, "run_kind": B0_RUN_KIND,
+            "event": "claim", "run_id": run_id, "run_kind": run_kind,
+            "schema_variant": manifest.get("schema_variant"),
+            "base_manifest_id": manifest.get("base_manifest_id"),
             "manifest_digest": decision.manifest_digest,
             "execution_descriptor_digest": canonical_digest(execution_descriptor),
             "scorer_binding": {
@@ -1739,7 +1770,14 @@ def run_b0(
         # ---- Terminal transaction: the report binds ACTUAL journal bytes; the journal
         # terminal event + result carry the VERIFIED post-commit disposition (#966 r5 B1). ----
         report = bundle.seal()
-        report["run_kind"] = "b0_baseline"
+        # The reported stage is the attempt's. On the B0 side this is not yet OBSERVABLE — the
+        # applicability gate admits exactly one kind, so a literal would produce identical bytes;
+        # the distinction is deferred to the C1-capable fixture (spec §4a). It is written this way
+        # because a literal states a stage the run did not prove it had, and would silently start
+        # lying the moment a second kind becomes applicable.
+        report["run_kind"] = run_kind
+        report["schema_variant"] = manifest.get("schema_variant")
+        report["base_manifest_id"] = manifest.get("base_manifest_id")
         report["manifest_digest"] = decision.manifest_digest
         report["execution_descriptor"] = execution_descriptor
         report["terminal_state"] = "committed"                     # authority = journal terminal

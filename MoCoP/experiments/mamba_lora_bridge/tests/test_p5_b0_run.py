@@ -22,6 +22,7 @@ from p5_b0_harness import (
     COMPONENT_ROUTES,
     B0EvidenceBundle,
     EvidenceBundleError,
+    authorize_b0_launch,
     canonical_digest,
 )
 from p5_b0_run import (
@@ -113,7 +114,10 @@ def _manifest(panel, report_path, *, model=None, panel_hash=None,
         {"do_sample": bool(dec["do_sample"]), "max_new_tokens": int(dec["max_new_tokens"])})}
     return {
         "schema_version": "closed_world_b0_v1",
-        "run_kind": "b0_baseline",
+        # Stage-NEUTRAL base (DQ1b §7 / spec 6b2347e): run_kind is a per-attempt binding on run_b0,
+        # not a base key, so Stage A and Stage B can share a byte-identical base.
+        "schema_variant": "closed_world_b0",
+        "base_manifest_id": "b0-base-2026-07-16-a",
         "model": dict(model or MODEL),
         "panel": {"hash": panel_hash if panel_hash is not None else canonical_panel_hash(panel)},
         "scorer": dict(scorer_block if scorer_block is not None else _DEFAULT_SCORER_BLOCK),
@@ -132,7 +136,9 @@ def _manifest(panel, report_path, *, model=None, panel_hash=None,
 
 
 def _run(manifest, panel, backend, out, **over):
-    kw = dict(rubric_version="rubric-v1", processor_revision="proc-rev-1",
+    # run_kind is a REQUIRED per-attempt binding (spec §3); the default here is the applicable one
+    # for a closed_world_b0 base, and tests override it to exercise the applicability gate.
+    kw = dict(run_kind="b0_baseline", rubric_version="rubric-v1", processor_revision="proc-rev-1",
               decoding_hash=DEC_HASH, runtime_hash="rt-hash-1", report_path=out)
     kw.update(over)
     return run_b0(manifest, panel, backend, **kw)
@@ -174,7 +180,8 @@ def _drop(line, *keys):
 
 
 def _f_claim(**over):
-    f = {"run_id": RID, "run_kind": "b0_baseline", "manifest_digest": H,
+    f = {"run_id": RID, "run_kind": "b0_baseline", "schema_variant": "closed_world_b0",
+         "base_manifest_id": "b0-base-2026-07-16-a", "manifest_digest": H,
          "execution_descriptor_digest": H, "scorer_binding": dict(_SB), "utc": "T"}
     f.update(over)
     return _frame("claim", **f)
@@ -336,6 +343,108 @@ def test_run_b0_happy_path(tmp_path):
     assert ed["scorer_id"] == SCORER_ID and ed["scorer_version"] == SCORER_VERSION
     assert ed["scorer_allowlist_digest"] == ALLOWLIST_DIGEST and ed["scorer_blob_sha256"]
     assert published["journal_digest"]
+
+
+# --------------------------------------------------------------------------- #
+# B0 <-> C1 manifest/attempt contract (spec 6b2347e; DQ1b §7; WC #1076-#1078).  #
+# --------------------------------------------------------------------------- #
+def test_run_kind_is_a_required_per_attempt_binding(tmp_path):
+    # Acceptance 4: not defaulted. A run that does not say which stage it is cannot start — the
+    # base no longer carries the stage, so an omitted run_kind has nowhere to fall back to.
+    out = tmp_path / "b0_report.json"
+    with pytest.raises(TypeError):
+        run_b0(_manifest(PANEL, out), PANEL, _ExplodingBackend(),
+               rubric_version="rubric-v1", processor_revision="proc-rev-1",
+               decoding_hash=DEC_HASH, runtime_hash="rt-hash-1", report_path=out)
+
+
+@pytest.mark.parametrize("kind", ["c1_alpha_zero", "c1_nonzero", "b0", "", "tbd"])
+def test_inapplicable_attempt_run_kind_refuses_with_zero_forwards(tmp_path, kind):
+    # Acceptance 4: the applicability gate now lives on the ATTEMPT, checked against the base's
+    # variant. _ExplodingBackend fails the test if a single forward happens.
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _ExplodingBackend(), out, run_kind=kind)
+    assert res.ok is False
+    assert not out.exists()
+
+
+def test_equality_overriding_attempt_run_kind_is_refused(tmp_path):
+    # #1011 B3 reaches the new per-attempt scalar too.
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _ExplodingBackend(), out,
+               run_kind=_EqStr("c1_nonzero"))
+    assert res.ok is False
+    assert any("exact str" in r for r in res.refusals)
+
+
+def test_base_digest_is_independent_of_the_attempt_run_kind(tmp_path):
+    # Spec §4a(i) at the RUNNER boundary: the digest the run binds is the digest of the base alone,
+    # identical to the one computed with no attempt in hand at all. This is DQ1b §7's Stage-A/B
+    # sharing property in its B0-executable form — the base a Stage-B sidecar references is the
+    # same bytes regardless of which stage ran.
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out)
+    standalone = authorize_b0_launch(m).manifest_digest        # no attempt binding whatsoever
+    res = _run(m, PANEL, _backend(), out)
+    assert res.ok is True
+    published = json.loads(out.read_text(encoding="utf-8"))
+    assert published["manifest_digest"] == standalone
+    assert "run_kind" not in m                                  # never written back into the base
+    # The owner ruling's `base_manifest_digest` reference and the pre-existing `manifest_digest`
+    # are ONE value under two names (see spec §4b). Pin them equal so a future edit cannot let the
+    # two drift and leave a verifier choosing which reference is authoritative.
+    ed = published["execution_descriptor"]
+    assert ed["base_manifest_digest"] == ed["manifest_digest"] == standalone
+    claim = next(json.loads(x) for x in
+                 (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()
+                 if json.loads(x)["event"] == "claim")
+    assert claim["manifest_digest"] == standalone              # the attempt's base reference
+
+
+def test_refused_inapplicable_attempt_leaves_the_base_digest_defined_and_unchanged(tmp_path):
+    # Spec §4a(ii). The refusal must not mutate, consume, or invalidate the base: the same base is
+    # still authorizable and still digests identically afterwards.
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out)
+    before = authorize_b0_launch(m).manifest_digest
+    assert before is not None
+    res = _run(m, PANEL, _ExplodingBackend(), out, run_kind="c1_nonzero")
+    assert res.ok is False
+    after = authorize_b0_launch(m)
+    assert after.manifest_digest == before                      # defined AND unchanged
+    assert after.ok is True                                     # the base itself is still clean
+
+
+def test_execution_descriptor_and_claim_bind_variant_base_id_and_attempt_run_kind(tmp_path):
+    # Acceptance 6: a report states which base it ran and which stage it was, without the base
+    # being stage-specific.
+    #
+    # LIMIT, stated rather than papered over (the §4a lesson one level down): this asserts the
+    # reported VALUE, not its PROVENANCE. On the B0 side the applicability gate admits exactly one
+    # run_kind, so a hardcoded "b0_baseline" literal and the attempt's value are indistinguishable
+    # by construction — a mutation to a literal passes this test. Provenance becomes observable
+    # only when a second applicable kind exists, so it is DEFERRED to the C1-capable end-to-end
+    # fixture alongside the two-variant same-base assertion (spec §4a). The code takes the value
+    # from the attempt; that is a source-reading claim today, not a regression claim.
+    out = tmp_path / "b0_report.json"
+    res = _run(_manifest(PANEL, out), PANEL, _backend(), out)
+    assert res.ok is True
+    published = json.loads(out.read_text(encoding="utf-8"))
+    ed = published["execution_descriptor"]
+    assert ed["schema_variant"] == "closed_world_b0"
+    assert ed["base_manifest_id"] == "b0-base-2026-07-16-a"
+    assert ed["run_kind"] == "b0_baseline"
+    assert published["run_kind"] == "b0_baseline"
+    assert published["schema_variant"] == "closed_world_b0"
+    assert published["base_manifest_id"] == "b0-base-2026-07-16-a"
+    claim = next(json.loads(x) for x in
+                 (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()
+                 if json.loads(x)["event"] == "claim")
+    assert claim["run_kind"] == "b0_baseline"
+    assert claim["schema_variant"] == "closed_world_b0"
+    assert claim["base_manifest_id"] == "b0-base-2026-07-16-a"
+    # the descriptor the claim commits to is the one that was published
+    assert claim["execution_descriptor_digest"] == canonical_digest(ed)
 
 
 def test_run_b0_journal_two_phase_terminal(tmp_path):
@@ -1089,6 +1198,8 @@ class _EqStr(str):
 @pytest.mark.parametrize("attr,value,mutate", [
     ("DISABLED_VALUES", None, "add_true"),          # add True to the harness disabled tuple
     ("B0_RUN_KIND", "caller_kind", "run_kind"),     # rebind harness run kind
+    ("B0_SCHEMA_VARIANT", "closed_world_c1", "variant"),   # rebind the authorized variant
+    ("SCHEMA_VARIANTS", None, "widen_variants"),           # widen the closed-world variant union
 ])
 def test_harness_policy_frozen_against_reassignment(tmp_path, monkeypatch, attr, value, mutate):
     # Codex #1011 B1: the authority freeze must reach the harness — reassigning harness policy
@@ -1099,9 +1210,24 @@ def test_harness_policy_frozen_against_reassignment(tmp_path, monkeypatch, attr,
     if mutate == "add_true":
         monkeypatch.setattr(h, "DISABLED_VALUES", tuple(h.DISABLED_VALUES) + (True,))
         m["components"]["bridge"] = True
-    else:
+    elif mutate == "run_kind":
+        # Spec acceptance 8: this case MUST target the ATTEMPT boundary. Setting m["run_kind"] (the
+        # pre-reconciliation form) would now be refused as an unknown base key, so the test would
+        # pass while proving nothing about the freeze. Rebind the global AND pass the caller's kind
+        # per-attempt: the frozen policy must still refuse it as inapplicable.
         monkeypatch.setattr(h, "B0_RUN_KIND", value)
-        m["run_kind"] = value
+        res = _run(m, PANEL, _ExplodingBackend(), out, run_kind=value)
+        assert res.ok is False
+        assert any("inapplicable" in r for r in res.refusals)
+        return
+    elif mutate == "variant":
+        # Rebinding the authorized variant must not let a C1 base through.
+        monkeypatch.setattr(h, "B0_SCHEMA_VARIANT", value)
+        m["schema_variant"] = "closed_world_c1"
+    else:
+        # Widening the union must not admit an unknown variant.
+        monkeypatch.setattr(h, "SCHEMA_VARIANTS", tuple(h.SCHEMA_VARIANTS) + ("closed_world_x",))
+        m["schema_variant"] = "closed_world_x"
     res = _run(m, PANEL, _ExplodingBackend(), out)
     assert res.ok is False
 

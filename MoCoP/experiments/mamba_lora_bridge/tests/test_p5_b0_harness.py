@@ -14,15 +14,28 @@ from p5_b0_harness import (
     EvidenceBundleError,
     authorize_b0_launch,
     canonical_digest,
+    check_run_kind_applicable,
     estimate_null_channel,
     validate_b0_manifest,
 )
 
 
+class _EqStr(str):
+    """A str subclass that compares equal to anything — the #1011 equality-override attacker."""
+
+    def __eq__(self, other):
+        return True
+
+    def __hash__(self):
+        return hash("_eqstr_")
+
+
 def _good():
     return {
         "schema_version": "closed_world_b0_v1",
-        "run_kind": "b0_baseline",
+        # Stage-NEUTRAL base (DQ1b §7): no run_kind, no self-referential base_manifest_digest.
+        "schema_variant": "closed_world_b0",
+        "base_manifest_id": "b0-base-2026-07-16-a",
         "model": {"id": "google/gemma-4-12B", "revision": "1dd69cd0" * 5, "dtype": "bf16"},
         "panel": {"hash": "panelhash"},
         "scorer": {"scorer_id": "b0_null_estimator", "version": "1",
@@ -88,7 +101,7 @@ def test_all_disabled_sentinels_accepted():
 
 
 # --------------------------------------------------------------------------- #
-# Closed-world top level + run_kind.                                           #
+# Closed-world top level + stage-neutral base (spec 6b2347e §2, §4).           #
 # --------------------------------------------------------------------------- #
 def test_unknown_top_level_key_is_refused():
     m = _good()
@@ -106,12 +119,111 @@ def test_missing_required_key_is_refused():
     assert any("rubric" in r and "missing" in r for r in d.refusals)
 
 
-def test_c1_run_kind_is_refused_by_the_b0_harness():
+# --- The base is stage-neutral: run_kind is NOT a base key (spec §2, acceptance 3) --------- #
+@pytest.mark.parametrize("value", ["b0_baseline", "c1_alpha_zero", "c1_nonzero"])
+def test_base_manifest_carrying_run_kind_is_refused(value):
+    # No silent migration: a base carrying ANY run_kind is refused — including the previously
+    # required "b0_baseline". run_kind moved to the attempt boundary so Stage A and Stage B can
+    # share a byte-identical base (DQ1b §7); a stage-specific base cannot be smuggled back in.
     m = _good()
-    m["run_kind"] = "c1_nonzero"
+    m["run_kind"] = value
     d = authorize_b0_launch(m)
     assert d.ok is False
-    assert any("run_kind" in r for r in d.refusals)
+    assert any("run_kind must NOT appear" in r for r in d.refusals)   # legible, not just "unknown"
+    assert any("unknown key" in r for r in d.refusals)                # closed-world still fires
+
+
+def test_base_manifest_carrying_its_own_digest_is_refused():
+    # DQ1b owner ruling (WC #1078): base_manifest_digest is reference-only. A self-digesting base
+    # would need an excluded-self-field rule — exactly the re-implementation divergence the ruling
+    # exists to prevent.
+    m = _good()
+    m["base_manifest_digest"] = "a" * 64
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("reference-only" in r for r in d.refusals)
+
+
+# --- schema_variant: closed-world union, exact-str (acceptance 1) --------------------------- #
+def test_missing_schema_variant_is_refused():
+    m = _good()
+    del m["schema_variant"]
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("schema_variant" in r and "missing" in r for r in d.refusals)
+
+
+@pytest.mark.parametrize("value", ["", "tbd", "closed_world_b1", "b0", "CLOSED_WORLD_B0"])
+def test_unknown_or_placeholder_schema_variant_is_refused(value):
+    m = _good()
+    m["schema_variant"] = value
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("schema_variant" in r for r in d.refusals)
+
+
+def test_c1_variant_base_is_refused_by_the_b0_harness():
+    # A well-formed variant this harness must still refuse to authorize: the C1-side required keys
+    # are the C1 lane's, and are out of scope here (spec §5).
+    m = _good()
+    m["schema_variant"] = "closed_world_c1"
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("never a C1 stage" in r for r in d.refusals)
+
+
+def test_equality_overriding_schema_variant_subclass_is_refused():
+    # #1011 B3: `variant in SCHEMA_VARIANTS` consults __eq__, so a subclass that compares equal to
+    # anything would satisfy the closed-world union test while carrying an arbitrary value.
+    m = _good()
+    m["schema_variant"] = _EqStr("closed_world_c1")
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("exact str" in r for r in d.refusals)
+
+
+# --- base_manifest_id: required, non-placeholder (acceptance 2) ----------------------------- #
+def test_missing_base_manifest_id_is_refused():
+    m = _good()
+    del m["base_manifest_id"]
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("base_manifest_id" in r and "missing" in r for r in d.refusals)
+
+
+@pytest.mark.parametrize("value", ["", "  ", "TBD", "pending", "[tbd: assign at freeze]", None, 7])
+def test_placeholder_base_manifest_id_is_refused(value):
+    m = _good()
+    m["base_manifest_id"] = value
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("base_manifest_id" in r for r in d.refusals)
+
+
+# --- Stage A/B sharing property, B0-executable form (spec §4a, acceptance 5) ---------------- #
+def test_base_digest_is_computed_over_the_base_alone_and_contains_no_run_kind():
+    # §4a(i). The property is STRUCTURAL: run_kind is not a base key, so the base digest cannot
+    # depend on it. This pins the structure against reintroduction — if a future edit puts run_kind
+    # back into the base, the digest starts varying by stage and Stage A/B can no longer share it.
+    m = _good()
+    assert "run_kind" not in m
+    d = authorize_b0_launch(m)
+    assert d.ok is True
+    assert d.manifest_digest == canonical_digest(m)   # over the base alone, no attempt binding
+
+
+def test_variant_drives_applicability_not_a_base_field():
+    from p5_b0_harness import check_run_kind_applicable
+    m = _good()
+    assert check_run_kind_applicable(m, "b0_baseline") == []
+    for kind in ("c1_alpha_zero", "c1_nonzero", "anything_else"):
+        assert any("inapplicable" in r for r in check_run_kind_applicable(m, kind))
+
+
+def test_equality_overriding_attempt_run_kind_is_refused():
+    m = _good()
+    r = check_run_kind_applicable(m, _EqStr("c1_nonzero"))
+    assert any("exact str" in x for x in r)
 
 
 # --------------------------------------------------------------------------- #

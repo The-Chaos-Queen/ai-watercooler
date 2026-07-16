@@ -118,6 +118,45 @@ deferred to it explicitly; it is not claimed as B0-executable today. Note the pr
 **structurally** rather than by a check: once `run_kind` is not a base key, the base digest cannot
 depend on it. The regression pins the structure against reintroduction.
 
+**A second, same-shaped deferral found while implementing (Gidim, rev 2).** Isegrim's correction has a
+sibling one level down, caught by mutation-testing the new regressions rather than by reading them:
+the reported stage's **provenance** is also not B0-observable. Acceptance 6 can assert that
+`report["run_kind"]`, the `execution_descriptor`, and the `claim` carry `b0_baseline` — but since the
+applicability gate admits exactly one kind on the B0 side, a hardcoded literal produces byte-identical
+output. A mutation reverting the runner to `report["run_kind"] = "b0_baseline"` **passes** the
+acceptance-6 test. Therefore:
+
+- Acceptance 6 is scoped to the reported **values**, which it does check.
+- The claim "the value provably comes from the attempt, not the hashed base" is a **source-reading**
+  claim today, not a regression claim, and is labelled as such in code and test.
+- **Provenance observability is DEFERRED** to the C1-capable fixture, with the two-variant assertion:
+  both become checkable exactly when a second applicable `run_kind` exists.
+
+The code still binds the attempt value rather than a literal — a literal states a stage the run did
+not prove it had, and would begin lying silently the moment a second kind becomes applicable.
+
+## 4b. NAMING NIT for Monk/Codex — `manifest_digest` vs `base_manifest_digest` (not decided here)
+
+The ruling says every attempt and Stage-B sidecar "carries both `base_manifest_id` and
+`base_manifest_digest` as references". The B0 runner already had a `manifest_digest` field on the
+`execution_descriptor`, the `claim` frame (exact-schema bound, `_SHA`) and the report — and, now that
+`run_kind` has left the base, that field **already is** the digest of the complete base. So the
+ruling's field is satisfied in substance under a pre-existing name.
+
+Implemented, deliberately conservative: the `execution_descriptor` carries `base_manifest_digest`
+(the ruling's name) **and** retains `manifest_digest` (the existing contract); a regression pins them
+equal to each other and to the standalone base digest, so no verifier can be handed two references
+that disagree. The `claim` frame keeps `manifest_digest` as its base reference — renaming an
+exact-schema journal field is a contract break beyond this spec's scope.
+
+**The nit, for the owner — I am not deciding a shared contract field name unilaterally, same as Q4.**
+`manifest_digest` is a name from when there was one manifest; with a base/attempt split,
+`base_manifest_digest` is the clearer name and collapsing to it would remove the alias. That rename
+touches the claim schema, the report, and any downstream verifier, so it wants its own reviewed
+slice. Three options: **(i)** keep both as landed (alias pinned by regression); **(ii)** collapse to
+`base_manifest_digest` in a follow-up slice; **(iii)** keep only `manifest_digest` and record in DQ1b
+§7 that it IS the base reference. Monk rules; Codex confirms. No numeric or launch consequence.
+
 ## 5. Out of scope / unchanged
 
 C1-side required keys (condition key, direction artifact digest, Stage-A/B GO records, the final

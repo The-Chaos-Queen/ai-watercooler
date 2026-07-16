@@ -53,9 +53,19 @@ COMPONENT_ROUTES = (
 DISABLED_VALUES = (False, "disabled", "off", "none")
 
 # Top-level manifest keys required for a closed_world_b0 contract.
+#
+# DQ1b §7 / reconciliation spec rev 2 (6b2347e): the base manifest is stage-NEUTRAL. ``run_kind``
+# is NOT a base key — it is supplied per-attempt to ``run_b0`` — so that Stage A (c1_alpha_zero)
+# and Stage B (c1_nonzero) can share a BYTE-IDENTICAL base, which the Stage-B "sidecar references
+# the UNCHANGED base manifest" rule depends on. A base still carrying ``run_kind`` is refused by
+# the closed-world unknown-key check below (no silent migration). ``base_manifest_digest`` is
+# likewise NOT a base key: per the DQ1b owner ruling (WC #1078) it is reference-only — the digest
+# is computed over the complete base and carried by the REFERRERS (attempts, Stage-B sidecars),
+# never by the referent, so no excluded-self-field rule exists for a verifier to diverge on.
 REQUIRED_B0_KEYS = frozenset({
     "schema_version",
-    "run_kind",
+    "schema_variant",
+    "base_manifest_id",
     "model",
     "panel",
     "scorer",
@@ -81,6 +91,32 @@ _PINNED_BLOCKS = {
 
 B0_RUN_KIND = "b0_baseline"
 
+# The closed-world union of schema variants (DQ1b §7). Exactly one may appear in a base manifest.
+# The variant — not a stage-specific base field — drives which required-key set applies and which
+# per-attempt run kinds are applicable.
+SCHEMA_VARIANTS = ("closed_world_b0", "closed_world_c1")
+
+# The ONLY variant this harness implements. A `closed_world_c1` base is a well-formed variant that
+# this harness must still refuse to authorize: the C1-side required keys (condition key, direction
+# artifact digest, Stage-A/B GO records, numeric gate values, recovery spans) are the C1 lane's and
+# are deliberately out of scope here. Same spirit as the pre-reconciliation `run_kind` refusal —
+# this harness authorizes the B0 baseline only, never an injection stage.
+B0_SCHEMA_VARIANT = "closed_world_b0"
+
+# Base keys that are structurally EXCLUDED and must never reappear. Each has a targeted refusal so a
+# stage-specific or self-digesting base fails legibly rather than only as a generic unknown key.
+_EXCLUDED_BASE_KEYS = {
+    "run_kind": (
+        "run_kind must NOT appear in the stage-neutral base manifest; it is a per-attempt "
+        "binding on run_b0() so Stage A and Stage B can share a byte-identical base (DQ1b §7)"
+    ),
+    "base_manifest_digest": (
+        "base_manifest_digest must NOT appear in the base manifest; it is reference-only — the "
+        "digest is computed over the complete base and carried by attempts/Stage-B sidecars, "
+        "never by the base itself (DQ1b owner ruling, WC #1078)"
+    ),
+}
+
 # Values that count as "not really set" (a pre-launch failure). Case-insensitive.
 _UNSET_STRINGS = {"", "tbd", "null", "none", "pending", "todo", "changeme"}
 
@@ -100,6 +136,9 @@ class _HarnessPolicy(NamedTuple):
     model_keys: tuple
     pinned_blocks: Mapping[str, tuple]
     b0_run_kind: str
+    schema_variants: tuple
+    b0_schema_variant: str
+    excluded_base_keys: Mapping[str, str]
     unset_strings: frozenset
 
 
@@ -111,6 +150,11 @@ def _bind_harness_policy():
         model_keys=tuple(_MODEL_KEYS),
         pinned_blocks=MappingProxyType({k: tuple(v) for k, v in _PINNED_BLOCKS.items()}),
         b0_run_kind=str(B0_RUN_KIND),
+        # The variant authorities are policy, not decoration: widening SCHEMA_VARIANTS or rebinding
+        # B0_SCHEMA_VARIANT at call time would let a caller authorize a non-B0 base (#1011 B1).
+        schema_variants=tuple(SCHEMA_VARIANTS),
+        b0_schema_variant=str(B0_SCHEMA_VARIANT),
+        excluded_base_keys=MappingProxyType(dict(_EXCLUDED_BASE_KEYS)),
         unset_strings=frozenset(_UNSET_STRINGS),
     )
 
@@ -226,11 +270,64 @@ def _check_evidence_sink(sink: Any, refusals: list[str]) -> None:
         refusals.append("evidence_sink.present must be False (sink must not exist before launch)")
 
 
+def _check_excluded_base_keys(manifest: Mapping[str, Any], refusals: list[str]) -> None:
+    """Refuse a base manifest carrying a structurally excluded key, with a legible reason.
+
+    These keys are already absent from ``REQUIRED_B0_KEYS``, so the closed-world unknown-key check
+    refuses them too; this adds the WHY. No silent migration: a stage-specific base (``run_kind``)
+    or a self-digesting base (``base_manifest_digest``) fails closed and says which contract it
+    broke, rather than being quietly accepted or reported as an anonymous stray key.
+    """
+    _P = _policy()                                       # frozen policy (Codex #1011 B1)
+    for key, reason in _P.excluded_base_keys.items():
+        if key in manifest:
+            refusals.append(reason)
+
+
+def _check_variant_and_identity(manifest: Mapping[str, Any], refusals: list[str]) -> None:
+    """Refuse unless the base declares an applicable variant and a real base identity."""
+    _P = _policy()                                       # frozen policy (Codex #1011 B1)
+    SCHEMA_VARIANTS, B0_SCHEMA_VARIANT = _P.schema_variants, _P.b0_schema_variant
+
+    variant = manifest.get("schema_variant")
+    # Exact-type BEFORE membership (#1011 B3): `x in SCHEMA_VARIANTS` consults __eq__, so an
+    # equality-overriding str subclass would satisfy the union test while carrying any value.
+    if type(variant) is not str:
+        refusals.append(
+            f"schema_variant must be an exact str (got {type(variant).__name__}); "
+            "an equality-overriding subclass is refused"
+        )
+    elif _is_unset(variant):
+        refusals.append(f"schema_variant is a placeholder/unset value ({variant!r})")
+    elif variant not in SCHEMA_VARIANTS:
+        refusals.append(
+            f"schema_variant must be one of {sorted(SCHEMA_VARIANTS)} (got {variant!r}); "
+            "the variant union is closed-world"
+        )
+    elif variant != B0_SCHEMA_VARIANT:
+        refusals.append(
+            f"schema_variant is {variant!r}; this harness authorizes {B0_SCHEMA_VARIANT!r} only, "
+            "never a C1 stage"
+        )
+
+    base_id = manifest.get("base_manifest_id")
+    if type(base_id) is not str:
+        refusals.append(
+            f"base_manifest_id must be an exact str (got {type(base_id).__name__}); "
+            "an equality-overriding subclass is refused"
+        )
+    elif _is_unset(base_id):
+        refusals.append(
+            f"base_manifest_id is a placeholder/unset value ({base_id!r}); a base with no real "
+            "identity cannot be referenced by an attempt or a Stage-B sidecar"
+        )
+
+
 def validate_b0_manifest(manifest: Mapping[str, Any]) -> list[str]:
     """Return a list of launch-refusal reasons ([] means clean). Never runs anything."""
 
     _P = _policy()                                       # frozen policy (Codex #1011 B1)
-    REQUIRED_B0_KEYS, B0_RUN_KIND = _P.required_keys, _P.b0_run_kind
+    REQUIRED_B0_KEYS = _P.required_keys
     refusals: list[str] = []
     if not isinstance(manifest, Mapping):
         return ["manifest is not a mapping"]
@@ -243,16 +340,47 @@ def validate_b0_manifest(manifest: Mapping[str, Any]) -> list[str]:
         if key not in manifest:
             refusals.append(f"required key {key!r} is missing")
 
-    if manifest.get("run_kind") != B0_RUN_KIND:
-        refusals.append(
-            f"run_kind must be {B0_RUN_KIND!r} (got {manifest.get('run_kind')!r}); "
-            "this harness authorizes B0 baseline only, never an injection run kind"
-        )
-
+    _check_excluded_base_keys(manifest, refusals)
+    _check_variant_and_identity(manifest, refusals)
     _check_no_component(manifest.get("components"), refusals)
     _check_pinned(manifest, refusals)
     _check_sev_disjointness(manifest.get("sev_ids"), refusals)
     _check_evidence_sink(manifest.get("evidence_sink"), refusals)
+    return refusals
+
+
+def check_run_kind_applicable(manifest: Mapping[str, Any], run_kind: Any) -> list[str]:
+    """Refuse a per-attempt ``run_kind`` inapplicable to the base's variant (DQ1b §7).
+
+    This is the applicability check DQ1b §7 asks for ("refuse … if the per-attempt run-kind field is
+    inapplicable"), enforced against the base's ``schema_variant`` rather than against a stage-specific
+    base-manifest field. The base stays byte-identical across stages; only the attempt differs.
+
+    Returns refusal reasons ([] means applicable). Never runs anything.
+    """
+    _P = _policy()                                       # frozen policy (Codex #1011 B1)
+    refusals: list[str] = []
+    # Exact-type first (#1011 B3): every comparison below consults __eq__.
+    if type(run_kind) is not str:
+        refusals.append(
+            f"run_kind must be an exact str (got {type(run_kind).__name__}); "
+            "an equality-overriding subclass is refused"
+        )
+        return refusals
+    if _is_unset(run_kind):
+        refusals.append(f"run_kind is a placeholder/unset value ({run_kind!r})")
+        return refusals
+
+    variant = manifest.get("schema_variant") if isinstance(manifest, Mapping) else None
+    # A malformed/absent variant is already a manifest refusal; do not ALSO claim inapplicability
+    # against a variant we could not read — that would report a second, misleading reason.
+    if type(variant) is not str or variant not in _P.schema_variants:
+        return refusals
+    if variant == _P.b0_schema_variant and run_kind != _P.b0_run_kind:
+        refusals.append(
+            f"run_kind {run_kind!r} is inapplicable to schema_variant {variant!r}: this harness "
+            f"authorizes {_P.b0_run_kind!r} only, never an injection run kind"
+        )
     return refusals
 
 
@@ -309,6 +437,10 @@ def authorize_b0_launch(manifest: Mapping[str, Any]) -> B0LaunchDecision:
 
     A True decision authorizes a READ-ONLY, no-component Gemma-base baseline forward
     and nothing else. It never authorizes injection, birth, or any component route.
+
+    The returned ``manifest_digest`` is computed over the BASE ALONE — before, and independent of,
+    any per-attempt binding — and cannot contain ``run_kind``, which is not a base key. That is
+    spec §4a(i): DQ1b §7's Stage-A/B sharing property bought structurally rather than asserted.
     """
     refusals = validate_b0_manifest(manifest)
     # A manifest that fails strict-JSON (non-string key, tuple, non-finite) is invalid
