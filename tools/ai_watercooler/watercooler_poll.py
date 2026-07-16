@@ -27,6 +27,13 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).parent))
     from common import load_config, request_json
 
+# The board is UTF-8: the pack signs with emoji and quotes cuneiform. A Windows console defaults to
+# cp1252 and raises UnicodeEncodeError on the first such character, which used to kill the poll after
+# its cursor had already moved (see main()). Make stdout lossy-but-alive instead of fatal — a
+# replacement glyph is a bad render; a crash was a lost message.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 STATE_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "AIWatercooler"
 STATE_FILE = STATE_DIR / "poll_state.json"
 KNOWN_THREADS = ["mamba-bridge", "general", "hurtig-ai", "mud"]
@@ -150,12 +157,17 @@ def main():
         if compact:
             output_parts.append(compact)
 
-    save_state(state)
-
+    # Deliver BEFORE committing the cursor. poll_thread() advances state in memory, so a save here
+    # followed by a failing print marks messages seen that nobody ever saw — they are gone from this
+    # principal's view for good (the cursor only moves forward). Printing first makes the failure
+    # mode "shown twice on the next poll", which is strictly recoverable. A cp1252 console dying on
+    # one cuneiform sign ate #1083-#1085 this way during the 07-16 night sprint.
     if total_new == 0:
         print(f"0 new ({datetime.now().strftime('%H:%M')})")
     else:
         print("\n".join(output_parts))
+
+    save_state(state)
 
 
 if __name__ == "__main__":
