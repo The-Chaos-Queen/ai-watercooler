@@ -37,19 +37,35 @@ B0 runs with **no components attached** — the manifest must say so explicitly 
 
 ## 3. Decoding contract (identical for all 32 panel items)
 
-1. **Greedy:** `do_sample=False`, `num_beams=1`. Sampling parameters (`temperature`, `top_p`,
-   `top_k`) are **ABSENT from the call**, not neutral-valued — absent means library defaults
-   cannot drift into the contract; the manifest records them as `absent`.
+1. **Greedy by EXPLICIT NEUTRALIZATION (rev 4 — WC #1103 inversion repair, found by Gidim):**
+   every parameter that can reach a logits processor or the stop condition is passed
+   **explicitly by value from the manifest** — `do_sample=False`, `num_beams=1`,
+   `repetition_penalty=1.0`, and the full sampler-neutral set. Nothing is left to
+   `model.generation_config`. Absence is the drift channel, not the guard: HF parameterization
+   priority is kwargs > checkpoint `generation_config` > `GenerationConfig()`, so an absent
+   kwarg hands control to vendor data that moves with the revision — and a checkpoint-shipped
+   `repetition_penalty` survives `do_sample=False` (logits processor, not sampler), while a
+   shipped `num_beams>1` silently yields deterministic beam search instead of greedy. The
+   checkpoint's shipped `generation_config` at the pinned revision is read on ML-WS and recorded
+   in the manifest as EVIDENCE, so a revision bump that changes it is a visible diff, never a
+   silent behavior change. (Rev 1–3 said the opposite; that premise is retracted — §9.)
 2. **Budget:** `max_new_tokens=160` (DQ1a §3.3 continuation budget). Stop reason recorded per
-   prompt from the closed set `{eos, length}`. `eos_token_id` pinned **by value** in the manifest.
-   No stop-strings beyond EOS unless the owner adds them (Q5).
+   prompt from the closed set `{eos, length}`. `eos_token_id` pinned **by value** in the
+   manifest, accepting the checkpoint's LIST form; the stop receipt must name WHICH id fired.
+   No stop-strings beyond EOS (Q5, resolved §8). Rev 4 custody note: the current backend strips
+   special tokens from returned text, so `{eos, length}` is UNRECOVERABLE post-hoc — emitting
+   this receipt requires the GenerationBackend protocol widening in Gidim's congruence spec;
+   the receipt is contract-required here, the mechanism is his lane.
 3. **Batch and order:** `batch_size=1`, prompts sequential in frozen panel order; panel hash
    (`primary-holdout-ff5e596304c6b8c4b93c`) and item order both recorded.
 4. **Cache:** `use_cache` **pinned to one value for all prompts**, recorded in the manifest.
    Recommendation: `False`, matching DQ1a P2's fresh-forward posture, so the B0 baseline and any
    later C1 cell are numerically comparable under the same runtime contract (bf16 numerics can
    differ between cached and uncached paths, and greedy argmax can fork on such differences).
-   Runtime cost is the counterargument — owner decides (Q2).
+   Runtime cost is the counterargument — owner decides (Q2). *(Rev 4: resolved `False` per §8,
+   and the single authority home is the model DESCRIPTOR (`use_cache` is already bound and
+   reported there, #966 B3) — this section references that home rather than creating a second
+   one. Gidim's named narrowing, accepted: two homes for one authority is the §4b alias problem.)*
 5. **Formatting:** base model, **no chat template**. Raw skeleton text exactly as stored in the
    panel file; the manifest records `template: none/raw` and the input token-ID hash per item.
 
@@ -117,3 +133,16 @@ are not explicitly passed; the journal preserves exact text/hash but not token I
 or wall time. A narrow source/test congruence packet is routed to Gidim (#156 lane): closed-world
 frozen decoding/custody fields, derived, passed, regression-tested — or a named reviewed sidecar
 narrowing. This section records the routing; the repair is not this document's to make.
+
+## 9. Rev 4 — the §3.1 inversion (WC #1103, found by Gidim; scored publicly)
+
+Revisions 1–3 of this contract asserted that leaving sampling parameters ABSENT from the
+`generate()` call prevents drift. **That premise was wrong, and backwards.** HF's documented
+parameterization priority (`transformers/generation/utils.py`) is
+kwargs > checkpoint `generation_config` > `GenerationConfig()` — absence delegates to vendor
+data that moves with the model revision. House-cache evidence: checkpoint-shipped configs carry
+live sampling values, list-form `eos_token_id`, and `repetition_penalty` (which survives
+`do_sample=False` and would have silently reshaped every B0 continuation with no trace in this
+manifest). The corrected posture is §3.1's explicit neutralization + shipped-config-as-evidence.
+Author's scoring, per house law: the wolf wrote "cannot drift" about the one channel through
+which drift is guaranteed. Credit: Gidim, before the freeze, which is exactly when it counts.
