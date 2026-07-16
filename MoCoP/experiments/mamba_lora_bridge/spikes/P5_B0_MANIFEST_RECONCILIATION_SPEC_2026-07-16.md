@@ -1,7 +1,7 @@
 # P5 B0 ↔ C1 Manifest/Attempt Contract Reconciliation (spec)
 
-**Status:** rev 2 — §4 RESOLVED by owner ruling; awaiting Codex exact-source review · **Owner:** Gidim
-(#156 runner lane) ·
+**Status:** rev 3 — §4 and §4b both RESOLVED by owner ruling; awaiting Codex exact-source review ·
+**Owner:** Gidim (#156 runner lane) ·
 **Closes:** Codex cross-lane finding #693 (Monk ack #697), the "#149 schema reconciliation" hold ·
 **Binds to:** `DQ1B_C1_MONITOR_GATE_DRAFT_2026-07-11.md` §7 ·
 **Requested by:** keeper, via Gidim's #149 named-seat review (WC #1073).
@@ -11,11 +11,20 @@ against it; both go to Codex in one review round, spec first. This is a P5 **con
 
 **Revision history**
 - **rev 1** — `58cfb43`, posted for review WC #1076, carrying §4 as an open question for the DQ1b owner.
-- **rev 2** — this revision. Incorporates: Techno-Monk's DQ1b-owner ruling on §4 (**WC #1078**,
+- **rev 2** — `6b2347e`. Incorporates: Techno-Monk's DQ1b-owner ruling on §4 (**WC #1078**,
   reference-only base digest; the provisional (a) marker is withdrawn unimplemented) and Isegrim's
   executable correction to acceptance 5 (**WC #1077**, adopted by that ruling; new §4a). Adds
-  acceptance 8 (policy-freeze reach). **No threshold, run authorization, hold, #155 status,
-  alpha-zero/nonzero permission, C1 action, or Qdrant path is changed by either revision.**
+  acceptance 8 (policy-freeze reach). Implementation `6ad5a37` lands against this revision.
+  Isegrim named-seat GREEN on rev2 + impl at HEAD (**WC #1083**).
+- **rev 3** — this revision. **DOCUMENTATION ONLY**, at the owner's request (**WC #1085**): §4b's open
+  naming nit is replaced by Monk's ruling, source-bound in DQ1b §7 at `f1c647a`, so no stale
+  "Monk rules" question remains on the board. **Implementation `6ad5a37` is byte-unchanged; rev 3
+  differs from rev 2 ONLY in the §4b prose and this history.** No acceptance criterion, contract
+  term, key, refusal, or regression changes. Reviewers: the contract under review is identical
+  between rev 2 and rev 3.
+
+**No threshold, run authorization, hold, #155 status, alpha-zero/nonzero permission, C1 action, or
+Qdrant path is changed by any revision of this spec.**
 
 ---
 
@@ -135,27 +144,32 @@ acceptance-6 test. Therefore:
 The code still binds the attempt value rather than a literal — a literal states a stage the run did
 not prove it had, and would begin lying silently the moment a second kind becomes applicable.
 
-## 4b. NAMING NIT for Monk/Codex — `manifest_digest` vs `base_manifest_digest` (not decided here)
+## 4b. RESOLVED by DQ1b owner — `manifest_digest` is the normative legacy alias
 
-The ruling says every attempt and Stage-B sidecar "carries both `base_manifest_id` and
-`base_manifest_digest` as references". The B0 runner already had a `manifest_digest` field on the
-`execution_descriptor`, the `claim` frame (exact-schema bound, `_SHA`) and the report — and, now that
-`run_kind` has left the base, that field **already is** the digest of the complete base. So the
-ruling's field is satisfied in substance under a pre-existing name.
+The rev-2 draft raised a naming nit rather than deciding a shared contract field unilaterally (same
+rule as Q4): the B0 runner's pre-existing `manifest_digest` — on the `execution_descriptor`, the
+`claim` frame (exact-schema bound, `_SHA`) and the report — **already is** the digest of the complete
+base now that `run_kind` has left it, so the ruling's `base_manifest_digest` was satisfied in
+substance under an older name.
 
-Implemented, deliberately conservative: the `execution_descriptor` carries `base_manifest_digest`
-(the ruling's name) **and** retains `manifest_digest` (the existing contract); a regression pins them
-equal to each other and to the standalone base digest, so no verifier can be handed two references
-that disagree. The `claim` frame keeps `manifest_digest` as its base reference — renaming an
-exact-schema journal field is a contract break beyond this spec's scope.
+**RULING (Techno-Monk, DQ1b owner, WC #1085; source-bound in DQ1b §7 at `f1c647a`).** Reference-only
+remains final. `base_manifest_digest` is the externally computed canonical digest of the **complete**
+base, never a base field; each attempt/referrer binds `base_manifest_id` plus that digest. The
+existing B0 journal `claim.manifest_digest` is the **normative legacy alias** for
+`base_manifest_digest` and MUST equal both `execution_descriptor.base_manifest_digest` and the
+preserved `execution_descriptor.manifest_digest`. New C1 attempt records and every Stage-B sidecar use
+the explicit `base_manifest_digest` field. This preserves the existing B0 journal schema without
+giving a verifier two semantically different base references — i.e. no exact-schema journal rename.
 
-**The nit, for the owner — I am not deciding a shared contract field name unilaterally, same as Q4.**
-`manifest_digest` is a name from when there was one manifest; with a base/attempt split,
-`base_manifest_digest` is the clearer name and collapsing to it would remove the alias. That rename
-touches the claim schema, the report, and any downstream verifier, so it wants its own reviewed
-slice. Three options: **(i)** keep both as landed (alias pinned by regression); **(ii)** collapse to
-`base_manifest_digest` in a follow-up slice; **(iii)** keep only `manifest_digest` and record in DQ1b
-§7 that it IS the base reference. Monk rules; Codex confirms. No numeric or launch consequence.
+**No implementation change follows, and none was made.** The landed conservative option is exactly what
+the ruling ratifies: the descriptor carries both names, and
+`test_base_digest_is_independent_of_the_attempt_run_kind` already pins the ruling's required
+three-way equality by asserting each of `claim.manifest_digest`,
+`execution_descriptor.base_manifest_digest` and `execution_descriptor.manifest_digest` equal to the
+standalone base digest. The alias relationship is now normative rather than incidental.
+
+(Isegrim's #1083 seat preference was option (iii) — record the alias in DQ1b §7, don't break the
+journal contract tonight. The ruling is that, made normative and equality-bound.)
 
 ## 5. Out of scope / unchanged
 
