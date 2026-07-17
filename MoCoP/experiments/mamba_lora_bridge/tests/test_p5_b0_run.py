@@ -44,6 +44,8 @@ from p5_b0_run import (
     derive_effective_decoding,
     derive_stop_reason,
     generation_kwargs,
+    check_device_map,
+    assert_no_quantization,
     finalize_publication,
     load_allowlisted_scorer,
     publish_report_atomic,
@@ -55,7 +57,7 @@ from p5_b0_run import (
 
 MODEL = {
     "id": "google/gemma-4-12B", "revision": "a" * 40, "dtype": "bf16",
-    "backend": "Gemma3ForConditionalGeneration", "device": "cuda:0",
+    "backend": "Gemma3ForConditionalGeneration", "device": "cuda:0", "device_map": "cuda:0",
     "attention": "eager", "use_cache": True,
 }
 PANEL = [("probe1", "prompt one"), ("probe2", "prompt two")]
@@ -166,7 +168,7 @@ def _gen(text="gen", *, stop="eos", ids=None, eos_fired=1):
     return GenerationResult(
         text=text, generated_token_ids=tuple(ids), stop_reason=stop,
         eos_token_id_fired=eos_fired if stop == "eos" else None,
-        input_token_ids_sha256=H,
+        input_token_ids_sha256=H, wall_time_ms=1.5,
     )
 
 
@@ -475,6 +477,82 @@ def test_execution_descriptor_and_claim_bind_variant_base_id_and_attempt_run_kin
     assert claim["execution_descriptor_digest"] == canonical_digest(ed)
 
 
+@pytest.mark.parametrize("route", ["auto", "AUTO", " auto ", "balanced", "balanced_low_0",
+                                   "sequential"])
+def test_device_map_auto_sharding_routes_are_refused(route):
+    # The committed constructor loaded device_map="auto" while contract §2 requires an explicit
+    # single device (Monk #1109). Auto placement lets accelerate shard across whatever it finds —
+    # a routing decision the manifest never made, which changes numerics, and which the descriptor
+    # could not report because `device` says where the weights LANDED, not how they were ROUTED.
+    with pytest.raises(B0RunError) as ei:
+        check_device_map(route)
+    assert "AUTO-SHARDING" in str(ei.value)
+
+
+@pytest.mark.parametrize("route", ["cuda:0", "cuda:1", "cpu"])
+def test_explicit_single_device_routes_are_accepted(route):
+    assert check_device_map(route) == route
+
+
+@pytest.mark.parametrize("route", ["", "gpu", "mps", "cuda", 0, None, ["cuda:0"]])
+def test_non_explicit_device_map_is_refused(route):
+    with pytest.raises(B0RunError):
+        check_device_map(route)
+
+
+def test_quantization_is_refused_from_the_loaded_model_not_the_call():
+    # A quantization_config can arrive from the CHECKPOINT'S OWN config.json with no caller asking
+    # — structurally the same drift channel as generation_config (#1103). So read the loaded model.
+    class _Cfg:
+        quantization_config = object()
+
+    class _Model:
+        config = _Cfg()
+
+    with pytest.raises(B0RunError) as ei:
+        assert_no_quantization(_Model())
+    assert "quantization" in str(ei.value)
+
+
+@pytest.mark.parametrize("attr", ["is_loaded_in_4bit", "is_loaded_in_8bit"])
+def test_quantized_load_flags_are_refused(attr):
+    class _Cfg:
+        quantization_config = None
+
+    model = type("M", (), {"config": _Cfg(), attr: True})()
+    with pytest.raises(B0RunError) as ei:
+        assert_no_quantization(model)
+    assert attr in str(ei.value)
+
+
+def test_clean_model_passes_quantization_check():
+    class _Cfg:
+        quantization_config = None
+
+    assert assert_no_quantization(type("M", (), {"config": _Cfg()})()) is None
+
+
+def test_wall_time_is_custody_only_and_never_enters_a_reproducible_digest(tmp_path):
+    # Timing custody (#1095) must not corrupt what has to be reproducible. wall_time is per-item
+    # evidence in the bundle; it is NOT in the decoding hash or the manifest digest.
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out)
+    before = authorize_b0_launch(m).manifest_digest
+    res = _run(m, PANEL, _backend(), out)
+    assert res.ok is True
+    published = json.loads(out.read_text(encoding="utf-8"))
+    prov = published["records"][0]["provenance"]
+    assert "wall_time_ms" in prov                      # custody present
+    assert published["manifest_digest"] == before      # digest unmoved by timing
+    assert "wall_time_ms" not in published["execution_descriptor"]["decoding"]
+    # Check the manifest's KEYS, not its serialization: tmp_path embeds this test's own name, so a
+    # substring search over json.dumps(m) matches the evidence_sink path and passes for the wrong
+    # reason. Assert the structure you mean.
+    assert not any("wall_time" in k for k in m)
+    assert not any("wall_time" in k for k in m["decoding"])
+    assert not any("wall_time" in k for k in m["model"])
+
+
 def test_generation_kwargs_carries_the_whole_neutralization_set():
     # The field set that reaches model.generate is under regression HERE, because
     # HFGenerationBackend itself is torch-gated and this suite cannot execute it. A backend that
@@ -508,12 +586,49 @@ def test_torch_gated_backend_wiring_is_a_DECLARED_RESIDUAL():
     makes the backend testable model-free, delete this test deliberately.
     """
     import inspect
-    src = inspect.getsource(p5_b0_run.HFGenerationBackend.generate)
     # A source-reading assertion is weak on purpose — it is NOT execution, and saying so is the
     # point. It catches the careless narrowing, not a determined one.
+    src = inspect.getsource(p5_b0_run.HFGenerationBackend.generate)
     assert "generation_kwargs(decoding)" in src
     assert "derive_stop_reason(" in src
     assert "skip_special_tokens=True" in src   # text is still stripped; the IDS carry the receipt
+    assert "wall_time_ms=" in src              # timing custody (#1095)
+
+    init = inspect.getsource(p5_b0_run.HFGenerationBackend.__init__)
+    assert "check_device_map(device_map)" in init      # the route is validated, not assumed
+    assert "assert_no_quantization(self.model)" in init
+    # POSITIVE assertion only: the load must route through the validated value. A negative
+    # ("auto" absent) reads the comments too — the constructor's comment legitimately QUOTES the
+    # old defect to explain it, and an earlier draft of this line failed on that. Source-reading
+    # cannot tell code from prose, which is exactly why this pin is weak by construction.
+    assert "device_map=self._device_map" in init
+
+    desc = inspect.getsource(p5_b0_run.HFGenerationBackend.descriptor)
+    assert "self._device_map" in desc          # the ROUTE is reported, not only where it landed
+
+
+def test_descriptor_omitting_the_load_route_is_refused(tmp_path):
+    # The BINDING is model-free-testable even though HFGenerationBackend.descriptor() is not: a
+    # backend that cannot state its load route cannot be bound against the manifest, so the run is
+    # refused. device_map is a DESCRIPTOR_KEYS field like any other pinned fact.
+    out = tmp_path / "b0_report.json"
+    desc = {k: v for k, v in MODEL.items() if k != "device_map"}
+    backend = ScriptedGenerationBackend(responses={}, model_descriptor=desc)
+    res = _run(_manifest(PANEL, out), PANEL, backend, out)
+    assert res.ok is False
+    # The exact-keys check fires first: a descriptor is bound as a whole set, not field by field.
+    assert any("device_map" in r and "missing" in r for r in res.refusals)
+
+
+def test_descriptor_load_route_must_match_the_manifest(tmp_path):
+    # A backend that actually auto-sharded cannot report a tidy 'cuda:0' and pass: the declared
+    # route and the real one are bound together.
+    out = tmp_path / "b0_report.json"
+    backend = ScriptedGenerationBackend(
+        responses={}, model_descriptor={**MODEL, "device_map": "auto"})
+    res = _run(_manifest(PANEL, out), PANEL, backend, out)
+    assert res.ok is False
+    assert any("device_map" in r for r in res.refusals)
 
 
 @pytest.mark.parametrize("ids,eos,cap,expect", [

@@ -338,6 +338,51 @@ if _MISSING_ROUTES:  # pragma: no cover - config invariant
 STOP_REASONS = ("eos", "length")          # the closed set (#155 §3.2); nothing else is admissible
 
 
+def check_device_map(device_map: Any) -> str:
+    """Refuse a load route that is not an explicit single device (contract §2).
+
+    ``device_map="auto"`` hands placement to accelerate: it may shard across GPUs or spill to CPU
+    depending on what the host happens to have free. That is a routing decision the MANIFEST never
+    made, it changes numerics and reproducibility, and the descriptor cannot report it because the
+    descriptor reports where the model LANDED, not how it was routed (Monk #1109 / contract §8).
+
+    Pure and covered here on purpose: the constructor needs torch, so nothing inside it can be
+    exercised by the 0-torch suite.
+    """
+    if type(device_map) is not str:
+        raise B0RunError(f"device_map must be an exact str, got {type(device_map).__name__}")
+    route = device_map.strip().lower()
+    if route in ("auto", "balanced", "balanced_low_0", "sequential"):
+        raise B0RunError(
+            f"device_map={device_map!r} is an AUTO-SHARDING route; contract §2 requires an explicit "
+            "single device (e.g. 'cuda:0'). Auto placement is a routing decision the manifest never "
+            "made and the descriptor cannot report"
+        )
+    if not (route.startswith("cuda:") or route in ("cpu",)):
+        raise B0RunError(
+            f"device_map={device_map!r} is not an explicit single device ('cuda:N' or 'cpu')")
+    return device_map
+
+
+def assert_no_quantization(model: Any) -> None:
+    """Refuse a quantized load (contract §2: no 4-bit/8-bit, no fp16 fallback).
+
+    Reads the LOADED model rather than the call: a ``quantization_config`` can arrive from the
+    checkpoint's own ``config.json`` with no caller asking for it — structurally the same drift
+    channel as the generation_config problem (#1103). 4-bit is additionally broken overlay-wide.
+    """
+    cfg = getattr(model, "config", None)
+    qcfg = getattr(cfg, "quantization_config", None) if cfg is not None else None
+    if qcfg is not None:
+        raise B0RunError(
+            f"model loaded with quantization_config ({type(qcfg).__name__}); B0 forbids "
+            "quantization (contract §2: no 4-bit/8-bit/fp16 fallback)"
+        )
+    for attr in ("is_loaded_in_4bit", "is_loaded_in_8bit"):
+        if bool(getattr(model, attr, False)):
+            raise B0RunError(f"model reports {attr}=True; B0 forbids quantization (contract §2)")
+
+
 def generation_kwargs(decoding: Mapping[str, Any]) -> dict[str, Any]:
     """The EXACT kwargs handed to ``model.generate`` — the whole neutralization set, no defaults.
 
@@ -456,6 +501,12 @@ class GenerationResult:
     stop_reason: str                       # exactly one of STOP_REASONS
     eos_token_id_fired: int | None         # None iff stop_reason == "length"
     input_token_ids_sha256: str
+    # Wall time is CUSTODY ONLY — never a gate input, never hashed into a reproducible digest.
+    # It is here because #1095/#155 require timing custody, and because a continuation that took
+    # wildly longer than its neighbours is a fact a reviewer should be able to see. It is
+    # deliberately excluded from the decoding hash and the manifest digest, which must stay
+    # reproducible; the report/journal already carry non-reproducible run_id and utc.
+    wall_time_ms: float = 0.0
 
     @property
     def token_count(self) -> int:
@@ -469,7 +520,12 @@ class GenerationBackend(Protocol):
 
 
 # Descriptor fields the runner binds against the manifest model block.
-DESCRIPTOR_KEYS = ("id", "revision", "dtype", "backend", "device", "attention", "use_cache")
+# `device_map` is the LOAD ROUTE and is bound like every other pinned descriptor field (Monk
+# #1109/#1123). `device` reports where the weights LANDED; those are different facts, and only the
+# route is a decision the manifest gets to make. Binding both means an auto-sharded load cannot
+# report a tidy single device and pass.
+DESCRIPTOR_KEYS = ("id", "revision", "dtype", "backend", "device", "device_map", "attention",
+                   "use_cache")
 
 
 @dataclass
@@ -1946,6 +2002,8 @@ def run_b0(
                     "token_count": result.token_count,
                     "stop_reason": result.stop_reason,
                     "eos_token_id_fired": result.eos_token_id_fired,
+                    # Timing custody (#1095). Evidence only — never a gate input.
+                    "wall_time_ms": result.wall_time_ms,
                 },
             )
             journal.event({
@@ -2162,7 +2220,8 @@ class HFGenerationBackend:
     """
 
     def __init__(self, model_id: str, revision: str, *, dtype: str = "bf16",
-                 local_files_only: bool = True, max_new_tokens: int = 256):
+                 device_map: str = "cuda:0", local_files_only: bool = True,
+                 max_new_tokens: int = 256):
         from transformers import (  # type: ignore
             AutoModelForImageTextToText, AutoProcessor,
         )
@@ -2178,15 +2237,27 @@ class HFGenerationBackend:
         }.get(self._requested_dtype)
         if torch_dtype is None:
             raise B0RunError(f"unsupported dtype for B0: {dtype!r}")
+        # LOAD-ROUTING (Monk #1109/#1123, contract §2 + §8 rev-5 note). The committed constructor
+        # loaded `device_map="auto"`, which lets accelerate shard across whatever it finds — a
+        # routing decision the manifest never made and the descriptor could not report, since the
+        # descriptor reports where the model LANDED, not how it was ROUTED. Auto-sharding changes
+        # placement (and with it, numerics and reproducibility) invisibly. The route is now an
+        # explicit declared parameter, refused if it is "auto".
+        self._device_map = check_device_map(device_map)
         self.processor = AutoProcessor.from_pretrained(
             model_id, revision=revision, trust_remote_code=True,
             local_files_only=local_files_only,
         )
         self.model = AutoModelForImageTextToText.from_pretrained(
             model_id, revision=revision, trust_remote_code=True,
-            torch_dtype=torch_dtype, device_map="auto",
+            torch_dtype=torch_dtype, device_map=self._device_map,
             local_files_only=local_files_only,
         )
+        # Quantization is house-forbidden for B0 (contract §2: no 4-bit — broken overlay-wide — no
+        # 8-bit, no fp16 fallback). A quantization_config can arrive from the CHECKPOINT'S OWN
+        # config.json without any caller asking for it — the same shape as the generation_config
+        # drift this packet exists to close — so check the LOADED model, not the call.
+        assert_no_quantization(self.model)
         self.model.eval()
         self.max_new_tokens = max_new_tokens
         # Bind use_cache ONCE so descriptor and generate cannot disagree (#966 BLOCKER-3).
@@ -2198,6 +2269,8 @@ class HFGenerationBackend:
         return {
             "id": self._model_id,
             "revision": self._revision,
+            # The ROUTE the load actually took, not merely where the weights landed (Monk #1109).
+            "device_map": self._device_map,
             "dtype": _normalize_dtype(self.model.dtype),
             "backend": type(self.model).__name__,
             "device": str(next(self.model.parameters()).device),
@@ -2228,12 +2301,14 @@ class HFGenerationBackend:
         # self.model.generation_config — the checkpoint's own file — not from a neutral default
         # (#1103). The set is assembled by the covered helper; this line is the torch-gated residual.
         kwargs = generation_kwargs(decoding)
+        _t0 = time.perf_counter()
         with torch.no_grad():
             out = self.model.generate(
                 **inputs,
                 **kwargs,
                 use_cache=self._use_cache,          # the SAME value descriptor reports (#966 B3)
             )
+        _wall_ms = (time.perf_counter() - _t0) * 1000.0
         prompt_len = inputs["input_ids"].shape[1]
         gen_ids = tuple(int(i) for i in out[0][prompt_len:].tolist())
         # Read from the IDS via the pure helper — which the 0-torch suite covers, unlike this method.
@@ -2246,4 +2321,5 @@ class HFGenerationBackend:
             eos_token_id_fired=fired,
             input_token_ids_sha256=canonical_digest(
                 [int(i) for i in inputs["input_ids"][0].tolist()]),
+            wall_time_ms=_wall_ms,
         )
