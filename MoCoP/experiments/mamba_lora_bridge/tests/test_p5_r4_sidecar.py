@@ -12,15 +12,18 @@ import pytest
 from p5_b0_harness import canonical_digest
 from p5_r4_sidecar import (
     SIDECAR_SCHEMA,
+    R4PublishResult,
     R4SidecarError,
     R4SidecarRecord,
     bind_to_parent_report,
     build_r4_sidecar,
     derive_generation_corpus_digest,
+    diversity_agreement_rho,
     publish_r4_sidecar,
     spearman_rho,
     validate_comparison,
     validate_sidecar_manifest,
+    verify_sealed_report,
 )
 
 PANEL_HASH = "primary-holdout-ff5e596304c6b8c4b93c"
@@ -48,13 +51,13 @@ def _sealed_report(n=3):
 
 
 def _pairs_for(report):
-    """A complete, self-consistent comparison over the report's probes."""
+    """A complete, self-consistent comparison over the report's probes, with endpoints (rev 3)."""
     ids = sorted(r["probe_id"] for r in report["records"])
     rows = []
     for a, b in combinations(ids, 2):
-        # Deterministic, in-range, and correlated so recomputed rho is well-defined.
         h = int(canonical_digest(a + b)[:6], 16) / 0xFFFFFF
-        rows.append({"pair_id": f"{a}|{b}", "jsd": round(0.2 + 0.5 * h, 6),
+        rows.append({"pair_id": f"{a}|{b}", "probe_a": a, "probe_b": b,
+                     "jsd": round(0.2 + 0.5 * h, 6),
                      "embedding_similarity": round(0.9 - 0.5 * h, 6)})
     return rows
 
@@ -63,7 +66,8 @@ def _agg_for(rows):
     jsds = [r["jsd"] for r in rows]
     sims = [r["embedding_similarity"] for r in rows]
     return {
-        "spearman_rho": spearman_rho(jsds, sims),
+        # rev 3 F1: rho is on the DIVERSITY convention (JSD vs embedding divergence 1 - cos).
+        "spearman_rho": diversity_agreement_rho(jsds, sims),
         "mean_pairwise_jsd": sum(jsds) / len(jsds),
         "mean_pairwise_embedding": sum(sims) / len(sims),
         "n_pairs": len(rows),
@@ -135,10 +139,9 @@ def test_a_stale_or_tampered_output_digest_cannot_link():
 # Codex #1137 F2 — snapshot once; a two-view input cannot smuggle strings past. #
 # --------------------------------------------------------------------------- #
 def test_two_view_sequence_is_snapshotted_before_validation():
-    report = _sealed_report(n=2)          # exactly one pair; simplest complete set
-    ids = sorted(r["probe_id"] for r in report["records"])
-    good = [{"pair_id": f"{ids[0]}|{ids[1]}", "jsd": 0.3, "embedding_similarity": 0.7}]
-    bad = [{"pair_id": f"{ids[0]}|{ids[1]}", "jsd": "XXX", "embedding_similarity": "YYY"}]
+    report = _sealed_report(n=3)
+    good = _pairs_for(report)
+    bad = [{**r, "jsd": "XXX", "embedding_similarity": "YYY"} for r in good]
 
     class TwoView(list):
         """A real Sequence that yields valid rows on the FIRST iteration, garbage on the next."""
@@ -150,11 +153,9 @@ def test_two_view_sequence_is_snapshotted_before_validation():
             self._n += 1
             return iter(good if self._n == 1 else bad)
 
-    agg = _agg_for(good)
     rec = build_r4_sidecar(_manifest(report), sealed_report=report,
-                           per_pair=TwoView(), aggregate=agg)
+                           per_pair=TwoView(), aggregate=_agg_for(good))
     # Whatever was validated is EXACTLY what is sealed: the snapshot froze the first read.
-    assert rec.record["per_pair"][0]["jsd"] == 0.3
     assert all(isinstance(r["jsd"], float) for r in rec.record["per_pair"])
 
 
@@ -188,7 +189,7 @@ def test_a_report_digest_mismatch_is_refused():
     with pytest.raises(R4SidecarError) as ei:
         build_r4_sidecar(m, sealed_report=report, per_pair=_pairs_for(report),
                          aggregate=_agg_for(_pairs_for(report)))
-    assert "does not describe that run" in str(ei.value)
+    assert "not that run" in str(ei.value)
 
 
 def test_an_unsealed_report_is_refused():
@@ -233,7 +234,7 @@ def test_incomplete_pair_set_is_refused():
     with pytest.raises(R4SidecarError) as ei:
         build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows,
                          aggregate=_agg_for(rows))
-    assert "complete set is 6" in str(ei.value)
+    assert "complete panel pair set" in str(ei.value)
 
 
 def test_a_fabricated_rho_unrelated_to_the_rows_is_refused():
@@ -258,14 +259,13 @@ def test_a_fabricated_mean_is_refused():
 
 
 def test_non_numeric_comparison_is_refused():
-    report = _sealed_report(n=2)
-    ids = sorted(r["probe_id"] for r in report["records"])
-    rows = [{"pair_id": f"{ids[0]}|{ids[1]}", "jsd": "not-a-number",
-             "embedding_similarity": "also-not"}]
+    report = _sealed_report(n=3)
+    rows = _pairs_for(report)
+    rows[0]["jsd"] = "not-a-number"
+    rows[0]["embedding_similarity"] = "also-not"
     with pytest.raises(R4SidecarError) as ei:
         build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows,
-                         aggregate={"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0,
-                                    "mean_pairwise_embedding": 0.0, "n_pairs": 1})
+                         aggregate=_agg_for(_pairs_for(report)))
     assert "jsd must be a finite number" in str(ei.value)
 
 
@@ -321,18 +321,20 @@ def test_publish_writes_an_atomic_artifact_bound_to_the_parent(tmp_path):
     report = _sealed_report()
     rec = _build(report)
     out = tmp_path / "r4_sidecar.json"
-    committed, digest = publish_r4_sidecar(report, rec, out)
+    result = publish_r4_sidecar(report, rec, out)
+    assert isinstance(result, R4PublishResult)
     assert out.exists()
     artifact = json.loads(out.read_text(encoding="utf-8"))
     assert artifact["disposition"] == "r4_comparison_recorded"
-    assert artifact["published_digest"] == digest
+    assert artifact["published_digest"] == result.published_digest
     # The artifact binds the parent WITHOUT the parent being mutated.
     assert artifact["link"]["b0_published_digest"] == report["published_digest"]
     assert "sidecar" not in json.dumps(report)
-    # Bytes on disk are exactly the committed bytes, and the digest recomputes.
-    assert out.read_bytes() == committed
+    # No temp file is left behind (F5 best-effort cleanup ran, and the commit was clean).
+    assert list(tmp_path.glob("*.tmp")) == []
+    assert result.committed_bytes == len(out.read_bytes())
     recomputed = canonical_digest({k: v for k, v in artifact.items() if k != "published_digest"})
-    assert recomputed == digest
+    assert recomputed == result.published_digest
 
 
 def test_publish_is_no_replace(tmp_path):
@@ -352,6 +354,134 @@ def test_publish_refuses_a_stale_record(tmp_path):
                              output_digest="0" * 64, record=rec.record)
     with pytest.raises(R4SidecarError):
         publish_r4_sidecar(report, forged, tmp_path / "r4.json")
+
+
+# --------------------------------------------------------------------------- #
+# Codex #1140 rev-3 findings.                                                  #
+# --------------------------------------------------------------------------- #
+def test_F1_perfect_instrument_agreement_scores_plus_one_not_minus_one():
+    # The polarity bug: JSD is a divergence, cosine is a similarity. If a pair is MORE diverse (high
+    # JSD) it is LESS similar (low cosine), so a genuinely agreeing evaluator produces jsd and cos
+    # that move oppositely. The gate-correct rho (diversity vs divergence) must be +1 for agreement.
+    jsds = [0.2, 0.5, 0.9]
+    sims = [0.8, 0.5, 0.1]          # perfectly inversely ranked to jsds == perfect agreement
+    assert diversity_agreement_rho(jsds, sims) == pytest.approx(1.0)
+    assert spearman_rho(jsds, sims) == pytest.approx(-1.0)   # the raw (wrong) correlation
+
+
+def test_F1_declared_rho_on_the_wrong_polarity_is_refused():
+    # An evaluator that declares rho on raw similarity (agreement -> -1) must be caught, because the
+    # gate reads rho >= threshold and would misfire.
+    report = _sealed_report()
+    rows = _pairs_for(report)
+    agg = _agg_for(rows)
+    agg["spearman_rho"] = spearman_rho([r["jsd"] for r in rows],
+                                       [r["embedding_similarity"] for r in rows])  # wrong sign
+    with pytest.raises(R4SidecarError) as ei:
+        build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=agg)
+    assert "spearman_rho" in str(ei.value) and "recomputed" in str(ei.value)
+
+
+def test_F2_missing_endpoints_are_refused():
+    report = _sealed_report()
+    rows = _pairs_for(report)
+    for r in rows:
+        del r["probe_a"]
+    with pytest.raises(R4SidecarError) as ei:
+        build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows,
+                         aggregate=_agg_for(rows))
+    assert "probe_a" in str(ei.value)
+
+
+def test_F2_endpoints_must_be_real_report_probes():
+    report = _sealed_report()
+    rows = _pairs_for(report)
+    rows[0]["probe_a"] = "not-a-real-probe"
+    with pytest.raises(R4SidecarError) as ei:
+        build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows,
+                         aggregate=_agg_for(rows))
+    assert "not both report probes" in str(ei.value)
+
+
+def test_F2_complete_count_but_fake_endpoints_is_refused():
+    # C(N,2) rows with UNIQUE pair_ids but endpoints that do not cover the panel: rev 2 accepted
+    # this (count-only). rev 3 must reject it.
+    report = _sealed_report(n=4)          # expects 6 pairs over probe0..probe3
+    rows = _pairs_for(report)             # a complete, correct set
+    # Repoint one pair's endpoints to a duplicate real pair -> count still 6, endpoint set incomplete.
+    rows[0]["probe_a"], rows[0]["probe_b"] = rows[1]["probe_a"], rows[1]["probe_b"]
+    with pytest.raises(R4SidecarError) as ei:
+        build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows,
+                         aggregate=_agg_for(rows))
+    assert "duplicates endpoint pair" in str(ei.value) or "complete panel pair set" in str(ei.value)
+
+
+def test_F2_too_few_probes_is_refused():
+    report = _sealed_report(n=2)          # below the structural minimum
+    rows = _pairs_for(report)
+    with pytest.raises(R4SidecarError) as ei:
+        build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows,
+                         aggregate=_agg_for(rows))
+    assert "at least" in str(ei.value)
+
+
+def test_F3_a_modified_report_with_a_stale_digest_is_refused():
+    # The parent report is caller-owned. Modify a receipt but keep the old published_digest: the
+    # recompute must catch it.
+    report = _sealed_report()
+    m = _manifest(report)                 # manifest derived from the ORIGINAL report
+    report["records"][0]["raw_generation"] = "TAMPERED"     # digest now stale
+    with pytest.raises(R4SidecarError) as ei:
+        build_r4_sidecar(m, sealed_report=report, per_pair=_pairs_for(report),
+                         aggregate=_agg_for(_pairs_for(report)))
+    assert "modified since sealing" in str(ei.value)
+
+
+def test_F3_verify_sealed_report_recomputes_the_digest():
+    report = _sealed_report()
+    assert verify_sealed_report(report)["published_digest"] == report["published_digest"]
+    report["record_count"] = 999          # inconsistent with the sealed digest
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "modified since sealing" in str(ei.value)
+
+
+def test_F3_raw_generation_text_is_inside_the_corpus_binding():
+    a = _sealed_report()
+    b = _sealed_report()
+    b["records"][0]["raw_generation"] = "different text"
+    assert derive_generation_corpus_digest(a) != derive_generation_corpus_digest(b)
+
+
+def test_F4_a_forged_manifest_digest_cannot_bind():
+    rec = _build()
+    forged = R4SidecarRecord(manifest_digest="0" * 64,      # lies about the record
+                             output_digest=rec.output_digest, record=rec.record)
+    with pytest.raises(R4SidecarError) as ei:
+        bind_to_parent_report(_sealed_report(), forged)
+    assert "manifest_digest" in str(ei.value)
+
+
+def test_F5_publish_leaves_no_temp_and_returns_an_explicit_result(tmp_path):
+    report = _sealed_report()
+    rec = _build(report)
+    out = tmp_path / "r4.json"
+    result = publish_r4_sidecar(report, rec, out)
+    assert result.path == str(out)
+    assert result.committed_bytes > 0
+    assert list(tmp_path.glob("*.tmp")) == []             # unique temp cleaned, none stranded
+
+
+def test_F5_a_stranded_temp_from_a_prior_crash_does_not_block_publish(tmp_path):
+    # The point of the UNIQUE temp (vs a fixed `<path>.tmp`): a crash between temp-create and link
+    # could leave a stale temp. A fixed-name O_EXCL retry would then fail forever; a unique name
+    # publishes cleanly. Simulate the stranded temp and confirm publish still succeeds.
+    report = _sealed_report()
+    rec = _build(report)
+    out = tmp_path / "r4.json"
+    (tmp_path / (out.name + ".tmp")).write_text("stale crash residue")   # a plausible strand
+    result = publish_r4_sidecar(report, rec, out)                         # must not be blocked
+    assert out.exists() and result.committed_bytes > 0
 
 
 # --------------------------------------------------------------------------- #
