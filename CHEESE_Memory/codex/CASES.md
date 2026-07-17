@@ -407,3 +407,66 @@ evidence supports that promotion.
   `f5e3c29`/`9f16b5e`/`cd6749a`/`20f9582`/`578c4d8`/`f4f4b72`/`f0cc08f`/
   `7a62337`/`5becb0b`/`a910caf`/`8e60019`/`1dd4a9d`/`001ce79`;
   `MoCoP/reviews/drift_gate_v27_review_2026-07-16.md`.
+
+## 2026-07-17 - A Frozen Wrapper Does Not Seal a Mutable Evidence Graph
+
+- Status: active engineering lesson
+- Domain: evidence custody / active-object boundaries
+- Conditions: a builder validates caller-owned mappings/sequences, hashes a
+  nested record, and returns it through a frozen dataclass for later binding.
+- Finding: #155's R4 sidecar retained ordinary dictionaries/lists inside the
+  frozen wrapper. Post-build mutation changed canonical content while the
+  binder emitted the old digest and newly read evaluator identity. Separately,
+  repeated iteration let a stateful sequence show numeric rows to validation
+  and string rows to the later copy. The same-generation digest was also only
+  compared to a second caller-supplied string, not derived from the sealed
+  parent report.
+- Lesson: take one recursively exact built-in JSON snapshot before validation;
+  validate, derive semantic statistics, hash, and publish only that owned
+  snapshot. A later binder must re-establish digest/content agreement and derive
+  cross-artifact identifiers from the sealed producer, not duplicate a caller
+  assertion. Immutability at the outer object is not graph immutability.
+- Evidence: Watercooler #1137;
+  `MoCoP/reviews/p5_item5_successor_source_review_2026-07-17.md`.
+
+## 2026-07-17 - Recomputed Statistics Still Need Semantic Custody
+
+- Status: active engineering lesson
+- Domain: evaluation gates / cross-artifact evidence
+- Conditions: a validator recomputes an agreement statistic from bounded numeric
+  rows and derives only the expected row count from a sealed parent artifact.
+- Finding: #155 rev 2 correlated a diversity metric directly with a similarity
+  metric, so perfect agreement produced the failing sign. Arbitrary unique row
+  labels could still satisfy the expected cardinality, and a stale parent digest
+  was treated as a seal without rehashing the parent content. Separately, the
+  binder verified one active-object view and then reread another view for the
+  published link.
+- Lesson: freeze metric orientation with an executable gate example; bind the
+  exact sample identity set, not only its cardinality; establish a producer seal
+  from one owned snapshot; and carry the verified snapshot through every later
+  digest, diagnostic, and publication read. Internal arithmetic consistency does
+  not establish provenance or semantic correspondence.
+- Evidence: implementation `2844d25`; Watercooler #1140;
+  `MoCoP/reviews/p5_item5_rev2_source_review_2026-07-17.md`.
+
+## 2026-07-17 - Immutable Commit Review Needs Git-Semantics Hardening
+
+- Status: active infrastructure lesson
+- Domain: automated review / isolation / Windows scheduling
+- Conditions: a LAN mailbox may request an unattended review of an exact Git
+  commit in a dirty shared worktree.
+- Finding: a full SHA alone is insufficient if inherited `GIT_*`, replace refs,
+  graft/shallow metadata, attributes, textconv/external diff, lazy fetching, or
+  unbounded output can rewrite or leak the packet. A reviewer process also
+  needs a host-data boundary stronger than CLI tool-disable flags. On Windows,
+  a scheduled `powershell.exe -WindowStyle Hidden` action can still flash a
+  console before PowerShell processes the flag.
+- Lesson: parse raw commit objects with replace/fetch overrides disabled; pin
+  attributes to the commit; use explicit text/no-external-diff modes and byte
+  limits; reject ambiguous encodings/binary diffs; pass the bounded packet on
+  stdin to an exact container image with no repository/home/socket mounts and
+  durable idempotent result publication. Schedule through `wscript.exe //B`
+  with a zero-window `WScript.Shell.Run` shim when desktop silence matters.
+- Evidence: `tools/ai_watercooler/codex_watercooler_dispatch.py`, its policy,
+  Dockerfile, tests, README, and silent launcher; session log
+  `CHEESE_Memory/session_logs/2026-07-17-session-01.md`.

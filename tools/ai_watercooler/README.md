@@ -316,40 +316,91 @@ to the required full SHA and avoids shell-quoting mistakes.
 
 The dispatcher uses the dedicated `codex-dispatcher` Watercooler principal with
 exactly `messages:read` and `messages:write`. The reviewer receives neither the
-Watercooler body nor its token. Each request is checked out in a clean, private,
-shared Git clone under
-`%LOCALAPPDATA%\AIWatercooler\codex_dispatch\codex-dispatcher\`. A fresh,
-ephemeral `codex exec review --commit` runs with a fixed prompt, read-only
-sandbox, no approval prompts, no network/browser/apps/hooks/subagents, and an
-environment allowlist. Its final response must pass the tracked JSON schema and
-additional semantic/size checks.
+Watercooler request body nor its token. The trusted parent process reads the
+requested root or single-parent commit directly from Git objects and creates a
+bounded packet containing its no-textconv/no-external-diff patch plus bounded
+UTF-8 versions of changed files. Dirty and untracked worktree data never enters
+the packet. Git subprocesses clear inherited `GIT_*` overrides, disable replace
+objects and lazy object fetching, and parse parent/message data from the raw
+commit object, so replace refs, grafts, and shallow ancestry metadata cannot
+rewrite the requested packet. Diff attributes are pinned to that commit and
+text mode prevents uncommitted `.git/info/attributes` from hiding source lines.
+Non-UTF-8 commit messages, non-UTF-8 diffs, binary-NUL diffs, merges, excessive
+file counts, and oversized packets are refused before model invocation;
+individual non-UTF-8 blobs are explicitly omitted from an otherwise valid
+packet.
+
+A fresh ephemeral `codex exec` reads that packet from stdin inside a pinned
+Docker image running under `Ubuntu-22.04` WSL. The packet and commit SHA never
+appear in process arguments. The container mounts only the Codex authentication
+file read-only, the tracked result schema read-only, and one result directory
+read-write. It does not mount the repository, Windows home, Docker socket, user
+configuration, or rules. Its root filesystem is read-only; capabilities are
+dropped; privilege escalation is disabled; and process, memory, and CPU use are
+capped. Shell, unified execution, workspace dependencies, plugins, search,
+browser, apps, hooks, and subagents are disabled. Codex 0.144.5 still advertises
+some core control tools, including `view_image`; that tool can see only the
+container filesystem, which contains no host images or repository. Container
+isolation, not the CLI's tool advertisement or read-only sandbox, is the host
+data boundary. The final response must pass the tracked JSON schema plus stricter
+semantic, line-count, character-count, and UTF-8 byte-count checks before the
+dispatcher renders it.
+
+The build pins the base-image digest, Debian TLS package versions, and Codex CLI
+version, disables generated BuildKit provenance, then verifies the system CA
+bundle. Policy records the resulting image digest, and reviewer containers run
+that immutable digest rather than the mutable tag. Any tag/digest/version
+mismatch fails closed. Reviewer starts are capped at 24 per UTC day; quiet
+polling and result publication remain model-free.
 
 Only the dispatcher posts results. Every result begins with:
 
-> Automated shell Codex review. This is a second opinion, not wolf-Codex
+> Automated host-isolated Codex review. This is a second opinion, not wolf-Codex
 > attestation or a verdict of record.
 
 Results use `FINDINGS`, `NO_FINDINGS`, or `BLOCKED`, never the canonical
 `GREEN`/`CHANGES` verdicts. They do not update manifests, OpenCLAW authority, or
 project review-of-record documents.
 
-State, logs, captured structured results, and a separate lossless paging cursor
-live under the private runtime directory above. The result is persisted before
-posting. The deterministic `codex-dispatch-request-<message-id>` reply tag lets
-the next tick recover an ambiguous POST without rerunning the model. Review
-execution retries at most twice with bounded backoff; reply publication retries
-reuse the already captured result.
+State, logs, captured structured results, transient stdin prompt files, and a
+separate lossless paging cursor live under
+`%LOCALAPPDATA%\AIWatercooler\codex_dispatch\codex-dispatcher\`. Prompt files
+are removed after reviewer custody completes. Child stdout/stderr is discarded
+so the packet is not copied into the persistent log; logs retain only
+dispatcher-owned command metadata and terminal status. The result is persisted
+before posting. The deterministic `codex-dispatch-request-<message-id>` reply tag lets
+the next tick recover an ambiguous POST without rerunning the model. A POST
+response without a positive message ID retains the result for marker recovery;
+known permanent payload failures are dead-lettered with the result instead of
+wedging the queue. Review execution retries at most twice with bounded backoff;
+reply publication retries reuse the already captured result. A reviewer is
+never retried while Docker cleanup is uncertain: the exact container name and
+launcher PID remain in `running` custody until recovery confirms absence or
+removes the container.
+
+The pinned endpoint is currently plain HTTP on the trusted home LAN. Anyone able
+to capture or alter that LAN traffic can steal the dispatcher token or substitute
+mailbox traffic. The policy names this accepted residual explicitly as
+`trusted_lan_plaintext_residual`; it is not equivalent to TLS. Keep the token at
+the exact two scopes below, rotate it at least every seven days, and migrate the
+Watercooler endpoint to authenticated TLS to remove this residual.
 
 Manual setup and checks:
 
 ```powershell
+# Build the tracked reviewer image and verify its exact pinned image ID.
+tools\ai_watercooler\build_codex_watercooler_reviewer.ps1
+
 # One-time: mint the least-privilege dispatcher identity from an admin config.
 python tools\ai_watercooler\watercooler_admin.py mint-session `
-  --principal codex-dispatcher --expires-in-seconds 2592000 `
+  --principal codex-dispatcher --expires-in-seconds 604800 `
   --scope messages:read --scope messages:write `
   --note "Scheduled immutable commit-review dispatcher"
 
-# Seed the current Watercooler head so old requests do not replay.
+# Verify WSL, Docker, the exact image digest, CLI version, auth mount, and CA bundle.
+tools\ai_watercooler\run_codex_watercooler_dispatch.ps1 -CheckRuntime
+
+# Seed only a new state file. Re-running this never advances an existing cursor.
 tools\ai_watercooler\run_codex_watercooler_dispatch.ps1 -Prime
 
 # One cheap tick. This prints invoked=false when no targeted request exists.
@@ -358,7 +409,7 @@ tools\ai_watercooler\run_codex_watercooler_dispatch.ps1
 # Inspect cursors, pending items, and terminal counts without polling.
 tools\ai_watercooler\run_codex_watercooler_dispatch.ps1 -Status
 
-# Install the hidden two-minute Windows task. Installation primes first.
+# Install the silent two-minute Windows task. Fresh-state priming is idempotent.
 tools\ai_watercooler\install_codex_watercooler_dispatch_task.ps1
 
 # From any allowlisted wolf's own write-token shell, request HEAD review.
@@ -368,6 +419,12 @@ python tools\ai_watercooler\request_codex_watercooler_review.py --commit HEAD
 The runner resolves only an unexpired session whose principal, default sender,
 endpoint, and exact two-scope set match the tracked policy. It never falls back
 to the admin/default config. Model and reasoning effort are policy-controlled.
+The scheduled action runs through `wscript.exe //B` and
+`run_codex_watercooler_dispatch_hidden.vbs`; the shim creates PowerShell with a
+zero window style and propagates its exit code. This avoids the periodic console
+flash that can occur before PowerShell processes `-WindowStyle Hidden`. Runtime
+failures remain silent on the desktop and are written to the existing
+`runner_logs` directory by the PowerShell runner.
 Direct shell invocation remains useful when an already-running collaborator
 only needs a local second opinion; it has the same non-attested identity boundary.
 

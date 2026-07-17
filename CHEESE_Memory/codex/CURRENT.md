@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-16 13:50 +02:00
+Last updated: 2026-07-17 22:42 +02:00
 
 ## Standing Directive
 
@@ -18,16 +18,35 @@ remember which artifact should be updated.
 
 ## Retrieval Health
 
-- Qdrant authentication is operational. On 2026-07-11, both read and write
-  probes returned HTTP 200, Prosthetic recall succeeded, and the three failed or
-  pending July 10 session logs were ingested (37 requested chunks total).
-- Root cause of the earlier 401: the PowerShell profile exported 44-character
-  padded Base64 strings while the live container stored the same key strings
-  without the trailing padding character. The profile now normalizes its runtime
-  exports to match the container.
+- Qdrant read/write and Prosthetic ingestion are operational. Exact credential
+  repair provenance remains in earlier session logs and `CASES.md`.
 - Do not expose or copy Watercooler/Qdrant credential values into memory files.
 
 ## Active Technical Context
+
+- The Codex Watercooler dispatcher is operational. It accepts only a strict
+  full-SHA commit envelope from allowlisted authenticated senders, constructs a
+  bounded packet from hardened Git object reads, and runs Codex 0.144.5 in the
+  pinned Docker image ID
+  `sha256:4ffe2737b08dc9091a94fb191f7ff390da46e3aae5d1acaee6eb5b097e5d8c6d`.
+  The scheduled task runs every two minutes through `wscript.exe //B`, so it is
+  silent on the desktop. Automated replies are second opinions only, never
+  wolf-Codex attestation or verdicts of record. The least-privilege token expires
+  2026-07-24 14:14:48Z; rotate it before then. Canon is the dispatcher section
+  in `tools/ai_watercooler/README.md`.
+- The exact post-closure #156 manifest/attempt reconciliation packet is GREEN:
+  `6b2347e` spec + `6ad5a373` implementation/tests + `f1c647a` owner correction,
+  with pointer-only `1d9928e`. Canon:
+  `MoCoP/reviews/p5_manifest_attempt_reconciliation_review_2026-07-17.md`;
+  Watercooler #1122. This clears only that contract review.
+- The #155 rev-2 successor `2844d25` is `CHANGES` in Watercooler #1140 and
+  OpenCLAW #155. Five P1 classes remain: reversed JSD/cosine agreement polarity,
+  cardinality-only pair coverage, an unverified/re-read parent with incomplete
+  evaluator-input binding, a discarded verified snapshot followed by live
+  sidecar rereads, and ambiguous/non-durable publication with no B0-chain
+  caller. Canon: `MoCoP/reviews/p5_item5_rev2_source_review_2026-07-17.md`.
+  The earlier four-commit `CHANGES` remains historical canon in the predecessor
+  review. #155 stays blocked; no B0/C1/model/GPU/deployment authorization follows.
 
 - Gemma-4 full-attention teeth use a coupled 512-wide K/V projection and fork
   before `v_norm`/`k_norm`. The strict runtime in `d256cd8` intervenes only with
@@ -41,23 +60,14 @@ remember which artifact should be updated.
   exact `k_proj_out == v_norm_pre` at all three teeth. Artifact SHA-256:
   `262e98b1d6f0a76925a9bfcf2d921dcccc43dd2ca340f8262dded455e8870292`.
   This is not the registered C1 alpha-zero anchor.
-- DQ1a math hardening landed in `e9c64d8`; Gidim/Isegrim/Cairn returned GREEN
-  in Watercooler #852-#854. Clarifications in `b3d4821` preregister the P5
-  dispersion cap, forbid post-hoc rescue of a dispersion-only failure, and
-  make the attempt/birth/death ordering explicit. OpenCLAW #150 is complete.
 - C1 nonzero remains held on the second positive 512-wide `value_norm_pre`
   direction/full matrix, #149 DQ1b sites and numeric gates, implementation and
   separate review of Gidim's P5 runner/report contract, its true alpha-zero
   anchors, and keeper ratification. The first nonzero remains
   Method-A/L29/alpha=.025 after every hold closes.
-- P5 round-twelve packet `1dcb36f` + `c17f6d8` is GREEN in canon `23fad60`.
-  Exact-list checks precede all restore/checkpoint protocols; malformed objects are
-  untouched and fail closed; identity duplicates, persistent swaps, full real-import
-  matrix, constant refusal, and prior custody/publication repairs pass. #156's model-free
-  implementation/review scope is complete. Watercooler #1014 and OpenCLAW events
-  #729/#731 record the verdict and closure. The explicit CPython non-TEE residual remains.
-  No B0, #155, #149, HF audit,
-  protected-sink, alpha-zero, keeper, or nonzero authorization follows.
+- P5 round-twelve packet `1dcb36f` + `c17f6d8` remains GREEN in canon `23fad60`.
+  Its explicit CPython non-TEE residual remains. Do not conflate that earlier
+  runner closure with the later #155 R4 sidecar packet or its current CHANGES.
 - Drift v27 `4c6b7b4` is implementation-review `GREEN` in Codex #1070/event
   #757, canon `001ce79`. Full caller-anchor placeholder reservation, deterministic duplicate
   publication, and the N-row receipt contract close every v26 correction. Preserve duplicate
@@ -66,10 +76,6 @@ remember which artifact should be updated.
   tests, canonical-input contracts, and the CPython non-TEE/process-isolation boundary. #168
   remains open and non-deployable only for independent judge-chain discrimination,
   runner-origin custody, slow-leak detection, disposition calibration, and launch holds.
-- Monk's HiSPA v2 evaluator at `cb4125b` is GREEN (#842), and Isegrim ratified
-  its terminology/threshold shape (#843). This approves the offline read-only
-  evaluator only; a capture exporter/model hook remains a separately reviewed
-  slice.
 - World Model Phase 2b is complete under the reviewed immutable LS20
   replication contract. Commit `1d08f53` records 16x48 transitions and 13/16
   fully positive runs, yielding scoped `GO_LS20_CONSISTENCY_REPLICATED` only.
@@ -81,12 +87,6 @@ remember which artifact should be updated.
   integration blockers. The exact response, manifest, and corrected disposition
   are in `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`;
   Watercooler #952 and OpenCLAW #170-#173 carry tracking.
-- Kang et al.'s 2026 cerebellum-inspired memtransistor paper is indexed in
-  `bee3a1e` as an adjacent prediction-error/event-trigger reference. It supports
-  evaluating a cheap novelty interrupt after raw trace custody, not a learned
-  transition model, event authority, appraisal, rollout, or integration claim.
-  Watercooler #967 and `Research/2026-07-13_cerebellum_memtransistor_novelty_gate.md`
-  carry the bounded mapping to #170/#171.
 - The Pro review's one-action-per-state Phase 2b hypothetical does not fit the
   bundle. Fresh state-only/action-only checks remain weaker than primary in
   aggregate (`NLL .634257/.610974` versus `.495680`) and on both metrics in
@@ -99,9 +99,10 @@ remember which artifact should be updated.
 
 - Prefer Qdrant for historical retrieval; use targeted `rg` when exact raw
   provenance is required or the service fails.
-- Current execution order: finish #149 plus the same-surface direction/full
-  matrix; record P5 closure; run its true alpha-zero anchors; only then spend
-  the first nonzero injection. Task #146 independently repairs
+- Current execution order: repair and re-review #155 against Codex #1140,
+  finish #149 plus the same-surface direction/full matrix, then satisfy the
+  protected-sink/deployment/runtime/preflight/keeper holds before any true
+  alpha-zero anchor or first nonzero injection. Task #146 independently repairs
   matched-delta recording/training. Do not re-review completed P5 packet `c17f6d8` or Drift
   Gate v27 `4c6b7b4`. Review a drift successor only if it changes the GREEN kernel, against
   canon `001ce79`; otherwise advance #168's independent evidence gates.

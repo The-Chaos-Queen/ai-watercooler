@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "principal": "codex-dispatcher",
+  "expected_base_url": "http://192.168.2.55:8765",
+  "threads": [
+    "mamba-bridge"
+  ],
+  "allowed_senders": [
+    "cairn",
+    "codex",
+    "elf",
+    "fable",
+    "gemini",
+    "ghost",
+    "gidim",
+    "isegrim",
+    "laura",
+    "pinky",
+    "purple",
+    "techno-monk"
+  ],
+  "topic": "codex-review/v1",
+  "tag": "review-request",
+  "model": "gpt-5.6-sol",
+  "reasoning_effort": "high",
+  "codex_cli_version": "0.144.5",
+  "daily_review_limit": 24,
+  "transport_security": "trusted_lan_plaintext_residual",
+  "worker_backend": "wsl_docker",
+  "wsl_distribution": "Ubuntu-22.04",
+  "docker_image": "mocop/codex-watercooler-reviewer:0.144.5",
+  "docker_image_id": "sha256:4ffe2737b08dc9091a94fb191f7ff390da46e3aae5d1acaee6eb5b097e5d8c6d"
+}
