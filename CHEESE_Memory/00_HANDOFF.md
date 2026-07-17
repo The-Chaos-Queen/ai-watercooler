@@ -1,7 +1,7 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-17 22:42 +02:00
+- Last updated: 2026-07-17 23:02 +02:00
 - Current owner: Codex completed the #156 review, built/activated the silent host-isolated Watercooler dispatcher, and returned CHANGES on #155 rev 2 `2844d25`. Gidim owns the next #155 repair; all run/deployment/keeper holds remain.
 - Primary focus: repair the five #155 rev-2 findings in Watercooler #1140 before another exact review. Keep #149, protected-sink, deployment, runtime receipt, preflight, keeper, nonzero, #168, World Model, and bridge lanes independent.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-17-session-01.md`
@@ -10,7 +10,7 @@
   - Latest session log ingest: done (`2026-07-17-session-01.md`; 15 current chunks; stale prior-version IDs removed)
 
 ## Current State - Codex Dispatcher And P5 Review (2026-07-17)
-- **Dispatcher operational:** strict full-SHA requests only; hardened Git-object packet construction; exact Codex 0.144.5 Docker image ID `sha256:4ffe2737b08dc9091a94fb191f7ff390da46e3aae5d1acaee6eb5b097e5d8c6d`; host repo/home/socket absent from the worker. Scheduled every two minutes with `IgnoreNew` and a silent `wscript.exe //B` zero-window launcher; live task result 0.
+- **Dispatcher operational:** commit `4c81565`, Watercooler #1141; strict full-SHA requests only; hardened Git-object packet construction; exact Codex 0.144.5 Docker image ID `sha256:4ffe2737b08dc9091a94fb191f7ff390da46e3aae5d1acaee6eb5b097e5d8c6d`; host repo/home/socket absent from the worker. Scheduled every two minutes with `IgnoreNew` and a silent `wscript.exe //B` zero-window launcher; live task result 0.
 - **Authority boundary:** automated results are second opinions only, never wolf-Codex attestation or verdicts of record. Dedicated token has exactly mailbox read/write scopes, expires 2026-07-24 14:14:48Z, and traverses an explicitly accepted plaintext trusted-LAN endpoint.
 - **#156 exact review GREEN:** Watercooler #1122; canon `MoCoP/reviews/p5_manifest_attempt_reconciliation_review_2026-07-17.md`. It clears only the manifest/attempt reconciliation packet.
 - **#155 rev-2 exact review CHANGES:** `2844d25`, Watercooler #1140 and OpenCLAW #155. Five P1 classes: reversed JSD/cosine polarity; count-only pair coverage; unverified/re-read parent and incomplete evaluator-input binding; discarded verified snapshot followed by live rereads; ambiguous/non-durable publication plus no B0-chain caller. Canon `MoCoP/reviews/p5_item5_rev2_source_review_2026-07-17.md`. No run is authorized.
@@ -177,17 +177,17 @@
 - Separately, only after Laura/tool-level confirmation, run the documented read-only LiteRT preflight on ML-WS; do not install, serve, or train merely because the GPU is idle.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #1122/#1137/#1140; OpenCLAW #155; canonical review artifacts)
+- Tracking surfaces updated if needed: yes (Watercooler #1122/#1137/#1140/#1141; OpenCLAW #155; canonical review artifacts)
 - Session log written: yes (`2026-07-17-session-01.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: yes (`2026-07-17-session-01.md`; 15 current chunks; stale prior-version IDs removed)
-- Git preservation state: scoped session-close commit pending; unrelated dirty World Model and other-agent files excluded
+- Git preservation state: primary scoped session-close commit `4c81565`; unrelated dirty World Model and other-agent files excluded
 - Watercooler findings reflected in docs: yes (#156, both #155 point-in-time reviews, and Codex continuity)
 - No P0 bugs left unfixed: yes for dispatcher scope; #155 rev-2 findings are review blockers owned by the next source successor, with no run path open
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-17 22:42 +02:00 | Codex | Verified the scheduled dispatcher is silent (`wscript.exe //B`, live result 0), returned CHANGES on #155 rev 2 `2844d25` in Watercooler #1140/OpenCLAW #155, and added the exact canonical review. Five P1 classes remain despite 431 pass/1 skip; refreshed 15 current Qdrant chunks and removed six verified stale prior-version IDs. No run authorization changed. Scoped close commit pending.
+- 2026-07-17 23:02 +02:00 | Codex | Preserved the silent dispatcher, #156 GREEN review, both #155 CHANGES reviews, and continuity in primary commit `4c81565`; announced the non-attested dispatcher protocol in Watercooler #1141. Five rev-2 P1 classes remain despite 431 pass/1 skip; 15 current Qdrant chunks are synced with stale prior-version IDs removed. No run authorization changed.
 - 2026-07-17 19:38 +02:00 | Codex | Built and activated the strict host-isolated Codex Watercooler dispatcher, pinned image/runtime/token boundaries, replaced periodic console flashes with a verified silent `wscript.exe //B` scheduled action, and completed #156 GREEN (#1122) plus #155 CHANGES (#1137) exact reviews. Session-01 ingested to Qdrant (14 chunks); scoped close commit pending.
 - 2026-07-16 20:07 +02:00 | Isegrim | Delivered the #157 Isegrim seat review (Watercooler #1072; OpenCLAW #157 comment): GREEN on method and 5g.3 lineage. Verified against DQ1a's Directions clause that the requirement is a second positive direction at the same 512-wide surface frozen pre-forward (estimator robustness, anti-post-selection), not a second semantic disposition; warm_linear_probe_v1 accepted with three wording-level binds (exact n/centering definition in the ridge formula; explicit shared-fit-corpus statement; semantic_scope inherited verbatim in any C1 report/UCF edit). Gidim and Cairn seats remain required before extraction; extraction stays read-only; birth-rule ordering untouched. Read-only review, no model/GPU/Qdrant action.
 - 2026-07-16 17:02 +02:00 | Techno-Monk | Completed Laura-authorized CPU-only retrospective variance/rank/per-tooth-norm diagnosis of retained refit artifact `bridge_refit_eval_20260716T131105Z` without host-model load/capture/training/GPU/C1/B0/injection/generation/Qdrant/memory/replay/sleep. Re-verified raw receipts, held-out metrics, CPU bridge rehydration tolerance, and source artifact immutability. Commit `bf320d5` adds tested no-overwrite diagnostic runner, JSON SHA `809ec86e7c37afb491ecdcf9b6c57a774e5aa5492a31d00d125b35ef72e9dcb4`, and canonical debrief. Finite-sample targets are high-rank while held-out predictions are more concentrated; train-only scalar/affine norms do not beat constant relative-L2 and oracle norm matching worsens all three, so simple scale rescue is ruled out. Watercooler/OpenCLAW #146 #766/#767 records bounded authorization/result; broad #146 remains queued/unclaimed. Session-24 recorded; Qdrant skipped by declared boundary.
