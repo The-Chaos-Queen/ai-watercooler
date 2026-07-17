@@ -28,6 +28,7 @@ This module authorizes NO run, sets NO threshold, and lifts NO hold.
 """
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
@@ -50,13 +51,24 @@ REQUIRED_SIDECAR_KEYS = frozenset({
     "panel",
 })
 
+# FIELD-SPECIFIC types/formats (Monk #1133). The first cut typed these blocks generically — "str or
+# int" — and then format-checked only `if isinstance(value, str)`. That is not a check: a wrong-typed
+# value DODGES its own validation. `revision_sha=123` skipped the SHA40 match entirely and published;
+# `sequence_length="one-sixty"` skipped the positive-int test the same way. A format check guarded by
+# a type it does not enforce is decoration. Each field now declares exactly what it must be.
+_ID = "id"            # nonempty exact str, non-placeholder
+_SHA40F = "sha40"     # immutable lowercase 40-hex revision
+_SHA256F = "sha256"   # 64-hex digest
+_POSINT = "posint"    # exact positive int (bool excluded)
+
 # The evaluator block must pin an identity AND an immutable revision.
-_EVALUATOR_KEYS = ("evaluator_id", "revision_sha")
+_EVALUATOR_SPEC = {"evaluator_id": _ID, "revision_sha": _SHA40F}
 # The runner block names what executed the comparison (out-of-process), so a reader knows the
 # sidecar's own provenance and not merely the model's.
-_RUNNER_KEYS = ("runner_id", "runner_digest")
+_RUNNER_SPEC = {"runner_id": _ID, "runner_digest": _SHA256F}
 # The parent block ties this sidecar to exactly one sealed B0 report and its generation receipts.
-_PARENT_KEYS = ("b0_report_digest", "generation_output_digest", "sequence_length")
+_PARENT_SPEC = {"b0_report_digest": _SHA256F, "generation_output_digest": _SHA256F,
+                "sequence_length": _POSINT}
 
 # A revision must be an immutable 40-hex commit/blob SHA. A branch, tag, or "main" is mutable: the
 # artifact it names can change under a frozen manifest, which is the whole failure this pins against
@@ -71,20 +83,72 @@ class R4SidecarError(ValueError):
     """A structural refusal of the comparison sidecar (bug/unsafe config), not an outcome."""
 
 
-def _check_block(block: Any, name: str, keys: Sequence[str], refusals: list[str]) -> None:
+def _field_error(value: Any, kind: str) -> str | None:
+    """Enforce ONE field's exact type AND format together. Returns an error string or None.
+
+    Type and format are checked as a single obligation on purpose: separating them is what let
+    Monk's repro through (#1133).
+    """
+    if kind == _ID:
+        if type(value) is not str:
+            return f"must be an exact str (got {type(value).__name__})"
+        if _is_unset(value):
+            return f"is a placeholder/unset value ({value!r})"
+        return None
+    if kind == _SHA40F:
+        if type(value) is not str:
+            return f"must be an exact str 40-hex SHA (got {type(value).__name__})"
+        if value.strip().lower() in _MUTABLE_REFS:
+            return (f"{value!r} is a MUTABLE ref; the R4 comparison gates C1 and must pin an "
+                    "immutable 40-hex revision")
+        if not _SHA40.match(value):
+            return f"must be an immutable lowercase 40-hex SHA (got {value!r})"
+        return None
+    if kind == _SHA256F:
+        if type(value) is not str:
+            return f"must be an exact str sha256 digest (got {type(value).__name__})"
+        if not _SHA256.match(value):
+            return f"must be a lowercase sha256 hex digest (got {value!r})"
+        return None
+    if kind == _POSINT:
+        # bool is an int subclass; exact-type excludes True/False masquerading as a length.
+        if type(value) is not int:
+            return f"must be an exact positive int (got {type(value).__name__})"
+        if value <= 0:
+            return f"must be a positive int (got {value!r})"
+        return None
+    raise R4SidecarError(f"unknown field kind {kind!r}")     # programming error, not input
+
+
+def _check_block(block: Any, name: str, spec: Mapping[str, str], refusals: list[str]) -> None:
     if not isinstance(block, Mapping):
         refusals.append(f"{name} block missing or not a mapping")
         return
-    unknown = set(block) - set(keys)
+    unknown = set(block) - set(spec)
     if unknown:
         refusals.append(f"{name} has unknown key(s): {sorted(unknown)}")
-    for key in keys:
+    for key, kind in spec.items():
         if key not in block:
             refusals.append(f"{name}.{key} is missing")
-        elif type(block[key]) is not str and not isinstance(block[key], int):
-            refusals.append(f"{name}.{key} must be an exact str/int, got {type(block[key]).__name__}")
-        elif isinstance(block[key], str) and _is_unset(block[key]):
-            refusals.append(f"{name}.{key} is a placeholder/unset value ({block[key]!r})")
+            continue
+        err = _field_error(block[key], kind)
+        if err:
+            refusals.append(f"{name}.{key} {err}")
+
+
+def _number_error(value: Any, name: str) -> str | None:
+    """A comparison value must be a FINITE real number — not merely JSON-serializable.
+
+    ``jsd="not-a-number"`` is valid JSON and hashes happily, which is exactly the point Monk made:
+    a SHA over malformed-but-JSON values is not custody. The rho in particular has to survive the
+    preregistered ``rho < 0.7`` decision; a str rho raises TypeError there, and a NaN silently
+    compares False against every threshold.
+    """
+    if isinstance(value, bool) or type(value) not in (int, float):
+        return f"{name} must be a finite number (got {type(value).__name__}: {value!r})"
+    if not math.isfinite(value):
+        return f"{name} must be finite (got {value!r})"
+    return None
 
 
 def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
@@ -104,35 +168,77 @@ def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
         refusals.append(
             f"schema must be {SIDECAR_SCHEMA!r} (got {manifest.get('schema')!r})")
 
-    _check_block(manifest.get("evaluator"), "evaluator", _EVALUATOR_KEYS, refusals)
-    _check_block(manifest.get("runner"), "runner", _RUNNER_KEYS, refusals)
-    _check_block(manifest.get("parent"), "parent", _PARENT_KEYS, refusals)
+    # ACCEPT 1 + 5 live inside these specs now: each field's type AND format are one obligation,
+    # so nothing can dodge validation by arriving as the wrong type.
+    _check_block(manifest.get("evaluator"), "evaluator", _EVALUATOR_SPEC, refusals)
+    _check_block(manifest.get("runner"), "runner", _RUNNER_SPEC, refusals)
+    _check_block(manifest.get("parent"), "parent", _PARENT_SPEC, refusals)
 
-    # ACCEPT 1 + 5: the evaluator revision must be IMMUTABLE. A mutable ref (a branch, "main", a
-    # tag) lets the evaluated artifact change while the manifest reads identical — the comparison
-    # would then decide C1's fate against an artifact nobody reviewed.
-    ev = manifest.get("evaluator")
-    if isinstance(ev, Mapping):
-        rev = ev.get("revision_sha")
-        if isinstance(rev, str) and not _is_unset(rev):
-            if rev.strip().lower() in _MUTABLE_REFS:
-                refusals.append(
-                    f"evaluator.revision_sha {rev!r} is a MUTABLE ref; the R4 comparison gates C1 "
-                    "and must pin an immutable 40-hex revision"
-                )
-            elif not _SHA40.match(rev.strip()):
-                refusals.append(
-                    f"evaluator.revision_sha must be an immutable 40-hex SHA (got {rev!r})")
+    err = _field_error(manifest.get("panel"), _ID)
+    if err:
+        refusals.append(f"panel {err}")
+    return refusals
 
-    par = manifest.get("parent")
-    if isinstance(par, Mapping):
-        for key in ("b0_report_digest", "generation_output_digest"):
-            val = par.get(key)
-            if isinstance(val, str) and not _is_unset(val) and not _SHA256.match(val.strip()):
-                refusals.append(f"parent.{key} must be a sha256 hex digest (got {val!r})")
-        n = par.get("sequence_length")
-        if isinstance(n, bool) or (isinstance(n, int) and n <= 0):
-            refusals.append(f"parent.sequence_length must be a positive int (got {n!r})")
+
+def validate_comparison(per_pair: Sequence[Mapping[str, Any]],
+                        aggregate: Mapping[str, Any]) -> list[str]:
+    """Refuse a comparison whose numbers are not numbers (Monk #1133 blocker 2).
+
+    Presence checks are not enough: ``jsd="not-a-number"`` is valid JSON, passes strict-JSON, and
+    seals into a digest. The artifact would then claim custody over values that cannot be compared
+    — and the rho it carries is the input to the preregistered ``rho < 0.7`` C1 decision.
+    """
+    refusals: list[str] = []
+    if not isinstance(per_pair, Sequence) or isinstance(per_pair, (str, bytes)):
+        return ["per_pair must be a sequence of rows"]
+    if not per_pair:
+        return ["no per-pair comparison rows; an empty comparison decides nothing"]
+
+    seen: set[str] = set()
+    for i, row in enumerate(per_pair):
+        if not isinstance(row, Mapping):
+            refusals.append(f"per-pair row {i} is not a mapping")
+            continue
+        unknown = set(row) - {"pair_id", "jsd", "embedding_similarity"}
+        if unknown:
+            refusals.append(f"per-pair row {i} has unknown key(s): {sorted(unknown)}")
+        err = _field_error(row.get("pair_id"), _ID) if "pair_id" in row else "is missing"
+        if err:
+            refusals.append(f"per-pair row {i} pair_id {err}")
+        elif row["pair_id"] in seen:
+            refusals.append(f"per-pair row {i} duplicates pair_id {row['pair_id']!r}")
+        else:
+            seen.add(row["pair_id"])
+        for key in ("jsd", "embedding_similarity"):
+            if key not in row:
+                refusals.append(f"per-pair row {i} is missing {key!r}")
+                continue
+            err = _number_error(row[key], key)
+            if err:
+                refusals.append(f"per-pair row {i} {err}")
+
+    if not isinstance(aggregate, Mapping):
+        return [*refusals, "aggregate must be a mapping"]
+    unknown = set(aggregate) - {"spearman_rho", "n_pairs"}
+    if unknown:
+        refusals.append(f"aggregate has unknown key(s): {sorted(unknown)}")
+    if "spearman_rho" not in aggregate:
+        refusals.append("aggregate.spearman_rho is missing")
+    else:
+        err = _number_error(aggregate["spearman_rho"], "spearman_rho")
+        if err:
+            refusals.append(f"aggregate.{err}")
+    if "n_pairs" not in aggregate:
+        refusals.append("aggregate.n_pairs is missing")
+    else:
+        err = _field_error(aggregate["n_pairs"], _POSINT)
+        if err:
+            refusals.append(f"aggregate.n_pairs {err}")
+        elif aggregate["n_pairs"] != len(per_pair):
+            # A count that disagrees with the rows it counts is a receipt disagreeing with its own
+            # evidence — the same class as the generation receipt that lies about its ids.
+            refusals.append(
+                f"aggregate.n_pairs {aggregate['n_pairs']} != {len(per_pair)} per-pair rows")
     return refusals
 
 
@@ -188,15 +294,11 @@ def build_r4_sidecar(
         raise R4SidecarError(
             f"manifest.panel {manifest['panel']!r} != the frozen SEV panel hash {panel_hash!r}")
 
-    if not per_pair:
-        raise R4SidecarError("no per-pair comparison rows; an empty comparison decides nothing")
+    comparison_refusals = validate_comparison(per_pair, aggregate)
+    if comparison_refusals:
+        raise R4SidecarError("; ".join(comparison_refusals))
 
     rows = [dict(r) for r in per_pair]
-    for i, row in enumerate(rows):
-        for key in ("pair_id", "jsd", "embedding_similarity"):
-            if key not in row:
-                raise R4SidecarError(f"per-pair row {i} is missing {key!r}")
-
     record: dict[str, Any] = {
         "schema": SIDECAR_SCHEMA,
         "evaluator": dict(manifest["evaluator"]),

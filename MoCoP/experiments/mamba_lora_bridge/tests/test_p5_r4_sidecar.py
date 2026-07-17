@@ -13,6 +13,7 @@ from p5_r4_sidecar import (
     R4SidecarError,
     bind_to_parent_report,
     build_r4_sidecar,
+    validate_comparison,
     validate_sidecar_manifest,
 )
 
@@ -55,6 +56,116 @@ def _build(**over):
               generation_output_digest=GEN_DIGEST, per_pair=_pairs(), aggregate=_agg())
     kw.update(over)
     return build_r4_sidecar(kw.pop("manifest", _manifest()), **kw)
+
+
+# --------------------------------------------------------------------------- #
+# Monk #1133 — the two direct repros, RED->GREEN.                              #
+# --------------------------------------------------------------------------- #
+def test_repro_1133_wrong_typed_provenance_is_refused():
+    """Monk #1133 blocker 1, verbatim repro.
+
+    The first cut typed every block field as "str or int", then format-checked only
+    `if isinstance(value, str)`. So a wrong-typed value DODGED its own validation: revision_sha=123
+    skipped the SHA40 match, sequence_length="one-sixty" skipped the positive-int test, and the
+    manifest validated clean. A format check guarded by a type it does not enforce is decoration.
+    """
+    m = _manifest(
+        evaluator={"evaluator_id": "x", "revision_sha": 123},
+        runner={"runner_id": "r", "runner_digest": 456},
+        parent={"b0_report_digest": 789, "generation_output_digest": 987,
+                "sequence_length": "one-sixty"},
+    )
+    r = validate_sidecar_manifest(m)
+    assert r, "wrong-typed provenance must not validate clean"
+    for field in ("revision_sha", "runner_digest", "b0_report_digest",
+                  "generation_output_digest", "sequence_length"):
+        assert any(field in x for x in r), f"{field} escaped validation"
+
+
+def test_repro_1133_non_numeric_comparison_is_refused():
+    """Monk #1133 blocker 2, verbatim repro.
+
+    Presence-only checks let jsd="not-a-number" and spearman_rho="not-a-rho" seal into a digest:
+    valid JSON, hashes happily, decides nothing. "A SHA over malformed-but-JSON values is not
+    custody." The rho is the input to the preregistered rho < 0.7 C1 decision; a str rho raises
+    TypeError there rather than deciding.
+    """
+    with pytest.raises(R4SidecarError) as ei:
+        _build(per_pair=[{"pair_id": "p0", "jsd": "not-a-number",
+                          "embedding_similarity": "also-not-a-number"}],
+               aggregate={"spearman_rho": "not-a-rho", "n_pairs": "one"})
+    msg = str(ei.value)
+    assert "jsd must be a finite number" in msg
+    assert "spearman_rho must be a finite number" in msg
+
+
+@pytest.mark.parametrize("bad", [123, 12.5, True, None, ["c" * 40], {"sha": "c" * 40}])
+def test_evaluator_revision_must_be_an_exact_str(bad):
+    m = _manifest(evaluator={"evaluator_id": "x", "revision_sha": bad})
+    assert any("revision_sha" in x for x in validate_sidecar_manifest(m))
+
+
+@pytest.mark.parametrize("bad", ["160", 160.0, True, False, 0, -1, None])
+def test_sequence_length_must_be_an_exact_positive_int(bad):
+    m = _manifest(parent={"b0_report_digest": B0_DIGEST,
+                          "generation_output_digest": GEN_DIGEST, "sequence_length": bad})
+    assert any("sequence_length" in x for x in validate_sidecar_manifest(m))
+
+
+@pytest.mark.parametrize("bad", ["not-a-number", True, None, [0.1], float("inf"),
+                                 float("-inf"), float("nan")])
+def test_comparison_values_must_be_finite_numbers(bad):
+    with pytest.raises(R4SidecarError) as ei:
+        _build(per_pair=[{"pair_id": "p0", "jsd": bad, "embedding_similarity": 0.9}])
+    assert "jsd" in str(ei.value)
+
+
+@pytest.mark.parametrize("bad", ["not-a-rho", True, None, float("nan"), float("inf")])
+def test_rho_must_be_a_finite_number(bad):
+    # This value IS the preregistered rho < 0.7 decision's input. A str raises TypeError there; a
+    # NaN compares False against every threshold and reads as "the gate did not fire".
+    with pytest.raises(R4SidecarError) as ei:
+        _build(aggregate={"spearman_rho": bad, "n_pairs": 3})
+    assert "spearman_rho" in str(ei.value)
+
+
+def test_n_pairs_must_match_the_rows_it_counts():
+    # A count that disagrees with its own evidence is the same class as a generation receipt that
+    # lies about its ids.
+    with pytest.raises(R4SidecarError) as ei:
+        _build(aggregate={"spearman_rho": 0.83, "n_pairs": 99})
+    assert "n_pairs 99 != 3" in str(ei.value)
+
+
+def test_duplicate_pair_ids_are_refused():
+    rows = [{"pair_id": "p0", "jsd": 0.1, "embedding_similarity": 0.9},
+            {"pair_id": "p0", "jsd": 0.2, "embedding_similarity": 0.8}]
+    with pytest.raises(R4SidecarError) as ei:
+        _build(per_pair=rows, aggregate={"spearman_rho": 0.5, "n_pairs": 2})
+    assert "duplicates pair_id" in str(ei.value)
+
+
+def test_validate_comparison_is_usable_standalone_and_reports_every_fault():
+    # The out-of-process runner should be able to check its own output BEFORE handing it over,
+    # rather than discovering faults at the custody boundary. Refusals accumulate: one call names
+    # everything wrong, so a caller does not fix-and-retry one field at a time.
+    r = validate_comparison(
+        per_pair=[{"pair_id": "", "jsd": "x", "embedding_similarity": None}],
+        aggregate={"spearman_rho": "y", "n_pairs": 0},
+    )
+    assert any("pair_id" in x for x in r)
+    assert any("jsd" in x for x in r)
+    assert any("embedding_similarity" in x for x in r)
+    assert any("spearman_rho" in x for x in r)
+    assert any("n_pairs" in x for x in r)
+    assert validate_comparison(_pairs(), _agg()) == []
+
+
+def test_unknown_comparison_keys_are_refused():
+    with pytest.raises(R4SidecarError) as ei:
+        _build(per_pair=[{"pair_id": "p0", "jsd": 0.1, "embedding_similarity": 0.9,
+                          "fudge": 1.0}])
+    assert "unknown key" in str(ei.value)
 
 
 # --------------------------------------------------------------------------- #
@@ -162,10 +273,25 @@ def test_incomplete_pair_row_is_refused(missing):
 
 
 def test_non_finite_rho_is_refused_before_custody():
-    # Strict JSON before custody (#960 MED-5): a NaN rho must fail here, not publish. A NaN
-    # compares false against any threshold, so it would silently read as "rho < 0.7 did not fire".
-    with pytest.raises(Exception) as ei:
+    # A NaN rho must never publish: it compares False against any threshold, so it would silently
+    # read as "rho < 0.7 did not fire" and let JSD through unexamined.
+    #
+    # TWO layers, deliberately. The typed comparison schema (Monk #1133) now catches it FIRST with
+    # a precise message; assert_strict_json / canonical_digest still refuse non-finite floats
+    # underneath (#960 MED-5). Belt and braces on the one value that decides JSD's admissibility —
+    # and the redundancy is why an earlier mutation of the explicit strict-JSON call changed
+    # nothing.
+    with pytest.raises(R4SidecarError) as ei:
         _build(aggregate={"spearman_rho": float("nan"), "n_pairs": 3})
+    assert "spearman_rho must be finite" in str(ei.value)
+
+
+def test_strict_json_still_refuses_non_finite_underneath_the_typed_schema():
+    # Prove the SECOND layer is real rather than assumed: bypass the typed comparison schema by
+    # calling the custody primitive directly with the same bad value.
+    from p5_b0_harness import assert_strict_json
+    with pytest.raises(Exception) as ei:
+        assert_strict_json({"aggregate": {"spearman_rho": float("nan")}})
     assert "non-finite" in str(ei.value)
 
 
