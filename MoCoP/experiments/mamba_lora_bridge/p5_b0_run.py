@@ -46,6 +46,8 @@ from typing import Any, Callable, Mapping, NamedTuple, Protocol, Sequence
 from p5_b0_harness import (
     B0_RUN_KIND,
     COMPONENT_ROUTES,
+    DECODING_PINNED_INERT,
+    DECODING_REQUIRED_EXPLICIT,
     B0EvidenceBundle,
     _is_unset,  # the placeholder-aware unset check (rejects "tbd"/"none"/"[tbd:"/...)
     assert_strict_json,
@@ -333,9 +335,136 @@ if _MISSING_ROUTES:  # pragma: no cover - config invariant
 # --------------------------------------------------------------------------- #
 # Injectable generation backend (must be bindable + prove sterility).          #
 # --------------------------------------------------------------------------- #
+STOP_REASONS = ("eos", "length")          # the closed set (#155 §3.2); nothing else is admissible
+
+
+def generation_kwargs(decoding: Mapping[str, Any]) -> dict[str, Any]:
+    """The EXACT kwargs handed to ``model.generate`` — the whole neutralization set, no defaults.
+
+    Extracted for the same reason as ``derive_stop_reason``: ``HFGenerationBackend`` needs torch, so
+    the 0-torch suite cannot execute it, and a backend that silently narrowed this set back to
+    ``{do_sample, max_new_tokens}`` would reproduce the exact #1103 bug invisibly (verified: that
+    mutation passes the whole suite when the assembly lives inline). Pulling the assembly out here
+    puts the field set under regression, and leaves only the wiring — that ``generate`` calls this
+    and splats the result — as a torch-gated residual.
+
+    Raises on a missing field rather than defaulting: by the time a governed forward runs, the
+    manifest has passed ``check_decoding_contract``, so absence here is a bug, and a default would
+    be the very silent substitution this function exists to prevent.
+    """
+    missing = [k for k in (*DECODING_REQUIRED_EXPLICIT, *DECODING_PINNED_INERT) if k not in decoding]
+    if missing:
+        raise B0RunError(f"decoding is missing neutralization fields: {sorted(missing)}")
+    return {k: decoding[k] for k in (*DECODING_REQUIRED_EXPLICIT, *DECODING_PINNED_INERT)}
+
+
+def derive_stop_reason(generated_token_ids: Sequence[int], eos_token_id: Any,
+                       max_new_tokens: int) -> tuple[str, int | None]:
+    """Decide WHY generation stopped, from the ids — never from the text.
+
+    Extracted deliberately: ``HFGenerationBackend`` needs torch, so nothing inside it can be
+    exercised by the 0-torch P5 suite. This is the safety-critical half of the receipt (an ended
+    continuation vs one capped at the budget), so it lives here as a pure function the model-free
+    tests CAN pin. The backend calls it; the suite covers it; the GPU is not the only witness.
+
+    Reading the ids rather than the decoded text is the whole repair: ``skip_special_tokens=True``
+    strips EOS, which is why the old str-returning protocol could not recover this at all.
+    """
+    eos_ids = _as_id_set(eos_token_id)
+    ids = tuple(generated_token_ids)
+    if ids and ids[-1] in eos_ids:
+        return "eos", ids[-1]
+    if len(ids) >= int(max_new_tokens):
+        return "length", None
+    # Neither: the closed set {eos, length} cannot describe what happened, so the run has observed
+    # something the contract does not cover. Fail closed rather than invent a third state — an
+    # unexplained short continuation is exactly the early-EOS signal Elf's battery_coverage guard
+    # exists to catch, and it must not be silently relabelled "length".
+    raise B0RunError(
+        f"stop reason outside the closed set {STOP_REASONS}: {len(ids)} token(s) generated "
+        f"(< max_new_tokens={max_new_tokens}) and the final id is not a pinned eos"
+    )
+
+
+def _assert_exact_generation_result(result: Any) -> None:
+    """Refuse anything but an exact, internally-consistent ``GenerationResult``.
+
+    Carries Codex #1011/#1013 B2 across the protocol widening. The old contract returned a bare str
+    and checked ``type(x) is str``; the receipt-bearing contract must check the CONTAINER first
+    (a subclass could override ``token_count`` or ``stop_reason`` to publish a receipt that
+    contradicts its own ids), then every custody leaf, then their mutual consistency — a receipt
+    that disagrees with itself is worse than no receipt, because it is signed.
+    """
+    if type(result) is not GenerationResult:
+        raise B0RunError(f"backend.generate returned a non-exact GenerationResult "
+                         f"({type(result).__name__}); refusing")
+    if type(result.text) is not str:
+        raise B0RunError(f"generation text is not an exact str ({type(result.text).__name__})")
+    if type(result.stop_reason) is not str or result.stop_reason not in STOP_REASONS:
+        raise B0RunError(f"stop_reason must be exactly one of {STOP_REASONS}, got "
+                         f"{result.stop_reason!r}")
+    if type(result.generated_token_ids) is not tuple:
+        raise B0RunError("generated_token_ids must be an exact tuple")
+    for i in result.generated_token_ids:
+        if type(i) is not int:            # bool is an int subclass; exact-type excludes it
+            raise B0RunError(f"generated_token_ids must be exact ints, got {type(i).__name__}")
+    if type(result.input_token_ids_sha256) is not str:
+        raise B0RunError("input_token_ids_sha256 must be an exact str")
+    # Mutual consistency: the receipt must agree with the evidence it summarizes.
+    if result.stop_reason == "eos":
+        if type(result.eos_token_id_fired) is not int:
+            raise B0RunError("stop_reason 'eos' requires eos_token_id_fired to name WHICH id fired")
+        if not result.generated_token_ids or \
+                result.generated_token_ids[-1] != result.eos_token_id_fired:
+            raise B0RunError("eos_token_id_fired does not match the final generated token id")
+    elif result.eos_token_id_fired is not None:
+        raise B0RunError("stop_reason 'length' must not name a fired eos id")
+
+
+def _as_id_set(eos_token_id: Any) -> frozenset[int]:
+    """Normalize a pinned ``eos_token_id`` to a set of ids, accepting the checkpoint's LIST form.
+
+    Real checkpoints ship ``eos_token_id`` as either a scalar or a list (a cached instruct model in
+    this house ships ``[151645, 151643]``), so "pinned by value" must admit both — and the stop
+    receipt must then name WHICH id fired (#155 §3.2).
+    """
+    if isinstance(eos_token_id, int) and not isinstance(eos_token_id, bool):
+        return frozenset({eos_token_id})
+    if isinstance(eos_token_id, (list, tuple)):
+        return frozenset(int(i) for i in eos_token_id)
+    raise B0RunError(f"eos_token_id must be an int or a list of ints, got {type(eos_token_id).__name__}")
+
+
+@dataclass(frozen=True)
+class GenerationResult:
+    """What one governed forward actually produced — text is NOT enough.
+
+    The protocol used to return a bare ``str`` decoded with ``skip_special_tokens=True``, which
+    STRIPS the EOS token. That made ``stop_reason`` UNRECOVERABLE post-hoc rather than merely
+    unrecorded: a continuation the model ended and one truncated at the ``max_new_tokens`` cap were
+    byte-indistinguishable. Those are materially different samples for any behavioral scorer, and
+    B0 is the null they get compared against (Gidim WC #1103/#1114; #155 §3.2 makes the receipt
+    contract-required; Elf's T_diversity spec consumes token_count/stop_reason as REQUIRED inputs
+    because the JSD estimator is biased by continuation length).
+
+    ``eos_token_id_fired`` names WHICH id stopped it: the checkpoint may ship an eos LIST, so "it
+    hit eos" is not a complete receipt (#155 §3.2).
+    """
+
+    text: str
+    generated_token_ids: tuple[int, ...]
+    stop_reason: str                       # exactly one of STOP_REASONS
+    eos_token_id_fired: int | None         # None iff stop_reason == "length"
+    input_token_ids_sha256: str
+
+    @property
+    def token_count(self) -> int:
+        return len(self.generated_token_ids)
+
+
 class GenerationBackend(Protocol):
     def descriptor(self) -> Mapping[str, Any]: ...
-    def generate(self, prompt: str, decoding: Mapping[str, Any]) -> str: ...
+    def generate(self, prompt: str, decoding: Mapping[str, Any]) -> GenerationResult: ...
     def assert_sterile(self) -> None: ...  # MANDATORY: raise if any hook/impurity present.
 
 
@@ -345,17 +474,38 @@ DESCRIPTOR_KEYS = ("id", "revision", "dtype", "backend", "device", "attention", 
 
 @dataclass
 class ScriptedGenerationBackend:
-    """Model-free backend for testing (canned responses + a declared descriptor)."""
+    """Model-free backend for testing (canned responses + a declared descriptor).
+
+    Synthesizes token ids from the response text so the receipt shape is exercised without a
+    tokenizer. ``stop_reasons``/``token_ids`` let a test script the custody fields directly —
+    including short (early-EOS) continuations, which is the case Elf's length policy refuses.
+    """
 
     responses: Mapping[str, str]
     model_descriptor: Mapping[str, Any] = None  # type: ignore[assignment]
     default: str = "[scripted]"
+    stop_reasons: Mapping[str, str] = None      # type: ignore[assignment]
+    token_ids: Mapping[str, Sequence[int]] = None  # type: ignore[assignment]
+    eos_id: int = 1
 
     def descriptor(self) -> Mapping[str, Any]:
         return dict(self.model_descriptor or {})
 
-    def generate(self, prompt: str, decoding: Mapping[str, Any]) -> str:
-        return self.responses.get(prompt, self.default)
+    def generate(self, prompt: str, decoding: Mapping[str, Any]) -> GenerationResult:
+        text = self.responses.get(prompt, self.default)
+        stop = (self.stop_reasons or {}).get(prompt, "eos")
+        ids = (self.token_ids or {}).get(prompt)
+        if ids is None:
+            ids = tuple(range(100, 100 + max(1, len(text.split()))))
+            if stop == "eos":
+                ids = (*ids, self.eos_id)
+        return GenerationResult(
+            text=text,
+            generated_token_ids=tuple(int(i) for i in ids),
+            stop_reason=stop,
+            eos_token_id_fired=self.eos_id if stop == "eos" else None,
+            input_token_ids_sha256=canonical_digest(prompt),
+        )
 
     def assert_sterile(self) -> None:  # scripted backend has no model/hooks
         return None
@@ -582,12 +732,30 @@ def canonical_panel_hash(panel: Sequence[tuple[str, str]]) -> str:
 
 
 def derive_effective_decoding(manifest: Mapping[str, Any]) -> dict[str, Any]:
-    """The EXACT decoding kwargs the runner passes to ``generate`` — nothing more."""
+    """The EXACT decoding kwargs the runner passes to ``generate`` — nothing more, nothing less.
+
+    Every tier-1 and tier-2 field of the #155 neutralization set is read STRAIGHT from the manifest
+    and passed. Two rules, both learned the hard way:
+
+    * No ``.get(key, default)``. A default here is the same failure as an absent kwarg one layer
+      down — it lets a value the manifest never declared reach ``generate``, and the derived hash
+      would then attest a value nobody signed.
+    * No type coercion. The manifest's declared value is passed as-is; the validator owns typing.
+      Coercing here would let ``"1"`` and ``1`` produce the same call from different manifests.
+
+    An ABSENT key is therefore simply omitted, never defaulted. This function is total: it renders
+    no verdict and raises nothing, because ``run_b0`` derives before it has finished refusing, and
+    a refusal must be RETURNED, not raised out of the deny-by-default path. A manifest missing a
+    tier field is already refused by ``check_decoding_contract``; the partial dict it yields here
+    also fails the decoding-hash binding, so the omission cannot become a silent pass.
+    """
     dec = manifest.get("decoding", {})
-    return {
-        "do_sample": bool(dec.get("do_sample", False)),
-        "max_new_tokens": int(dec.get("max_new_tokens", 0)),
-    }
+    if not isinstance(dec, Mapping):
+        return {}
+    _A = _authority()                                    # frozen (Codex #1009 B2 / #1011 B1)
+    return {k: dec[k]
+            for k in (*_A.decoding_required_explicit, *_A.decoding_pinned_inert)
+            if k in dec}
 
 
 def check_protected_sink_attestation(manifest: Mapping[str, Any]) -> list[str]:
@@ -698,16 +866,11 @@ def _bind_execution_to_manifest(
     # binding: there is no caller-supplied scorer to introspect. The manifest scorer block
     # (scorer_id/version/allowlist_digest) is verified there, deny-by-default.
 
-    # Decoding: derived hash of the exact consumed kwargs; deterministic-only; no extras.
+    # Decoding: derived hash of the exact consumed kwargs. The three-tier neutralization contract
+    # (presence, forbidden-present, unknown-key, determinism) is enforced by the harness's
+    # check_decoding_contract via authorize_b0_launch — one policy home. What stays HERE is the
+    # binding: the manifest's declared hash must equal the digest of what is ACTUALLY passed.
     dec_block = manifest.get("decoding", {})
-    extra_dec = set(dec_block.keys()) - {"hash", "max_new_tokens", "do_sample"}
-    if extra_dec:
-        refusals.append(
-            f"unsupported decoding fields in manifest (not consumed by generate): "
-            f"{sorted(extra_dec)}"
-        )
-    if effective_decoding["do_sample"]:
-        refusals.append("B0 baseline must be deterministic (decoding.do_sample must be False)")
     derived_hash = canonical_digest(dict(effective_decoding))
     if dec_block.get("hash") != derived_hash:
         refusals.append(
@@ -1169,8 +1332,12 @@ _FRAME_SCHEMAS: dict[str, dict[str, str]] = {
               "scorer_binding": _BINDING, "utc": _STR},
     "attempt": {"attempt_id": _STR, "ordinal": _ORD, "probe_id": _STR,
                 "prompt_sha256": _SHA, "utc": _STR},
+    # token_count/stop_reason are unconditional: a generation frame that does not say how long the
+    # continuation was, or why it stopped, is not a governed receipt (#155 §3.2). _ORD gives
+    # int-not-bool >= 0; stop_reason's closed-set membership is enforced at the forward.
     "generated": {"attempt_id": _STR, "ordinal": _ORD, "probe_id": _STR,
-                  "generation_sha256": _SHA, "generation": _TEXT},
+                  "generation_sha256": _SHA, "generation": _TEXT,
+                  "token_count": _ORD, "stop_reason": _STR},
     "recorded": {"attempt_id": _STR, "ordinal": _ORD, "probe_id": _STR},
     "sealing": {"run_id": _STR, "published_digest": _SHA, "journal_digest_prefix": _SHA,
                 "utc": _STR},
@@ -1726,13 +1893,14 @@ def run_b0(
             _assert_sterile_guarded(backend, watch, preceding="attempt setup")
             _check_import_window(watch, "pre-forward baseline")
 
-            generation = backend.generate(prompt, dict(effective_decoding))  # governed forward
-            # Codex #1011 -> #1013 B2: require an EXACT str immediately, before any hash/journal/
-            # score/custody — a str subclass can render visible text yet carry contradictory
-            # scorer evidence while remaining GREEN.
-            if type(generation) is not str:
-                raise B0RunError(f"backend.generate returned a non-exact-str "
-                                 f"({type(generation).__name__}); refusing")
+            result = backend.generate(prompt, dict(effective_decoding))   # governed forward
+            # Codex #1011 -> #1013 B2, carried forward through the protocol widening: the exact-type
+            # requirement now covers the CONTAINER and every custody leaf, not just the text. A
+            # GenerationResult subclass could override `token_count`/`stop_reason` to render one
+            # receipt while the ids say another (round-12's lesson: exact-type the container before
+            # trusting its contents), and an exact-str check on `.text` alone would not see it.
+            _assert_exact_generation_result(result)
+            generation = result.text
 
             _check_import_window(watch, "governed forward")        # transient-import accounting
             post = assert_no_component_reachable()
@@ -1743,6 +1911,10 @@ def run_b0(
                 "event": "generated", "attempt_id": attempt_id, "ordinal": ordinal,
                 "probe_id": probe_id, "generation_sha256": canonical_digest(generation),
                 "generation": generation,
+                # The custody receipt #155 §3.2 requires and Elf's T_diversity estimator consumes.
+                # token_count travels with the generation it describes, in the tamper-evident spine.
+                "token_count": result.token_count,
+                "stop_reason": result.stop_reason,
             })
 
             # The scorer is a reviewed, content-pinned pure function (loaded content-first from
@@ -1760,7 +1932,21 @@ def run_b0(
             bundle.record(                                         # strict-JSON enforced here
                 probe_id, generation,
                 scorer_input=scorer_input, scorer_output=scorer_output,
-                provenance={"prompt_sha256": canonical_digest(prompt), "attempt_id": attempt_id},
+                provenance={
+                    "prompt_sha256": canonical_digest(prompt), "attempt_id": attempt_id,
+                    # Full per-item custody (#155 §3.2 / contract "per item" list). The journal
+                    # spine carries the summary receipt; the evidence bundle carries the raw ids a
+                    # downstream estimator needs — Elf's JSD is computed over these, and its length
+                    # policy (truncate-to-L, refuse-shorter, PAIRED) needs the count and the reason
+                    # to tell an ended continuation from a capped one.
+                    "input_token_ids_sha256": result.input_token_ids_sha256,
+                    "generated_token_ids": list(result.generated_token_ids),
+                    "generated_token_ids_sha256": canonical_digest(
+                        list(result.generated_token_ids)),
+                    "token_count": result.token_count,
+                    "stop_reason": result.stop_reason,
+                    "eos_token_id_fired": result.eos_token_id_fired,
+                },
             )
             journal.event({
                 "event": "recorded", "attempt_id": attempt_id, "ordinal": ordinal,
@@ -1897,6 +2083,8 @@ _DTYPE_ALIASES = {
 # authorities are exposed as read-only proxies so the snapshot itself cannot be mutated in place.
 class _Authority(NamedTuple):
     descriptor_keys: tuple
+    decoding_required_explicit: tuple
+    decoding_pinned_inert: tuple
     b0_run_kind: str
     integrity_verified: str
     committed_integrity_failed: str
@@ -1928,6 +2116,10 @@ def _bind_authority() -> Callable[[], _Authority]:
 
     snap = _Authority(
         descriptor_keys=tuple(DESCRIPTOR_KEYS),
+        # Frozen at the runner boundary too: which fields get PASSED to generate is a verdict
+        # authority, not a convenience list (#1009 B2 / #1011 B1).
+        decoding_required_explicit=tuple(DECODING_REQUIRED_EXPLICIT),
+        decoding_pinned_inert=tuple(DECODING_PINNED_INERT),
         b0_run_kind=str(B0_RUN_KIND),
         integrity_verified=str(INTEGRITY_VERIFIED),
         committed_integrity_failed=str(COMMITTED_INTEGRITY_FAILED),
@@ -2026,17 +2218,32 @@ class HFGenerationBackend:
                 if getattr(module, attr, None):
                     raise B0RunError(f"non-sterile: {attr} present on {type(module).__name__}")
 
-    def generate(self, prompt: str, decoding: Mapping[str, Any]) -> str:
+    def generate(self, prompt: str, decoding: Mapping[str, Any]) -> GenerationResult:
         torch = self._torch
         tok = getattr(self.processor, "tokenizer", self.processor)
         inputs = tok(prompt, return_tensors="pt")
         device = next(self.model.parameters()).device
         inputs = {k: v.to(device) for k, v in inputs.items()}
+        # Pass the WHOLE neutralization set explicitly. Anything omitted is resolved from
+        # self.model.generation_config — the checkpoint's own file — not from a neutral default
+        # (#1103). The set is assembled by the covered helper; this line is the torch-gated residual.
+        kwargs = generation_kwargs(decoding)
         with torch.no_grad():
             out = self.model.generate(
                 **inputs,
-                max_new_tokens=int(decoding.get("max_new_tokens", self.max_new_tokens)),
-                do_sample=bool(decoding.get("do_sample", False)),
+                **kwargs,
                 use_cache=self._use_cache,          # the SAME value descriptor reports (#966 B3)
             )
-        return tok.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+        prompt_len = inputs["input_ids"].shape[1]
+        gen_ids = tuple(int(i) for i in out[0][prompt_len:].tolist())
+        # Read from the IDS via the pure helper — which the 0-torch suite covers, unlike this method.
+        stop_reason, fired = derive_stop_reason(
+            gen_ids, decoding["eos_token_id"], decoding["max_new_tokens"])
+        return GenerationResult(
+            text=tok.decode(out[0][prompt_len:], skip_special_tokens=True),
+            generated_token_ids=gen_ids,
+            stop_reason=stop_reason,
+            eos_token_id_fired=fired,
+            input_token_ids_sha256=canonical_digest(
+                [int(i) for i in inputs["input_ids"][0].tolist()]),
+        )

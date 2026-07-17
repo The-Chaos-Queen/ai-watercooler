@@ -91,6 +91,65 @@ _PINNED_BLOCKS = {
 
 B0_RUN_KIND = "b0_baseline"
 
+# --------------------------------------------------------------------------- #
+# Decoding neutralization set (#155 contract rev5 `e1b9f4a` §3.1), three tiers. #
+# --------------------------------------------------------------------------- #
+# WHY EXPLICIT RATHER THAN ABSENT — this inverts the intuition, so it is written down once here.
+# HF `generate()` resolves an ABSENT kwarg from the CHECKPOINT'S OWN generation_config, not from a
+# neutral library default. transformers/generation/utils.py states the precedence verbatim:
+#
+#     kwargs > non-global default values in `generation_config` > `model.generation_config`
+#              > GenerationConfig()
+#
+# `GenerationConfig()` — the actually-neutral default — is the LAST resort, reached only after the
+# checkpoint's file. So leaving a field out hands it to vendor data that moves with `revision`:
+# absence is the drift channel, not the guard. Evidence: a real cached checkpoint ships
+# do_sample/temperature/top_p/top_k/repetition_penalty and an eos_token_id LIST. Two of those bite
+# under greedy — `repetition_penalty` is a logits processor and survives `do_sample=False`, and a
+# shipped `num_beams>1` yields deterministic BEAM SEARCH, not greedy. Neither would appear in the
+# manifest or the decoding hash. (Gidim WC #1103 -> Isegrim contract rev4/rev5 WC #1104.)
+#
+# Tier 1: active under greedy; the manifest declares each BY VALUE and the runner PASSES each.
+DECODING_REQUIRED_EXPLICIT = (
+    "do_sample", "num_beams", "max_new_tokens", "min_new_tokens",
+    "repetition_penalty", "no_repeat_ngram_size", "eos_token_id", "pad_token_id",
+)
+# Tier 2: inert while do_sample=False, but pinned so a future flip cannot co-opt shipped values.
+DECODING_PINNED_INERT = (
+    "temperature", "top_p", "top_k", "length_penalty", "early_stopping",
+)
+# Tier 3: neither manifest nor call may carry these at all.
+DECODING_FORBIDDEN_PRESENT = (
+    "bad_words_ids", "force_words_ids", "suppress_tokens", "begin_suppress_tokens",
+    "constraints", "penalty_alpha", "streamer", "assistant_model",
+)
+# `use_cache` is deliberately NOT here: it is descriptor-homed (a DESCRIPTOR_KEYS field, reported by
+# the same value the backend passes, #966 B3). Contract §3.4 references model.use_cache. One
+# authority, one home — the §4b alias lesson.
+_DECODING_META_KEYS = ("hash",)
+
+# Fields whose VALUE the contract fixes, because the value is what makes the run greedy and
+# drift-free. Presence alone is not the guarantee: a tier-2 field pinned to a NON-neutral number
+# (say temperature=0.7) is exactly the "shipped value co-opted by a future flip" that tier 2 exists
+# to prevent — it just waits for someone to set do_sample=True. Enforce the values.
+#
+# Deliberately NOT fixed here: `max_new_tokens`, `eos_token_id`, `pad_token_id`. Those are the RUN's
+# parameters, not neutrality invariants — the contract sets max_new_tokens=160 for this run (DQ1a
+# §3.3) and pins the token ids from the checkpoint. Hard-coding a run's budget into the harness
+# would make the tool the author of a value only the manifest may declare.
+_DECODING_NEUTRAL_VALUES = {
+    "do_sample": False,
+    "num_beams": 1,
+    "min_new_tokens": 0,
+    "repetition_penalty": 1.0,
+    "no_repeat_ngram_size": 0,
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "top_k": 0,
+    "length_penalty": 1.0,
+    "early_stopping": False,
+}
+
 # The closed-world union of schema variants (DQ1b §7). Exactly one may appear in a base manifest.
 # The variant — not a stage-specific base field — drives which required-key set applies and which
 # per-attempt run kinds are applicable.
@@ -139,6 +198,11 @@ class _HarnessPolicy(NamedTuple):
     schema_variants: tuple
     b0_schema_variant: str
     excluded_base_keys: Mapping[str, str]
+    decoding_required_explicit: tuple
+    decoding_pinned_inert: tuple
+    decoding_forbidden_present: tuple
+    decoding_meta_keys: tuple
+    decoding_neutral_values: Mapping[str, Any]
     unset_strings: frozenset
 
 
@@ -155,6 +219,14 @@ def _bind_harness_policy():
         schema_variants=tuple(SCHEMA_VARIANTS),
         b0_schema_variant=str(B0_SCHEMA_VARIANT),
         excluded_base_keys=MappingProxyType(dict(_EXCLUDED_BASE_KEYS)),
+        # The neutralization tiers are authorities too: widening FORBIDDEN_PRESENT or shrinking
+        # REQUIRED_EXPLICIT at call time would re-open the generation_config drift channel that
+        # #1103 closed. Freeze them with the rest (#1011 B1).
+        decoding_required_explicit=tuple(DECODING_REQUIRED_EXPLICIT),
+        decoding_pinned_inert=tuple(DECODING_PINNED_INERT),
+        decoding_forbidden_present=tuple(DECODING_FORBIDDEN_PRESENT),
+        decoding_meta_keys=tuple(_DECODING_META_KEYS),
+        decoding_neutral_values=MappingProxyType(dict(_DECODING_NEUTRAL_VALUES)),
         unset_strings=frozenset(_UNSET_STRINGS),
     )
 
@@ -342,10 +414,85 @@ def validate_b0_manifest(manifest: Mapping[str, Any]) -> list[str]:
 
     _check_excluded_base_keys(manifest, refusals)
     _check_variant_and_identity(manifest, refusals)
+    refusals.extend(check_decoding_contract(manifest))
     _check_no_component(manifest.get("components"), refusals)
     _check_pinned(manifest, refusals)
     _check_sev_disjointness(manifest.get("sev_ids"), refusals)
     _check_evidence_sink(manifest.get("evidence_sink"), refusals)
+    return refusals
+
+
+def check_decoding_contract(manifest: Mapping[str, Any]) -> list[str]:
+    """Refuse a decoding block that does not pin the exact neutralization set (#155 §3.1).
+
+    Closed-world over three tiers: every required-explicit and pinned-inert field must be present
+    (absence hands it to the checkpoint's generation_config — see the tier definitions above), no
+    forbidden-present field may appear, and no unknown field may appear.
+
+    The unknown-key refusal preserves the #1095 property rather than loosening it: a manifest may
+    not declare a decoding field the runner does not actually pass. That property is why this repair
+    ADDS fields to what the runner passes instead of relaxing the check.
+
+    Returns refusal reasons ([] means clean). Never runs anything.
+    """
+    _P = _policy()                                       # frozen policy (Codex #1011 B1)
+    refusals: list[str] = []
+    dec = manifest.get("decoding")
+    if not isinstance(dec, Mapping):
+        return ["decoding block missing or not a mapping"]
+
+    for key in _P.decoding_required_explicit:
+        if key not in dec:
+            refusals.append(
+                f"decoding.{key} is absent; it MUST be pinned by value — an absent kwarg is "
+                "resolved from the checkpoint's own generation_config, not a neutral default "
+                "(WC #1103)"
+            )
+    for key in _P.decoding_pinned_inert:
+        if key not in dec:
+            refusals.append(
+                f"decoding.{key} is absent; it is inert under do_sample=False but MUST be pinned "
+                "so a future flip cannot co-opt the checkpoint's shipped value (#155 §3.1 tier 2)"
+            )
+    for key in _P.decoding_forbidden_present:
+        if key in dec:
+            refusals.append(
+                f"decoding.{key} is forbidden-present: neither the manifest nor the call may "
+                "carry it (#155 §3.1 tier 3)"
+            )
+
+    allowed = set(_P.decoding_required_explicit) | set(_P.decoding_pinned_inert) | set(
+        _P.decoding_meta_keys)
+    unknown = set(dec) - allowed - set(_P.decoding_forbidden_present)
+    if unknown:
+        refusals.append(
+            f"unsupported decoding fields in manifest (not consumed by generate): "
+            f"{sorted(unknown)}"
+        )
+
+    # Determinism is structural here, not advisory: this harness authorizes a BASELINE.
+    _WHY = {
+        "do_sample": "B0 baseline must be deterministic",
+        "num_beams": ("a num_beams>1 yields deterministic BEAM SEARCH under do_sample=False, "
+                      "which is still not greedy"),
+        "repetition_penalty": ("repetition_penalty is a logits processor and SURVIVES "
+                               "do_sample=False — it reshapes every greedy continuation"),
+        "temperature": "pinned-inert: must not leave a non-neutral value for a future do_sample flip",
+        "top_p": "pinned-inert: must not leave a non-neutral value for a future do_sample flip",
+        "top_k": "pinned-inert: must not leave a non-neutral value for a future do_sample flip",
+    }
+    for key, want in _P.decoding_neutral_values.items():
+        if key not in dec:
+            continue                      # absence already refused above; don't double-report
+        got = dec[key]
+        # Exact type before value: `1 == True` and `1 == 1.0` in Python, so an equality-only check
+        # would accept `do_sample=0` or `num_beams=True` as neutral.
+        if type(got) is not type(want) or got != want:
+            why = _WHY.get(key, "pinned by the #155 neutralization set")
+            refusals.append(
+                f"decoding.{key} must be exactly {want!r} ({type(want).__name__}), got {got!r} "
+                f"({type(got).__name__}) — {why}"
+            )
     return refusals
 
 

@@ -30,6 +30,17 @@ class _EqStr(str):
         return hash("_eqstr_")
 
 
+# The exact three-tier neutralization set (#155 contract rev5 e1b9f4a §3.1). Every tier-1 and
+# tier-2 field must be present BY VALUE: an absent kwarg is resolved from the checkpoint's own
+# generation_config, not a neutral default (WC #1103).
+_DEC = {
+    "do_sample": False, "num_beams": 1, "max_new_tokens": 160, "min_new_tokens": 0,
+    "repetition_penalty": 1.0, "no_repeat_ngram_size": 0, "eos_token_id": [1, 106],
+    "pad_token_id": 0,
+    "temperature": 1.0, "top_p": 1.0, "top_k": 0, "length_penalty": 1.0, "early_stopping": False,
+}
+
+
 def _good():
     return {
         "schema_version": "closed_world_b0_v1",
@@ -42,7 +53,7 @@ def _good():
                    "allowlist_digest": "a" * 64},
         "rubric": {"version": "rubric-v1"},
         "processor": {"revision": "proc-rev-1"},
-        "decoding": {"hash": "dec-hash-1"},
+        "decoding": {**_DEC, "hash": "dec-hash-1"},
         "runtime": {"hash": "rt-hash-1"},
         "components": {r: "disabled" for r in COMPONENT_ROUTES},
         "sev_ids": {"geometry_holdout": ["a1", "a2"], "behavioral_probe": ["b1", "b2"]},
@@ -142,6 +153,107 @@ def test_base_manifest_carrying_its_own_digest_is_refused():
     d = authorize_b0_launch(m)
     assert d.ok is False
     assert any("reference-only" in r for r in d.refusals)
+
+
+# --------------------------------------------------------------------------- #
+# Decoding neutralization set (#155 rev5 e1b9f4a §3.1) — the WC #1103 repair.  #
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("key", [
+    "do_sample", "num_beams", "max_new_tokens", "min_new_tokens",
+    "repetition_penalty", "no_repeat_ngram_size", "eos_token_id", "pad_token_id",
+])
+def test_absent_required_explicit_decoding_field_is_refused(key):
+    # THE core regression. Absence is not neutrality: HF resolves an absent kwarg from the
+    # CHECKPOINT'S generation_config (kwargs > generation_config > model.generation_config >
+    # GenerationConfig()), which is vendor data that moves with `revision`. Every one of these must
+    # be declared by value or the manifest does not actually pin decoding.
+    m = _good()
+    del m["decoding"][key]
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any(key in r and "absent" in r for r in d.refusals)
+
+
+@pytest.mark.parametrize("key", ["temperature", "top_p", "top_k", "length_penalty",
+                                 "early_stopping"])
+def test_absent_pinned_inert_decoding_field_is_refused(key):
+    # Inert under do_sample=False, but pinned so a future flip cannot silently inherit the
+    # checkpoint's shipped sampler values (a real cached checkpoint ships temperature=0.7/top_p=0.8).
+    m = _good()
+    del m["decoding"][key]
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any(key in r for r in d.refusals)
+
+
+@pytest.mark.parametrize("key", ["bad_words_ids", "force_words_ids", "suppress_tokens",
+                                 "begin_suppress_tokens", "constraints", "penalty_alpha",
+                                 "streamer", "assistant_model"])
+def test_forbidden_present_decoding_field_is_refused(key):
+    m = _good()
+    m["decoding"][key] = "anything"
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any(key in r and "forbidden-present" in r for r in d.refusals)
+
+
+def test_unknown_decoding_field_is_still_refused_as_not_consumed():
+    # The #1095 property is KEPT, not loosened: a manifest may not declare a decoding field the
+    # runner does not actually pass. This repair adds fields to what IS passed; it does not relax
+    # the check that guards against declaring-without-passing.
+    m = _good()
+    m["decoding"]["typical_p"] = 0.9
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("not consumed by generate" in r for r in d.refusals)
+
+
+def test_repetition_penalty_must_be_neutral_because_it_survives_greedy():
+    # repetition_penalty is a LOGITS PROCESSOR, not a sampler: do_sample=False does not disable it.
+    # A shipped 1.1 would reshape every B0 continuation invisibly.
+    m = _good()
+    m["decoding"]["repetition_penalty"] = 1.1
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("SURVIVES do_sample=False" in r for r in d.refusals)
+
+
+def test_num_beams_must_be_one_because_beam_search_is_not_greedy():
+    # A shipped num_beams>1 yields deterministic BEAM SEARCH under do_sample=False — still not
+    # greedy, and invisible in a manifest that only pinned do_sample/max_new_tokens.
+    m = _good()
+    m["decoding"]["num_beams"] = 4
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("BEAM SEARCH" in r for r in d.refusals)
+
+
+def test_sampling_manifest_is_refused():
+    m = _good()
+    m["decoding"]["do_sample"] = True
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("deterministic" in r for r in d.refusals)
+
+
+def test_eos_token_id_accepts_the_checkpoint_list_form():
+    # Real checkpoints ship eos_token_id as a LIST (one cached here ships [151645, 151643]), so
+    # "pinned by value" must admit both forms.
+    m = _good()
+    m["decoding"]["eos_token_id"] = 1
+    assert authorize_b0_launch(m).ok is True
+    m["decoding"]["eos_token_id"] = [1, 106]
+    assert authorize_b0_launch(m).ok is True
+
+
+def test_use_cache_is_not_a_decoding_field():
+    # use_cache is descriptor-homed (#966 B3, contract §3.4). Declaring it under decoding would be
+    # two homes for one authority — the §4b alias mistake.
+    m = _good()
+    m["decoding"]["use_cache"] = False
+    d = authorize_b0_launch(m)
+    assert d.ok is False
+    assert any("not consumed by generate" in r for r in d.refusals)
 
 
 # --- schema_variant: closed-world union, exact-str (acceptance 1) --------------------------- #

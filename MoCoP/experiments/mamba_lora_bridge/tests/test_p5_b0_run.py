@@ -20,6 +20,8 @@ import p5_b0_run
 
 from p5_b0_harness import (
     COMPONENT_ROUTES,
+    DECODING_PINNED_INERT,
+    DECODING_REQUIRED_EXPLICIT,
     B0EvidenceBundle,
     EvidenceBundleError,
     authorize_b0_launch,
@@ -28,6 +30,7 @@ from p5_b0_harness import (
 from p5_b0_run import (
     FORBIDDEN_ROUTE_MODULES,
     B0RunError,
+    GenerationResult,
     ScriptedGenerationBackend,
     _Journal,
     _ensure_import_audit,
@@ -39,6 +42,8 @@ from p5_b0_run import (
     assert_no_component_reachable,
     canonical_panel_hash,
     derive_effective_decoding,
+    derive_stop_reason,
+    generation_kwargs,
     finalize_publication,
     load_allowlisted_scorer,
     publish_report_atomic,
@@ -54,7 +59,16 @@ MODEL = {
     "attention": "eager", "use_cache": True,
 }
 PANEL = [("probe1", "prompt one"), ("probe2", "prompt two")]
-DEC = {"do_sample": False, "max_new_tokens": 64}
+# The exact three-tier neutralization set (#155 rev5 e1b9f4a §3.1). Every tier-1/tier-2 field is
+# declared BY VALUE and PASSED: an absent kwarg would be resolved from the checkpoint's own
+# generation_config, not a neutral library default (WC #1103). use_cache is deliberately absent —
+# it is descriptor-homed (#966 B3, contract §3.4).
+DEC = {
+    "do_sample": False, "num_beams": 1, "max_new_tokens": 64, "min_new_tokens": 0,
+    "repetition_penalty": 1.0, "no_repeat_ngram_size": 0, "eos_token_id": [1, 106],
+    "pad_token_id": 0,
+    "temperature": 1.0, "top_p": 1.0, "top_k": 0, "length_penalty": 1.0, "early_stopping": False,
+}
 DEC_HASH = canonical_digest(DEC)
 RUNNER_DIGEST = _runner_digest()
 
@@ -110,8 +124,9 @@ def _mods(*names):
 def _manifest(panel, report_path, *, model=None, panel_hash=None,
               scorer_block=None, decoding=None, runner_digest=None):
     dec = dict(decoding or DEC)
-    dec_block = {**dec, "hash": canonical_digest(
-        {"do_sample": bool(dec["do_sample"]), "max_new_tokens": int(dec["max_new_tokens"])})}
+    # The declared hash must equal the digest of what is ACTUALLY passed — which is now the whole
+    # neutralization set, read straight from the manifest with no defaults and no coercion.
+    dec_block = {**dec, "hash": canonical_digest(dec)}
     return {
         "schema_version": "closed_world_b0_v1",
         # Stage-NEUTRAL base (DQ1b §7 / spec 6b2347e): run_kind is a per-attempt binding on run_b0,
@@ -142,6 +157,17 @@ def _run(manifest, panel, backend, out, **over):
               decoding_hash=DEC_HASH, runtime_hash="rt-hash-1", report_path=out)
     kw.update(over)
     return run_b0(manifest, panel, backend, **kw)
+
+
+def _gen(text="gen", *, stop="eos", ids=None, eos_fired=1):
+    """A well-formed GenerationResult for test backends (the protocol no longer returns str)."""
+    if ids is None:
+        ids = (100, 101, eos_fired) if stop == "eos" else (100, 101, 102)
+    return GenerationResult(
+        text=text, generated_token_ids=tuple(ids), stop_reason=stop,
+        eos_token_id_fired=eos_fired if stop == "eos" else None,
+        input_token_ids_sha256=H,
+    )
 
 
 class _ExplodingBackend:
@@ -195,8 +221,10 @@ def _f_attempt(ordinal=0, probe="p0", run_id=RID, **over):
 
 
 def _f_generated(ordinal=0, probe="p0", run_id=RID, **over):
+    # token_count/stop_reason are unconditional in the exact schema (#155 §3.2): a generation frame
+    # that cannot say how long the continuation was, or why it stopped, is not a governed receipt.
     f = {"attempt_id": f"{run_id}:{ordinal}", "ordinal": ordinal, "probe_id": probe,
-         "generation_sha256": H, "generation": "gen"}
+         "generation_sha256": H, "generation": "gen", "token_count": 3, "stop_reason": "eos"}
     f.update(over)
     return _frame("generated", **f)
 
@@ -447,6 +475,110 @@ def test_execution_descriptor_and_claim_bind_variant_base_id_and_attempt_run_kin
     assert claim["execution_descriptor_digest"] == canonical_digest(ed)
 
 
+def test_generation_kwargs_carries_the_whole_neutralization_set():
+    # The field set that reaches model.generate is under regression HERE, because
+    # HFGenerationBackend itself is torch-gated and this suite cannot execute it. A backend that
+    # narrowed the set back to {do_sample, max_new_tokens} would silently restore the #1103 bug.
+    kw = generation_kwargs(DEC)
+    assert set(kw) == set(DECODING_REQUIRED_EXPLICIT) | set(DECODING_PINNED_INERT)
+    # Every field that can reach a logits processor or the stop condition is present BY VALUE.
+    assert kw["num_beams"] == 1 and kw["repetition_penalty"] == 1.0
+    assert kw["eos_token_id"] == [1, 106] and kw["do_sample"] is False
+    assert "use_cache" not in kw and "hash" not in kw    # descriptor-homed / meta
+
+
+def test_generation_kwargs_refuses_a_narrowed_set_instead_of_defaulting():
+    with pytest.raises(B0RunError) as ei:
+        generation_kwargs({"do_sample": False, "max_new_tokens": 64})
+    assert "missing neutralization fields" in str(ei.value)
+    assert "num_beams" in str(ei.value)
+
+
+def test_torch_gated_backend_wiring_is_a_DECLARED_RESIDUAL():
+    """PINS an honest gap rather than implying coverage (round-11 precedent).
+
+    `HFGenerationBackend.generate` needs torch; this suite is 0-torch by contract and asserts as
+    much. So the suite CANNOT witness that generate() actually calls generation_kwargs() and splats
+    the result, nor that it calls derive_stop_reason() on the real ids. Verified empirically: a
+    mutation replacing the backend's kwargs assembly with the old two-field dict passes this entire
+    suite. Both halves of the LOGIC are extracted and covered above; what remains uncovered is the
+    WIRING, and it is verified on ML-WS, not here.
+
+    This test exists so the residual is visible and so a future shrink of it is noticed. If someone
+    makes the backend testable model-free, delete this test deliberately.
+    """
+    import inspect
+    src = inspect.getsource(p5_b0_run.HFGenerationBackend.generate)
+    # A source-reading assertion is weak on purpose — it is NOT execution, and saying so is the
+    # point. It catches the careless narrowing, not a determined one.
+    assert "generation_kwargs(decoding)" in src
+    assert "derive_stop_reason(" in src
+    assert "skip_special_tokens=True" in src   # text is still stripped; the IDS carry the receipt
+
+
+@pytest.mark.parametrize("ids,eos,cap,expect", [
+    ((100, 101, 1), 1, 64, ("eos", 1)),                   # scalar eos
+    ((100, 101, 106), [1, 106], 64, ("eos", 106)),        # LIST eos: names WHICH id fired
+    ((100, 101, 1), [1, 106], 64, ("eos", 1)),            # the other member of the list
+    (tuple(range(64)), [1, 106], 64, ("length", None)),   # capped: no eos id named
+    (tuple(range(70)), [1, 106], 64, ("length", None)),   # over-cap still length
+])
+def test_derive_stop_reason_from_ids_not_text(ids, eos, cap, expect):
+    # Pure, 0-torch, and therefore actually covered — HFGenerationBackend itself needs torch and
+    # cannot be exercised by this suite, so the safety-critical half lives here on purpose.
+    assert derive_stop_reason(ids, eos, cap) == expect
+
+
+def test_derive_stop_reason_fails_closed_outside_the_closed_set():
+    # Short AND not eos-terminated: the contract's {eos, length} cannot describe it. Refuse rather
+    # than relabel it "length" — an unexplained short continuation is exactly the early-EOS signal
+    # Elf's battery_coverage guard needs to see.
+    with pytest.raises(B0RunError) as ei:
+        derive_stop_reason((100, 101), [1, 106], 64)
+    assert "outside the closed set" in str(ei.value)
+
+
+def test_derive_stop_reason_rejects_a_malformed_eos_pin():
+    with pytest.raises(B0RunError):
+        derive_stop_reason((100, 1), "1", 64)             # str is not an id or a list of ids
+
+
+def test_stop_reason_and_token_count_are_recoverable_from_the_receipt(tmp_path):
+    # The whole point of the protocol widening (#1103/#1114, #155 §3.2). Before it, generate()
+    # returned a str decoded with skip_special_tokens=True — EOS was STRIPPED, so an ended
+    # continuation and one capped at max_new_tokens were byte-indistinguishable, and stop_reason was
+    # UNRECOVERABLE rather than merely unrecorded. Elf's T_diversity estimator is biased by
+    # continuation length, so this receipt is what makes his length policy computable at all.
+    out = tmp_path / "b0_report.json"
+    backend = ScriptedGenerationBackend(
+        responses={"prompt one": "ended", "prompt two": "capped"},
+        model_descriptor=dict(MODEL),
+        stop_reasons={"prompt one": "eos", "prompt two": "length"},
+        token_ids={"prompt one": (100, 101, 1), "prompt two": (200, 201, 202, 203)},
+        eos_id=1,
+    )
+    res = _run(_manifest(PANEL, out), PANEL, backend, out)
+    assert res.ok is True
+
+    events = [json.loads(x) for x in
+              (tmp_path / "b0_report.json.journal").read_text(encoding="utf-8").splitlines()]
+    gen = [e for e in events if e["event"] == "generated"]
+    # The journal spine distinguishes the two cases that used to be identical.
+    assert [(e["stop_reason"], e["token_count"]) for e in gen] == [("eos", 3), ("length", 4)]
+
+    published = json.loads(out.read_text(encoding="utf-8"))
+    recs = {r["probe_id"]: r["provenance"] for r in published["records"]}
+    ended, capped = recs["probe1"], recs["probe2"]
+    assert ended["stop_reason"] == "eos" and ended["eos_token_id_fired"] == 1
+    assert ended["generated_token_ids"] == [100, 101, 1]
+    # A capped continuation names no fired eos id — there wasn't one.
+    assert capped["stop_reason"] == "length" and capped["eos_token_id_fired"] is None
+    assert capped["token_count"] == 4
+    # Raw ids are carried for the downstream estimator, and hash-bound.
+    assert capped["generated_token_ids_sha256"] == canonical_digest([200, 201, 202, 203])
+    assert ended["input_token_ids_sha256"]
+
+
 def test_run_b0_journal_two_phase_terminal(tmp_path):
     out = tmp_path / "b0_report.json"
     _run(_manifest(PANEL, out), PANEL, _backend(), out)
@@ -547,7 +679,7 @@ def test_run_b0_refuses_component_persistently_imported_in_forward(tmp_path):
 
         def generate(self, prompt, decoding):
             sys.modules["mamba_ssm"] = types.ModuleType("mamba_ssm")
-            return "gen"
+            return _gen("gen")
 
     try:
         with pytest.raises(B0RunError) as ei:
@@ -571,7 +703,7 @@ def test_run_b0_refuses_transient_import_in_forward(tmp_path):
 
         def generate(self, prompt, decoding):
             sys.audit("import", "mamba_ssm", None, None, None, None)   # transient, not left loaded
-            return "gen"
+            return _gen("gen")
 
     with pytest.raises(B0RunError) as ei:
         _run(_manifest(PANEL, out), PANEL, _Transient(), out)
@@ -687,18 +819,35 @@ def test_run_b0_refuses_derived_decoding_hash_mismatch(tmp_path):
 
 
 def test_run_b0_refuses_unsupported_decoding_field(tmp_path):
+    # The #1095 property, preserved through the neutralization repair: a manifest may not declare a
+    # decoding field the runner does not pass. NOTE the premise moved — `temperature` used to be the
+    # example of an unsupported field; it is now REQUIRED (tier 2, pinned-inert), because leaving it
+    # absent hands it to the checkpoint's generation_config. So the unsupported case needs a field
+    # that is genuinely outside all three tiers.
     out = tmp_path / "b0_report.json"
     m = _manifest(PANEL, out)
-    m["decoding"]["temperature"] = 0.7
+    m["decoding"]["typical_p"] = 0.9
     res = _run(m, PANEL, _ExplodingBackend(), out)
-    assert res.ok is False and any("unsupported decoding fields" in r for r in res.refusals)
+    assert res.ok is False and any("not consumed by generate" in r for r in res.refusals)
+
+
+def test_run_b0_refuses_non_neutral_pinned_inert_value(tmp_path):
+    # Tier 2 is about VALUES, not just presence: temperature=0.7 is inert today under
+    # do_sample=False, but it is the shipped value lying in wait for a future flip — exactly what
+    # tier 2 exists to stop.
+    out = tmp_path / "b0_report.json"
+    m = _manifest(PANEL, out, decoding={**DEC, "temperature": 0.7})
+    res = _run(m, PANEL, _ExplodingBackend(), out,
+               decoding_hash=canonical_digest({**DEC, "temperature": 0.7}))
+    assert res.ok is False
+    assert any("temperature" in r and "future do_sample flip" in r for r in res.refusals)
 
 
 def test_run_b0_refuses_nondeterministic_decoding(tmp_path):
     out = tmp_path / "b0_report.json"
-    m = _manifest(PANEL, out, decoding={"do_sample": True, "max_new_tokens": 64})
-    res = _run(m, PANEL, _ExplodingBackend(), out,
-               decoding_hash=canonical_digest({"do_sample": True, "max_new_tokens": 64}))
+    dec = {**DEC, "do_sample": True}
+    m = _manifest(PANEL, out, decoding=dec)
+    res = _run(m, PANEL, _ExplodingBackend(), out, decoding_hash=canonical_digest(dec))
     assert res.ok is False and any("deterministic" in r for r in res.refusals)
 
 
@@ -806,9 +955,27 @@ def test_normalize_dtype(raw, norm):
     assert _normalize_dtype(raw) == norm
 
 
-def test_derive_effective_decoding_drops_extras():
-    m = {"decoding": {"do_sample": False, "max_new_tokens": 32, "hash": "x", "temperature": 0.7}}
-    assert derive_effective_decoding(m) == {"do_sample": False, "max_new_tokens": 32}
+def test_derive_effective_decoding_returns_the_whole_neutralization_set():
+    # What is derived is exactly what is PASSED to generate, and it is now the full tier-1+tier-2
+    # set — anything omitted here would be silently resolved from the checkpoint's generation_config
+    # (#1103). `hash` is meta and is not passed.
+    m = {"decoding": {**DEC, "hash": "x"}}
+    eff = derive_effective_decoding(m)
+    assert eff == DEC
+    assert "hash" not in eff
+    assert "use_cache" not in eff          # descriptor-homed, not a decoding kwarg
+
+
+def test_derive_effective_decoding_omits_absent_keys_and_never_defaults():
+    # A default here would be the same failure as an absent kwarg one layer down: it would let a
+    # value nobody declared reach generate, with the decoding hash attesting it. Absent stays
+    # absent — the manifest is refused elsewhere, and derive must not raise out of the
+    # deny-by-default path.
+    m = {"decoding": {k: v for k, v in DEC.items() if k != "num_beams"}}
+    eff = derive_effective_decoding(m)
+    assert "num_beams" not in eff
+    assert derive_effective_decoding({}) == {}
+    assert derive_effective_decoding({"decoding": "not-a-mapping"}) == {}
 
 
 # --------------------------------------------------------------------------- #
@@ -835,7 +1002,7 @@ def test_run_b0_refuses_backend_dirty_after_forward(tmp_path):
                 raise B0RunError("backend became dirty during generate")
 
         def generate(self, prompt, decoding):
-            return "gen"
+            return _gen("gen")
 
     with pytest.raises(B0RunError) as ei:
         _run(_manifest(PANEL, out), PANEL, _DirtyAfter(), out)
@@ -1176,7 +1343,7 @@ def test_run_b0_panel_toctou_defeated(tmp_path):
 
         def generate(self, prompt, decoding):
             panel[1] = ("probe2", "TAMPERED")             # mutate the caller-owned list mid-run
-            return "gen"
+            return _gen("gen")
 
     res = _run(_manifest(panel, out), panel, _PanelMutator(), out)
     # The bound panel hash and the executed prompts both come from the pre-forward snapshot.
@@ -1284,7 +1451,7 @@ def test_run_b0_backend_descriptor_active_leaf_refused(tmp_path):
             return d
 
         def generate(self, prompt, decoding):
-            return "gen"
+            return _gen("gen")
 
     res = _run(_manifest(PANEL, out), PANEL, _DescLeaf(), out)
     assert res.ok is False
@@ -1335,11 +1502,78 @@ def test_run_b0_refuses_str_subclass_generation(tmp_path):
             return dict(MODEL)
 
         def generate(self, prompt, decoding):
-            return _EqStr("visible text")
+            # The result CONTAINER is exact, but the text inside is the #1011 B2 attacker.
+            return GenerationResult(
+                text=_EqStr("visible text"), generated_token_ids=(100, 1),
+                stop_reason="eos", eos_token_id_fired=1, input_token_ids_sha256=H,
+            )
 
     with pytest.raises(B0RunError) as ei:
         _run(_manifest(PANEL, out), PANEL, _SubclassGen(), out)
-    assert "non-exact-str" in str(ei.value)
+    assert "not an exact str" in str(ei.value)
+    assert not out.exists()
+
+
+def test_run_b0_generation_result_subclass_cannot_lie_about_its_own_receipt(tmp_path):
+    # The protocol widening carries #1011 B2 up to the CONTAINER (round-12's lesson: exact-type the
+    # container before trusting its contents). A GenerationResult SUBCLASS can override token_count
+    # or stop_reason to publish a receipt that contradicts its own token ids — an exact-str check on
+    # .text alone would never see it, and the false receipt would be signed into the journal.
+    out = tmp_path / "b0_report.json"
+
+    class _LyingResult(GenerationResult):
+        @property
+        def token_count(self):
+            return 160                      # claims a full-length continuation...
+
+    class _LyingBackend:
+        def assert_sterile(self):
+            return None
+
+        def descriptor(self):
+            return dict(MODEL)
+
+        def generate(self, prompt, decoding):
+            return _LyingResult(           # ...while carrying 2 ids (an early-EOS collapse)
+                text="short", generated_token_ids=(100, 1), stop_reason="eos",
+                eos_token_id_fired=1, input_token_ids_sha256=H,
+            )
+
+    with pytest.raises(B0RunError) as ei:
+        _run(_manifest(PANEL, out), PANEL, _LyingBackend(), out)
+    assert "non-exact GenerationResult" in str(ei.value)
+    assert not out.exists()
+
+
+@pytest.mark.parametrize("kwargs,expect", [
+    # A receipt that disagrees with its own evidence is worse than no receipt: it is signed.
+    (dict(stop_reason="eos", eos_token_id_fired=None), "WHICH id fired"),
+    (dict(stop_reason="eos", eos_token_id_fired=9, generated_token_ids=(100, 1)),
+     "does not match the final generated token id"),
+    (dict(stop_reason="length", eos_token_id_fired=1), "must not name a fired eos id"),
+    (dict(stop_reason="truncated"), "must be exactly one of"),
+    (dict(generated_token_ids=[100, 1]), "must be an exact tuple"),
+    (dict(generated_token_ids=(100, True)), "must be exact ints"),
+])
+def test_run_b0_refuses_self_contradictory_generation_receipt(tmp_path, kwargs, expect):
+    out = tmp_path / "b0_report.json"
+    base = dict(text="gen", generated_token_ids=(100, 1), stop_reason="eos",
+                eos_token_id_fired=1, input_token_ids_sha256=H)
+    base.update(kwargs)
+
+    class _BadReceipt:
+        def assert_sterile(self):
+            return None
+
+        def descriptor(self):
+            return dict(MODEL)
+
+        def generate(self, prompt, decoding):
+            return GenerationResult(**base)
+
+    with pytest.raises(B0RunError) as ei:
+        _run(_manifest(PANEL, out), PANEL, _BadReceipt(), out)
+    assert expect in str(ei.value)
     assert not out.exists()
 
 
@@ -1451,7 +1685,7 @@ def test_observer_catches_real_transient_load_in_backend_window(tmp_path, _fake_
             import importlib
             (__import__ if how == "builtin" else importlib.import_module)(name)
             sys.modules.pop(name, None)
-            return "gen"
+            return _gen("gen")
 
     with pytest.raises(B0RunError) as ei:
         _run(_manifest(PANEL, out), PANEL, _RealImportBackend(), out)
@@ -1484,7 +1718,7 @@ def test_temporary_metapath_teardown_is_documented_residual(tmp_path, _fake_forb
                 sys.modules.pop(name, None)
             finally:
                 sys.meta_path[:] = saved               # restore BEFORE the checkpoint
-            return "gen"
+            return _gen("gen")
 
     res = _run(_manifest(PANEL, out), PANEL, _TeardownBackend(), out)
     # Residual: the transient importlib load under active machinery teardown is NOT caught. If this
@@ -1541,7 +1775,7 @@ def test_meta_path_swapped_mid_run_fails_closed(tmp_path):
 
         def generate(self, prompt, decoding):
             sys.meta_path = ("not", "a", "list")         # non-list replacement
-            return "gen"
+            return _gen("gen")
 
     try:
         with pytest.raises(B0RunError) as ei:
@@ -1571,7 +1805,7 @@ def test_observer_displacement_fails_closed(tmp_path):
 
         def generate(self, prompt, decoding):
             sys.meta_path.insert(0, _NoopFinder())     # shove a finder ahead of the observer
-            return "gen"
+            return _gen("gen")
 
     try:
         with pytest.raises(B0RunError) as ei:
@@ -1607,7 +1841,7 @@ def test_run_b0_refuses_import_inside_sterility_call(tmp_path):
             sys.audit("import", "qdrant_client", None, None, None, None)
 
         def generate(self, prompt, decoding):
-            return "gen"
+            return _gen("gen")
 
     with pytest.raises(B0RunError) as ei:
         _run(_manifest(PANEL, out), PANEL, _SterileImports(), out)
