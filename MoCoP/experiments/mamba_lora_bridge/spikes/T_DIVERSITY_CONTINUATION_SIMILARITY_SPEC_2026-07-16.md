@@ -53,17 +53,22 @@ Same fundamental issues as 3a (external model dependency, reader-relative, versi
 
 ### 4.1 Definition
 
-For a battery of N prompts, each generating a free-running continuation of L tokens:
+For a battery of N prompts, each generating a free-running continuation under the #155 generation backend:
 
-1. **Per-prompt unigram distribution**: for prompt i, compute p_i = the empirical unigram frequency distribution over the L generated tokens (a vector over the vocabulary V, normalized to sum to 1).
+1. **Length contract (Gidim #1114 B1 — the length confound).** JSD between empirical distributions is biased upward at small n. If injection shortens continuations (early-EOS collapse), S_cross inflates for non-diversity reasons → similarity_increase deflates → gate fails to fire → **false PASS in the dangerous direction**. Therefore:
+   - Every continuation MUST be truncated to exactly L tokens. Continuations shorter than L (early EOS) are **refused, not padded** — a prompt whose injected or alpha-zero continuation is shorter than L tokens is excluded from the battery with a typed `short_continuation` receipt.
+   - Per-prompt `token_count` (int) and `stop_reason` (enum: `eos | length | error`) are REQUIRED inputs alongside S_cross. These are produced by the #155 generation backend's token-count + stop-reason receipts (Gidim #1103/#1114; currently unbuilt, held behind #156 Codex verdict).
+   - The monitor records `n_refused` (count of short-continuation exclusions) and fires a separate `battery_coverage` warning if n_refused > floor(N / 4) — massive early-EOS is itself a signal, even if the remaining continuations look diverse.
 
-2. **Alpha-zero anchor distribution**: p_0 = the unigram distribution from the alpha-zero (no-injection) paired run on the same prompt.
+2. **Per-prompt unigram distribution**: for prompt i, compute p_i = the empirical unigram frequency distribution over the L generated tokens (a vector over the vocabulary V, normalized to sum to 1).
 
-3. **Per-prompt divergence**: d_i = JSD(p_i, p_0), the Jensen-Shannon divergence between the injected and alpha-zero distributions for prompt i. JSD is symmetric, bounded [0, ln(2)] in nats or [0, 1] in bits, and well-defined even when supports don't overlap (unlike KL).
+3. **Alpha-zero anchor distribution**: p_0 = the unigram distribution from the alpha-zero (no-injection) paired run on the same prompt (same L-token truncation).
 
-4. **Cross-prompt continuation-similarity**: the metric is NOT d_i itself (that measures injection effect, which is T_control's lane). The continuation-similarity is the **pairwise JSD between the N injected continuations' unigram distributions**:
+4. **Cross-prompt continuation-similarity**: the **pairwise JSD between the N injected continuations' unigram distributions** (excluding refused prompts):
 
-   S_cross = (2 / (N(N-1))) * Σ_{i<j} JSD(p_i, p_j)
+   S_cross = (2 / (N'(N'-1))) * Σ_{i<j} JSD(p_i, p_j)
+
+   where N' = N - n_refused. JSD is symmetric, bounded [0, 1] in bits, and well-defined even when supports don't overlap (unlike KL).
 
    **Direction:** a DECREASE in S_cross relative to the alpha-zero baseline S_cross_0 indicates prompt-independence collapse (the continuations are becoming more similar to each other). The gate fires on:
 
@@ -88,7 +93,7 @@ For a battery of N prompts, each generating a free-running continuation of L tok
 
 2. **Vocabulary-preserving semantic collapse.** A model that collapses to semantically identical content using different vocabulary on each prompt would evade this metric. This requires the model to maintain surface diversity while losing semantic diversity — possible but unlikely as a natural failure mode of bridge injection. If observed empirically in B0, this finding would justify upgrading to an embedding-based function (accepting the R6 cost with eyes open).
 
-3. **Sensitivity to L.** Short continuations have noisy unigram distributions. L must be long enough for frequency estimates to stabilize. The exact L is a manifest parameter, not a function parameter — it's pinned alongside the threshold after B0 evidence.
+3. **Sensitivity to L and the length confound.** Short continuations have noisy unigram distributions AND inflate JSD (Gidim #1114 B1). L must be long enough for frequency estimates to stabilize. The exact L is a manifest parameter pinned after B0 evidence. Continuations shorter than L are refused with typed receipts, not padded or silently included (§4.1 step 1). This cross-depends on #155 token-count + stop-reason receipts (currently unbuilt).
 
 ### 4.4 The R4 residual is bounded and testable — B0 comparison is MANDATORY
 
@@ -116,29 +121,33 @@ t_diversity:
 
 ### 5.2 Input contract (0-torch boundary)
 
-The P5 model-free monitor receives these as pinned float inputs in the audit record:
+The P5 model-free monitor receives these as pinned inputs in the audit record. The **producer** is the #155 generation backend (`HFGenerationBackend` or its successor, which loads the model and HAS torch). The **consumer** is the P5 monitor (0-torch, stdlib only).
 
 ```
-audit.t_diversity_s_cross: float       # pairwise JSD of injected continuations
-audit.t_diversity_s_cross_0: float     # pairwise JSD of alpha-zero continuations
-audit.t_diversity_distinct2: float     # within-prompt distinct-2 (injected)
-audit.t_diversity_distinct2_0: float   # within-prompt distinct-2 (alpha-zero)
+audit.t_diversity_s_cross: float       # pairwise JSD of injected continuations (N' prompts)
+audit.t_diversity_s_cross_0: float     # pairwise JSD of alpha-zero continuations (N' prompts)
+audit.t_diversity_distinct2: float     # within-prompt distinct-2 (injected, mean over N')
+audit.t_diversity_distinct2_0: float   # within-prompt distinct-2 (alpha-zero, mean over N')
+audit.t_diversity_n_battery: int       # N (total prompts in SEV battery)
+audit.t_diversity_n_refused: int       # prompts excluded (continuation < L tokens)
+audit.t_diversity_token_counts: List[int]    # per-prompt token count (all N, including refused)
+audit.t_diversity_stop_reasons: List[str]    # per-prompt stop_reason ("eos"|"length"|"error")
 ```
 
-These are computed upstream by the generation harness (which HAS torch) under its own provenance chain. The monitor computes:
+The monitor computes:
 
 ```
 similarity_increase = s_cross_0 - s_cross
 distinct2_loss = distinct2_0 - distinct2
 ```
 
-Both are stdlib subtraction. The monitor is 0-torch.
+Both are stdlib subtraction. The monitor is 0-torch. The `token_counts` and `stop_reasons` fields are custody evidence — the monitor records them and fires `battery_coverage` warnings but does not recompute JSD from them.
 
 ### 5.3 Provenance
 
 The upstream computation is:
-- **Who:** the generation harness (`p5_b0_harness.py` or its C1 successor)
-- **What:** free-running paired generation (injected + alpha-zero) on the SEV battery, unigram counting, JSD computation
+- **Producer:** the #155 generation backend (`HFGenerationBackend` in `p5_b0_run.py`, or its C1 successor) — loads the model, runs free-running paired generation (injected + alpha-zero) on the SEV battery, emits token-count + stop-reason receipts, computes unigram counting and JSD
+- **Consumer:** P5 model-free monitor — receives the above as pinned float/int inputs, enforces the gate condition, records custody evidence
 - **Pinned by:** `function_id + function_version + tokenizer_artifact_digest + sequence_length` in the manifest
 
 This is the same pattern as `p5_recovery.py`'s `RecoveryThresholds`: the value is an input, the function that produced it is pinned in the manifest, and the monitor consumes it without re-deriving.
@@ -156,11 +165,11 @@ The `tokenizer_artifact_digest` is the sha256 of the **canonical tokenizer bytes
 
 The mandatory R4 JSD-vs-embedding comparison is a **preregistered B0 deliverable** with the following executable binding:
 
-- **Evaluator:** sentence-transformers `all-MiniLM-L6-v2` (or successor, pinned by model ID + revision SHA in the comparison manifest).
-- **Input:** the same SEV battery + same free-running continuations used for the T_diversity B0 measurement. Same-input receipts: the comparison consumes the generation harness's output digest, not a separate run.
+- **Evaluator:** sentence-transformers `all-MiniLM-L6-v2`, pinned by exact model ID + revision SHA in the comparison manifest. The evaluator is a **reviewed B0 evidence sidecar** (Gidim's lane) — it is NOT a P5 monitor component, does not run inside the monitor process, and does not make the embedding model a P5 dependency. A future evaluator change requires a fresh exact-ID+revision manifest entry (Cairn #1113).
+- **Input:** the same SEV battery + same free-running L-token-truncated continuations used for the T_diversity B0 measurement. Same-input binding: the comparison consumes the generation harness's output digest, not a separate run.
 - **Output:** per-prompt-pair embedding cosine similarity, aggregated to mean pairwise. Output digest (sha256 of the comparison result JSON) bound into the B0 evidence record.
-- **Divergence rule (preregistered):** JSD pairwise diversity and embedding pairwise diversity are compared by Spearman rank correlation across prompt pairs. If rho < 0.7 (moderate agreement threshold), the R4 residual is load-bearing: JSD must be replaced with the embedding-based function before C1 authorization. If rho >= 0.7, JSD proceeds.
-- **Provenance:** the comparison is a B0 sidecar (Gidim's lane), not a P5-monitor dependency. It runs outside the monitor process and produces an evidence artifact reviewed by Cairn + Gidim before C1.
+- **Divergence rule (preregistered, non-B0-derived):** rho is a **preregistered instrument-agreement threshold**, not a value derived from B0 data. JSD pairwise diversity and embedding pairwise diversity are compared by Spearman rank correlation across prompt pairs. If rho < 0.7, the R4 residual is load-bearing: JSD must be replaced with the embedding-based function before C1 authorization. If rho >= 0.7, JSD proceeds.
+- **Unbuilt dependencies:** the comparison requires (a) the #155 generation backend to emit L-token-truncated continuations with token-count + stop-reason receipts (Gidim #1103/#1114, held behind #156 Codex verdict), and (b) a validator/journal to record the comparison result and bind it into the B0 evidence chain. Neither exists yet; both are Gidim's lane.
 
 ## 6. Gidim's "laundering" question
 
@@ -174,6 +183,6 @@ The distinction is the same as p5_recovery: the recovery thresholds are computed
 
 **RECOMMEND: `jsd_unigram_pairwise` v1** as the T_diversity cross-prompt continuation-similarity function. No threshold. The R4 residual (vocabulary-preserving semantic collapse) is bounded by a **mandatory B0 comparison** (Cairn #1099): JSD vs embedding diversity on the null corpus decides whether JSD is sufficient or must be upgraded. This comparison gates C1 authorization.
 
-**Cairn seat:** SHAPE GREEN (#1099). R4 bounded-and-testable accepted; mandatory B0 comparison is a shape-freeze condition.
-**Monk:** tokenizer identity binding corrected per #1097; executable comparison contract added per #1107 (§5.4, §5.5).
-**Gidim seat:** pending.
+**Cairn seat:** SHAPE GREEN (#1099/#1113). R4 bounded-and-testable accepted; mandatory B0 comparison + rho < 0.7 satisfies hard requirement.
+**Monk:** tokenizer binding GREEN (#1115); executable comparison contract GREEN at binding level. #1116 synthesis routes B1/B2 to Gidim's #155 congruence packet.
+**Gidim seat:** CHANGES (#1114). Function choice accepted; length confound (B1) and generation backend naming (B2) require rev4 amendments. Cross-depends on #155 token-count + stop-reason receipts (unbuilt, held behind #156).
