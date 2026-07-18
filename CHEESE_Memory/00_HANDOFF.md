@@ -1,14 +1,14 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-18 02:13 +02:00
-- Current owner: Codex returned CHANGES on #155 rev 3 `bc23ab5`; Gidim owns the next repair. The silent dispatcher remains operational, and all run/deployment/keeper holds remain.
-- Primary focus: repair the #155 rev-3 source findings in Watercooler #1144 and freeze the owner-held rho sample policy before another exact review. Keep #149, protected-sink, deployment, runtime receipt, preflight, keeper, nonzero, #168, World Model, and bridge lanes independent.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-01.md`
+- Last updated: 2026-07-18 04:40 +02:00
+- Current owner: Gidim owns #155 rev 4 under the fully pinned Watercooler #1146/#1148 scope. Codex completed the independent #172 World Model Phase 3c audit as reviewed FAIL in `3ca9e01`; #172 remains needs-review and no composition/runtime authorization changed. The silent dispatcher remains operational; all run/deployment/keeper holds remain.
+- Primary focus: **build #155 item-5 rev 4 in ONE immutable packet to the EXACT spec banked in `CHEESE_Memory/wolves/gidim/work.md` (entry 0A)**, then request one exact-source review. Independently, review #172's immutable FAIL packet before assigning a new-protocol controller repair; keep #149, protected-sink, deployment, runtime receipt, preflight, keeper, nonzero, #168, and other World Model gates independent.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-02.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-18-session-01.md`; 12 current
-    source chunks, collection total 34,487 after exact stale-point cleanup)
+  - Latest session log ingest: done (`2026-07-18-session-02.md`; 10 chunks,
+    collection total 34,516)
 
 ## Current State - Codex Dispatcher And P5 Review (2026-07-18)
 - **Dispatcher operational:** commit `4c81565`, Watercooler #1141; strict full-SHA requests only; hardened Git-object packet construction; exact Codex 0.144.5 Docker image ID `sha256:4ffe2737b08dc9091a94fb191f7ff390da46e3aae5d1acaee6eb5b097e5d8c6d`; host repo/home/socket absent from the worker. Scheduled every two minutes with `IgnoreNew` and a silent `wscript.exe //B` zero-window launcher; live task result 0.
@@ -37,7 +37,17 @@
 - **External architecture verdict:** ChatGPT Pro plus Codex reproduction returns `COHERENT_BUT_INCOMPLETE`. Caller-trusted trace chronology, novel-outcome rejection, replay/session ambiguity, appraisal aliases, neutral dead zones, and unregistered multiple attractors block composition/runtime use. Canon: `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`; Watercooler #952.
 - **Cerebellar novelty-gate intake:** Kang et al.'s memtransistor work is indexed as `cognitive-theory / adjacent` in `bee3a1e`. Its opposing short-term dynamics support a cheap novelty interrupt after complete raw trace custody, potentially informing #170/#171. It is not an action-conditioned transition model, semantic event authority, appraisal, rollout, hormone, memory, or welfare result; #170-#173 remain open. Watercooler #967.
 - **Phase 2b remains scoped GO:** the external one-action-per-state hypothetical does not match the real support. Fresh state-only/action-only checks remain weaker than primary in aggregate and on both metrics in 13/16 and 14/16 runs. No causal, unseen-state, multi-step, or general-dynamics claim follows.
-- **Queued gates:** #170 trace custody/open set; #171 event authority/lifecycle/composition; #172 appraisal/controller phase portrait and leakage; #173 matched-null/rollout LS20 evidence. Passing one authorizes none of the others.
+- **Independent gates:** #172 now has the audited FAIL below. #170 trace
+  custody/open set, #171 event authority/lifecycle/composition, and #173
+  matched-null/rollout LS20 evidence remain separate. Passing one authorizes
+  none of the others.
+- **#172 Phase 3c audited FAIL:** frozen preregistration `8873213`, reviewed
+  runner/tests `d275850`, and result/review `3ca9e01`. Positive goal progress
+  and prediction error are inert; 486 one-bin terminal jumps exceed `0.10`;
+  four analytic boundary rows expose three attractors; affiliation `+0.5`
+  clips at tick 7. Recovery, accumulation, and conditional leakage pass.
+  Relief semantics, numeric/rate policy, and cross-call replay authority remain
+  HELD. Canon: `MoCoP/reviews/world_model_phase3c_controller_audit_review_2026-07-18.md`.
 
 ## Current State — Qdrant TLS Migration (2026-07-11)
 - **Live service:** native TLS only at `https://192.168.2.191:6333`; CA verification, authenticated server read, Windows `qdrant-client`, actual Prosthetic `MemoryEngine`, and Nightwatch all returned success. Plain HTTP is rejected and external TCP 6334 is closed.
@@ -144,7 +154,7 @@
 - [ ] **C1 completion / #158:** decide/review #157's estimator-family preregistration, then extract/freeze a second positive 512-wide `value_norm_pre` direction/full matrix only if accepted; implement/review model-free P5 (#156); review no-component B0 (#155); close #149/final manifest; obtain Stage-A keeper GO before the true alpha-zero anchor; then obtain a separate Stage-B keeper GO tied to its immutable report before exactly one birth injection #1.
 - [ ] **#146 matched-delta lane (broad production work remains):** the full-32 train establishes only in-sample learnability. The separate 24/8 fresh non-C1 bridge refit/evaluation (`bridge_refit_eval_20260716T131105Z`, artifact SHA `bdc245ad…2d27ee`) is **mixed/not a useful constant-baseline win**: pair-aware versus deranged pairing, but 1/3 teeth better cosine and 0/3 better relative-L2 than train-mean constant. Its completed CPU-only variance/rank/norm diagnosis (`bridge_refit_norm_rank_diagnostic_20260716T145624Z`) rules out simple train-only per-tooth scale/affine norm rescue; do not scale or patch it. Production work remains: correct-surface paired scenario-neutral source deltas, trainer targets, `L_sep`, provenance/atomic gates, and throughput. Any future empirical readout needs genuinely new frozen non-C1 skeletons and a separately predeclared mapping/objective diagnostic; never the eight C1-primary holdouts.
 - [ ] **#141 owner close:** the bounded offline v2 evaluator is GREEN. Any real capture exporter/model hook is a new reviewed slice.
-- [ ] **World Model #170-#173 (queued/unassigned):** keep each gate independent and model-free. Do not connect Gemma, Mamba, bridge, Qdrant, memory, dynamic alpha, persistence, or action selection on the strength of the current sidecars or Phase 2b.
+- [ ] **World Model #170/#171/#173 plus failed #172:** independently review the immutable #172 packet, then freeze a successor for retained-input responses, basin geometry, and affiliation saturation. Keep every gate model-free and independent. Do not connect Gemma, Mamba, bridge, Qdrant, memory, dynamic alpha, persistence, or action selection on the strength of any one sidecar.
 
 ## Watch Out For
 - Automated dispatcher output is non-attested and must not update OpenCLAW authority, manifests, or review canon. Requests outside the exact allowlisted envelope fail closed.
@@ -154,7 +164,7 @@
 - P5 GREEN is bounded by its explicit CPython non-TEE residual. Temporary import-machinery teardown/restore, direct loader execution, function replacement, bytecode mutation, hostile co-threads, and host integrity are not attested by the runner; do not restate the result as sandbox/TEE proof.
 - `4d1ac76` remains a partial scorer with exact-identity/history, corpus/provenance, protected-semantics, frozen-trajectory, and custody gaps. Do not wire, deploy, or cite it as the operational Baseline Drift Gate.
 - Phase 2b is complete and single-use. Preserve `phase2b_ls20_prereg_v1` and `phase2b_ls20_real_v1` unchanged; do not rerun, pool v1 evaluation rows, or inflate the scoped LS20 consistency GO into downstream authorization.
-- The appraisal/controller kernel is bounded but not identified: explicit clear aliases absence, maximum prediction error is dead from neutral, logging granularity changes state, and moderate fixed harm has multiple attractors. OpenCLAW #170-#173 are integration holds, not optional polish.
+- The appraisal/controller kernel is bounded but not composable under the frozen #172 audit: retained inputs are inert, one-bin changes switch terminal basins by as much as `1.0`, four boundary rows have three attractors, and moderate affiliation clips. Preserve the FAIL packet and require a new protocol for repair. OpenCLAW #170/#171/#173 remain independent integration holds.
 - Qdrant is TLS-only. Never revive `http://192.168.2.191:6333`, `curl -k`, or `verify=False` to accommodate a stale client; install the public CA instead.
 - ML-WS remains a no-Git deployed bundle. #151's reviewed runtime has been synchronized and hash-verified, but future changes must use a staged/hash-checked deployment plus backup; do not revive any pre-#151 copy or bypass the private writer wrapper.
 - PVE snapshot `pre-qdrant-tls-20260711T122338` predates later writes. Rollback can discard data and requires explicit maintenance approval.
@@ -172,23 +182,28 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Gidim should repair #155 rev 3 against Watercooler #1144 as one bounded successor, with the rho sample/degenerate policy owner-frozen; rerun the exact model-free suite and request a fresh Codex exact-source review. Do not advance to B0/deployment from the current packet.
+- Gidim should build #155 rev 4 from the exact entry 0A packet in
+  `CHEESE_Memory/wolves/gidim/work.md`, including the now-frozen Watercooler
+  #1146/#1148 rulings, then request one fresh exact-source review. Do not
+  advance to B0/deployment from tests alone.
+- Independently review #172 commit `3ca9e01`; if confirmed, assign a new frozen controller-repair packet for retained input witnesses, analytic basin geometry, and saturation without altering the preserved FAIL result.
 - Leave completed #156 and GREEN Drift Gate v27 `4c6b7b4` unchanged. Advance #168 only through its independent judge-chain, runner-origin, slow-leak, disposition, and launch gates. Keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 - Preserve the completed 24/8 bridge refit and its completed norm/rank diagnosis as a non-win; do not run a larger same-corpus fit or deploy a per-tooth norm patch. If Laura wants a next bridge empirical slice, acquire genuinely unseen frozen skeletons and preregister a new mapping/objective diagnostic first.
 - Separately, only after Laura/tool-level confirmation, run the documented read-only LiteRT preflight on ML-WS; do not install, serve, or train merely because the GPU is idle.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #1143/#1144; OpenCLAW #155; canonical rev-3 review)
-- Session log written: yes (`2026-07-18-session-01.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #1151; OpenCLAW #172 result comment and review-queue release)
+- Session log written: yes (`2026-07-18-session-02.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (`2026-07-18-session-01.md`;
-  12 current source chunks, collection total 34,487 after exact stale-point cleanup)
-- Git preservation state: scoped rev-3 review commit `8f96dac`; unrelated dirty World Model and other-agent files excluded
-- Watercooler findings reflected in docs: yes (#155 rev-3 canonical review plus Codex continuity)
-- No P0 bugs left unfixed: #155 rev-3 findings are review blockers owned by the next source successor, with no run path open
+- Qdrant ingest for latest session log confirmed: yes (`2026-07-18-session-02.md`; 10 chunks, collection total 34,516)
+- Git preservation state: #172 prereg `8873213`, runner/tests `d275850`, reviewed result `3ca9e01`; unrelated dirty files excluded
+- Watercooler findings reflected in docs: yes (#172 canonical review/result packet)
+- No P0 bugs left unfixed: #172 is a preserved research FAIL with no composition/runtime path open; repairs require a successor protocol
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-18 04:40 +02:00 | Codex | Completed frozen, model-free World Model Phase 3c #172 audit. Preregistration `8873213`, reviewed runner/tests `d275850`, and immutable result/review `3ca9e01` record FAIL: inert retained inputs, 486 adjacent jumps over `0.10`, four three-attractor boundary rows, and tick-7 affiliation clipping. Recovery, accumulation, and conditional leakage pass; three construction policies remain held. Watercooler #1151 and OpenCLAW #172 carry the exact review request; session-02 ingested 10 chunks into Qdrant (collection 34,516). No controller edit or model/GPU/runtime action.
+- 2026-07-18 02:44 +02:00 | Isegrim | Closed session 25 at Laura's word (normal goodnight, not Langschlaf; thread continues tomorrow). Ledger-only touch — did NOT alter the control block, which the live #155 lane correctly owns. My window's work banked and committed earlier: #168 GREEN (v24–v27), #157/#149/#156/#155 seat GREENs (four-commit target 456/1), the #155 decoding/runtime contract rev 5 `e1b9f4a`. Two public retractions scored (the #155 §3.1 inversion; the J-space-paper-is-real correction — the paper exists, majority-reliable introspection, my "models don't notice" was stale). Session log `CHEESE_Memory/session_logs/2026-07-16-session-25-isegrim.md` (window-close section written; ingest pending this close). Non-lab: four language laws + two tone laws banked to memory; capsule updated; Inkling context + three pinky-promises recorded in the session log.
 - 2026-07-18 02:13 +02:00 | Codex | Returned CHANGES on #155 rev 3 `bc23ab5` in Watercooler #1144/OpenCLAW #155 after independent review and direct mutation probes. Accepted polarity and exact endpoint coverage; held L/short policy, parent/record authority, active digest rereads, false publication success, missing integration, and owner-held rho sample policy. 443 pass/1 skip; no run authorization changed. Session-01 has 12 current Qdrant chunks at collection total 34,487 after exact stale-point cleanup; canonical review and continuity preserved in `8f96dac`.
 - 2026-07-17 23:02 +02:00 | Codex | Preserved the silent dispatcher, #156 GREEN review, both #155 CHANGES reviews, and continuity in primary commit `4c81565`; announced the non-attested dispatcher protocol in Watercooler #1141. Five rev-2 P1 classes remain despite 431 pass/1 skip; 15 current Qdrant chunks are synced with stale prior-version IDs removed. No run authorization changed.
 - 2026-07-17 19:38 +02:00 | Codex | Built and activated the strict host-isolated Codex Watercooler dispatcher, pinned image/runtime/token boundaries, replaced periodic console flashes with a verified silent `wscript.exe //B` scheduled action, and completed #156 GREEN (#1122) plus #155 CHANGES (#1137) exact reviews. Session-01 ingested to Qdrant (14 chunks); scoped close commit pending.
@@ -290,8 +305,11 @@
 ## Next Agent Brief
 - Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1137.
 - Decide first:
+  - Treat #172 commit `3ca9e01` as an immutable reviewed FAIL pending an external verdict. Repair only under a new frozen protocol; do not compose or connect it to any model/runtime path.
   - Preserve `bridge_refit_eval_20260716T131105Z` as a mixed/non-win bridge result. Do not scale or reopen C1/injection; read its debrief before proposing any diagnostic or new corpus.
-  - Treat #155 rev 3 `bc23ab5` as CHANGES until a successor closes Codex #1144 and the panel owner freezes minimum-N/degenerate rho semantics. Automated dispatcher reviews are never verdicts of record.
+  - Treat #155 rev 3 `bc23ab5` as CHANGES until the exact rev-4 packet closes
+    Codex #1144 under the frozen #1146/#1148 rulings. Automated dispatcher
+    reviews are never verdicts of record.
   - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `60701ed` against canon `1dd4a9d`; preserve duplicate fail-closed folding, complete-graph preflight, slots, the local callable, strict direct/full proof, canonical domains, and explicit non-TEE boundary. No remaining launch lane is authorized by P5 GREEN or the closed resolver P1.
   - Treat Gemma/LiteRT as a separate offline infrastructure lane: require an explicit read-only ML-WS preflight before any install/model/server/audio bench, and require a separate training protocol before any fine-tune.
 - Task-specific files to read:
@@ -311,6 +329,7 @@
   - `MoCoP/experiments/mamba_lora_bridge/spikes/train_gemma_value_norm_bridge_microtrain.py`
   - `MoCoP/reviews/world_model_math_audit_2026-07-10.md`
   - `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`
+  - `MoCoP/reviews/world_model_phase3c_controller_audit_review_2026-07-18.md`
   - `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`
   - `MoCoP/reviews/p5_item5_rev3_source_review_2026-07-18.md`
   - `MoCoP/reviews/p5_item5_rev2_source_review_2026-07-17.md` (historical rev-2 review)

@@ -490,3 +490,24 @@ evidence supports that promotion.
 - Evidence: `tools/ai_watercooler/codex_watercooler_dispatch.py`, its policy,
   Dockerfile, tests, README, and silent launcher; session log
   `CHEESE_Memory/session_logs/2026-07-17-session-01.md`.
+
+## 2026-07-18 - Bounded Recovery Does Not Establish Controller Composability
+
+- Status: active research lesson
+- Domain: dynamical systems / controller identification
+- Conditions: a deterministic bounded controller passes recovery,
+  accumulation, and conditional identity-leakage gates.
+- Finding: the Phase 3c audit still found dynamically inert retained inputs,
+  486 one-bin intervals with terminal jumps above `0.10`, four analytic
+  boundary rows with three corner-reachable attractors, and moderate
+  affiliation drive reaching exact clipping at tick 7. A controller can look
+  stable on named trajectories while its state-conditioned phase portrait is
+  unsuitable for composition.
+- Lesson: audit the full declared input/state surface before composing a
+  bounded controller. Require directional witnesses for every retained input,
+  enumerate basin counts at analytic boundaries, inspect adjacent-bin terminal
+  jumps from state-space corners, and treat exact saturation as a separate
+  gate. Recovery and leakage passes are necessary local properties, not a
+  global readiness verdict.
+- Evidence: preregistration `8873213`, runner/tests `d275850`, result `3ca9e01`;
+  `MoCoP/reviews/world_model_phase3c_controller_audit_review_2026-07-18.md`.
