@@ -1,35 +1,38 @@
-"""P5 R4 comparison sidecar — evaluator provenance, derived binding, journal (#155 item 5).
+"""P5 R4 comparison sidecar — evaluator provenance, verified parent authority, journal + seam.
 
-The mandatory R4 check (Cairn #1099, Elf's T_DIVERSITY spec §5.5) compares the JSD-based diversity
-measure against an embedding-based diversity measure on the B0 null corpus, and its outcome GATES
-C1. That decision needs custody as strong as the thing it decides about.
+The mandatory R4 check (Cairn #1099, Elf's T_DIVERSITY spec §5.5) compares the JSD diversity measure
+against an embedding diversity measure on the B0 null corpus, and its outcome GATES C1. That
+decision needs custody as strong as the thing it decides about.
 
-WHY A SIDECAR, NOT A P5 COMPONENT (Monk #1128): the embedding evaluator is a second transformer,
-deliberately OUT-OF-PROCESS. This module validates, binds, and journals a comparison; it never
-performs it, never imports the model stack, and never rewrites the sealed primary B0 report.
+WHY A SIDECAR, NOT A P5 COMPONENT (Monk #1128/#1146): the embedding evaluator is a second
+transformer, deliberately OUT-OF-PROCESS. This module validates, binds, journals, and provides the
+production-callable SEAM for a comparison; it never performs it, never imports the model stack, and
+never rewrites the sealed primary B0 report.
 
-REVIEW HISTORY: rev 1 (86c3748) typed-field CHANGES (Monk #1133); rev 2 (2844d25) added derive/
-freeze/journal for Codex #1137's five P1s; rev 3 (this) closes Codex #1140's five P1s. Root cause
-across all rounds: the sidecar TRUSTED input for facts it could DERIVE, CHECK, or RECOMPUTE.
+REVIEW HISTORY: rev1 (86c3748) typed fields (Monk #1133); rev2 (2844d25) derive/freeze/journal
+(Codex #1137); rev3 (bc23ab5) polarity/endpoint/rehash/bind/publish (Codex #1140); rev4 (this) the
+A-prime scope Monk pinned in #1146. Root cause every round: the sidecar TRUSTED input for facts it
+could DERIVE, CHECK, or RECOMPUTE. rev4 closes the last of it.
 
-CODEX #1140 rev-3 fixes:
-  F1 REVERSED GATE POLARITY — JSD is a DIVERGENCE (higher = more diverse); cosine is a SIMILARITY
-     (higher = more alike). Correlating them directly makes perfect agreement read as rho ≈ -1 and
-     falsely trip "replace JSD". The recomputation now correlates JSD against embedding DIVERGENCE
-     (1 - cos). Spearman is rank-invariant to a monotone transform, so the transform choice does not
-     change the number — only the SIGN — and the diversity-vs-diversity sign is the gate-correct one
-     (spec §4.4). [Elf/Monk async confirm §5.5's evaluator emits cosine SIMILARITY: WC #1142.]
-  F2 PAIR IDENTITY — a complete count of arbitrary pair_ids proves nothing. Every row now names its
-     two endpoint probes; both must be probes of the sealed report; the unordered endpoint set must
-     equal C(report probes, 2) exactly; and a structural minimum sample is required.
-  F3 UNVERIFIED PARENT — the sealed report's published_digest was trusted, not recomputed, so a
-     modified report kept a stale digest. The report is now inert-snapshotted and its digest
-     RECOMPUTED; the generation-corpus digest binds the raw generation text (what the evaluator
-     embeds) plus token_count/stop_reason (L / short-continuation handling).
-  F4 LIVE REREAD AT BIND — bind re-read the live record and never verified manifest_digest. It now
-     reads ONLY the verified thawed snapshot and re-derives BOTH digests from record content.
-  F5 AMBIGUOUS PUBLISH — a unique temp (no O_EXCL strand), a directory fsync, best-effort post-link
-     cleanup (the artifact is already committed), and an explicit published result.
+REV4 (Monk #1146 A-prime — a real model-free source seam; NO live run):
+  F1 LENGTH ELIGIBILITY — §4.1 is unambiguous: eligible inputs are records with token_count >= L,
+     consumed truncated to exactly L. token_count < L is a typed `short_continuation` refusal;
+     stop_reason == "error" is its OWN typed `unusable_error` refusal, never laundered into an
+     eligible row. The comparison endpoint set is exactly C(N', 2) over ELIGIBLE probes, never all
+     parent records. Elf #1148 floor: N' >= 4 (>= 6 pairs); below is INCOMPLETE, not PASS.
+  F2/F3 VERIFIED PARENT AUTHORITY — a governed parent is a VERIFIED report+journal reference, not a
+     caller's in-memory dicts. verify_sealed_report rehashes and structurally checks the report;
+     the seam additionally runs the existing terminal-frame verifier over the journal and requires
+     an `integrity_verified` terminal authority.
+  F4 CAPTURE-ONCE / REVALIDATE-AT-EVERY-BOUNDARY — bind/publish exact-type the record, read its
+     digests once, and RE-VALIDATE the manifest+comparison semantics, not merely digest consistency.
+  F5 TRUTHFUL PUBLICATION — final-byte readback, no surviving writable hard-link alias, directory
+     durability, and an explicit integrity_verified / committed_integrity_failed /
+     committed_indeterminate disposition. Never ordinary success after an integrity/durability fault.
+  SEAM — record_r4_comparison: a production-callable entry that takes GOVERNED evidence paths,
+     verifies authority, runs build/bind/publish, and emits a fail-closed C1-precondition decision
+     (rho < 0.7 => JSD replacement required; absent/invalid/non-integrity-verified/INCOMPLETE => no
+     C1 authorization).
 
 Torch-free and model-free-testable. Authorizes NO run, sets NO threshold, lifts NO hold.
 """
@@ -51,8 +54,13 @@ from p5_b0_harness import (
     assert_strict_json,
     canonical_digest,
 )
+# The existing terminal-PROTOCOL verifier (Monk #1146 F2-depth). p5_b0_run is torch-free at import
+# (its only torch use is a lazy __import__ inside HFGenerationBackend.__init__), so this keeps the
+# sidecar's zero-torch property while giving "governed parent" real teeth.
+from p5_b0_run import verify_terminal_frames
 
 SIDECAR_SCHEMA = "p5-r4-comparison-sidecar-v1"
+B0_BUNDLE_SCHEMA = "b0-evidence-bundle-v1"
 
 REQUIRED_SIDECAR_KEYS = frozenset({"schema", "evaluator", "runner", "parent", "panel"})
 
@@ -75,13 +83,24 @@ _SIM_RANGE = (-1.0, 1.0)
 _RHO_RANGE = (-1.0, 1.0)
 _RECOMPUTE_TOL = 1e-9
 
-# Structural minimum sample for a non-degenerate Spearman (Codex #1140 F2). This is a floor against
-# a trivially tiny panel, NOT a statistical power requirement — the substantive minimum-N is a
-# panel/B0 design decision (Cairn/Elf), and is deferred to them.
-_MIN_PROBES = 3
+# Elf #1148: the minimum Spearman sample is N' >= 4 eligible probes (>= 6 pairs). Below is
+# INCOMPLETE, not PASS.
+_MIN_ELIGIBLE = 4
+
+# The preregistered instrument-agreement threshold (Elf §5.5). NOT set or owned here; the decision
+# only COMPARES against it. rho < RHO_GATE => JSD's residual is load-bearing => replacement required.
+RHO_GATE = 0.7
 
 _ROW_KEYS = {"pair_id", "probe_a", "probe_b", "jsd", "embedding_similarity"}
 _AGG_KEYS = {"spearman_rho", "n_pairs", "mean_pairwise_jsd", "mean_pairwise_embedding"}
+_RECEIPT_KEYS = ("input_token_ids_sha256", "generated_token_ids_sha256", "token_count",
+                 "stop_reason")
+
+# C1-precondition decision states (fail-closed). Only JSD_PROCEEDS is a green precondition; every
+# other state denies C1 authorization.
+DECISION_JSD_PROCEEDS = "jsd_proceeds"
+DECISION_JSD_REPLACEMENT_REQUIRED = "jsd_replacement_required"
+DECISION_INCOMPLETE = "incomplete"
 
 
 class R4SidecarError(ValueError):
@@ -89,7 +108,7 @@ class R4SidecarError(ValueError):
 
 
 # --------------------------------------------------------------------------- #
-# F2/F3 — one inert JSON snapshot; nothing downstream reads the live input.     #
+# Inert snapshot / deep-freeze (F2/F4).                                        #
 # --------------------------------------------------------------------------- #
 def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
     if _depth > 64:
@@ -135,7 +154,7 @@ def _canonical_bytes(obj: Any) -> bytes:
 
 
 # --------------------------------------------------------------------------- #
-# Field + number validation.                                                    #
+# Field + number validation.                                                   #
 # --------------------------------------------------------------------------- #
 def _field_error(value: Any, kind: str) -> str | None:
     if kind == _ID:
@@ -217,18 +236,23 @@ def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
 
 
 # --------------------------------------------------------------------------- #
-# F3 — verify the parent report, then derive from the verified snapshot.        #
+# F3 — verify the parent report structurally, then derive from the snapshot.    #
 # --------------------------------------------------------------------------- #
 def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
-    """Inert-snapshot the parent report and RECOMPUTE its published_digest (Codex #1140 F3).
+    """Reject a merely self-hashed Mapping (Monk #1146 F2-depth).
 
-    The report is caller-owned: trusting its stated ``published_digest`` lets a modified report keep
-    a stale digest. Snapshot it once, recompute the digest over the report MINUS that field, and
-    refuse a mismatch. Returns the verified snapshot; all derivation reads only this.
+    Inert-snapshot the report, then structurally validate it: the B0 bundle schema, an exact
+    ``record_count`` matching ``len(records)``, a recomputed ``published_digest``, and the required
+    per-record generation receipts. A self-consistent outer checksum over an arbitrary dict is NOT a
+    governed parent; the seam adds journal + terminal-authority verification on top of this.
     """
     snap = _inert_snapshot(sealed_report)
     if not isinstance(snap, dict):
         raise R4SidecarError("sealed_report must be a mapping")
+    if snap.get("schema_version") != B0_BUNDLE_SCHEMA:
+        raise R4SidecarError(
+            f"sealed_report.schema_version must be {B0_BUNDLE_SCHEMA!r} "
+            f"(got {snap.get('schema_version')!r})")
     stated = snap.get("published_digest")
     if type(stated) is not str or not _SHA256.match(stated):
         raise R4SidecarError("sealed_report.published_digest is absent or not a sha256; not sealed")
@@ -237,29 +261,47 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
         raise R4SidecarError(
             f"sealed_report.published_digest {stated[:12]}.. != the digest {recomputed[:12]}.. "
             "recomputed from its own contents; the report has been modified since sealing")
+    records = snap.get("records")
+    if not isinstance(records, list) or not records:
+        raise R4SidecarError("sealed_report has no records")
+    if snap.get("record_count") != len(records):
+        raise R4SidecarError(
+            f"sealed_report.record_count {snap.get('record_count')!r} != len(records) {len(records)}")
+    seen: set[str] = set()
+    for i, rec in enumerate(records):
+        if not isinstance(rec, Mapping):
+            raise R4SidecarError(f"record {i} is not a mapping")
+        pid = rec.get("probe_id")
+        if type(pid) is not str or not pid:
+            raise R4SidecarError(f"record {i} has no valid probe_id")
+        if pid in seen:
+            raise R4SidecarError(f"duplicate probe_id {pid!r} in report")
+        seen.add(pid)
+        if type(rec.get("raw_generation")) is not str:
+            raise R4SidecarError(f"record {i} raw_generation must be a str")
+        prov = rec.get("provenance")
+        if not isinstance(prov, Mapping):
+            raise R4SidecarError(f"record {i} has no provenance")
+        for key in _RECEIPT_KEYS:
+            if key not in prov:
+                raise R4SidecarError(f"record {i} provenance missing receipt field {key!r}")
+        if type(prov.get("token_count")) is not int or prov["token_count"] < 0:
+            raise R4SidecarError(f"record {i} token_count must be a non-negative int")
+        if type(prov.get("stop_reason")) is not str:
+            raise R4SidecarError(f"record {i} stop_reason must be a str")
     return snap
 
 
 def derive_generation_corpus_digest(sealed_report: Mapping[str, Any]) -> str:
-    """Canonical digest over the sealed report's per-generation receipts.
-
-    Binds what the evaluator actually consumed: the RAW generation text (the evaluator embeds text,
-    Codex #1140 F3), plus the token-id digests, token_count and stop_reason so length /
-    short-continuation handling is inside the binding. Order-independent (sorted by probe_id).
-
-    Accepts either an already-verified snapshot or a raw report; callers inside this module pass the
-    verified snapshot.
-    """
+    """Canonical digest over the report's per-generation receipts (binds what the evaluator ate)."""
     records = sealed_report.get("records")
     if not isinstance(records, Sequence) or not records:
         raise R4SidecarError("sealed report has no records to derive a generation corpus from")
     rows = []
     for i, rec in enumerate(records):
-        if not isinstance(rec, Mapping):
-            raise R4SidecarError(f"sealed report record {i} is not a mapping")
-        prov = rec.get("provenance")
+        prov = rec.get("provenance") if isinstance(rec, Mapping) else None
         if not isinstance(prov, Mapping):
-            raise R4SidecarError(f"sealed report record {i} has no provenance")
+            raise R4SidecarError(f"record {i} has no provenance")
         try:
             rows.append({
                 "probe_id": rec["probe_id"],
@@ -270,24 +312,51 @@ def derive_generation_corpus_digest(sealed_report: Mapping[str, Any]) -> str:
                 "stop_reason": prov["stop_reason"],
             })
         except KeyError as exc:
-            raise R4SidecarError(
-                f"sealed report record {i} is missing a generation receipt field: {exc}") from None
+            raise R4SidecarError(f"record {i} missing a generation receipt field: {exc}") from None
     rows.sort(key=lambda r: r["probe_id"])
     return canonical_digest(rows)
 
 
-def _report_probe_ids(sealed_report: Mapping[str, Any]) -> list[str]:
-    records = sealed_report.get("records") or []
-    ids = [rec.get("probe_id") for rec in records if isinstance(rec, Mapping)]
-    if any(type(p) is not str or not p for p in ids):
-        raise R4SidecarError("sealed report has a record without a valid probe_id")
-    if len(set(ids)) != len(ids):
-        raise R4SidecarError("sealed report has duplicate probe_ids")
-    return ids
+# --------------------------------------------------------------------------- #
+# F1 — length eligibility. Pairs are over ELIGIBLE probes only.                 #
+# --------------------------------------------------------------------------- #
+@dataclass(frozen=True)
+class Eligibility:
+    eligible: tuple[str, ...]                 # sorted probe_ids with token_count >= L, non-error
+    refusals: tuple[Mapping[str, Any], ...]   # typed per-probe refusal receipts
+
+
+def partition_eligibility(verified_report: Mapping[str, Any], sequence_length: int) -> Eligibility:
+    """Partition report probes into eligible vs typed refusals (Monk #1146 F1 / §4.1).
+
+    Eligible: token_count >= L (consumed truncated to exactly L). token_count < L -> a
+    ``short_continuation`` refusal. stop_reason == "error" -> its OWN ``unusable_error`` refusal, and
+    it must NEVER be laundered into an eligible row even if long. Order: an error is unusable
+    regardless of length, so it is classified first.
+    """
+    if type(sequence_length) is not int or sequence_length <= 0:
+        raise R4SidecarError("sequence_length (L) must be a positive int")
+    eligible: list[str] = []
+    refusals: list[Mapping[str, Any]] = []
+    for rec in verified_report["records"]:
+        pid = rec["probe_id"]
+        prov = rec["provenance"]
+        stop = prov["stop_reason"]
+        tc = prov["token_count"]
+        if stop == "error":
+            refusals.append({"probe_id": pid, "reason": "unusable_error",
+                             "token_count": tc, "stop_reason": stop})
+        elif tc < sequence_length:
+            refusals.append({"probe_id": pid, "reason": "short_continuation",
+                             "token_count": tc, "stop_reason": stop})
+        else:
+            eligible.append(pid)
+    return Eligibility(eligible=tuple(sorted(eligible)),
+                       refusals=tuple(sorted(refusals, key=lambda r: r["probe_id"])))
 
 
 # --------------------------------------------------------------------------- #
-# F1/F4 — recompute the summary; the caller may not just declare it.            #
+# F1/F4 — recompute the summary; the caller may not just declare it.           #
 # --------------------------------------------------------------------------- #
 def _ranks(values: Sequence[float]) -> list[float]:
     order = sorted(range(len(values)), key=lambda i: values[i])
@@ -319,19 +388,21 @@ def spearman_rho(xs: Sequence[float], ys: Sequence[float]) -> float:
 def diversity_agreement_rho(jsds: Sequence[float], sims: Sequence[float]) -> float:
     """Spearman of JSD DIVERSITY vs embedding DIVERGENCE (1 - cosine) — the gate-correct polarity.
 
-    Codex #1140 F1: JSD ↑ = diverse; cosine ↑ = SIMILAR. Correlating them directly makes perfect
-    instrument agreement read as -1. Embedding divergence (1 - cos) is a monotone-decreasing
-    transform of cosine, and Spearman is rank-invariant to it, so only the SIGN changes vs
-    ``spearman_rho(jsds, sims)`` — and the diversity-vs-diversity sign is the one the gate's
-    rho ≥ threshold decision needs (spec §4.4). Perfect agreement → +1.
+    Elf #1148: the evaluator emits raw cosine_similarity; the 1 - cosine transform is applied HERE,
+    at comparison time. Spearman is rank-invariant to the monotone transform, so only the sign
+    changes vs correlating against similarity, and diversity-vs-diversity is the sign the gate needs.
+    Perfect agreement -> +1.
     """
     return spearman_rho(jsds, [1.0 - s for s in sims])
 
 
 def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
-                        *, report_probe_ids: Sequence[str] | None = None) -> list[str]:
-    """Refuse a comparison whose numbers are not numbers, out of range, incomplete, mislabeled, or
-    fabricated. Range + endpoint identity + COMPLETENESS + RECOMPUTATION (Codex #1137 F4, #1140 F1/F2).
+                        *, eligible_probe_ids: Sequence[str] | None = None) -> list[str]:
+    """Range + endpoint identity + COMPLETENESS over ELIGIBLE probes + RECOMPUTATION.
+
+    Completeness is over the ELIGIBLE set (Monk #1146 F1), never all report probes. The N' >= 4
+    floor is NOT enforced here (it is a decision outcome: below-floor is INCOMPLETE, not a build
+    refusal); this validates that whatever pairs are present cover exactly C(eligible, 2).
     """
     refusals: list[str] = []
     if not isinstance(per_pair, Sequence) or isinstance(per_pair, (str, bytes)):
@@ -339,7 +410,7 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
     if not per_pair:
         return ["no per-pair comparison rows; an empty comparison decides nothing"]
 
-    probe_set = set(report_probe_ids) if report_probe_ids is not None else None
+    probe_set = set(eligible_probe_ids) if eligible_probe_ids is not None else None
     seen_ids: set[str] = set()
     seen_endpoints: set[frozenset] = set()
     jsds: list[float] = []
@@ -359,7 +430,6 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
         else:
             seen_ids.add(row["pair_id"])
 
-        # F2: endpoint identity, bound to the parent panel.
         a, b = row.get("probe_a"), row.get("probe_b")
         ae = _field_error(a, _ID) if "probe_a" in row else "is missing"
         be = _field_error(b, _ID) if "probe_b" in row else "is missing"
@@ -372,7 +442,7 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
                 refusals.append(f"per-pair row {i} endpoints are identical ({a!r})")
             elif probe_set is not None and (a not in probe_set or b not in probe_set):
                 refusals.append(
-                    f"per-pair row {i} endpoints {a!r},{b!r} are not both report probes")
+                    f"per-pair row {i} endpoints {a!r},{b!r} are not both ELIGIBLE probes")
             else:
                 key = frozenset((a, b))
                 if key in seen_endpoints:
@@ -391,20 +461,14 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
         else:
             sims.append(row["embedding_similarity"])
 
-    # F2 completeness: the endpoint set must be EXACTLY C(report probes, 2), so no cherry-picking
-    # and no fabricated pairs outside the panel.
     if probe_set is not None:
-        if len(probe_set) < _MIN_PROBES:
-            refusals.append(
-                f"report has {len(probe_set)} probes; a meaningful R4 comparison needs at least "
-                f"{_MIN_PROBES} (structural floor; the power-based minimum is a panel decision)")
         expected = {frozenset(p) for p in combinations(sorted(probe_set), 2)}
         if seen_endpoints != expected and not any("endpoints" in r or "probe_" in r
                                                   for r in refusals):
             missing = expected - seen_endpoints
             extra = seen_endpoints - expected
             refusals.append(
-                f"comparison endpoint set is not the complete panel pair set "
+                f"comparison endpoint set is not the complete ELIGIBLE pair set "
                 f"(missing {len(missing)}, extra {len(extra)} of {len(expected)})")
 
     if not isinstance(aggregate, Mapping):
@@ -426,8 +490,6 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
     elif aggregate["n_pairs"] != len(per_pair):
         refusals.append(f"aggregate.n_pairs {aggregate['n_pairs']} != {len(per_pair)} per-pair rows")
 
-    # F1/F4 RECOMPUTE and require the declared summary to match. spearman_rho is on the DIVERSITY
-    # convention (JSD vs embedding divergence), the gate-correct polarity.
     if len(jsds) == len(sims) == len(per_pair) and len(per_pair) >= 1:
         checks = [
             ("spearman_rho", diversity_agreement_rho(jsds, sims)),
@@ -460,7 +522,12 @@ def build_r4_sidecar(
     per_pair: Sequence[Mapping[str, Any]],
     aggregate: Mapping[str, Any],
 ) -> R4SidecarRecord:
-    """Validate, DERIVE-bind to the verified sealed report, and seal one R4 comparison record."""
+    """Validate, DERIVE-bind to the verified sealed report over ELIGIBLE probes, and seal.
+
+    No model, no comparison, no parent mutation. Eligibility (F1) is derived from the report's own
+    receipts and the manifest's L; the comparison must cover exactly C(N', 2) over eligible probes.
+    The record carries the eligibility (N', refusals) so the C1-precondition decision can read it.
+    """
     manifest = _inert_snapshot(manifest)
     per_pair = _inert_snapshot(per_pair)
     aggregate = _inert_snapshot(aggregate)
@@ -470,7 +537,7 @@ def build_r4_sidecar(
         raise R4SidecarError("; ".join(refusals))
     par = manifest["parent"]
 
-    verified = verify_sealed_report(sealed_report)          # F3: snapshot + rehash
+    verified = verify_sealed_report(sealed_report)
     if par["b0_report_digest"] != verified["published_digest"]:
         raise R4SidecarError(
             f"parent.b0_report_digest {par['b0_report_digest'][:12]}.. != the verified report's "
@@ -479,11 +546,12 @@ def build_r4_sidecar(
     if par["generation_output_digest"] != derived_gen:
         raise R4SidecarError(
             f"parent.generation_output_digest {par['generation_output_digest'][:12]}.. != the "
-            f"digest {derived_gen[:12]}.. derived from the report's OWN generation receipts — the "
-            "comparison must consume the same generations, never a second generation")
+            f"digest {derived_gen[:12]}.. derived from the report's OWN receipts — never a second "
+            "generation")
 
-    probe_ids = _report_probe_ids(verified)
-    comparison_refusals = validate_comparison(per_pair, aggregate, report_probe_ids=probe_ids)
+    elig = partition_eligibility(verified, par["sequence_length"])
+    comparison_refusals = validate_comparison(per_pair, aggregate,
+                                              eligible_probe_ids=elig.eligible)
     if comparison_refusals:
         raise R4SidecarError("; ".join(comparison_refusals))
 
@@ -493,6 +561,12 @@ def build_r4_sidecar(
         "runner": dict(manifest["runner"]),
         "panel": manifest["panel"],
         "parent": dict(par),
+        "eligibility": {
+            "sequence_length": par["sequence_length"],
+            "n_eligible": len(elig.eligible),
+            "eligible_probe_ids": list(elig.eligible),
+            "refusals": [dict(r) for r in elig.refusals],
+        },
         "per_pair": [dict(r) for r in per_pair],
         "aggregate": dict(aggregate),
     }
@@ -505,30 +579,43 @@ def build_r4_sidecar(
     )
 
 
-def _verify_record(sidecar: R4SidecarRecord) -> dict[str, Any]:
-    """Re-derive BOTH digests from the (frozen) record content; refuse a stale/forged record.
+# --------------------------------------------------------------------------- #
+# F4 — capture once, re-validate semantics at every public boundary.           #
+# --------------------------------------------------------------------------- #
+def _verify_record(sidecar: Any) -> dict[str, Any]:
+    """Exact-type the carrier, re-derive both digests, and RE-VALIDATE the semantics.
 
-    Codex #1137 F1 + #1140 F4: the deep-freeze stops in-place mutation, and this catches a
-    hand-built R4SidecarRecord whose ``output_digest`` OR ``manifest_digest`` lies about its
-    ``record``. The manifest is reconstructed from the record's own stored fields (the same fields
-    that composed it), so no separate manifest copy is trusted.
+    Codex #1140 F4 + #1144 F3/F4: the deep-freeze stops in-place mutation, but a public boundary
+    must not trust a hand-built or subclassed carrier. Exact-type ``R4SidecarRecord`` (a subclass
+    could override ``output_digest`` to return different values on successive reads), read the frozen
+    content ONCE, confirm both digests match, and re-run the manifest + comparison validation so a
+    record whose evaluator revision is "main" cannot bind merely because its digest is self
+    consistent.
     """
+    if type(sidecar) is not R4SidecarRecord:
+        raise R4SidecarError(f"not an exact R4SidecarRecord (got {type(sidecar).__name__})")
+    output_digest = sidecar.output_digest          # read the digest attributes exactly once
+    manifest_digest = sidecar.manifest_digest
+    if type(output_digest) is not str or type(manifest_digest) is not str:
+        raise R4SidecarError("record digests must be exact strs")
     thawed = _thaw(sidecar.record)
-    if canonical_digest(thawed) != sidecar.output_digest:
-        raise R4SidecarError(
-            f"sidecar output_digest {sidecar.output_digest[:12]}.. does not match the record "
-            f"content digest (stale or tampered)")
+    if canonical_digest(thawed) != output_digest:
+        raise R4SidecarError("record output_digest does not match its content (stale or tampered)")
     reconstructed_manifest = {
-        "schema": thawed["schema"],
-        "evaluator": thawed["evaluator"],
-        "runner": thawed["runner"],
-        "parent": thawed["parent"],
-        "panel": thawed["panel"],
+        "schema": thawed["schema"], "evaluator": thawed["evaluator"],
+        "runner": thawed["runner"], "parent": thawed["parent"], "panel": thawed["panel"],
     }
-    if canonical_digest(reconstructed_manifest) != sidecar.manifest_digest:
-        raise R4SidecarError(
-            f"sidecar manifest_digest {sidecar.manifest_digest[:12]}.. does not match the manifest "
-            "reconstructed from the record (stale or tampered)")
+    if canonical_digest(reconstructed_manifest) != manifest_digest:
+        raise R4SidecarError("record manifest_digest does not match the reconstructed manifest")
+    # Re-validate semantics, not just digest consistency.
+    m_refusals = validate_sidecar_manifest(reconstructed_manifest)
+    if m_refusals:
+        raise R4SidecarError("record manifest fails re-validation: " + "; ".join(m_refusals))
+    elig = thawed.get("eligibility", {})
+    c_refusals = validate_comparison(thawed["per_pair"], thawed["aggregate"],
+                                     eligible_probe_ids=elig.get("eligible_probe_ids"))
+    if c_refusals:
+        raise R4SidecarError("record comparison fails re-validation: " + "; ".join(c_refusals))
     return thawed
 
 
@@ -536,8 +623,7 @@ def bind_to_parent_report(sealed_report: Mapping[str, Any],
                           sidecar: R4SidecarRecord) -> dict[str, Any]:
     """The audit LINK between a sealed B0 report and a sidecar — parent read, never written.
 
-    Reads ONLY the verified thawed snapshot (Codex #1140 F4): a live reread of ``sidecar.record``
-    could publish different evaluator data under the verified digest.
+    Reads ONLY the verified thawed snapshot (Codex #1140 F4).
     """
     verified_record = _verify_record(sidecar)
     verified_report = verify_sealed_report(sealed_report)
@@ -558,23 +644,76 @@ def bind_to_parent_report(sealed_report: Mapping[str, Any],
 
 
 # --------------------------------------------------------------------------- #
-# F5 — atomic, no-replace publication with a terminal disposition.              #
+# The C1-precondition decision (fail-closed).                                  #
 # --------------------------------------------------------------------------- #
+def r4_decision(sidecar: R4SidecarRecord) -> dict[str, Any]:
+    """Emit the exact, fail-closed R4 decision/precondition record for the future C1 boundary.
+
+    Monk #1146: rho < RHO_GATE => JSD replacement required; below the N' >= 4 floor => INCOMPLETE.
+    ONLY ``jsd_proceeds`` is a green precondition; every other state (INCOMPLETE, replacement, or any
+    invalid/non-integrity-verified evidence upstream) denies C1 authorization. The rho used is the
+    recomputed diversity-agreement rho, not merely the declared one.
+    """
+    record = _verify_record(sidecar)                 # revalidates before deciding
+    elig = record["eligibility"]
+    n_eligible = elig["n_eligible"]
+    rows = record["per_pair"]
+    rho = diversity_agreement_rho([r["jsd"] for r in rows],
+                                  [r["embedding_similarity"] for r in rows])
+    if n_eligible < _MIN_ELIGIBLE:
+        state, c1 = DECISION_INCOMPLETE, False
+        reason = (f"n_eligible {n_eligible} < floor {_MIN_ELIGIBLE}: too few non-refused prompts for "
+                  "a meaningful Spearman; INCOMPLETE, not PASS")
+    elif rho < RHO_GATE:
+        state, c1 = DECISION_JSD_REPLACEMENT_REQUIRED, False
+        reason = (f"rho {rho:.6g} < {RHO_GATE}: JSD's residual is load-bearing; JSD must be replaced "
+                  "with the embedding measure before C1")
+    else:
+        state, c1 = DECISION_JSD_PROCEEDS, True
+        reason = f"rho {rho:.6g} >= {RHO_GATE}: JSD and the embedding measure agree; JSD may proceed"
+    decision = {
+        "schema": SIDECAR_SCHEMA + "-decision",
+        "state": state,
+        "c1_authorization_permitted": c1,
+        "reason": reason,
+        "recomputed_rho": rho,
+        "rho_gate": RHO_GATE,
+        "n_eligible": n_eligible,
+        "n_refused": len(elig["refusals"]),
+        "sidecar_output_digest": sidecar.output_digest,
+        "b0_report_digest": record["parent"]["b0_report_digest"],
+    }
+    assert_strict_json(decision)
+    decision["decision_digest"] = canonical_digest(
+        {k: v for k, v in decision.items() if k != "decision_digest"})
+    return decision
+
+
+# --------------------------------------------------------------------------- #
+# F5 — atomic, no-replace publication with a TRUTHFUL terminal disposition.     #
+# --------------------------------------------------------------------------- #
+DISPOSITION_VERIFIED = "integrity_verified"
+DISPOSITION_INTEGRITY_FAILED = "committed_integrity_failed"
+DISPOSITION_INDETERMINATE = "committed_indeterminate"
+
+
 @dataclass(frozen=True)
 class R4PublishResult:
     path: str
     published_digest: str
     committed_bytes: int
+    disposition: str                          # one of the DISPOSITION_* above
 
 
 def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
                        sidecar_path: Path) -> R4PublishResult:
-    """Atomically publish the sidecar artifact (record + parent link + disposition). No-replace.
+    """Atomically publish the artifact (record + link + decision). No-replace, truthful disposition.
 
-    Codex #1140 F5: a UNIQUE temp (no fixed-name O_EXCL strand on a retry), the temp fsync'd and
-    the directory fsync'd for durability, ``os.link`` no-replace into place, then a BEST-EFFORT
-    temp cleanup — once the final artifact is linked it is committed, so a cleanup fault must not
-    raise over a visible result. The parent report is READ to build the link and never written.
+    Monk #1146 F5: after linking, READ BACK the final bytes and confirm they equal what was meant to
+    commit; a mismatch => committed_integrity_failed. The temp is a hard link to the same inode, and
+    it is WRITABLE, so a surviving temp is a mutation alias on the final artifact — if the post-link
+    unlink fails, that is committed_integrity_failed, never success. A directory-durability fault is
+    committed_indeterminate. Never report integrity_verified after any of these.
     """
     sidecar_path = Path(sidecar_path)
     if sidecar_path.exists() or sidecar_path.is_symlink():
@@ -585,11 +724,12 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
 
     record = _verify_record(sidecar)
     link = bind_to_parent_report(sealed_report, sidecar)
+    decision = r4_decision(sidecar)
     artifact = {
         "schema": SIDECAR_SCHEMA + "-artifact",
-        "disposition": "r4_comparison_recorded",
         "record": record,
         "link": link,
+        "decision": decision,
         "sidecar_output_digest": sidecar.output_digest,
         "sidecar_manifest_digest": sidecar.manifest_digest,
     }
@@ -601,38 +741,120 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     fd, tmp_name = tempfile.mkstemp(prefix=sidecar_path.name + ".", suffix=".tmp",
                                     dir=str(parent_dir))
     tmp = Path(tmp_name)
-    linked = False
+    disposition = DISPOSITION_VERIFIED
     try:
         os.write(fd, committed)
         os.fsync(fd)
-        os.close(fd)
-        fd = -1
-        if tmp.read_bytes() != committed:
-            raise R4SidecarError("staged sidecar bytes did not verify before commit")
-        os.link(str(tmp), str(sidecar_path))          # no-replace: fails if the target appeared
-        linked = True
-        _fsync_dir(parent_dir)                          # durability of the new directory entry
     finally:
-        if fd != -1:
-            os.close(fd)
-        # Best-effort: once linked the artifact is committed; a cleanup fault must not raise.
-        try:
-            tmp.unlink()
-        except OSError:
-            if not linked:
-                raise
+        os.close(fd)
+    if tmp.read_bytes() != committed:
+        tmp.unlink(missing_ok=True)
+        raise R4SidecarError("staged sidecar bytes did not verify before commit")
+    os.link(str(tmp), str(sidecar_path))          # no-replace: fails if the target appeared
+
+    # From here the final artifact exists; downgrade the disposition truthfully on any fault, but
+    # never raise over a committed artifact (Monk #1146: never ordinary success after a fault).
+    if sidecar_path.read_bytes() != committed:    # final-byte readback
+        disposition = DISPOSITION_INTEGRITY_FAILED
+    try:
+        tmp.unlink()                              # the writable hard-link alias MUST be removed
+    except OSError:
+        disposition = DISPOSITION_INTEGRITY_FAILED   # a surviving writable alias can mutate the file
+    if tmp.exists():
+        disposition = DISPOSITION_INTEGRITY_FAILED
+    # Directory-entry durability. A real fsync FAULT (supported but failed) is indeterminate; a
+    # platform that cannot open a directory fd at all (e.g. Windows) is NOT a fault — the file was
+    # already fsync'd, which is the durability the platform offers — so it does not downgrade.
+    if _fsync_dir(parent_dir) is False and disposition == DISPOSITION_VERIFIED:
+        disposition = DISPOSITION_INDETERMINATE
     return R4PublishResult(path=str(sidecar_path), published_digest=artifact["published_digest"],
-                           committed_bytes=len(committed))
+                           committed_bytes=len(committed), disposition=disposition)
 
 
-def _fsync_dir(directory: Path) -> None:
+def _fsync_dir(directory: Path) -> bool | None:
+    """Best-effort directory durability. True = fsync'd durable; None = unsupported by this platform
+    (could not open a directory fd, e.g. Windows) which is NOT a fault; False = supported but the
+    fsync itself raised, which IS a durability fault."""
     try:
         dfd = os.open(str(directory), os.O_RDONLY)
     except OSError:
-        return                                          # some platforms cannot open a dir fd
+        return None
     try:
         os.fsync(dfd)
+        return True
     except OSError:
-        pass                                            # directory fsync unsupported on this FS
+        return False
     finally:
         os.close(dfd)
+
+
+# --------------------------------------------------------------------------- #
+# The production-callable seam (Monk #1146 non-test integration).              #
+# --------------------------------------------------------------------------- #
+@dataclass(frozen=True)
+class R4RecordResult:
+    decision: Mapping[str, Any]
+    publish: R4PublishResult | None
+    ok: bool                                  # True iff authority verified AND artifact committed clean
+
+
+def _load_governed_report(report_path: Path, journal_path: Path) -> tuple[dict[str, Any], bytes]:
+    """Load a GOVERNED B0 evidence reference: the report bytes cross-verified by the journal.
+
+    Monk #1146 F2-depth: a governed parent is a verified report+JOURNAL reference, not a caller's
+    in-memory dict. Read the report bytes, run the existing terminal-frame verifier over the journal
+    binding those exact bytes/digest, and REQUIRE an ``integrity_verified`` terminal authority.
+    """
+    report_path, journal_path = Path(report_path), Path(journal_path)
+    if not report_path.is_file():
+        raise R4SidecarError(f"B0 report artifact not found: {report_path}")
+    if not journal_path.is_file():
+        raise R4SidecarError(f"B0 journal artifact not found: {journal_path}")
+    report_bytes = report_path.read_bytes()
+    try:
+        report = json.loads(report_bytes)
+    except json.JSONDecodeError as exc:
+        raise R4SidecarError(f"B0 report is not valid JSON: {exc}") from None
+    if not isinstance(report, dict):
+        raise R4SidecarError("B0 report root is not a JSON object")
+    published = report.get("published_digest")
+    if type(published) is not str or not _SHA256.match(published):
+        raise R4SidecarError("B0 report has no sha256 published_digest; not sealed")
+    verdict = verify_terminal_frames(journal_path, report_published_digest=published,
+                                     committed_report_bytes=report_bytes)
+    if not verdict.get("ok"):
+        raise R4SidecarError(
+            f"B0 journal did not verify: {verdict.get('reason')!r}; not a governed parent")
+    if verdict.get("disposition") != DISPOSITION_VERIFIED:
+        raise R4SidecarError(
+            f"B0 terminal authority is {verdict.get('disposition')!r}, not {DISPOSITION_VERIFIED!r}; "
+            "no C1 authorization may rest on a non-integrity-verified parent")
+    return report, report_bytes
+
+
+def record_r4_comparison(
+    *,
+    report_path: Path,
+    journal_path: Path,
+    manifest: Mapping[str, Any],
+    per_pair: Sequence[Mapping[str, Any]],
+    aggregate: Mapping[str, Any],
+    sidecar_path: Path,
+) -> R4RecordResult:
+    """Production-callable seam: governed evidence PATHS -> verified build/bind/publish -> decision.
+
+    Monk #1146 non-test integration. The evaluator remains OUT-OF-PROCESS; this consumes its
+    precomputed output. It NEVER runs B0, loads a model, or authorizes C1 — it emits a fail-closed
+    C1-precondition. A non-integrity-verified / absent / invalid parent, or an INCOMPLETE /
+    replacement-required comparison, all deny C1 authorization.
+    """
+    report, _report_bytes = _load_governed_report(report_path, journal_path)
+    sidecar = build_r4_sidecar(manifest, sealed_report=report, per_pair=per_pair,
+                               aggregate=aggregate)
+    result = publish_r4_sidecar(report, sidecar, sidecar_path)
+    decision = r4_decision(sidecar)
+    # The seam only reports ok when authority verified, the artifact committed cleanly (a downgraded
+    # disposition is NOT ok), AND the precondition permits C1. Fail-closed on everything else.
+    ok = (result.disposition == DISPOSITION_VERIFIED
+          and bool(decision["c1_authorization_permitted"]))
+    return R4RecordResult(decision=decision, publish=result, ok=ok)
