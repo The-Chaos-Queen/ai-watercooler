@@ -116,7 +116,7 @@ from p5_b0_harness import (
 # The existing terminal-PROTOCOL verifier (Monk #1146 F2-depth). p5_b0_run is torch-free at import
 # (its only torch use is a lazy __import__ inside HFGenerationBackend.__init__), so this keeps the
 # sidecar's zero-torch property while giving "governed parent" real teeth.
-from p5_b0_run import verify_terminal_frames
+from p5_b0_run import DESCRIPTOR_KEYS, verify_terminal_frames
 
 SIDECAR_SCHEMA = "p5-r4-comparison-sidecar-v1"
 B0_BUNDLE_SCHEMA = "b0-evidence-bundle-v1"
@@ -408,6 +408,31 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
             "execution_descriptor.manifest_digest and .base_manifest_digest must be equal "
             "(DQ1b): one base, one authority")
 
+    # Duplicated authority fields must AGREE between the report and the descriptor — the producer
+    # emits them from one source (Codex #1187 a-Codex): a report whose top-level run_kind /
+    # schema_variant / base_manifest_id contradicts its descriptor is not one run_b0 could emit.
+    for key in ("run_kind", "schema_variant", "base_manifest_id"):
+        if type(snap[key]) is not str or not snap[key]:
+            raise R4SidecarError(f"sealed_report.{key} must be a non-empty str")
+        if snap[key] != ed[key]:
+            raise R4SidecarError(
+                f"sealed_report.{key} {snap[key]!r} != execution_descriptor.{key} {ed[key]!r}")
+    if snap["terminal_state"] != "committed":
+        raise R4SidecarError(
+            f"sealed_report.terminal_state must be 'committed' (got {snap['terminal_state']!r})")
+    _require_sha256(snap["journal_digest"], "sealed_report.journal_digest")
+    # Descriptor authority values must be PINNED, not null/incomplete (Codex #1187 a-Codex): a
+    # runner_digest=None or an incomplete model is not a report the runner could publish.
+    _require_sha256(ed["runner_digest"], "execution_descriptor.runner_digest")
+    _require_sha256(ed["decoding_hash"], "execution_descriptor.decoding_hash")
+    if not isinstance(ed["decoding"], Mapping) or not ed["decoding"]:
+        raise R4SidecarError("execution_descriptor.decoding must be a non-empty mapping")
+    model = ed["model"]
+    if not isinstance(model, Mapping) or not (set(DESCRIPTOR_KEYS) <= set(model)):
+        raise R4SidecarError(
+            "execution_descriptor.model is not a complete model descriptor "
+            f"(must contain {sorted(DESCRIPTOR_KEYS)})")
+
     seen: set[str] = set()
     for i, rec in enumerate(records):
         if not isinstance(rec, Mapping) or set(rec) != _B0_RECORD_KEYS:
@@ -579,6 +604,17 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
     refusals: list[str] = []
     if not isinstance(aggregate, Mapping):
         return ["aggregate must be a mapping"]
+    if not per_pair:
+        # The ONLY canonical aggregate for an empty comparison (Codex #1187 a-Codex): pinned so an
+        # empty comparison has ONE deterministic digest, not an arbitrary caller rho/means.
+        if not (set(aggregate) == _AGG_KEYS
+                and type(aggregate.get("n_pairs")) is int and aggregate["n_pairs"] == 0
+                and all(type(aggregate.get(k)) is float and aggregate[k] == 0.0
+                        for k in ("spearman_rho", "mean_pairwise_jsd", "mean_pairwise_embedding"))):
+            return ["an empty comparison requires the canonical zero aggregate "
+                    "{spearman_rho: 0.0, mean_pairwise_jsd: 0.0, mean_pairwise_embedding: 0.0, "
+                    "n_pairs: 0}"]
+        return []
     unknown = set(aggregate) - _AGG_KEYS
     if unknown:
         refusals.append(f"aggregate has unknown key(s): {sorted(unknown)}")
@@ -649,8 +685,11 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
             refusals.append(f"per-pair row {i} is not a mapping")
             continue
         if set(row) != set(row_keys):                       # exact row shape; §5.5 has no caller pair_id
+            # sort by str: a malformed row may carry a non-str key, and sorting mixed types raises a
+            # raw TypeError on this PUBLIC self-check entry (Codex #1187 a-Codex).
             refusals.append(
-                f"per-pair row {i} key set is not {sorted(row_keys)} (got {sorted(row)})")
+                f"per-pair row {i} key set is not {sorted(row_keys)} "
+                f"(got {sorted(map(repr, row))})")
             continue
         a, b = row["probe_a"], row["probe_b"]
         ae = _field_error(a, _ID)

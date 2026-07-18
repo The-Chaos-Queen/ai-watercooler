@@ -59,7 +59,8 @@ def _exec_descriptor(panel_hash=PANEL_HASH):
     """The EXACT 18-key canonical execution_descriptor (Codex #1187 F1), manifest authorities equal."""
     return {
         "panel_hash": panel_hash,
-        "model": {"id": "gemma", "revision": "r"},
+        "model": {"id": "gemma", "revision": "r", "dtype": "bf16", "backend": "hf",
+                  "device": "cuda:0", "device_map": "cuda:0", "attention": "sdpa", "use_cache": False},
         "decoding": {"do_sample": False, "max_new_tokens": 160},
         "decoding_hash": "d" * 64,
         "scorer_id": "scorer", "scorer_version": "1", "scorer_blob_sha256": "e" * 64,
@@ -626,6 +627,64 @@ def test_a_huge_int_numeric_is_a_typed_refusal_not_overflow():
                    "mean_pairwise_embedding": 0.0, "n_pairs": 1},
         eligible_probe_ids=["a", "b"])
     assert any("jsd must be in" in x for x in r)
+
+
+# ---- rev7 a-Codex pre-board additions -----------------------------------------------------------
+def test_acodex_contradictory_duplicated_fields_are_refused():
+    # a-Codex (rev7): top-level run_kind/schema_variant/base_manifest_id must AGREE with the
+    # descriptor's; the producer emits them from one source.
+    report = _sealed_report()
+    report["run_kind"] = "c1_variant"                        # != execution_descriptor.run_kind
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "run_kind" in str(ei.value)
+
+
+def test_acodex_null_runner_digest_and_incomplete_model_are_refused():
+    # a-Codex (rev7): a descriptor with runner_digest=None or an incomplete model is not a report the
+    # runner could publish.
+    r1 = _sealed_report()
+    r1["execution_descriptor"]["runner_digest"] = None
+    _reseal(r1)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(r1)
+    assert "runner_digest" in str(ei.value)
+
+    r2 = _sealed_report()
+    r2["execution_descriptor"]["model"] = {"id": "gemma"}    # incomplete (missing DESCRIPTOR_KEYS)
+    _reseal(r2)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(r2)
+    assert "complete model descriptor" in str(ei.value)
+
+
+def test_acodex_empty_comparison_requires_the_canonical_zero_aggregate():
+    # a-Codex (rev7): an empty comparison must have ONE pinned aggregate, so equivalent empty
+    # comparisons cannot mint different digests.
+    ok = validate_comparison(
+        per_pair=[],
+        aggregate={"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0,
+                   "mean_pairwise_embedding": 0.0, "n_pairs": 0},
+        eligible_probe_ids=["only-one"])                     # N'=1 -> zero expected pairs
+    assert ok == []
+    bad = validate_comparison(
+        per_pair=[],
+        aggregate={"spearman_rho": 1.0, "mean_pairwise_jsd": 1.0,   # non-canonical empty aggregate
+                   "mean_pairwise_embedding": -1.0, "n_pairs": 0},
+        eligible_probe_ids=["only-one"])
+    assert any("canonical zero aggregate" in x for x in bad)
+
+
+def test_acodex_heterogeneous_row_key_is_a_typed_refusal_not_typeerror():
+    # a-Codex (rev7): validate_comparison is a PUBLIC self-check; a malformed row with a mixed
+    # str/int key set must accumulate a refusal, not raise a raw TypeError from sorting.
+    r = validate_comparison(
+        per_pair=[{"probe_a": "a", "probe_b": "b", "jsd": 0.5, "cosine_similarity": 0.5, 7: "x"}],
+        aggregate={"spearman_rho": 0.0, "mean_pairwise_jsd": 0.5,
+                   "mean_pairwise_embedding": 0.5, "n_pairs": 1},
+        eligible_probe_ids=["a", "b"])
+    assert any("key set is not" in x for x in r)
 
 
 def test_f2_a_false_generation_output_digest_is_refused_at_every_boundary(tmp_path):
