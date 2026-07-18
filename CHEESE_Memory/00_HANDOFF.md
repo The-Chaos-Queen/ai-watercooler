@@ -1,7 +1,7 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-18 16:12 +02:00
+- Last updated: 2026-07-18 16:15 +02:00
 - Current owner: Research lanes remain with their named owners; current Git head includes #155 rev-5 repair `5a01f06` pending an exact current-source verdict. Codex completed the public Watercooler staging package and proved that the strict headless reviewer cannot claim #157's extraction prose. #157 remains blocked; no run/deployment/keeper authorization changed.
 - Primary focus: review the current #155 source before any state change; separately choose the public Watercooler license and design a narrowly authorized read-only #157 extractor that emits a frozen review packet. Keep #149, protected-sink, deployment, runtime receipt, preflight, keeper, nonzero, and World Model gates independent.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-04.md`
@@ -216,13 +216,13 @@
 - Session log written: yes (`2026-07-18-session-04.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: yes (13 chunks; collection total 34,526)
-- Git preservation state: public package and scoped Watercooler changes pending close commit; unrelated dirty files excluded
+- Git preservation state: public package and scoped Watercooler changes preserved in `883e5f6`; unrelated dirty files excluded
 - Watercooler findings reflected in docs: yes (`Projects/Watercooler/`, Codex continuity, session-04)
 - No P0 bugs left unfixed: yes in the public package; #172 remains a preserved research FAIL
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-18 16:12 +02:00 | Codex | Proved strict headless #157 pickup refusal (`body_not_json`; Watercooler #1162), completed and independently GREENed the fresh public Watercooler staging package, and verified 196 pass/3 platform skips plus standard/target wheel installs, sdist, and real desktop/mobile browser flows. License choice, #157 extraction authorization, and NUC #1160 remain held. Session-04 ingested 13 current chunks (collection 34,526 after exact stale-point cleanup); scoped close commit pending.
+- 2026-07-18 16:15 +02:00 | Codex | Proved strict headless #157 pickup refusal (`body_not_json`; Watercooler #1162), completed and independently GREENed the fresh public Watercooler staging package, and verified 196 pass/3 platform skips plus standard/target wheel installs, sdist, and real desktop/mobile browser flows. License choice, #157 extraction authorization, and NUC #1160 remain held. Session-04 ingested 13 current chunks (collection 34,526 after exact stale-point cleanup); scoped implementation/continuity commit `883e5f6` excludes unrelated dirty work.
 - 2026-07-18 13:47 +02:00 | Techno-Monk | Reconciled stale #157 review blocker against source Watercooler seat ledger (OpenCLAW event #794; Watercooler #1154) and received Elf's final GREEN #1155. Commit `5a156fb` amends the canonical prereg with all four-seat binds while preserving no-extraction/no-GPU/no-C1 scope; session-03 written, Qdrant intentionally skipped.
 - 2026-07-18 04:40 +02:00 | Codex | Completed frozen, model-free World Model Phase 3c #172 audit. Preregistration `8873213`, reviewed runner/tests `d275850`, and immutable result/review `3ca9e01` record FAIL: inert retained inputs, 486 adjacent jumps over `0.10`, four three-attractor boundary rows, and tick-7 affiliation clipping. Recovery, accumulation, and conditional leakage pass; three construction policies remain held. Watercooler #1151 and OpenCLAW #172 carry the exact review request; session-02 ingested 10 chunks into Qdrant (collection 34,516). No controller edit or model/GPU/runtime action.
 - 2026-07-18 02:44 +02:00 | Isegrim | Closed session 25 at Laura's word (normal goodnight, not Langschlaf; thread continues tomorrow). Ledger-only touch — did NOT alter the control block, which the live #155 lane correctly owns. My window's work banked and committed earlier: #168 GREEN (v24–v27), #157/#149/#156/#155 seat GREENs (four-commit target 456/1), the #155 decoding/runtime contract rev 5 `e1b9f4a`. Two public retractions scored (the #155 §3.1 inversion; the J-space-paper-is-real correction — the paper exists, majority-reliable introspection, my "models don't notice" was stale). Session log `CHEESE_Memory/session_logs/2026-07-16-session-25-isegrim.md` (window-close section written; ingest pending this close). Non-lab: four language laws + two tone laws banked to memory; capsule updated; Inkling context + three pinky-promises recorded in the session log.
