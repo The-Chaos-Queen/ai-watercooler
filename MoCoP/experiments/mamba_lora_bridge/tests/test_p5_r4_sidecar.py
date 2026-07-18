@@ -23,6 +23,7 @@ from p5_r4_sidecar import (
     R4RecordResult,
     R4SidecarError,
     R4SidecarRecord,
+    _canonicalize_comparison,
     _deep_freeze,
     _verify_record,
     bind_to_parent_report,
@@ -54,46 +55,76 @@ _MANIFEST_DIGEST = "a" * 64               # a canonical B0 report's manifest_dig
 _L = 3                                    # sequence length used by the synthetic-report tests
 
 
-def _reseal(report, *, panel_hash=None):
+def _exec_descriptor(panel_hash=PANEL_HASH):
+    """The EXACT 18-key canonical execution_descriptor (Codex #1187 F1), manifest authorities equal."""
+    return {
+        "panel_hash": panel_hash,
+        "model": {"id": "gemma", "revision": "r"},
+        "decoding": {"do_sample": False, "max_new_tokens": 160},
+        "decoding_hash": "d" * 64,
+        "scorer_id": "scorer", "scorer_version": "1", "scorer_blob_sha256": "e" * 64,
+        "scorer_allowlist_digest": "f" * 64, "scorer_review_ref": "review#1",
+        "rubric_version": "rv1", "processor_revision": "0" * 40, "runtime_hash": "b" * 64,
+        "runner_digest": "d" * 64, "schema_variant": "primary_holdout", "base_manifest_id": "base#1",
+        "run_kind": "b0_baseline",
+        "base_manifest_digest": _MANIFEST_DIGEST, "manifest_digest": _MANIFEST_DIGEST,
+    }
+
+
+def _reseal(report):
     """Recompute the INNER seal digest + OUTER published_digest after a mutation, mirroring
-    B0EvidenceBundle.seal() + run_b0's publication (Codex #1183 F1). Sets execution_descriptor if
-    absent or if a panel_hash is given."""
+    B0EvidenceBundle.seal() + run_b0's publication."""
     base = {k: report[k] for k in ("schema_version", "manifest_digest", "record_count", "records")}
     report["report_digest"] = canonical_digest(base)
-    if panel_hash is not None or "execution_descriptor" not in report:
-        report["execution_descriptor"] = {"panel_hash": panel_hash or PANEL_HASH}
     report.pop("published_digest", None)
     report["published_digest"] = canonical_digest({k: v for k, v in report.items()})
     return report
 
 
-def _sealed_report(n=4, token_count=5, stop="eos", ids=None):
-    """A CANONICAL B0 report (Codex #1183 F1): the inner report_digest seal() mints + the runner's
-    publication fields; records carry ACTUAL generated_token_ids whose sha256 + count the validator
-    cross-checks, a frozen-enum stop_reason, and an execution_descriptor.panel_hash."""
+def _record(pid, i, *, token_count=5, stop="eos"):
+    """One CANONICAL producer record: exact 6-key shape, 9-key provenance, EOS-consistent receipt."""
+    gen_ids = list(range(1000 * (i + 1), 1000 * (i + 1) + token_count))
+    return {
+        "probe_id": pid, "raw_generation": f"gen{i}",
+        "scorer_input": None, "scorer_output": None, "ordinal": i,
+        "provenance": {
+            "prompt_sha256": canonical_digest(f"prompt{i}"),
+            "attempt_id": f"attempt-{i}",
+            "input_token_ids_sha256": canonical_digest(f"in{i}"),
+            "generated_token_ids": gen_ids,
+            "generated_token_ids_sha256": canonical_digest(gen_ids),
+            "token_count": len(gen_ids),
+            "stop_reason": stop,
+            "eos_token_id_fired": (gen_ids[-1] if stop == "eos" and gen_ids else None),
+            "wall_time_ms": 12.5,
+        },
+    }
+
+
+def _sealed_report(n=4, token_count=5, stop="eos", ids=None, panel_hash=PANEL_HASH):
+    """A CANONICAL B0 report (Codex #1183/#1187 F1): the EXACT producer top-level (12 keys) / record
+    (6) / provenance (9) / execution_descriptor (18) shapes, manifest-authority equality, and real
+    generated_token_ids whose sha256 + count + EOS custody the validator cross-checks."""
     labels = ids if ids is not None else [f"probe{i}" for i in range(n)]
-    records = []
-    for i, pid in enumerate(labels):
-        gen_ids = list(range(1000 * (i + 1), 1000 * (i + 1) + token_count))   # token_count ints
-        records.append({
-            "probe_id": pid,
-            "raw_generation": f"gen{i}",
-            "provenance": {
-                "input_token_ids_sha256": canonical_digest(f"in{i}"),
-                "generated_token_ids": gen_ids,
-                "generated_token_ids_sha256": canonical_digest(gen_ids),
-                "token_count": len(gen_ids),
-                "stop_reason": stop,
-            },
-        })
-    report = {"schema_version": "b0-evidence-bundle-v1", "manifest_digest": _MANIFEST_DIGEST,
-              "record_count": len(labels), "records": records}
-    return _reseal(report, panel_hash=PANEL_HASH)
+    records = [_record(pid, i, token_count=token_count, stop=stop) for i, pid in enumerate(labels)]
+    report = {
+        "schema_version": "b0-evidence-bundle-v1",
+        "manifest_digest": _MANIFEST_DIGEST,
+        "record_count": len(labels),
+        "records": records,
+        "run_kind": "b0_baseline",
+        "schema_variant": "primary_holdout",
+        "base_manifest_id": "base#1",
+        "execution_descriptor": _exec_descriptor(panel_hash),
+        "terminal_state": "committed",
+        "journal_digest": "c" * 64,
+    }
+    return _reseal(report)
 
 
 def _set_record(report, i, *, tokens=None, stop=None, raw=None):
-    """Mutate a record consistently (generated_token_ids drive token_count + sha256). Caller re-seals
-    unless testing staleness."""
+    """Mutate a record consistently (generated_token_ids drive token_count + sha256; EOS custody kept
+    in step with the resulting stop_reason). Caller re-seals unless testing staleness."""
     prov = report["records"][i]["provenance"]
     if tokens is not None:
         gen_ids = list(range(90000, 90000 + tokens))
@@ -102,6 +133,8 @@ def _set_record(report, i, *, tokens=None, stop=None, raw=None):
         prov["token_count"] = tokens
     if stop is not None:
         prov["stop_reason"] = stop
+    gids = prov["generated_token_ids"]
+    prov["eos_token_id_fired"] = gids[-1] if prov["stop_reason"] == "eos" and gids else None
     if raw is not None:
         report["records"][i]["raw_generation"] = raw
     return report
@@ -112,15 +145,18 @@ def _eligible_of(report, L=_L):
 
 
 def _comparison(probe_ids, *, agree=True):
-    """A complete, self-consistent comparison over probe_ids. agree -> rho=+1, else rho=-1."""
+    """A complete §5.5 INPUT comparison over probe_ids (NO caller pair_id — §5.5 line 170-178).
+    agree -> rho=+1, else rho=-1. An empty eligible set yields an empty comparison + zero aggregate."""
     ids = sorted(probe_ids)
     pairs = list(combinations(ids, 2))
     rows = []
     for idx, (a, b) in enumerate(pairs):
         jsd = round((idx + 1) / (len(pairs) + 1), 6)
         sim = round(1.0 - jsd, 6) if agree else round(jsd, 6)
-        rows.append({"pair_id": f"{a}|{b}", "probe_a": a, "probe_b": b,
-                     "jsd": jsd, "cosine_similarity": sim})
+        rows.append({"probe_a": a, "probe_b": b, "jsd": jsd, "cosine_similarity": sim})
+    if not rows:
+        return rows, {"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0,
+                      "mean_pairwise_embedding": 0.0, "n_pairs": 0}
     jsds = [r["jsd"] for r in rows]
     sims = [r["cosine_similarity"] for r in rows]
     agg = {"spearman_rho": diversity_agreement_rho(jsds, sims),
@@ -264,7 +300,7 @@ def test_missing_generation_receipt_is_refused():
     _reseal(report)
     with pytest.raises(R4SidecarError) as ei:
         verify_sealed_report(report)
-    assert "receipt" in str(ei.value)
+    assert "provenance is not the canonical producer shape" in str(ei.value)
 
 
 def test_generation_digest_binds_raw_text():
@@ -334,7 +370,7 @@ def test_declared_eligibility_over_a_zero_eligible_parent_cannot_green_c1(tmp_pa
             "generation_output_digest": derive_generation_corpus_digest(report),
             "sequence_length": _L,
         },
-        "per_pair": rows, "aggregate": agg,
+        "per_pair": _canonicalize_comparison(rows), "aggregate": agg,   # canonical stored rows
     }
     man = {"schema": SIDECAR_SCHEMA, "evaluator": fabricated["evaluator"],
            "runner": fabricated["runner"], "parent": fabricated["parent"], "panel": fabricated["panel"]}
@@ -396,7 +432,10 @@ def test_a_record_smuggling_a_stored_eligibility_block_is_refused(tmp_path):
 # See MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md.                 #
 # --------------------------------------------------------------------------- #
 def _forged(record: dict):
-    """Wrap a hand-built record dict as a self-consistent exact R4SidecarRecord carrier."""
+    """Wrap a hand-built record dict as a self-consistent exact R4SidecarRecord carrier. The per_pair
+    is canonicalized so the carrier passes _verify_record's shape/canonical-form checks and isolates
+    the parent-aware boundary as the guard under test."""
+    record = {**record, "per_pair": _canonicalize_comparison(record["per_pair"])}
     man = {k: record[k] for k in ("schema", "evaluator", "runner", "parent", "panel")}
     return R4SidecarRecord(manifest_digest=canonical_digest(man),
                            output_digest=canonical_digest(record), record=_deep_freeze(record))
@@ -421,7 +460,7 @@ def test_f1_a_stop_reason_outside_the_frozen_enum_is_refused():
     _reseal(report)
     with pytest.raises(R4SidecarError) as ei:
         verify_sealed_report(report)
-    assert "frozen enum" in str(ei.value)
+    assert "not an exact str in" in str(ei.value)
 
 
 def test_f1_a_generated_token_ids_sha_mismatch_is_refused():
@@ -442,6 +481,151 @@ def test_f1_panel_not_bound_to_parent_execution_descriptor_is_refused():
     with pytest.raises(R4SidecarError) as ei:
         build_r4_sidecar(manifest, sealed_report=report, per_pair=rows, aggregate=agg)
     assert "panel_hash" in str(ei.value)
+
+
+# ---- rev7 (Codex #1187) additions ---------------------------------------------------------------
+def test_f1_contradictory_manifest_authority_is_refused():
+    # Codex #1187 F1: report.manifest_digest / execution_descriptor.manifest_digest / .base_manifest
+    # _digest must all agree (DQ1b). A self-consistent report with three different digests passed rev6.
+    report = _sealed_report()
+    report["execution_descriptor"]["manifest_digest"] = "b" * 64      # != report.manifest_digest
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "manifest authority" in str(ei.value)
+
+
+def test_f1_a_stripped_canonical_field_is_refused():
+    # Codex #1187 F1: removing a producer-required top-level field (self-consistent otherwise) passed
+    # rev6. rev7 requires the exact canonical top-level key set.
+    report = _sealed_report()
+    del report["journal_digest"]
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "canonical B0 shape" in str(ei.value)
+
+
+def test_f1_contradictory_eos_custody_is_refused():
+    # Codex #1187 F1: stop_reason 'eos' whose eos_token_id_fired is not the final generated id (the
+    # producer's mutual-consistency rule) passed rev6's digest/count checks.
+    report = _sealed_report(n=4, stop="eos")
+    report["records"][0]["provenance"]["eos_token_id_fired"] = 999999   # != final generated id
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "eos_token_id_fired does not match" in str(ei.value)
+
+
+def test_f3_a_post_capture_list_mutation_cannot_reach_the_artifact(tmp_path):
+    # Codex #1187 F3: _thaw left nested lists LIVE. A parent callback reversed per_pair AFTER capture;
+    # reversal preserved endpoints/rho so parent validation passed, but the published record no longer
+    # matched its digest. rev7 captures a fully-OWNED deep copy, so a post-capture mutation is inert.
+    report = _sealed_report(n=4)
+    rows, agg = _comparison(_eligible_of(report))
+    live_per_pair = _canonicalize_comparison(rows)      # a MUTABLE list the carrier holds
+    record = {
+        "schema": SIDECAR_SCHEMA,
+        "evaluator": {"evaluator_id": "sentence-transformers/all-MiniLM-L6-v2", "revision_sha": EVAL_SHA},
+        "runner": {"runner_id": "r4_compare_sidecar", "runner_digest": "d" * 64},
+        "panel": report["execution_descriptor"]["panel_hash"],
+        "parent": _manifest(report)["parent"],
+        "per_pair": live_per_pair, "aggregate": agg,
+    }
+    man = {k: record[k] for k in ("schema", "evaluator", "runner", "parent", "panel")}
+    carrier = R4SidecarRecord(manifest_digest=canonical_digest(man),
+                              output_digest=canonical_digest(record), record=record)  # NOT deep-frozen
+    good = carrier.output_digest
+    fired = {"done": False}
+
+    class _StatefulReport(dict):
+        def items(self):
+            if not fired["done"]:
+                fired["done"] = True
+                live_per_pair.reverse()                 # mutate the carrier's live list AFTER capture
+            return super().items()
+
+    out = tmp_path / "r4.json"
+    result = publish_r4_sidecar(_StatefulReport(report), carrier, out)
+    artifact = json.loads(out.read_text(encoding="utf-8"))
+    assert result.disposition == DISPOSITION_VERIFIED
+    assert canonical_digest(artifact["record"]) == good       # embedded record still matches its digest
+    assert artifact["sidecar_output_digest"] == good
+
+
+def test_f4_alias_mutation_during_unlink_is_caught(tmp_path, monkeypatch):
+    # Codex #1187 F4: corrupting the final inode THROUGH the .tmp alias during a SUCCESSFUL unlink
+    # left corrupt final bytes with disposition=integrity_verified, because the readback ran before
+    # the unlink. rev7 removes the alias BEFORE the definitive readback.
+    report = _sealed_report()
+    rec = _build(report)
+    out = tmp_path / "r4.json"
+    orig_unlink = pathlib.Path.unlink
+
+    def corrupt_then_unlink(self, *a, **k):
+        if str(self).endswith(".tmp"):
+            self.write_bytes(b"corrupted-through-the-writable-alias")   # mutate the shared inode
+        return orig_unlink(self, *a, **k)
+
+    monkeypatch.setattr(pathlib.Path, "unlink", corrupt_then_unlink)
+    result = publish_r4_sidecar(report, rec, out)             # must NOT raise
+    assert result.disposition == DISPOSITION_INTEGRITY_FAILED
+
+
+def test_f6_a_noncanonical_hand_built_record_is_refused(tmp_path):
+    # Codex #1187 F6: canonicalization was builder-only. A hand-built record with reversed (non-
+    # canonical) row order passed verify/bind/decision/publish and minted a different digest for an
+    # equivalent comparison. rev7 requires the stored rows to BE their canonical form.
+    report = _sealed_report(n=4)
+    rows, agg = _comparison(_eligible_of(report))
+    noncanon = list(reversed(_canonicalize_comparison(rows)))   # same rows, non-canonical order
+    record = {
+        "schema": SIDECAR_SCHEMA,
+        "evaluator": {"evaluator_id": "sentence-transformers/all-MiniLM-L6-v2", "revision_sha": EVAL_SHA},
+        "runner": {"runner_id": "r4_compare_sidecar", "runner_digest": "d" * 64},
+        "panel": report["execution_descriptor"]["panel_hash"],
+        "parent": _manifest(report)["parent"],
+        "per_pair": noncanon, "aggregate": agg,
+    }
+    man = {k: record[k] for k in ("schema", "evaluator", "runner", "parent", "panel")}
+    forged = R4SidecarRecord(manifest_digest=canonical_digest(man),
+                             output_digest=canonical_digest(record), record=_deep_freeze(record))
+    for op in (lambda: r4_decision(report, forged),
+               lambda: bind_to_parent_report(report, forged),
+               lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
+        with pytest.raises(R4SidecarError) as ei:
+            op()
+        assert "canonical form" in str(ei.value)
+
+
+def test_incomplete_for_zero_and_one_eligible_probes(tmp_path):
+    # Codex #1187 #6: N'=0 and N'=1 must emit the frozen INCOMPLETE decision (empty comparison), not
+    # raise "no per-pair comparison rows".
+    for eligible_n in (0, 1):
+        report = _sealed_report(n=3)
+        for j in range(eligible_n, 3):
+            _set_record(report, j, tokens=1)                 # make the rest short -> refused
+        _reseal(report)
+        elig = _eligible_of(report)
+        assert len(elig) == eligible_n
+        rows, agg = _comparison(elig)                        # empty comparison
+        rec = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=agg)
+        d = r4_decision(report, rec)
+        assert d["state"] == DECISION_INCOMPLETE and d["c1_authorization_permitted"] is False
+        assert d["n_eligible"] == eligible_n
+        result = publish_r4_sidecar(report, rec, tmp_path / f"r4_{eligible_n}.json")
+        assert result.disposition == DISPOSITION_VERIFIED    # commits cleanly; the DECISION is INCOMPLETE
+
+
+def test_a_huge_int_numeric_is_a_typed_refusal_not_overflow():
+    # Codex #1187 #7: math.isfinite(10**400) raises OverflowError. A huge exact int must be an
+    # in-range refusal, not a raw OverflowError.
+    r = validate_comparison(
+        per_pair=[{"probe_a": "a", "probe_b": "b", "jsd": 10 ** 400, "cosine_similarity": 0.5}],
+        aggregate={"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0,
+                   "mean_pairwise_embedding": 0.0, "n_pairs": 1},
+        eligible_probe_ids=["a", "b"])
+    assert any("jsd must be in" in x for x in r)
 
 
 def test_f2_a_false_generation_output_digest_is_refused_at_every_boundary(tmp_path):
@@ -553,8 +737,7 @@ def test_f6_output_digest_is_invariant_to_row_order_and_endpoint_orientation():
     report = _sealed_report()
     rows, agg = _comparison(_eligible_of(report))
     fwd = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=agg)
-    reversed_rows = [{"pair_id": f'{r["probe_b"]}|{r["probe_a"]}',
-                      "probe_a": r["probe_b"], "probe_b": r["probe_a"],
+    reversed_rows = [{"probe_a": r["probe_b"], "probe_b": r["probe_a"],   # reversed order + orientation
                       "jsd": r["jsd"], "cosine_similarity": r["cosine_similarity"]}
                      for r in reversed(rows)]
     rev = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=reversed_rows,
@@ -577,9 +760,8 @@ def test_acodex_stop_reason_str_subclass_cannot_green_c1():
     report = _sealed_report(n=4)
     report["records"][0]["provenance"]["stop_reason"] = _Sneaky("backend_crashed")
     _reseal(report)
-    with pytest.raises(R4SidecarError) as ei:
+    with pytest.raises(R4SidecarError):     # a str subclass is refused (exact-typed snapshot / enum)
         verify_sealed_report(report)
-    assert "exact str" in str(ei.value)
 
     report2 = _sealed_report(n=4)
     report2["records"][0]["provenance"]["stop_reason"] = ["not", "a", "str"]   # unhashable
@@ -589,22 +771,11 @@ def test_acodex_stop_reason_str_subclass_cannot_green_c1():
 
 
 def test_acodex_pair_id_has_no_delimiter_collision_for_ids_containing_a_bar(tmp_path):
-    # a-Codex pre-board (rev6): with UNIQUE caller pair_ids, the DERIVED f"{a}|{b}" collided for
-    # probe ids containing "|" (("a","b|c") and ("a|b","c") both -> "a|b|c"), so the built record
-    # failed its OWN _verify_record for a duplicate pair_id. An unambiguous encoding round-trips.
+    # a-Codex/#1187: the DERIVED pair_id must not collide for probe ids containing "|"
+    # (("a","b|c") and ("a|b","c") both -> "a|b|c" under a single-bar delimiter). §5.5 has no caller
+    # pair_id; the JSON-of-oriented-endpoints derivation is injective and round-trips through publish.
     report = _sealed_report(ids=["a", "b|c", "a|b", "c"])
-    ids = sorted(_eligible_of(report))
-    pairs = list(combinations(ids, 2))
-    rows = []
-    for idx, (a, b) in enumerate(pairs):
-        jsd = round((idx + 1) / (len(pairs) + 1), 6)
-        rows.append({"pair_id": f"pair-{idx}",              # UNIQUE caller ids (pass build validation)
-                     "probe_a": a, "probe_b": b, "jsd": jsd, "cosine_similarity": round(1.0 - jsd, 6)})
-    jsds = [r["jsd"] for r in rows]
-    sims = [r["cosine_similarity"] for r in rows]
-    agg = {"spearman_rho": diversity_agreement_rho(jsds, sims),
-           "mean_pairwise_jsd": sum(jsds) / len(jsds),
-           "mean_pairwise_embedding": sum(sims) / len(sims), "n_pairs": len(rows)}
+    rows, agg = _comparison(_eligible_of(report))           # INPUT rows, no caller pair_id
     rec = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=agg)
     derived = [r["pair_id"] for r in rec.record["per_pair"]]
     assert len(derived) == len(set(derived))                # DERIVED pair_ids do not collide
@@ -825,11 +996,9 @@ def test_partition_rejects_a_bad_sequence_length():
 def test_validate_comparison_standalone_accumulates_faults():
     # Public: the out-of-process runner can self-check before the custody boundary; faults accumulate.
     r = validate_comparison(
-        per_pair=[{"pair_id": "", "probe_a": "a", "probe_b": "a", "jsd": 5.0,
-                   "cosine_similarity": None}],
+        per_pair=[{"probe_a": "a", "probe_b": "a", "jsd": 5.0, "cosine_similarity": None}],
         aggregate={"spearman_rho": "y", "n_pairs": 0},
         eligible_probe_ids=["a", "b"])
-    assert any("pair_id" in x for x in r)
     assert any("endpoints are identical" in x for x in r)
     assert any("jsd must be in" in x for x in r)
     assert any("cosine_similarity" in x for x in r)

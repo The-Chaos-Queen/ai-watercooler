@@ -74,6 +74,25 @@ REV6 (Codex exact-source review of record #1183, 2026-07-18 — six findings, on
      are canonicalized (endpoints oriented, sorted by (probe_a, probe_b)) before validation and
      sealing, so equivalent comparisons hash identically (spec §5.5 output-digest rule).
 
+REV7 (Codex exact-source review of record #1187 — F2 CLOSED, six residual public-boundary items):
+  F1 CANONICAL PRODUCER SHAPE: verify_sealed_report enforces the EXACT producer key sets (top-level
+     report / record / provenance / execution_descriptor), manifest-authority EQUALITY
+     (report.manifest_digest == execution_descriptor.manifest_digest == .base_manifest_digest), and
+     the producer's EOS mutual-consistency — a self-consistent report with stripped / contradictory /
+     impossible producer fields is no longer a governed parent.
+  F3 OWNED DEEP COPY: _verify_record captures via _inert_snapshot (rebuilds nested lists, not just
+     mappings/tuples), so a post-verification mutation of a live nested list cannot reach the
+     artifact; §5.5 has no caller pair_id (dropped from the input row).
+  F4 ALIAS-FIRST TERMINAL: the writable hard-link alias is removed BEFORE the definitive readback,
+     so a write through the alias during unlink cannot corrupt already-verified final bytes.
+  F5/#7 TYPED TOTALITY: _inert_snapshot requires EXACT leaf types + str keys (a str/int subclass or
+     non-str key is refused, not silently accepted); _num_in_range range-checks huge ints without an
+     overflowing float conversion; the record key set is exact-equality.
+  F6 CANONICAL AT VERIFY: _verify_record requires the stored rows to BE their canonical form, so a
+     hand-built non-canonical record cannot mint a divergent digest for an equivalent comparison.
+  #6 EMPTY/INCOMPLETE: N' = 0/1 yields the frozen INCOMPLETE decision over the canonical empty pair
+     set, not a structural refusal.
+
 Torch-free and model-free-testable. Authorizes NO run, sets NO threshold, lifts NO hold.
 """
 from __future__ import annotations
@@ -131,21 +150,41 @@ _MIN_ELIGIBLE = 4
 # only COMPARES against it. rho < RHO_GATE => JSD's residual is load-bearing => replacement required.
 RHO_GATE = 0.7
 
-# F6 (frozen §5.5): the raw evaluator field is `cosine_similarity` (line 173 of the contract), not
-# `embedding_similarity`; using the wrong name would refuse the real evaluator's contract-shaped rows.
-_ROW_KEYS = {"pair_id", "probe_a", "probe_b", "jsd", "cosine_similarity"}
+# F6 (frozen §5.5, Codex #1187): the row field is `cosine_similarity` (line 173), and §5.5 (lines
+# 164-178) names NO caller `pair_id`. The INPUT row a producer/evaluator emits is exactly these four;
+# pair_id is DERIVED at canonicalization and only appears in the stored/canonical row.
+_INPUT_ROW_KEYS = frozenset({"probe_a", "probe_b", "jsd", "cosine_similarity"})
+_CANON_ROW_KEYS = frozenset({"pair_id", "probe_a", "probe_b", "jsd", "cosine_similarity"})
 _AGG_KEYS = {"spearman_rho", "n_pairs", "mean_pairwise_jsd", "mean_pairwise_embedding"}
-# F1: a canonical B0 record carries the actual generated_token_ids; the sha + token_count are
-# cross-checked against them, so the receipt cannot merely assert a hash.
-_RECEIPT_KEYS = ("input_token_ids_sha256", "generated_token_ids", "generated_token_ids_sha256",
-                 "token_count", "stop_reason")
-# The frozen continuation stop-reason enum (spec §4.1 line 60): eos | length | error. A report using
-# any other value (e.g. backend_crashed) must not have its records silently treated as eligible.
+# The frozen continuation stop-reason enum (spec §4.1 line 60): eos | length | error.
 _STOP_REASONS = frozenset({"eos", "length", "error"})
-# The EXACT top-level key set of a sealed record (rev5). Closed-world: a hand-built record may not
-# smuggle extra/deprecated keys (e.g. a stale `eligibility` block) into an integrity_verified
-# artifact, which embeds the record verbatim. eligibility is re-derived, never stored on the record.
+# The EXACT top-level key set of a sealed sidecar record. Closed-world: a hand-built record may not
+# add/drop keys. eligibility is re-derived from the parent, never stored on the record.
 _RECORD_KEYS = frozenset({"schema", "evaluator", "runner", "panel", "parent", "per_pair", "aggregate"})
+
+# ---- Canonical B0 producer contract (Codex #1187 F1). These mirror the EXACT shapes
+# B0EvidenceBundle.seal() (p5_b0_harness) + run_b0 (p5_b0_run) emit. A governed parent that is
+# missing or has extra fields is NOT the canonical producer's report, however self-consistent its
+# inner/outer digests — the digests prove byte-consistency of what is present, not membership in the
+# producer schema. Kept in lockstep with those producers by review. ----
+_B0_REPORT_KEYS = frozenset({
+    "schema_version", "manifest_digest", "record_count", "records", "report_digest",
+    "run_kind", "schema_variant", "base_manifest_id", "execution_descriptor",
+    "terminal_state", "journal_digest", "published_digest"})
+_B0_RECORD_KEYS = frozenset({
+    "probe_id", "raw_generation", "scorer_input", "scorer_output", "provenance", "ordinal"})
+# Full per-record provenance receipt (run_b0 §3.2). The digest/id/count/stop invariants are checked;
+# the custody extras (prompt_sha256/attempt_id/wall_time_ms) are required present.
+_B0_PROVENANCE_KEYS = frozenset({
+    "prompt_sha256", "attempt_id", "input_token_ids_sha256", "generated_token_ids",
+    "generated_token_ids_sha256", "token_count", "stop_reason", "eos_token_id_fired", "wall_time_ms"})
+_B0_DESCRIPTOR_KEYS = frozenset({
+    "panel_hash", "model", "decoding", "decoding_hash", "scorer_id", "scorer_version",
+    "scorer_blob_sha256", "scorer_allowlist_digest", "scorer_review_ref", "rubric_version",
+    "processor_revision", "runtime_hash", "runner_digest", "schema_variant", "base_manifest_id",
+    "run_kind", "base_manifest_digest", "manifest_digest"})
+# The exact fields B0EvidenceBundle.seal() digests into the inner report_digest, before publication.
+_B0_SEALED_BASE_KEYS = ("schema_version", "manifest_digest", "record_count", "records")
 
 # C1-precondition decision states (fail-closed). Only JSD_PROCEEDS is a green precondition; every
 # other state denies C1 authorization.
@@ -162,11 +201,20 @@ class R4SidecarError(ValueError):
 # Inert snapshot / deep-freeze (F2/F4).                                        #
 # --------------------------------------------------------------------------- #
 def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
+    """A fully-OWNED, EXACT-typed deep copy (Codex #1183 F3 + #1187 F3/#7).
+
+    Rebuilds mappings AND lists AND tuples into new dicts/lists (no shared mutable reference survives
+    — a caller cannot mutate a nested list after this returns), and requires EXACT built-in leaf
+    types: a str/int/float subclass (which could compare/hash as one value but serialize as another)
+    is refused, not silently accepted. Also used as the record-capture snapshot in _verify_record.
+    """
     if _depth > 64:
         raise R4SidecarError("input nesting too deep")
-    if isinstance(obj, bool) or obj is None or isinstance(obj, (str, int)):
+    if obj is None or type(obj) is bool or type(obj) is int:
         return obj
-    if isinstance(obj, float):
+    if type(obj) is str:
+        return obj
+    if type(obj) is float:
         if not math.isfinite(obj):
             raise R4SidecarError(f"non-finite float in input: {obj!r}")
         return obj
@@ -174,12 +222,13 @@ def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
         out: dict[str, Any] = {}
         for k, v in obj.items():
             if type(k) is not str:
-                raise R4SidecarError(f"non-str mapping key {k!r}")
+                raise R4SidecarError(
+                    f"mapping key must be an exact str (got {type(k).__name__}: {k!r})")
             out[k] = _inert_snapshot(v, _depth + 1)
         return out
     if isinstance(obj, (list, tuple)):
         return [_inert_snapshot(v, _depth + 1) for v in obj]
-    raise R4SidecarError(f"non-JSON value in input: {type(obj).__name__}")
+    raise R4SidecarError(f"non-exact/JSON value in input: {type(obj).__name__}")
 
 
 def _deep_freeze(obj: Any) -> Any:
@@ -187,14 +236,6 @@ def _deep_freeze(obj: Any) -> Any:
         return MappingProxyType({k: _deep_freeze(v) for k, v in obj.items()})
     if isinstance(obj, list):
         return tuple(_deep_freeze(v) for v in obj)
-    return obj
-
-
-def _thaw(obj: Any) -> Any:
-    if isinstance(obj, Mapping):
-        return {k: _thaw(v) for k, v in obj.items()}
-    if isinstance(obj, tuple):
-        return [_thaw(v) for v in obj]
     return obj
 
 
@@ -241,7 +282,9 @@ def _field_error(value: Any, kind: str) -> str | None:
 def _num_in_range(value: Any, lo: float, hi: float, name: str) -> str | None:
     if isinstance(value, bool) or type(value) not in (int, float):
         return f"{name} must be a finite number (got {type(value).__name__}: {value!r})"
-    if not math.isfinite(value):
+    # math.isfinite() on a huge exact int raises OverflowError (Codex #1187 #7). Only floats need
+    # the finiteness test; int-vs-float range comparison is exact and never overflows.
+    if type(value) is float and not math.isfinite(value):
         return f"{name} must be finite (got {value!r})"
     if not (lo <= value <= hi):
         return f"{name} must be in [{lo}, {hi}] (got {value!r})"
@@ -287,113 +330,138 @@ def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
 
 
 # --------------------------------------------------------------------------- #
-# F3 — verify the parent report structurally, then derive from the snapshot.    #
+# F1 — verify the parent is the CANONICAL B0 producer's report, then derive.    #
 # --------------------------------------------------------------------------- #
-# The exact base fields B0EvidenceBundle.seal() digests into the inner report_digest (before the
-# runner appends publication fields). Recomputing over these is the frozen #1146 F2-depth check.
-_B0_SEALED_BASE_KEYS = ("schema_version", "manifest_digest", "record_count", "records")
+def _require_sha256(value: Any, name: str) -> None:
+    if type(value) is not str or not _SHA256.match(value):
+        raise R4SidecarError(f"{name} must be a lowercase sha256 hex digest (got {value!r})")
 
 
 def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
-    """Validate a CANONICAL B0 evidence report (Monk #1146 F2-depth; Codex #1183 F1).
+    """Validate a CANONICAL B0 evidence report (Monk #1146 F2-depth; Codex #1183/#1187 F1).
 
-    A governed parent is not merely a self-hashed Mapping: it is the exact report
-    ``B0EvidenceBundle.seal()`` mints and ``run_b0`` publishes. Inert-snapshot it, then require:
-    the bundle schema; a present ``manifest_digest``; the INNER ``report_digest`` recomputed over the
-    exact base fields ``seal()`` sealed (schema_version/manifest_digest/record_count/records); the
-    OUTER ``published_digest`` recomputed over everything else; an ``execution_descriptor.panel_hash``;
-    ``record_count == len(records)``; and per record the full generation receipts — the frozen
-    ``eos|length|error`` stop-reason enum, sha256 receipt digests, and ``generated_token_ids_sha256``
-    + ``token_count`` cross-checked against the record's OWN ``generated_token_ids``. The seam adds
-    journal + terminal-authority verification on top of this.
+    A governed parent is not merely a self-hashed Mapping, and not merely a report with the fields
+    this sidecar happens to read: it is the EXACT report ``B0EvidenceBundle.seal()`` mints and
+    ``run_b0`` publishes. The inner and outer digests prove byte-consistency of what is PRESENT, not
+    membership in the producer schema, so a self-consistent report with stripped / contradictory /
+    impossible producer fields must still be refused. Requires: exact top-level key set; the bundle
+    schema; the INNER report_digest recomputed over the sealed base fields; the OUTER published_digest
+    over the rest; manifest-authority EQUALITY (report.manifest_digest == execution_descriptor
+    .manifest_digest == .base_manifest_digest, DQ1b §290-292); the exact execution_descriptor key
+    set + panel_hash; and per record the exact producer record + provenance key sets, sequential
+    ordinal, the frozen ``eos|length|error`` stop enum, sha256 receipt digests,
+    ``generated_token_ids_sha256`` + ``token_count`` cross-checked against the record's OWN
+    ``generated_token_ids``, and the producer's EOS mutual-consistency rule. The seam adds journal +
+    terminal-authority verification on top of this.
     """
-    snap = _inert_snapshot(sealed_report)
+    snap = _inert_snapshot(sealed_report)                   # owned, exact-typed (rejects subclasses)
     if not isinstance(snap, dict):
         raise R4SidecarError("sealed_report must be a mapping")
-    if snap.get("schema_version") != B0_BUNDLE_SCHEMA:
+    if set(snap) != _B0_REPORT_KEYS:
+        missing = sorted(_B0_REPORT_KEYS - set(snap))
+        extra = sorted(set(snap) - _B0_REPORT_KEYS)
         raise R4SidecarError(
-            f"sealed_report.schema_version must be {B0_BUNDLE_SCHEMA!r} "
-            f"(got {snap.get('schema_version')!r})")
+            f"sealed_report is not the canonical B0 shape (missing {missing}, unexpected {extra})")
+    if snap["schema_version"] != B0_BUNDLE_SCHEMA:
+        raise R4SidecarError(
+            f"sealed_report.schema_version must be {B0_BUNDLE_SCHEMA!r} (got {snap['schema_version']!r})")
 
-    mdig = snap.get("manifest_digest")
-    if type(mdig) is not str or not _SHA256.match(mdig):
-        raise R4SidecarError("sealed_report.manifest_digest is absent or not a sha256")
+    mdig = snap["manifest_digest"]
+    _require_sha256(mdig, "sealed_report.manifest_digest")
 
-    records = snap.get("records")
+    records = snap["records"]
     if not isinstance(records, list) or not records:
         raise R4SidecarError("sealed_report has no records")
-    if snap.get("record_count") != len(records):
+    if snap["record_count"] != len(records):
         raise R4SidecarError(
-            f"sealed_report.record_count {snap.get('record_count')!r} != len(records) {len(records)}")
+            f"sealed_report.record_count {snap['record_count']!r} != len(records) {len(records)}")
 
-    # INNER digest: exactly what seal() sealed, before run_b0 appended publication fields (F1).
-    inner_stated = snap.get("report_digest")
-    if type(inner_stated) is not str or not _SHA256.match(inner_stated):
-        raise R4SidecarError("sealed_report.report_digest is absent or not a sha256; not sealed")
-    inner_recomputed = canonical_digest({k: snap[k] for k in _B0_SEALED_BASE_KEYS if k in snap})
+    # INNER digest: exactly what seal() sealed, before run_b0 appended publication fields.
+    inner_stated = snap["report_digest"]
+    _require_sha256(inner_stated, "sealed_report.report_digest")
+    inner_recomputed = canonical_digest({k: snap[k] for k in _B0_SEALED_BASE_KEYS})
     if inner_recomputed != inner_stated:
         raise R4SidecarError(
             f"sealed_report.report_digest {inner_stated[:12]}.. != the inner seal digest "
             f"{inner_recomputed[:12]}.. recomputed over its base fields; not the sealed report")
 
     # OUTER digest: the runner's publication digest over everything except itself.
-    outer_stated = snap.get("published_digest")
-    if type(outer_stated) is not str or not _SHA256.match(outer_stated):
-        raise R4SidecarError("sealed_report.published_digest is absent or not a sha256; not sealed")
+    outer_stated = snap["published_digest"]
+    _require_sha256(outer_stated, "sealed_report.published_digest")
     outer_recomputed = canonical_digest({k: v for k, v in snap.items() if k != "published_digest"})
     if outer_recomputed != outer_stated:
         raise R4SidecarError(
             f"sealed_report.published_digest {outer_stated[:12]}.. != the digest "
             f"{outer_recomputed[:12]}.. recomputed from its own contents; modified since sealing")
 
-    ed = snap.get("execution_descriptor")
-    if not isinstance(ed, Mapping):
-        raise R4SidecarError("sealed_report has no execution_descriptor")
-    if type(ed.get("panel_hash")) is not str or not ed["panel_hash"]:
-        raise R4SidecarError("sealed_report.execution_descriptor.panel_hash is absent or not a str")
+    # Execution descriptor: exact producer shape + panel_hash + manifest-authority equality (F1).
+    ed = snap["execution_descriptor"]
+    if not isinstance(ed, Mapping) or set(ed) != _B0_DESCRIPTOR_KEYS:
+        raise R4SidecarError("execution_descriptor is not the canonical producer shape")
+    if type(ed["panel_hash"]) is not str or not ed["panel_hash"]:
+        raise R4SidecarError("execution_descriptor.panel_hash is absent or not a str")
+    _require_sha256(ed["manifest_digest"], "execution_descriptor.manifest_digest")
+    _require_sha256(ed["base_manifest_digest"], "execution_descriptor.base_manifest_digest")
+    if not (mdig == ed["manifest_digest"] == ed["base_manifest_digest"]):
+        raise R4SidecarError(
+            "manifest authority disagreement: report.manifest_digest, "
+            "execution_descriptor.manifest_digest and .base_manifest_digest must be equal "
+            "(DQ1b): one base, one authority")
 
     seen: set[str] = set()
     for i, rec in enumerate(records):
-        if not isinstance(rec, Mapping):
-            raise R4SidecarError(f"record {i} is not a mapping")
-        pid = rec.get("probe_id")
+        if not isinstance(rec, Mapping) or set(rec) != _B0_RECORD_KEYS:
+            raise R4SidecarError(f"record {i} is not the canonical producer record shape")
+        pid = rec["probe_id"]
         if type(pid) is not str or not pid:
             raise R4SidecarError(f"record {i} has no valid probe_id")
         if pid in seen:
             raise R4SidecarError(f"duplicate probe_id {pid!r} in report")
         seen.add(pid)
-        if type(rec.get("raw_generation")) is not str:
+        if type(rec["raw_generation"]) is not str:
             raise R4SidecarError(f"record {i} raw_generation must be a str")
-        prov = rec.get("provenance")
-        if not isinstance(prov, Mapping):
-            raise R4SidecarError(f"record {i} has no provenance")
-        for key in _RECEIPT_KEYS:
-            if key not in prov:
-                raise R4SidecarError(f"record {i} provenance missing receipt field {key!r}")
-        stop = prov.get("stop_reason")
-        # EXACT str before enum membership (a-Codex): a str subclass with overridden __eq__/__hash__
-        # could compare equal to "eos" while serializing as something else, and an unhashable value
-        # would raise a raw TypeError on `in`. Exact-type first closes both.
-        if type(stop) is not str or stop not in _STOP_REASONS:
+        if type(rec["ordinal"]) is not int or isinstance(rec["ordinal"], bool) or rec["ordinal"] != i:
+            raise R4SidecarError(f"record {i} ordinal must be the sequential int {i}")
+        prov = rec["provenance"]
+        if not isinstance(prov, Mapping) or set(prov) != _B0_PROVENANCE_KEYS:
+            raise R4SidecarError(f"record {i} provenance is not the canonical producer shape")
+        _require_sha256(prov["prompt_sha256"], f"record {i} provenance.prompt_sha256")
+        _require_sha256(prov["input_token_ids_sha256"], f"record {i} provenance.input_token_ids_sha256")
+        _require_sha256(prov["generated_token_ids_sha256"],
+                        f"record {i} provenance.generated_token_ids_sha256")
+        if type(prov["attempt_id"]) is not str or not prov["attempt_id"]:
+            raise R4SidecarError(f"record {i} provenance.attempt_id must be a non-empty str")
+        if type(prov["wall_time_ms"]) not in (int, float) or isinstance(prov["wall_time_ms"], bool):
+            raise R4SidecarError(f"record {i} provenance.wall_time_ms must be a number")
+        stop = prov["stop_reason"]
+        if type(stop) is not str or stop not in _STOP_REASONS:  # exact str before enum membership
             raise R4SidecarError(
-                f"record {i} stop_reason {stop!r} is not an exact str in the frozen enum "
-                f"{sorted(_STOP_REASONS)}")
-        for dkey in ("input_token_ids_sha256", "generated_token_ids_sha256"):
-            if type(prov.get(dkey)) is not str or not _SHA256.match(prov[dkey]):
-                raise R4SidecarError(f"record {i} provenance.{dkey} must be a sha256 digest")
-        gen_ids = prov.get("generated_token_ids")
+                f"record {i} stop_reason {stop!r} is not an exact str in {sorted(_STOP_REASONS)}")
+        gen_ids = prov["generated_token_ids"]
         if not isinstance(gen_ids, list) or any(
                 type(t) is not int or isinstance(t, bool) for t in gen_ids):
             raise R4SidecarError(f"record {i} generated_token_ids must be a list of ints")
         if canonical_digest(gen_ids) != prov["generated_token_ids_sha256"]:
             raise R4SidecarError(
                 f"record {i} generated_token_ids_sha256 does not match its own generated_token_ids")
-        tc = prov.get("token_count")
+        tc = prov["token_count"]
         if type(tc) is not int or isinstance(tc, bool) or tc < 0:
             raise R4SidecarError(f"record {i} token_count must be a non-negative int")
         if tc != len(gen_ids):
             raise R4SidecarError(
                 f"record {i} token_count {tc} != len(generated_token_ids) {len(gen_ids)}")
+        # Producer EOS mutual-consistency (p5_b0_run:459-466): eos names WHICH id fired and it is the
+        # final generated id; length/error must not name a fired eos id.
+        eos_fired = prov["eos_token_id_fired"]
+        if stop == "eos":
+            if type(eos_fired) is not int or isinstance(eos_fired, bool):
+                raise R4SidecarError(f"record {i} stop_reason 'eos' requires an int eos_token_id_fired")
+            if not gen_ids or gen_ids[-1] != eos_fired:
+                raise R4SidecarError(
+                    f"record {i} eos_token_id_fired does not match the final generated token id")
+        elif eos_fired is not None:
+            raise R4SidecarError(
+                f"record {i} stop_reason {stop!r} must not name a fired eos id")
     return snap
 
 
@@ -501,22 +569,78 @@ def diversity_agreement_rho(jsds: Sequence[float], sims: Sequence[float]) -> flo
     return spearman_rho(jsds, [1.0 - s for s in sims])
 
 
-def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
-                        *, eligible_probe_ids: Sequence[str] | None = None) -> list[str]:
-    """Range + endpoint identity + COMPLETENESS over ELIGIBLE probes + RECOMPUTATION.
+def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
+                        jsds: list[float], sims: list[float]) -> list[str]:
+    """Range-check the aggregate, bind n_pairs to the row count, and recompute from the rows.
 
-    Completeness is over the ELIGIBLE set (Monk #1146 F1), never all report probes. The N' >= 4
-    floor is NOT enforced here (it is a decision outcome: below-floor is INCOMPLETE, not a build
-    refusal); this validates that whatever pairs are present cover exactly C(eligible, 2).
+    n_pairs is a NON-NEGATIVE int (0 is the canonical value for a below-floor empty comparison);
+    the recompute runs only when there are rows to describe.
     """
     refusals: list[str] = []
+    if not isinstance(aggregate, Mapping):
+        return ["aggregate must be a mapping"]
+    unknown = set(aggregate) - _AGG_KEYS
+    if unknown:
+        refusals.append(f"aggregate has unknown key(s): {sorted(unknown)}")
+    for key, rng in (("spearman_rho", _RHO_RANGE), ("mean_pairwise_jsd", _JSD_RANGE),
+                     ("mean_pairwise_embedding", _SIM_RANGE)):
+        if key not in aggregate:
+            refusals.append(f"aggregate.{key} is missing")
+        else:
+            e = _num_in_range(aggregate[key], *rng, key)
+            if e:
+                refusals.append(f"aggregate.{e}")
+    n = aggregate.get("n_pairs")
+    if "n_pairs" not in aggregate:
+        refusals.append("aggregate.n_pairs is missing")
+    elif type(n) is not int or isinstance(n, bool) or n < 0:
+        refusals.append(f"aggregate.n_pairs must be a non-negative int (got {n!r})")
+    elif n != len(per_pair):
+        refusals.append(f"aggregate.n_pairs {n} != {len(per_pair)} per-pair rows")
+
+    if jsds and len(jsds) == len(sims) == len(per_pair):
+        checks = [
+            ("spearman_rho", diversity_agreement_rho(jsds, sims)),
+            ("mean_pairwise_jsd", sum(jsds) / len(jsds)),
+            ("mean_pairwise_embedding", sum(sims) / len(sims)),
+        ]
+        for key, computed in checks:
+            declared = aggregate.get(key)
+            if isinstance(declared, (int, float)) and not isinstance(declared, bool):
+                if abs(float(declared) - computed) > _RECOMPUTE_TOL:
+                    refusals.append(
+                        f"aggregate.{key} {declared} does not match the value {computed:.12g} "
+                        "recomputed from the rows; the summary must describe the rows")
+    return refusals
+
+
+def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
+                        *, eligible_probe_ids: Sequence[str] | None = None,
+                        row_keys: frozenset[str] = _INPUT_ROW_KEYS) -> list[str]:
+    """Row shape + endpoint identity + COMPLETENESS over ELIGIBLE probes + RECOMPUTATION.
+
+    Completeness is over the ELIGIBLE set (Monk #1146 F1), never all report probes. §5.5 (Codex
+    #1187) names NO caller pair_id, so the default INPUT row shape is exactly
+    {probe_a, probe_b, jsd, cosine_similarity}; the stored canonical row (pass ``row_keys=
+    _CANON_ROW_KEYS``) also carries the DERIVED pair_id. An EMPTY comparison is valid ONLY when the
+    eligible set yields zero pairs (N' < 2) — the frozen INCOMPLETE case — never otherwise. The
+    N' >= 4 floor is a decision outcome, not enforced here.
+    """
     if not isinstance(per_pair, Sequence) or isinstance(per_pair, (str, bytes)):
         return ["per_pair must be a sequence of rows"]
-    if not per_pair:
-        return ["no per-pair comparison rows; an empty comparison decides nothing"]
-
     probe_set = set(eligible_probe_ids) if eligible_probe_ids is not None else None
-    seen_ids: set[str] = set()
+    expected = ({frozenset(p) for p in combinations(sorted(probe_set), 2)}
+                if probe_set is not None else None)
+
+    if not per_pair:
+        # An empty comparison is the canonical form iff the eligible set yields zero pairs (N' < 2).
+        # Without a parent (expected is None) emptiness is allowed here; the parent-aware boundary
+        # enforces completeness. A non-empty expected set with no rows is a refusal.
+        refusals = ([f"empty comparison but the eligible set requires {len(expected)} pair(s)"]
+                    if expected else [])
+        return refusals + _validate_aggregate(aggregate, per_pair, [], [])
+
+    refusals = []
     seen_endpoints: set[frozenset] = set()
     jsds: list[float] = []
     sims: list[float] = []
@@ -524,20 +648,13 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
         if not isinstance(row, Mapping):
             refusals.append(f"per-pair row {i} is not a mapping")
             continue
-        unknown = set(row) - _ROW_KEYS
-        if unknown:
-            refusals.append(f"per-pair row {i} has unknown key(s): {sorted(unknown)}")
-        pe = _field_error(row.get("pair_id"), _ID) if "pair_id" in row else "is missing"
-        if pe:
-            refusals.append(f"per-pair row {i} pair_id {pe}")
-        elif row["pair_id"] in seen_ids:
-            refusals.append(f"per-pair row {i} duplicates pair_id {row['pair_id']!r}")
-        else:
-            seen_ids.add(row["pair_id"])
-
-        a, b = row.get("probe_a"), row.get("probe_b")
-        ae = _field_error(a, _ID) if "probe_a" in row else "is missing"
-        be = _field_error(b, _ID) if "probe_b" in row else "is missing"
+        if set(row) != set(row_keys):                       # exact row shape; §5.5 has no caller pair_id
+            refusals.append(
+                f"per-pair row {i} key set is not {sorted(row_keys)} (got {sorted(row)})")
+            continue
+        a, b = row["probe_a"], row["probe_b"]
+        ae = _field_error(a, _ID)
+        be = _field_error(b, _ID)
         if ae:
             refusals.append(f"per-pair row {i} probe_a {ae}")
         if be:
@@ -554,61 +671,26 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
                     refusals.append(f"per-pair row {i} duplicates endpoint pair {sorted(key)}")
                 seen_endpoints.add(key)
 
-        je = _num_in_range(row.get("jsd"), *_JSD_RANGE, "jsd") if "jsd" in row else "jsd is missing"
+        je = _num_in_range(row["jsd"], *_JSD_RANGE, "jsd")
         if je:
             refusals.append(f"per-pair row {i} {je}")
         else:
             jsds.append(row["jsd"])
-        se = (_num_in_range(row.get("cosine_similarity"), *_SIM_RANGE, "cosine_similarity")
-              if "cosine_similarity" in row else "cosine_similarity is missing")
+        se = _num_in_range(row["cosine_similarity"], *_SIM_RANGE, "cosine_similarity")
         if se:
             refusals.append(f"per-pair row {i} {se}")
         else:
             sims.append(row["cosine_similarity"])
 
-    if probe_set is not None:
-        expected = {frozenset(p) for p in combinations(sorted(probe_set), 2)}
-        if seen_endpoints != expected and not any("endpoints" in r or "probe_" in r
-                                                  for r in refusals):
-            missing = expected - seen_endpoints
-            extra = seen_endpoints - expected
-            refusals.append(
-                f"comparison endpoint set is not the complete ELIGIBLE pair set "
-                f"(missing {len(missing)}, extra {len(extra)} of {len(expected)})")
+    if expected is not None and seen_endpoints != expected and not any(
+            "endpoints" in r or "probe_" in r or "key set" in r for r in refusals):
+        missing = expected - seen_endpoints
+        extra = seen_endpoints - expected
+        refusals.append(
+            f"comparison endpoint set is not the complete ELIGIBLE pair set "
+            f"(missing {len(missing)}, extra {len(extra)} of {len(expected)})")
 
-    if not isinstance(aggregate, Mapping):
-        return [*refusals, "aggregate must be a mapping"]
-    unknown = set(aggregate) - _AGG_KEYS
-    if unknown:
-        refusals.append(f"aggregate has unknown key(s): {sorted(unknown)}")
-    for key, rng in (("spearman_rho", _RHO_RANGE), ("mean_pairwise_jsd", _JSD_RANGE),
-                     ("mean_pairwise_embedding", _SIM_RANGE)):
-        if key not in aggregate:
-            refusals.append(f"aggregate.{key} is missing")
-        else:
-            e = _num_in_range(aggregate[key], *rng, key)
-            if e:
-                refusals.append(f"aggregate.{e}")
-    ne = _field_error(aggregate.get("n_pairs"), _POSINT) if "n_pairs" in aggregate else "is missing"
-    if ne:
-        refusals.append(f"aggregate.n_pairs {ne}")
-    elif aggregate["n_pairs"] != len(per_pair):
-        refusals.append(f"aggregate.n_pairs {aggregate['n_pairs']} != {len(per_pair)} per-pair rows")
-
-    if len(jsds) == len(sims) == len(per_pair) and len(per_pair) >= 1:
-        checks = [
-            ("spearman_rho", diversity_agreement_rho(jsds, sims)),
-            ("mean_pairwise_jsd", sum(jsds) / len(jsds)),
-            ("mean_pairwise_embedding", sum(sims) / len(sims)),
-        ]
-        for key, computed in checks:
-            declared = aggregate.get(key)
-            if isinstance(declared, (int, float)) and not isinstance(declared, bool):
-                if abs(float(declared) - computed) > _RECOMPUTE_TOL:
-                    refusals.append(
-                        f"aggregate.{key} {declared} does not match the value {computed:.12g} "
-                        "recomputed from the rows; the summary must describe the rows")
-    return refusals
+    return refusals + _validate_aggregate(aggregate, per_pair, jsds, sims)
 
 
 @dataclass(frozen=True)
@@ -764,34 +846,47 @@ def _verify_record(sidecar: Any) -> _VerifiedSidecar:
     manifest_digest = sidecar.manifest_digest
     if type(output_digest) is not str or type(manifest_digest) is not str:
         raise R4SidecarError("record digests must be exact strs")
-    thawed = _thaw(sidecar.record)                 # single read of the (possibly stateful) carrier
-    # F5 (Codex #1183): exact root type + exact key set BEFORE indexing, so a missing key or a scalar
-    # root is a typed refusal, not a raw KeyError/TypeError. Exact set also subsumes the rev5
-    # unknown/deprecated-key rejection (a stale `eligibility` block is an unexpected key).
-    if not isinstance(thawed, dict):
+    # F3 (Codex #1187): capture a fully-OWNED, EXACT-typed deep copy in one pass — _inert_snapshot
+    # rebuilds nested lists too (no live list survives) and refuses str/int subclasses (which could
+    # compare as one value but serialize as another) and non-str keys, so a stateful/subclass carrier
+    # cannot mutate or spoof the captured record after this returns.
+    record = _inert_snapshot(sidecar.record)
+    # F5 (Codex #1183): exact root type + exact key set BEFORE indexing, so a missing key / scalar
+    # root / extra key is a typed refusal, not a raw KeyError/TypeError. (_inert_snapshot already made
+    # every key an exact str, so this set-difference cannot raise on heterogeneous keys.)
+    if not isinstance(record, dict):
         raise R4SidecarError("record root is not a mapping")
-    if set(thawed) != _RECORD_KEYS:
-        missing = sorted(_RECORD_KEYS - set(thawed))
-        extra = sorted(set(thawed) - _RECORD_KEYS)
+    if set(record) != _RECORD_KEYS:
+        missing = sorted(_RECORD_KEYS - set(record))
+        extra = sorted(set(record) - _RECORD_KEYS)
         raise R4SidecarError(
             f"record key set is not exact (missing {missing}, unexpected {extra}); eligibility is "
             "re-derived from the parent, never stored on the record")
-    if canonical_digest(thawed) != output_digest:
+    if canonical_digest(record) != output_digest:
         raise R4SidecarError("record output_digest does not match its content (stale or tampered)")
     reconstructed_manifest = {
-        "schema": thawed["schema"], "evaluator": thawed["evaluator"],
-        "runner": thawed["runner"], "parent": thawed["parent"], "panel": thawed["panel"],
+        "schema": record["schema"], "evaluator": record["evaluator"],
+        "runner": record["runner"], "parent": record["parent"], "panel": record["panel"],
     }
     if canonical_digest(reconstructed_manifest) != manifest_digest:
         raise R4SidecarError("record manifest_digest does not match the reconstructed manifest")
     m_refusals = validate_sidecar_manifest(reconstructed_manifest)
     if m_refusals:
         raise R4SidecarError("record manifest fails re-validation: " + "; ".join(m_refusals))
-    c_refusals = validate_comparison(thawed["per_pair"], thawed["aggregate"],
-                                     eligible_probe_ids=None)
+    # Stored rows carry the DERIVED pair_id -> validate against the canonical row shape.
+    c_refusals = validate_comparison(record["per_pair"], record["aggregate"],
+                                     eligible_probe_ids=None, row_keys=_CANON_ROW_KEYS)
     if c_refusals:
         raise R4SidecarError("record comparison fails re-validation: " + "; ".join(c_refusals))
-    return _VerifiedSidecar(record=thawed, output_digest=output_digest,
+    # F6 (Codex #1187): the stored rows must already BE their canonical representation (oriented,
+    # sorted, derived pair_id). Otherwise a hand-built non-canonical record mints a different public
+    # digest for an equivalent comparison. Canonical form is a validated property of any accepted
+    # record, not merely a builder convention.
+    if record["per_pair"] != _canonicalize_comparison(record["per_pair"]):
+        raise R4SidecarError(
+            "stored comparison is not in canonical form (endpoints oriented, rows sorted by "
+            "(probe_a, probe_b), pair_id derived); equivalent comparisons must share one digest")
+    return _VerifiedSidecar(record=record, output_digest=output_digest,
                             manifest_digest=manifest_digest)
 
 
@@ -811,7 +906,7 @@ def _reverify_against_parent(verified_report: Mapping[str, Any],
                           panel=record["panel"])
     elig = partition_eligibility(verified_report, par["sequence_length"])
     refusals = validate_comparison(record["per_pair"], record["aggregate"],
-                                   eligible_probe_ids=elig.eligible)
+                                   eligible_probe_ids=elig.eligible, row_keys=_CANON_ROW_KEYS)
     if refusals:
         raise R4SidecarError(
             "the comparison does not cover the eligibility DERIVED from the bound parent (a stored "
@@ -863,8 +958,13 @@ def _build_decision(vs: _VerifiedSidecar, elig: Eligibility) -> dict[str, Any]:
     rec = vs.record
     n_eligible = len(elig.eligible)
     rows = rec["per_pair"]
-    rho = diversity_agreement_rho([r["jsd"] for r in rows],
-                                  [r["cosine_similarity"] for r in rows])
+    # rho over the rows, computed defensively: an empty comparison (N' = 0/1) has no pairs, so there
+    # is nothing to correlate — its rho is a report-only 0.0 sentinel that never gates.
+    rho = (diversity_agreement_rho([r["jsd"] for r in rows], [r["cosine_similarity"] for r in rows])
+           if rows else 0.0)
+    # Take the floor outcome BEFORE trusting rho (Codex #1187 #6). Fewer than the N' >= 4 floor —
+    # including N' = 0/1 whose canonical comparison is EMPTY — is the frozen INCOMPLETE, never a
+    # division-by-zero or a structural refusal.
     if n_eligible < _MIN_ELIGIBLE:
         state, c1 = DECISION_INCOMPLETE, False
         reason = (f"n_eligible {n_eligible} < floor {_MIN_ELIGIBLE}: too few non-refused prompts for "
@@ -985,18 +1085,13 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
         raise R4SidecarError("staged sidecar bytes did not verify before commit")
     os.link(str(tmp), str(sidecar_path))          # COMMIT — no-replace: fails if the target appeared
 
-    # ---- F4 (Codex #1183): a non-throwing terminal state machine. Past the commit NOTHING may
-    # raise: every readback / alias-unlink / existence / durability fault best-effort removes the
-    # writable hard-link alias and downgrades the disposition truthfully. A committed artifact is
-    # never reported as ordinary success after a fault, and the alias-removal always runs. ----
+    # ---- F4 (Codex #1183/#1187): a non-throwing terminal state machine, ordered alias-FIRST. Past
+    # the commit NOTHING may raise; every fault best-effort removes the writable alias and downgrades
+    # truthfully. The definitive readback happens ONLY after the writable alias is gone — otherwise a
+    # write through the alias can corrupt the final inode AFTER it verifies (Codex #1187). ----
     disposition = DISPOSITION_VERIFIED
     try:
-        if sidecar_path.read_bytes() != committed:          # final-byte readback
-            disposition = DISPOSITION_INTEGRITY_FAILED
-    except OSError:
-        disposition = DISPOSITION_INTEGRITY_FAILED          # cannot confirm the commit => not verified
-    try:
-        tmp.unlink()                                        # the writable hard-link alias MUST be removed
+        tmp.unlink()                                        # remove the writable hard-link alias FIRST
     except OSError:
         disposition = DISPOSITION_INTEGRITY_FAILED          # a surviving writable alias can mutate the file
     try:
@@ -1004,6 +1099,12 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
             disposition = DISPOSITION_INTEGRITY_FAILED
     except OSError:
         disposition = DISPOSITION_INTEGRITY_FAILED
+    if disposition == DISPOSITION_VERIFIED:                 # only with no writable alias left
+        try:
+            if sidecar_path.read_bytes() != committed:      # definitive final-byte readback
+                disposition = DISPOSITION_INTEGRITY_FAILED
+        except OSError:
+            disposition = DISPOSITION_INTEGRITY_FAILED      # cannot confirm the commit => not verified
     # Directory-entry durability. A real fsync FAULT (supported but failed) is indeterminate; a
     # platform that cannot open a directory fd at all (e.g. Windows) is NOT a fault — the file was
     # already fsync'd, which is the durability the platform offers — so it does not downgrade.
