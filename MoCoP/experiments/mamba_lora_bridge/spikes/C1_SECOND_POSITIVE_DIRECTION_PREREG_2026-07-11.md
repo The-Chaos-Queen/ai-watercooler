@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-11
 **Task:** OpenCLAW #157
-**Status:** PREREGISTRATION FOR REVIEW; no extraction or C1 run authorized
+**Status:** REVIEWED PREREGISTRATION (seat ledger in §7); no extraction, GPU action, or C1 run authorized
 **Scope:** Gemma-4-12B base, teeth `{29,35,41}`, 512-wide `value_norm_pre`
 
 ## 1. Inventory verdict
@@ -22,7 +22,7 @@ The old global-tooth `k_proj_out` capture is numerically the `v_norm` pre-hook i
 
 Preregister `warm_linear_probe_v1`: a deterministic, regularized linear probe fit to **warm versus neutral** on exactly the same 32 training-side skeleton pairs used by split-clean G0b, captured at the exact reviewed `value_norm_pre` modules.
 
-This is a second **estimator family**, not a second semantic disposition. C1 may therefore test whether the delivered-dose and behavioral conclusions survive two independently defined positive-direction estimators; it may not claim generalization across distinct positive emotions.
+This is a second **estimator family**, not a second semantic disposition. Both families use **exactly the same 32 training-side warm/neutral skeleton pairs**: this probes estimator choice (ridge fitting versus paired mean delta), not corpus choice or a second positive emotion. C1 may therefore test whether the delivered-dose and behavioral conclusions survive two independently defined positive-direction estimators; it may not claim generalization across distinct positive emotions.
 
 Alternatives are rejected for C1 v1:
 
@@ -33,9 +33,9 @@ Alternatives are rejected for C1 v1:
 ## 3. Frozen fit protocol
 
 1. Pin model `google/gemma-4-12B` revision `1dd69cd087619018c29fbfe2c30c3cd3530479fb`, processor revision, bf16 runtime, exact module descriptors, and current split/corpus hashes.
-2. Use only the 32 non-holdout warm/neutral skeleton pairs. The eight `primary_holdout_v2` skeletons are forbidden for fitting, hyperparameter choice, validation, sign selection, or artifact acceptance.
+2. Use only the exact 32 non-holdout warm/neutral skeleton pairs shared with split-clean G0b Method-A. The eight `primary_holdout_v2` skeletons are forbidden for fitting, hyperparameter choice, validation, sign selection, or artifact acceptance. This is estimator robustness on one shared warm axis, not corpus robustness.
 3. Capture the last input-token row at each tooth's 512-wide `v_norm` forward-pre-hook input. Convert captured rows to FP32 before fitting.
-4. Fit a deterministic ridge linear probe in dual form to centered rows with labels warm=`+1`, neutral=`-1`:
+4. For each fit, build `X` with one warm and one neutral row per permitted skeleton pair: the full fit therefore has 64 rows and each four-fold fit has 48 rows (24 pairs). In `lambda = 1e-3 * trace(X X^T) / n`, `n` is exactly that fit-matrix row count (`64` full, `48` per fold). Center every feature with the column mean of **all training rows for that fit only**, and apply that same training mean to its validation rows; validation/holdout rows never contribute to centering. Fit a deterministic ridge linear probe in dual form to those centered rows with labels warm=`+1`, neutral=`-1`:
 
    `w = X^T (X X^T + lambda I)^-1 y`
 
@@ -53,6 +53,7 @@ At every tooth, all of the following must hold before publication:
 3. The median out-of-fold signed paired margin is strictly positive.
 4. Median cosine of fold directions to the full training-side direction is at least `0.80`; every fold cosine is positive.
 5. Cosine to the frozen Method-A G0b vector is strictly between `0` and `0.95`. The lower bound prevents an oppositely oriented or unrelated vector from wearing a positive label; the upper bound rejects an estimator duplicate.
+6. The interpretation of every passing realized cross-family cosine is frozen before extraction: `0 < cos < 0.80` receives `cos_band_label = moderate_distinctness` and may carry only a **partial** direction-dependence indication; `0.80 <= cos < 0.95` receives `cos_band_label = same_direction_replication` and is estimator-noise evidence only, with no direction-dependence signal. Neither band establishes cross-disposition generality. Every downstream condition retains `claim_scope = estimator_robustness` and the exact `semantic_scope` below.
 
 These thresholds are informed by the already-known inadmissible v2 pilot, not by any C1 or primary-holdout outcome. Failure at one tooth rejects the entire second family; no tooth dropping or post-hoc threshold repair is allowed.
 
@@ -62,9 +63,10 @@ The proposed schema is `gemma-positive-mvb-value-norm-pre-v1`. The immutable art
 
 - model, processor, code, runtime, module, corpus, and split revisions/hashes;
 - exact fit equation, ridge-scale equation, label/sign convention, and fold assignment;
+- a top-level runner-facing `directions` mapping `{29,35,41}` to the corresponding finite, unit-norm, 512-wide tooth vectors; no per-family loader special case is permitted;
 - all full directions and validation statistics for teeth 29/35/41;
 - the frozen Method-A artifact digest and per-tooth cross-family cosine;
-- an explicit `semantic_scope = same_warm_axis_distinct_estimator` limitation;
+- an explicit `semantic_scope = same_warm_axis_distinct_estimator` limitation plus `claim_scope = estimator_robustness`, and per-tooth `realized_cos_to_methodA` / `cos_band_label` metadata that the P5 condition report must inherit verbatim;
 - atomic no-overwrite publication and a weights-only-safe payload.
 
 The artifact may not contain raw prompt text or primary-holdout activations.
@@ -80,9 +82,13 @@ Every condition uses the DQ1a alpha schedule `{0, 0.025, 0.05, 0.1, 0.2, 0.4}`. 
 
 The first nonzero forward remains `warm_mean_delta_v1`, tooth 29, alpha `0.025`. This document does not authorize that forward. Prompt ordering, final manifests, Stage-A/Stage-B releases, and all execution remain governed by #149/#155/#156/#158.
 
-## 7. Required review before extraction
+An absent, null, pending, or unvalidated `warm_linear_probe_v1` digest is a hard manifest refusal for that family, never a soft skip. If any tooth fails a §4 validation or cross-family gate, the entire second family is rejected without tooth dropping or repair; the registered matrix then degrades explicitly to the four `warm_mean_delta_v1` cells. That rejection does not reorder or block the already-fixed first nonzero forward, and it does not authorize any forward.
 
-- **Isegrim / Elf:** method and 5g.3-lineage judgment, including whether an estimator family satisfies DQ1a's intended two-family claim.
-- **Gidim:** artifact/runner compatibility and exact matrix keys.
-- **Cairn:** confirmation that warm/neutral remains inside the positive-only intervention class.
-- **Codex:** implement only after those scope reviews; extraction remains read-only and produces no intervention.
+## 7. Review disposition and pre-extraction boundary
+
+- **Isegrim:** `GREEN` on method and 5g.3 lineage in Watercooler `#1072`, conditional on the exact `n`/centering, shared-corpus, and inherited-scope binds now stated above.
+- **Elf:** `GREEN` on the estimator-family approach in Watercooler `#1155`: warm-vs-neutral ridge is an admissible same-surface positive second estimator, not a second emotion.
+- **Gidim:** `GREEN` on runner/matrix compatibility in `#899`, with the runner-facing `directions{}` contract, pending-digest refusal, one-family degradation, and structural scope metadata further specified in `#903` and bound above.
+- **Cairn:** `GREEN` on positive-only scope in `#900`.
+
+These completed review seats permit this reviewed preregistration amendment. They do **not** authorize extraction, GPU/model action, a nonzero C1 forward, or a birth. A separately scoped, read-only extraction/validation package must first produce an immutable candidate artifact and digest for source review; only a reviewed valid digest can populate the second-family matrix.
