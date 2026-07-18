@@ -279,6 +279,11 @@ def test_declared_eligibility_over_a_zero_eligible_parent_cannot_green_c1(tmp_pa
     the REAL parent digest (so parent binding is intact). rev4 returned integrity_verified /
     jsd_proceeds / c1=True over ZERO eligible prompts. rev5 re-derives eligibility from the verified
     parent at every gating boundary, so the declaration buys nothing."""
+    # NOTE: Isegrim's original exploit record ALSO carried a declared `eligibility` block; in rev5
+    # that block is independently refused by the closed-world record-key check
+    # (see test_a_record_smuggling_a_stored_eligibility_block_is_refused). Here the record carries
+    # ONLY the valid keys, so it passes _verify_record and isolates the RE-DERIVATION as the guard
+    # that catches a well-formed fabrication whose comparison covers non-eligible probes.
     report = _sealed_report(n=6, token_count=1)               # token_count 1 < _L (3) => all short
     assert _eligible_of(report, _L) == ()                     # TRUE eligibility is 0
 
@@ -295,8 +300,6 @@ def test_declared_eligibility_over_a_zero_eligible_parent_cannot_green_c1(tmp_pa
             "generation_output_digest": derive_generation_corpus_digest(report),
             "sequence_length": _L,
         },
-        "eligibility": {"sequence_length": _L, "n_eligible": 6,
-                        "eligible_probe_ids": probe_ids, "refusals": []},   # the lie rev4 re-trusted
         "per_pair": rows, "aggregate": agg,
     }
     man = {"schema": SIDECAR_SCHEMA, "evaluator": fabricated["evaluator"],
@@ -319,6 +322,39 @@ def test_declared_eligibility_over_a_zero_eligible_parent_cannot_green_c1(tmp_pa
     with pytest.raises(R4SidecarError):
         bind_to_parent_report(report, forged)
     assert not (tmp_path / "r4.json").exists()                # nothing was committed
+
+
+def test_a_record_smuggling_a_stored_eligibility_block_is_refused(tmp_path):
+    # a-Codex pre-board finding (2026-07-18): even when the per_pair matches the DERIVED eligible
+    # set (so re-derivation itself passes), a hand-built record can smuggle a stale/lying nested
+    # `eligibility` block. publish embeds the record VERBATIM, so an integrity_verified artifact
+    # would carry contradictory evidence (nested says 0, derived top-level + decision say 4). rev5's
+    # closed-world record-key check refuses any unknown/deprecated top-level key before any boundary.
+    report = _sealed_report(n=4)                              # 4 truly-eligible probes
+    rows, agg = _comparison(_eligible_of(report))            # honest, complete comparison over the 4
+    smuggled = {
+        "schema": SIDECAR_SCHEMA,
+        "evaluator": {"evaluator_id": "sentence-transformers/all-MiniLM-L6-v2",
+                      "revision_sha": EVAL_SHA},
+        "runner": {"runner_id": "r4_compare_sidecar", "runner_digest": "d" * 64},
+        "panel": PANEL_HASH,
+        "parent": _manifest(report)["parent"],
+        "per_pair": rows, "aggregate": agg,
+        "eligibility": {"sequence_length": _L, "n_eligible": 0,       # the lie riding along
+                        "eligible_probe_ids": [], "refusals": []},
+    }
+    man = {"schema": SIDECAR_SCHEMA, "evaluator": smuggled["evaluator"],
+           "runner": smuggled["runner"], "parent": smuggled["parent"], "panel": smuggled["panel"]}
+    forged = R4SidecarRecord(manifest_digest=canonical_digest(man),
+                             output_digest=canonical_digest(smuggled),
+                             record=_deep_freeze(smuggled))
+    for op in (lambda: r4_decision(report, forged),
+               lambda: bind_to_parent_report(report, forged),
+               lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
+        with pytest.raises(R4SidecarError) as ei:
+            op()
+        assert "unknown/deprecated top-level key" in str(ei.value)
+    assert not (tmp_path / "r4.json").exists()               # nothing was committed
 
 
 # --------------------------------------------------------------------------- #

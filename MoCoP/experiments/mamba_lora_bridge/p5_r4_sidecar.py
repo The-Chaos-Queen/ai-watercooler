@@ -47,6 +47,9 @@ REV5 (Isegrim adversarial probe, 2026-07-18 — a confirmed P1 in rev4, closed h
   eligible set, refusing on divergence. r4_decision now TAKES the sealed report and re-verifies it.
   _verify_record (which has no parent) no longer runs the completeness check — it cannot know the
   eligible set without the parent. The published artifact records the DERIVED eligibility for audit.
+  a-Codex pre-board hardening: _verify_record also rejects unknown/deprecated top-level record keys
+  (closed-world _RECORD_KEYS), so a hand-built carrier cannot smuggle a stale `eligibility` block
+  into the verbatim-embedded, integrity_verified artifact alongside the correctly-derived one.
 
 Torch-free and model-free-testable. Authorizes NO run, sets NO threshold, lifts NO hold.
 """
@@ -109,6 +112,10 @@ _ROW_KEYS = {"pair_id", "probe_a", "probe_b", "jsd", "embedding_similarity"}
 _AGG_KEYS = {"spearman_rho", "n_pairs", "mean_pairwise_jsd", "mean_pairwise_embedding"}
 _RECEIPT_KEYS = ("input_token_ids_sha256", "generated_token_ids_sha256", "token_count",
                  "stop_reason")
+# The EXACT top-level key set of a sealed record (rev5). Closed-world: a hand-built record may not
+# smuggle extra/deprecated keys (e.g. a stale `eligibility` block) into an integrity_verified
+# artifact, which embeds the record verbatim. eligibility is re-derived, never stored on the record.
+_RECORD_KEYS = frozenset({"schema", "evaluator", "runner", "panel", "parent", "per_pair", "aggregate"})
 
 # C1-precondition decision states (fail-closed). Only JSD_PROCEEDS is a green precondition; every
 # other state denies C1 authorization.
@@ -617,6 +624,16 @@ def _verify_record(sidecar: Any) -> dict[str, Any]:
     thawed = _thaw(sidecar.record)
     if canonical_digest(thawed) != output_digest:
         raise R4SidecarError("record output_digest does not match its content (stale or tampered)")
+    # Closed-world record shape (rev5 + a-Codex pre-board hardening): reject unknown/deprecated
+    # top-level keys. A digest-consistent carrier may still smuggle a stale `eligibility` block (or
+    # anything else) that publish would embed verbatim into an integrity_verified artifact, next to
+    # the correctly-derived block — contradictory evidence under an integrity claim. eligibility is
+    # re-derived from the parent, never stored on the record.
+    unknown = set(thawed) - _RECORD_KEYS
+    if unknown:
+        raise R4SidecarError(
+            f"record has unknown/deprecated top-level key(s): {sorted(unknown)} "
+            "(rev5: eligibility is re-derived from the parent, never stored on the record)")
     reconstructed_manifest = {
         "schema": thawed["schema"], "evaluator": thawed["evaluator"],
         "runner": thawed["runner"], "parent": thawed["parent"], "panel": thawed["panel"],
