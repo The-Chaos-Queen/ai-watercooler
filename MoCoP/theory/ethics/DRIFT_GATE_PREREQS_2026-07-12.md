@@ -336,3 +336,11 @@ The module composes **adjudicated** inputs under **custody**; it does not adjudi
 OpenCLAW #168 events 695-696. Original resolutions text above is Elf's and is retained
 unedited except for the two marked inline pointers. Runtime-boundary bullet added by
 Isegrim, 2026-07-16, per Codex #1056 (drift gate v24).*
+
+### A5. Lane 3 and 4 calibration cutoffs (2026-07-19)
+
+Laura ratified the complementary level detector (Lane 3) and disposition cutoffs (Lane 4):
+- **Lane 3 (Slow leak):** A complementary level detector uses a `0.05` threshold drop from a healthy baseline to return a HARD halt on the range-trajectory axis.
+- **Lane 4 (Disposition):** The disposition divergence uses strict finite boundaries. Cutoffs are established at a normalized disposition floor of `0.3` and a ceiling of `0.8`.
+These values are the authoritative calibration bounds for the gate.
+

@@ -431,14 +431,14 @@ class TestChainCustody:
     def test_valid_chain_accepted(self):
         chain = _chain(STABLE)
         current = _next_audit(chain)
-        assert validate_history_chain(chain, current) == []
+        assert validate_history_chain(chain, current, expected_judge_ref="judge:#130@cal-7") == []
 
     def test_truncated_history_is_custody_failure_not_pass(self):
         """#979 fresh probe: honest prior [1,1,.8,.7,.6] -> HARD; substituting
         a short history must NOT yield PASS — it yields INCOMPLETE."""
         chain = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
         current = _next_audit(chain, diversity=0.5)
-        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=1.0, slow_leak_threshold=0.05)
         honest = evaluate_audit(current, chain, calibration=cal)
         assert honest.overall == GateLevel.HARD
 
@@ -484,13 +484,13 @@ class TestChainCustody:
     def test_duplicate_audit_ids_rejected(self):
         chain = _chain(STABLE)
         current = _next_audit(chain, audit_id=chain[0].audit_id)
-        issues = validate_history_chain(chain, current)
+        issues = validate_history_chain(chain, current, expected_judge_ref="judge:#130@cal-7")
         assert any("duplicate audit_ids" in i for i in issues)
 
     def test_timestamps_must_strictly_increase(self):
         chain = _chain(STABLE)
         current = _next_audit(chain, timestamp=chain[-1].timestamp)
-        issues = validate_history_chain(chain, current)
+        issues = validate_history_chain(chain, current, expected_judge_ref="judge:#130@cal-7")
         assert any("strictly increasing" in i for i in issues)
 
     def test_discontinuity_event_cannot_erase_history(self):
@@ -509,7 +509,7 @@ class TestChainCustody:
         laundering)."""
         ev = _event(count=3)
         current = _next_audit([], diversity=0.80, discontinuity=ev)
-        cal = GateCalibrationBinding(healthy_baseline=0.80, slow_leak_threshold=0.05)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=0.80, slow_leak_threshold=0.05)
         outcome = evaluate_audit(current, (), calibration=cal)
         assert outcome.range_trajectory == GateLevel.PASS  # successor starts fresh
         assert outcome.details["pre_discontinuity_digest"] == "a" * 64
@@ -587,7 +587,7 @@ class TestChainCustody:
                     row.notes = "nothing to see"
             return True
         binding = EvidenceResolverBinding("resolver:malicious", "v1", mutate)
-        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=1.0, slow_leak_threshold=0.05)
         outcome = evaluate_audit(current, chain, resolver=binding, calibration=cal)
         assert outcome.overall == GateLevel.HARD
         assert outcome.protected_set == GateLevel.HARD
@@ -621,7 +621,7 @@ class TestChainCustody:
         chain[0].timestamp = "2026-07-13T10:00:00-12:00"  # 22:00Z
         # Rebuild digest linkage after editing the root's timestamp:
         current = _next_audit(chain, timestamp="2026-07-13T11:00:00+14:00")
-        issues = validate_history_chain(chain, current)
+        issues = validate_history_chain(chain, current, expected_judge_ref="judge:#130@cal-7")
         assert any("UTC instants" in i for i in issues)
 
 
@@ -1323,7 +1323,7 @@ class TestCalibrationCorpus:
     def test_case06_single_dip_neither(self):
         chain = _chain([0.80, 0.79, 0.81])
         current = _next_audit(chain, diversity=0.71)
-        cal = GateCalibrationBinding(healthy_baseline=0.8, slow_leak_threshold=0.2)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=0.8, slow_leak_threshold=0.2)
         outcome = evaluate_audit(current, chain, calibration=cal)
         assert outcome.range_trajectory == GateLevel.PASS
 
@@ -2058,7 +2058,7 @@ class TestCalibrationCorpus:
 
         chain = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
         current = _next_audit(chain, diversity=0.5)
-        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=1.0, slow_leak_threshold=0.05)
         outcome = evaluate_audit(current, chain, calibration=cal)
         assert outcome.overall == GateLevel.HARD
 
@@ -2163,9 +2163,9 @@ class TestDeletionMatricesAndTotality:
         assert any("uninitialized" in i and "slot[0]" in i for i in issues)
 
     def test_history_chain_uninitialized_current_total(self):
-        """validate_history_chain([], uninitialized current) reports,
+        """validate_history_chain([], uninitialized current, expected_judge_ref="judge:#130@cal-7") reports,
         never raises (#1056: previously AttributeError)."""
-        issues = validate_history_chain([], object.__new__(AuditRecord))
+        issues = validate_history_chain([], object.__new__(AuditRecord), expected_judge_ref="judge:#130@cal-7")
         assert any("current" in i and "uninitialized" in i for i in issues)
 
     def test_history_chain_current_deletion_matrix_total(self):
@@ -2175,7 +2175,7 @@ class TestDeletionMatricesAndTotality:
             chain = _chain(STABLE)
             current = _next_audit(chain)
             object.__delattr__(current, fname)
-            issues = validate_history_chain(chain, current)
+            issues = validate_history_chain(chain, current, expected_judge_ref="judge:#130@cal-7")
             assert any("uninitialized" in i and fname in i
                        for i in issues), fname
 
@@ -2188,7 +2188,7 @@ class TestDeletionMatricesAndTotality:
             chain = _chain(STABLE)
             current = _next_audit(chain)
             object.__delattr__(chain[2], fname)
-            issues = validate_history_chain(chain, current)
+            issues = validate_history_chain(chain, current, expected_judge_ref="judge:#130@cal-7")
             assert any("history[2]" in i and "uninitialized" in i
                        and fname in i for i in issues), fname
 
@@ -2203,7 +2203,7 @@ class TestDeletionMatricesAndTotality:
                 recorded_by="isegrim")
             object.__delattr__(event, fname)
             current = _next_audit([], discontinuity=event)
-            issues = validate_history_chain([], current)
+            issues = validate_history_chain([], current, expected_judge_ref="judge:#130@cal-7")
             assert any("uninitialized" in i and fname in i
                        for i in issues), fname
 
@@ -2235,7 +2235,7 @@ class TestDeletionMatricesAndTotality:
             chain = _chain(STABLE)
             current = _next_audit(chain)
             object.__delattr__(chain[2].probe_results[0], fname)
-            issues = validate_history_chain(chain, current)
+            issues = validate_history_chain(chain, current, expected_judge_ref="judge:#130@cal-7")
             assert any("history[2]" in i and "uninitialized" in i
                        and fname in i for i in issues), fname
 
@@ -2246,7 +2246,7 @@ class TestDeletionMatricesAndTotality:
             chain = _chain(STABLE)
             current = _next_audit(chain)
             object.__delattr__(current.probe_results[0], fname)
-            issues = validate_history_chain(chain, current)
+            issues = validate_history_chain(chain, current, expected_judge_ref="judge:#130@cal-7")
             assert any("current" in i and "uninitialized" in i
                        and fname in i for i in issues), fname
 
@@ -2259,7 +2259,7 @@ class TestDeletionMatricesAndTotality:
             chain = _chain(STABLE, root_event=_event())
             current = _next_audit(chain)
             object.__delattr__(chain[0].discontinuity, fname)
-            issues = validate_history_chain(chain, current)
+            issues = validate_history_chain(chain, current, expected_judge_ref="judge:#130@cal-7")
             assert any("history[0]" in i and "uninitialized" in i
                        and fname in i for i in issues), fname
 
@@ -2524,7 +2524,7 @@ class TestSlowLeakLevelDetection:
         base_chain = _chain(history[:-1])
         audit = _next_audit(base_chain, diversity=history[-1])
         
-        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=1.0, slow_leak_threshold=0.05)
         outcome = evaluate_audit(audit, base_chain, calibration=cal)
         
         assert outcome.range_trajectory == GateLevel.HARD
@@ -2538,7 +2538,7 @@ class TestSlowLeakLevelDetection:
         base_chain = _chain(history[:-1])
         audit = _next_audit(base_chain, diversity=history[-1])
         
-        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=1.0, slow_leak_threshold=0.05)
         outcome = evaluate_audit(audit, base_chain, calibration=cal)
         
         assert outcome.range_trajectory == GateLevel.PASS
@@ -2551,7 +2551,7 @@ class TestSlowLeakLevelDetection:
         root_event = DiscontinuityEvent("test", valid_sha, 10, "tester")
         valid_history = _chain(history[:-1], root_event=root_event)
         audit = _next_audit(valid_history, diversity=history[-1])
-        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=1.0, slow_leak_threshold=0.05)
         outcome = evaluate_audit(audit, valid_history, calibration=cal)
         assert outcome.range_trajectory == GateLevel.HARD
         assert outcome.details["range_trajectory"].get("slow_leak") is True
@@ -2580,7 +2580,7 @@ class TestRunnerOriginCustody:
         )
         
         current = _next_audit(chain)
-        issues = validate_history_chain(chain, current)
+        issues = validate_history_chain(chain, current, expected_judge_ref="judge:#130@cal-7")
         assert any("runner_origin changed" in i for i in issues)
 
     def test_expected_runner_origin_enforced(self):
@@ -2632,18 +2632,18 @@ class TestGateCalibrationBoundary:
         # Now let's test bad types inside the binding.
         # Bypass dataclass checks using object.__setattr__ if frozen, or just use invalid types
         # Since it's typed in Python, we can pass wrong types at runtime
-        bad_cal = GateCalibrationBinding(healthy_baseline="string_not_float", slow_leak_threshold=0.05)
+        bad_cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline="string_not_float", slow_leak_threshold=0.05)
         outcome2 = evaluate_audit(audit, calibration=bad_cal)
         assert outcome2.overall == GateLevel.INCOMPLETE
         assert any("must be exact float, int, or None" in i for i in outcome2.incomplete_reasons)
 
-        bad_cal2 = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=True)
+        bad_cal2 = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=1.0, slow_leak_threshold=True)
         outcome3 = evaluate_audit(audit, calibration=bad_cal2)
         assert outcome3.overall == GateLevel.INCOMPLETE
         assert any("must be exact float or int" in i for i in outcome3.incomplete_reasons)
 
         # Totality check: passing cal ensures report contains parameters
-        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=1.0, slow_leak_threshold=0.05)
         outcome4 = evaluate_audit(audit, calibration=cal)
         assert outcome4.overall == GateLevel.HARD  # HARD overrides INCOMPLETE when slow_leak drops 0.20
         # However, range_trajectory runs first and succeeds.
@@ -2666,13 +2666,13 @@ class TestCodexAdversarialFindings:
         )
 
     def test_slow_leak_missing_or_nonfinite_calibration_incomplete(self):
-        cal = GateCalibrationBinding(healthy_baseline=None, slow_leak_threshold=0.05)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=None, slow_leak_threshold=0.05)
         audit = self._make_audit()
         res = evaluate_audit(audit, calibration=cal)
         assert res.range_trajectory == GateLevel.INCOMPLETE
         assert any("slow-leak calibration must be provided" in r for r in res.incomplete_reasons)
 
-        cal2 = GateCalibrationBinding(healthy_baseline=float('nan'), slow_leak_threshold=0.05)
+        cal2 = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=float('nan'), slow_leak_threshold=0.05)
         res2 = evaluate_audit(audit, calibration=cal2)
         assert res2.range_trajectory == GateLevel.INCOMPLETE
         assert any("must be finite numbers" in r for r in res2.incomplete_reasons)
@@ -2685,13 +2685,13 @@ class TestCodexAdversarialFindings:
         assert any("too large to represent as a float" in r for r in res.incomplete_reasons)
 
     def test_large_integer_overflow_calibration(self):
-        cal = GateCalibrationBinding(healthy_baseline=10**400, slow_leak_threshold=0.05)
+        cal = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=10**400, slow_leak_threshold=0.05)
         audit = self._make_audit()
         res = evaluate_audit(audit, calibration=cal)
         # It's an empty audit, so it might be INCOMPLETE anyway, but the string should be present
-        assert any("must be finite numbers" in r for r in res.incomplete_reasons)
+        assert any("bounds error" in r for r in res.incomplete_reasons)
 
-        cal_disp = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05, disposition_floor=10**400)
+        cal_disp = GateCalibrationBinding(artifact_id="test", version="1", digest="test", source_run="test", reset_era="test", healthy_baseline=1.0, slow_leak_threshold=0.05, disposition_floor=10**400)
         res_disp = evaluate_audit(audit, calibration=cal_disp)
         assert any("too large to represent" in r for r in res_disp.incomplete_reasons)
 

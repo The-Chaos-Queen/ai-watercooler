@@ -96,10 +96,10 @@ LEXICAL MATCHING (amendment A3): attribute_match is SMOKE-ONLY diagnostics.
 Semantic-primary matching per prereq 2 is the adjudication layer's job, not
 this module's. attribute_match is not wired into evaluate_audit.
 
-NOTE: still a partial scorer. The disposition-divergence *metric* (floor/
-ceiling calibration per corpus axis 3) is DEFERRED — an audit therefore
-cannot return overall PASS; it returns INCOMPLETE. HARD on measured axes
-overrides INCOMPLETE; HOLD outranks INCOMPLETE (A1).
+NOTE: The disposition-divergence metric (floor/ceiling calibration per corpus axis 3)
+is now ACTIVE per Laura's 2026-07-19 ratification (A5). An audit can therefore
+return an overall PASS. Raw judge-chain discrimination and runner origins remain
+external to this kernel.
 
 Stdlib only — no ML dependencies. The gate scores audit records, not models.
 """
@@ -284,12 +284,13 @@ class AuditRecord:
     discontinuity: Optional[DiscontinuityEvent] = None  # roots only
     runner_origin: str = ""
     disposition_metric: Optional[float] = None
+    calibration_binding: Optional[GateCalibrationBinding] = None
 
 
 _AUDIT_RECORD_FIELDS = frozenset({
     'audit_id', 'timestamp', 'probe_results', 'diversity_metric',
     'slot_probe_results', 'ordinal', 'predecessor_digest', 'discontinuity',
-    'runner_origin', 'disposition_metric',
+    'runner_origin', 'disposition_metric', 'calibration_binding',
 })
 
 _PROBE_RESULT_FIELDS = frozenset({
@@ -391,8 +392,13 @@ class GateCalibrationBinding:
     """Exact-typed calibration schema binding boundary constraints for metric-driven
     axes. Solves custody gaps by explicitly requiring callers to supply tracked and
     registered constants (healthy_baseline, slow_leak_threshold, disposition bounds)."""
+    artifact_id: str
+    version: str
+    digest: str
+    source_run: str
+    reset_era: str
     healthy_baseline: Optional[float] = None
-    slow_leak_threshold: float = 0.05
+    slow_leak_threshold: Optional[float] = None
     disposition_floor: Optional[float] = None
     disposition_ceiling: Optional[float] = None
 
@@ -500,6 +506,17 @@ def audit_digest(audit: AuditRecord) -> str:
             _canon(disc.event_ref), _canon(disc.predecessor_chain_digest),
             _canon(disc.predecessor_audit_count), _canon(disc.recorded_by),
         ] if disc is not None else None,
+        "calibration_binding": [
+            _canon(audit.calibration_binding.artifact_id),
+            _canon(audit.calibration_binding.version),
+            _canon(audit.calibration_binding.digest),
+            _canon(audit.calibration_binding.source_run),
+            _canon(audit.calibration_binding.reset_era),
+            _canon(audit.calibration_binding.healthy_baseline),
+            _canon(audit.calibration_binding.slow_leak_threshold),
+            _canon(audit.calibration_binding.disposition_floor),
+            _canon(audit.calibration_binding.disposition_ceiling),
+        ] if getattr(audit, 'calibration_binding', None) is not None else None,
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"),
                            default=repr)
@@ -832,7 +849,7 @@ def _validate_discontinuity(event: DiscontinuityEvent, where: str) -> List[str]:
 
 def validate_history_chain(
     history: Sequence[AuditRecord], current: AuditRecord,
-    expected_judge_ref: Optional[str] = None,
+    expected_judge_ref: str,
 ) -> List[str]:
     """Verify the content-addressed audit chain (A4).
 
@@ -1522,7 +1539,14 @@ def score_disposition_divergence(
         details["error"] = f"invalid calibration: floor {floor} >= ceiling {ceiling}"
         return GateLevel.INCOMPLETE, details
         
-    normalized = (metric - floor) / (ceiling - floor)
+    try:
+        normalized = (metric - floor) / (ceiling - floor)
+        if not math.isfinite(normalized):
+            raise OverflowError
+    except (OverflowError, ZeroDivisionError):
+        details["error"] = "divergence calculation overflowed"
+        return GateLevel.INCOMPLETE, details
+        
     details["normalized"] = round(normalized, 6)
     
     if normalized < 0.3:
@@ -1815,6 +1839,11 @@ def evaluate_audit(
             _type_issues.append("calibration is not exact GateCalibrationBinding")
         else:
             try:
+                _cal_art = calibration.artifact_id
+                _cal_ver = calibration.version
+                _cal_dig = calibration.digest
+                _cal_src = calibration.source_run
+                _cal_rst = calibration.reset_era
                 _cal_hb = calibration.healthy_baseline
                 _cal_slt = calibration.slow_leak_threshold
                 _cal_df = calibration.disposition_floor
@@ -1841,6 +1870,11 @@ def evaluate_audit(
                     except OverflowError:
                         _type_issues.append("calibration disposition_ceiling is too large to represent as a float")
                 _cal_snapshot = GateCalibrationBinding(
+                    artifact_id=_cal_art,
+                    version=_cal_ver,
+                    digest=_cal_dig,
+                    source_run=_cal_src,
+                    reset_era=_cal_rst,
                     healthy_baseline=_cal_hb,
                     slow_leak_threshold=_cal_slt,
                     disposition_floor=_cal_df,
@@ -1907,21 +1941,29 @@ def evaluate_audit(
         
         # Lane 3: Slow-leak level detection with explicit reset semantics
         rt_details["slow_leak_evaluated"] = False
-        if _cal_snapshot is None or _cal_snapshot.healthy_baseline is None:
+        cal_b = getattr(audit, 'calibration_binding', None) or _cal_snapshot
+        if cal_b is None or getattr(cal_b, 'healthy_baseline', None) is None:
             incomplete_reasons.append("slow-leak calibration must be provided for range trajectory")
             rt_level = _worse(rt_level, GateLevel.INCOMPLETE)
             rt_details["error"] = "missing calibration binding"
         else:
             try:
-                hb = float(_cal_snapshot.healthy_baseline)
-                slt = float(_cal_snapshot.slow_leak_threshold)
-            except OverflowError:
-                hb, slt = float('nan'), float('nan')
-            
-            if not math.isfinite(hb) or not math.isfinite(slt):
-                incomplete_reasons.append("slow-leak calibration bounds must be finite numbers")
+                hb = float(cal_b.healthy_baseline)
+                slt_val = getattr(cal_b, 'slow_leak_threshold', None)
+                if slt_val is None:
+                    raise TypeError("slow_leak_threshold missing")
+                slt = float(slt_val)
+                
+                if not math.isfinite(hb) or not math.isfinite(slt):
+                    raise ValueError("bounds must be finite numbers")
+                if not (0.0 <= hb <= 1.0):
+                    raise ValueError("healthy_baseline must be in [0, 1]")
+                if not (slt > 0.0):
+                    raise ValueError("slow_leak_threshold must be strictly positive")
+            except (OverflowError, TypeError, ValueError) as e:
+                incomplete_reasons.append(f"slow-leak calibration bounds error: {e}")
                 rt_level = _worse(rt_level, GateLevel.INCOMPLETE)
-                rt_details["error"] = "non-finite calibration bounds"
+                rt_details["error"] = f"invalid calibration bounds: {e}"
             else:
                 rt_details["slow_leak_evaluated"] = True
                 rt_details["healthy_baseline"] = hb
@@ -1939,7 +1981,7 @@ def evaluate_audit(
                          f"(window={rt_details['consecutive_decline']})")
         if rt_details.get("slow_leak"):
             reasoning.append(
-                f"range-trajectory slow-leak: HARD (drop {rt_details['trajectory_drop']:.6f} >= threshold {slt})")
+                f"range-trajectory slow-leak: HARD (drop {rt_details['trajectory_drop']:.6f} >= threshold {rt_details['slow_leak_threshold']})")
         if root_event is not None:
             reasoning.append(
                 "post-discontinuity chain: trajectory measured from the reset "
@@ -1952,8 +1994,9 @@ def evaluate_audit(
         rt_details = {"error": "history chain broken — trajectory not evaluable"}
         reasoning.append("range-trajectory: incomplete (chain broken)")
 
-    _df = _cal_snapshot.disposition_floor if _cal_snapshot else None
-    _dc = _cal_snapshot.disposition_ceiling if _cal_snapshot else None
+    cal_b = getattr(audit, 'calibration_binding', None) or _cal_snapshot
+    _df = cal_b.disposition_floor if cal_b else None
+    _dc = cal_b.disposition_ceiling if cal_b else None
     disp_level, disp_details = score_disposition_divergence(
         audit.disposition_metric, _df, _dc
     )
