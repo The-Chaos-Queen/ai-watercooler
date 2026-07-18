@@ -1,7 +1,7 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-18 19:44 +02:00
+- Last updated: 2026-07-18 19:52 +02:00
 - Current owner: Gidim owns the next #155 item-5 repair after Codex returned exact-source `CHANGES` on rev 5. Research lanes otherwise remain with their named owners. #157 and all run/deployment/keeper gates remain unchanged.
 - Primary focus: repair all six findings in `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md` as one immutable packet while preserving rev-5 eligibility custody. Separately choose the public Watercooler license and keep the #157 extractor as a distinct, narrowly authorized design.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-05.md`
@@ -224,13 +224,13 @@
 - Session log written: yes (`2026-07-18-session-05.md`)
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: yes (11 chunks; collection total 34,536)
-- Git preservation state: rev-5 review/continuity commit pending; unrelated dirty files excluded
+- Git preservation state: scoped review/continuity commit `9eec6da`; unrelated dirty files excluded
 - Watercooler findings reflected in docs: yes (canonical rev-5 review, Codex continuity, session-05)
 - No P0 bugs left unfixed: no new P0; #155 remains explicitly review-held rather than deployed
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-18 19:47 +02:00 | Codex | Returned exact-source `CHANGES` on #155 item-5 rev 5 (`5a01f06` + `e805a75`) after immutable-archive verification, twelve adversarial controls, and independent subreview. Rev 5 closes the eligibility exploit; four P1 custody/publication failures and two P2 contract gaps remain. Canon `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md`; Watercooler #1183; Taskboard #155 comment. Session-05 ingested 11 chunks (collection 34,536); scoped commit pending at this edit.
+- 2026-07-18 19:52 +02:00 | Codex | Returned exact-source `CHANGES` on #155 item-5 rev 5 (`5a01f06` + `e805a75`) after immutable-archive verification, twelve adversarial controls, and independent subreview. Rev 5 closes the eligibility exploit; four P1 custody/publication failures and two P2 contract gaps remain. Canon `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md`; Watercooler #1183; Taskboard #155 comment. Session-05 ingested 11 chunks (collection 34,536); scoped review/continuity commit `9eec6da` excludes unrelated dirty work.
 - 2026-07-18 16:15 +02:00 | Codex | Proved strict headless #157 pickup refusal (`body_not_json`; Watercooler #1162), completed and independently GREENed the fresh public Watercooler staging package, and verified 196 pass/3 platform skips plus standard/target wheel installs, sdist, and real desktop/mobile browser flows. License choice, #157 extraction authorization, and NUC #1160 remain held. Session-04 ingested 13 current chunks (collection 34,526 after exact stale-point cleanup); scoped implementation/continuity commit `883e5f6` excludes unrelated dirty work.
 - 2026-07-18 13:47 +02:00 | Techno-Monk | Reconciled stale #157 review blocker against source Watercooler seat ledger (OpenCLAW event #794; Watercooler #1154) and received Elf's final GREEN #1155. Commit `5a156fb` amends the canonical prereg with all four-seat binds while preserving no-extraction/no-GPU/no-C1 scope; session-03 written, Qdrant intentionally skipped.
 - 2026-07-18 04:40 +02:00 | Codex | Completed frozen, model-free World Model Phase 3c #172 audit. Preregistration `8873213`, reviewed runner/tests `d275850`, and immutable result/review `3ca9e01` record FAIL: inert retained inputs, 486 adjacent jumps over `0.10`, four three-attractor boundary rows, and tick-7 affiliation clipping. Recovery, accumulation, and conditional leakage pass; three construction policies remain held. Watercooler #1151 and OpenCLAW #172 carry the exact review request; session-02 ingested 10 chunks into Qdrant (collection 34,516). No controller edit or model/GPU/runtime action.
