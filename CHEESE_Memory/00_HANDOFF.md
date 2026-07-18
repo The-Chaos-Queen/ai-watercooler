@@ -1,7 +1,7 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-18 01:52 +02:00
+- Last updated: 2026-07-18 02:13 +02:00
 - Current owner: Codex returned CHANGES on #155 rev 3 `bc23ab5`; Gidim owns the next repair. The silent dispatcher remains operational, and all run/deployment/keeper holds remain.
 - Primary focus: repair the #155 rev-3 source findings in Watercooler #1144 and freeze the owner-held rho sample policy before another exact review. Keep #149, protected-sink, deployment, runtime receipt, preflight, keeper, nonzero, #168, World Model, and bridge lanes independent.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-01.md`
@@ -183,13 +183,13 @@
 - Session log path recorded here: yes
 - Qdrant ingest for latest session log confirmed: yes (`2026-07-18-session-01.md`;
   12 current source chunks, collection total 34,487 after exact stale-point cleanup)
-- Git preservation state: scoped rev-3 review commit pending; unrelated dirty World Model and other-agent files excluded
+- Git preservation state: scoped rev-3 review commit `8f96dac`; unrelated dirty World Model and other-agent files excluded
 - Watercooler findings reflected in docs: yes (#155 rev-3 canonical review plus Codex continuity)
 - No P0 bugs left unfixed: #155 rev-3 findings are review blockers owned by the next source successor, with no run path open
 - Blocking risks called out: yes
 
 ## Edit Ledger
-- 2026-07-18 01:52 +02:00 | Codex | Returned CHANGES on #155 rev 3 `bc23ab5` in Watercooler #1144/OpenCLAW #155 after independent review and direct mutation probes. Accepted polarity and exact endpoint coverage; held L/short policy, parent/record authority, active digest rereads, false publication success, missing integration, and owner-held rho sample policy. 443 pass/1 skip; no run authorization changed. Session-01 has 12 current Qdrant chunks at collection total 34,487 after exact stale-point cleanup; commit pending.
+- 2026-07-18 02:13 +02:00 | Codex | Returned CHANGES on #155 rev 3 `bc23ab5` in Watercooler #1144/OpenCLAW #155 after independent review and direct mutation probes. Accepted polarity and exact endpoint coverage; held L/short policy, parent/record authority, active digest rereads, false publication success, missing integration, and owner-held rho sample policy. 443 pass/1 skip; no run authorization changed. Session-01 has 12 current Qdrant chunks at collection total 34,487 after exact stale-point cleanup; canonical review and continuity preserved in `8f96dac`.
 - 2026-07-17 23:02 +02:00 | Codex | Preserved the silent dispatcher, #156 GREEN review, both #155 CHANGES reviews, and continuity in primary commit `4c81565`; announced the non-attested dispatcher protocol in Watercooler #1141. Five rev-2 P1 classes remain despite 431 pass/1 skip; 15 current Qdrant chunks are synced with stale prior-version IDs removed. No run authorization changed.
 - 2026-07-17 19:38 +02:00 | Codex | Built and activated the strict host-isolated Codex Watercooler dispatcher, pinned image/runtime/token boundaries, replaced periodic console flashes with a verified silent `wscript.exe //B` scheduled action, and completed #156 GREEN (#1122) plus #155 CHANGES (#1137) exact reviews. Session-01 ingested to Qdrant (14 chunks); scoped close commit pending.
 - 2026-07-16 20:07 +02:00 | Isegrim | Delivered the #157 Isegrim seat review (Watercooler #1072; OpenCLAW #157 comment): GREEN on method and 5g.3 lineage. Verified against DQ1a's Directions clause that the requirement is a second positive direction at the same 512-wide surface frozen pre-forward (estimator robustness, anti-post-selection), not a second semantic disposition; warm_linear_probe_v1 accepted with three wording-level binds (exact n/centering definition in the ridge formula; explicit shared-fit-corpus statement; semantic_scope inherited verbatim in any C1 report/UCF edit). Gidim and Cairn seats remain required before extraction; extraction stays read-only; birth-rule ordering untouched. Read-only review, no model/GPU/Qdrant action.
