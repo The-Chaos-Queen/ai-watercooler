@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-18 19:42 +02:00
+Last updated: 2026-07-18 20:44 +02:00
 
 ## Standing Directive
 
@@ -78,6 +78,15 @@ remember which artifact should be updated.
   digest custody, and post-commit publication remain P1-blocking. Exact record
   shape and the section 5.5 row/digest contract remain P2. No
   B0/C1/model/GPU/deployment authorization follows from the repair or tests.
+- Taskboard #174 final target `70293e2` is `CHANGES` by exact-source verdict of
+  record. Canon:
+  `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`;
+  Watercooler #1184; Taskboard event #805. Six prior runtime defects are closed,
+  but decisive policy has no ratified spec, judge identity can change across
+  audits and still pass on the default path, calibration has no provenance
+  custody, and accepted numeric domains contain full-gate fail-open cases. Raw
+  discrimination and root runner origin remain external work. The false `done`
+  state is not endorsed; launch remains keeper-held.
 - World Model Phase 3c remains a reviewed FAIL at `3ca9e01`: retained inputs are
   inert, local terminal geometry is discontinuous, four boundary rows expose
   three attractors, and affiliation clips. Repair only under a new protocol.
@@ -87,11 +96,16 @@ remember which artifact should be updated.
 - Review only a new immutable #155 item-5 repair that closes every finding in
   the rev-5 canon together. Preserve the now-correct eligibility re-derivation;
   do not accept another one-finding patch or run B0/C1 from a green unit suite.
+- Review only a new immutable #174 successor that preserves the six accepted
+  fixes and carries the ratified protocol, provenance-bearing calibration,
+  mandatory cross-audit judge authority, closed numeric domains, and honest
+  external raw/origin scope together.
 - Ask Laura for the public license choice before publication; then add `LICENSE`
   and matching package metadata and rerun archive verification.
 - Keep #157 extraction and review as separate principals/protocols. Never widen
   the strict commit reviewer into a free-form task executor.
 - Rotate the internal dispatcher token before expiry and resolve #1160 through
   the infrastructure owners; do not deploy the public staging tree implicitly.
-- At session close, link the session log here only when it contains new Codex
-  operating lessons. Keep this file concise by replacing stale state.
+- Session 06 (`CHEESE_Memory/session_logs/2026-07-18-session-06.md`) contains
+  the reusable distinction between exact-typed parameters and provenance
+  custody. Keep this file concise by replacing stale state.

@@ -548,3 +548,27 @@ evidence supports that promotion.
 - Evidence: `Projects/Watercooler/src/watercooler/{common,private_io,steward}.py`,
   public service/browser tests, and session log
   `CHEESE_Memory/session_logs/2026-07-18-session-04.md`.
+
+## 2026-07-18 - Exact-Typed Parameters Are Not Provenance Custody
+
+- Status: active engineering lesson
+- Domain: decision gates / calibration / automated review
+- Conditions: a safety-relevant kernel accepts a frozen exact-typed parameter
+  object and optional expected-authority arguments.
+- Finding: #174's `GateCalibrationBinding` stabilized four caller-supplied
+  scalars but carried no source artifact, version, digest, estimator identity,
+  or reset-era receipt. The same audit digest produced opposite decisive
+  outcomes under two baselines. Separately, explicit `expected_judge_ref`
+  correctly bound history after repair, while omitting that optional argument
+  allowed judge identity to change on every audit and still reach `PASS`.
+  A first-parent automated review missed both because it did not compare the
+  unchanged governing spec or exercise the default path.
+- Lesson: snapshot isolation proves which values were consumed, not why they
+  were admissible. Bind decisive parameters to a preregistered provenance
+  artifact and include that identity in decision custody. Authority required
+  for safety must be mandatory or enforced intrinsically; always test the
+  omitted/default path. Exact-source review must compare governing documents,
+  not only the implementation diff.
+- Evidence: target `70293e2`; Watercooler #1184;
+  `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`;
+  session log `CHEESE_Memory/session_logs/2026-07-18-session-06.md`.

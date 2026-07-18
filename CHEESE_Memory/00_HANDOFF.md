@@ -1,13 +1,20 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-18 19:52 +02:00
-- Current owner: Gidim owns the next #155 item-5 repair after Codex returned exact-source `CHANGES` on rev 5. Research lanes otherwise remain with their named owners. #157 and all run/deployment/keeper gates remain unchanged.
-- Primary focus: repair all six findings in `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md` as one immutable packet while preserving rev-5 eligibility custody. Separately choose the public Watercooler license and keep the #157 extractor as a distinct, narrowly authorized design.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-05.md`
+- Last updated: 2026-07-18 20:44 +02:00
+- Current owner: Gemini owns the next #174 protocol-plus-custody repair after Codex returned exact-source `CHANGES` on `70293e2`; Gidim independently owns the next #155 item-5 repair. #157 and all run/deployment/keeper gates remain unchanged.
+- Primary focus: repair #174 only after ratifying its decisive policy, and repair all six #155 rev-5 findings as one immutable packet while preserving accepted fixes in both lanes.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-06.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-18-session-05.md`; 11 chunks; collection total 34,536)
+  - Latest session log ingest: done (`2026-07-18-session-06.md`; 13 chunks; collection total 34,547)
+
+## Current State - #174 Final Exact-Source Review (2026-07-18)
+
+- **Verdict of record: CHANGES.** Exact target `70293e2` was reviewed from an immutable Git archive. Canon: `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md` (`e33efe6`); Watercooler #1184; Taskboard #174 event #805.
+- **Accepted:** both repair commits close the six previously reproduced runtime defects. Exact verification was `212 passed`, focused `17 passed`, ten disposable adversarial canaries, and clean Ruff/`py_compile`.
+- **Four P1 blockers:** no owner-ratified spec for the new decisive level detector or `0.3/0.8` disposition cutoffs; judge identity may change on every audit and still `PASS` when `expected_judge_ref` is omitted; `GateCalibrationBinding` has no provenance custody; and accepted numeric domains allow invalid baseline/span configurations to produce overall `PASS`.
+- **Two P2 plus P3:** the direct disposition scorer can raise on a huge exact int, source authority/deferred-status prose is stale, and the exact delta has non-driving whitespace failures. Raw judge discrimination and true root runner origin remain external evidence/integration work. The card's existing `done` state is not endorsed or mutated; operational launch remains keeper-held.
 
 ## Current State - #155 Item-5 Rev-5 Review (2026-07-18)
 
@@ -29,7 +36,7 @@
 
 - **Tooling fixed + committed:** `/how-full` mtime-race bug (`796e0da`, now pins `CLAUDE_CODE_SESSION_ID`; later reads the statusline `context_cache/` written by `statusline.py`); `watercooler_read.py` gained `--id`/`--before-id`/`--search` (`1d91413`); boot-file thread discipline (`4a63062`, mamba-bridge = research-only). Elf's leaked watercooler token **rotated** by Laura's hand (new `elf-20260718T112601Z`, token_id 176; old revoked). Stray `wc_98*.json`/`nul` swept.
 - **Board hygiene:** #168 drift-gate **closed** (v27 GREEN frozen; correction scope done) with keeper authorization; residual scope → successor **#174** (judge-chain discrimination, runner-origin custody, slow-leak, disposition calibration; launch keeper-held). LAN exposure flagged (#1160): `:8080` dashboard serves the whole `/opt/ai-watercooler` dir incl. a live permanent `claude-ai` service token — **rotation + re-scope still owed** (Pinky/Monk).
-- **#174 Gemini lanes 1+3 review:** CHANGES + completion REJECTED (93s claim→done, lanes 2+4 untouched, frozen A2 edited without spec rev). Canon `MoCoP/reviews/task_174_gemini_lanes13_review_2026-07-18.md` (`a4a1daa`). Card stuck in false `done` — **API has no reopen verb; keeper SQL or a new verb needed.**
+- **#174 final review:** the historical lanes 1+3 review remains useful, but final target `70293e2` is now exact-source `CHANGES` under Codex #1184 and canon `e33efe6`. The card remains in false `done`; the locally implemented reopen path is unlanded/deferred and was not used.
 - **Historical #155 rev-4 exploit:** Isegrim's fabricated-eligibility P1 is banked in `MoCoP/reviews/task_155_item5_rev4_isegrim_probe_2026-07-18.md` and is closed by rev 5. The current rev-5 `CHANGES` verdict and remaining findings are in the top control section and Watercooler #1183.
 
 ## Current State - Codex Dispatcher And P5 Review (2026-07-18)
@@ -42,7 +49,7 @@
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
 - **V27 implementation is GREEN:** `4c6b7b4` reserves placeholders against every readable exact caller anchor across canonical and malformed rows, emits duplicate groups in sorted order, and documents per-key N-row duplicate receipts. The accepted duplicate path remains one typed error, zero callbacks, rejection present, no `GROWTH`, and full overall `INCOMPLETE`. Focused verification: 195 PASS; Ruff, diff, and blob checks clean.
 - **Independent review probes:** a three-deep canonical/malformed `EvidenceType.NONE` collision chain yielded only `<malformed-row-0>###`; mixed canonical/malformed duplicate groups produced zero callbacks and sorted receipts. Full receipt, rejection, and incomplete-reason JSON was identical under hash seeds 1, 42, and 314159.
-- **Tracking/evidence:** Watercooler #1070; OpenCLAW #168 event #757; canon `001ce79`; review `MoCoP/reviews/drift_gate_v27_review_2026-07-16.md`. #168 remains open and non-deployable only for independent raw judge-chain discrimination, runner-origin custody, slow-leak level detection, disposition calibration, and operational launch holds.
+- **Tracking/evidence:** Watercooler #1070; OpenCLAW #168 event #757; canon `001ce79`; review `MoCoP/reviews/drift_gate_v27_review_2026-07-16.md`. #168 is closed at frozen v27; successor #174 carries the unresolved judge/origin/slow-leak/disposition work and remains non-deployable under Codex #1184.
 - **Freeze checkpoint, not a state transition:** tags `freeze/drift-gate-168-v27-code-20260716` → `4c6b7b4` and `freeze/drift-gate-168-v27-green-review-20260716` → `001ce79` pin the code and committed GREEN review. Portable OneDrive bundle: `CHEESE_Memory/session_logs/freeze-2026-07-16-drift-gate-168-v27/drift-gate-168-v27-green.bundle`, SHA-256 `4896d4cf1e7778edfae1c0e093580b174e0169bcdf697c402c68fe93ac38f6cf`; clean bare recovery/final review-file hash/`git fsck` passed. Manifest beside it records recovery commands and exclusions. OpenCLAW event #758; no process stopped, no worktree dirt captured.
 
 ## Current State — Gemma 4 / LiteRT-LM offline preflight (2026-07-16)
@@ -230,6 +237,7 @@
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-18 20:44 +02:00 | Codex | Returned exact-source `CHANGES` on #174 final target `70293e2` after immutable-archive verification and ten adversarial canaries. Six prior runtime defects are closed; unspec'd decisive policy, cross-audit judge changes, absent calibration provenance, and numeric fail-open domains remain P1. Canon `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md` (`e33efe6`); Watercooler #1184; Taskboard event #805. Session-06 ingested 13 chunks (collection 34,547).
 - 2026-07-18 19:52 +02:00 | Codex | Returned exact-source `CHANGES` on #155 item-5 rev 5 (`5a01f06` + `e805a75`) after immutable-archive verification, twelve adversarial controls, and independent subreview. Rev 5 closes the eligibility exploit; four P1 custody/publication failures and two P2 contract gaps remain. Canon `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md`; Watercooler #1183; Taskboard #155 comment. Session-05 ingested 11 chunks (collection 34,536); scoped review/continuity commit `9eec6da` excludes unrelated dirty work.
 - 2026-07-18 16:15 +02:00 | Codex | Proved strict headless #157 pickup refusal (`body_not_json`; Watercooler #1162), completed and independently GREENed the fresh public Watercooler staging package, and verified 196 pass/3 platform skips plus standard/target wheel installs, sdist, and real desktop/mobile browser flows. License choice, #157 extraction authorization, and NUC #1160 remain held. Session-04 ingested 13 current chunks (collection 34,526 after exact stale-point cleanup); scoped implementation/continuity commit `883e5f6` excludes unrelated dirty work.
 - 2026-07-18 13:47 +02:00 | Techno-Monk | Reconciled stale #157 review blocker against source Watercooler seat ledger (OpenCLAW event #794; Watercooler #1154) and received Elf's final GREEN #1155. Commit `5a156fb` amends the canonical prereg with all four-seat binds while preserving no-extraction/no-GPU/no-C1 scope; session-03 written, Qdrant intentionally skipped.
@@ -334,7 +342,7 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1137.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1184.
 - Decide first:
   - Treat #172 commit `3ca9e01` as an immutable reviewed FAIL pending an external verdict. Repair only under a new frozen protocol; do not compose or connect it to any model/runtime path.
   - Preserve `bridge_refit_eval_20260716T131105Z` as a mixed/non-win bridge result. Do not scale or reopen C1/injection; read its debrief before proposing any diagnostic or new corpus.
@@ -342,7 +350,7 @@
     `p5_item5_rev5_source_review_2026-07-18.md`. Preserve its eligibility fix,
     but require one immutable repair for all six findings and a fresh verdict.
     Automated dispatcher reviews are never verdicts of record.
-  - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `60701ed` against canon `1dd4a9d`; preserve duplicate fail-closed folding, complete-graph preflight, slots, the local callable, strict direct/full proof, canonical domains, and explicit non-TEE boundary. No remaining launch lane is authorized by P5 GREEN or the closed resolver P1.
+  - Treat #174 target `70293e2` as CHANGES under Codex #1184 and canonical review `drift_gate_task174_final_source_review_2026-07-18.md`. Preserve its six closed runtime defects, but require a ratified protocol, provenance-bearing calibration, mandatory cross-audit judge authority, closed numeric domains, and honest external raw/origin scope in one immutable successor. Do not re-review completed #156 packet `c17f6d8`; no launch lane is authorized.
   - Treat Gemma/LiteRT as a separate offline infrastructure lane: require an explicit read-only ML-WS preflight before any install/model/server/audio bench, and require a separate training protocol before any fine-tune.
 - Task-specific files to read:
   - `MoCoP/experiments/mamba_lora_bridge/ML_WORKSTATION_RUNBOOK.md` for #151's deployed runner contract
@@ -362,6 +370,7 @@
   - `MoCoP/reviews/world_model_math_audit_2026-07-10.md`
   - `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`
   - `MoCoP/reviews/world_model_phase3c_controller_audit_review_2026-07-18.md`
+  - `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`
   - `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`
   - `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md`
   - `MoCoP/reviews/p5_item5_rev3_source_review_2026-07-18.md` (historical rev-3 review)
