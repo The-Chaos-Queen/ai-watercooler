@@ -17,13 +17,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import parse_qs, urlparse
 
-from watercooler_summary_contract import (
+from .private_io import ensure_private_directory, ensure_private_regular_file
+from .summary_contract import (
     render_summary_markdown,
     validate_summary_draft,
     validate_task_proposals_are_new,
 )
 
-LOGGER = logging.getLogger("ai_watercooler")
+LOGGER = logging.getLogger("watercooler")
 
 TASK_STATUSES = ("queued", "claimed", "blocked", "done")
 COST_CLASSES = ("free", "local", "gpu", "rental")
@@ -37,10 +38,9 @@ SESSION_SCOPES = (
 )
 ROSTER_STATUSES = (
     "active",
-    "semi-active",
-    "limbo",
-    "off-pack",
-    "token",
+    "inactive",
+    "external",
+    "service",
     "archived",
     "special",
 )
@@ -296,7 +296,9 @@ def classify_blocked_task_signals(
 
 
 def ensure_db(db_path: Path) -> None:
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_private_directory(db_path.parent, repair_existing=False)
+    if db_path.exists() or db_path.is_symlink():
+        ensure_private_regular_file(db_path)
     with sqlite3.connect(db_path) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA journal_mode = WAL")
@@ -304,6 +306,11 @@ def ensure_db(db_path: Path) -> None:
         conn.execute("PRAGMA busy_timeout = 30000")
         conn.executescript(SCHEMA)
         conn.commit()
+    ensure_private_regular_file(db_path)
+    for suffix in ("-shm", "-wal"):
+        sidecar = Path(f"{db_path}{suffix}")
+        if sidecar.exists() or sidecar.is_symlink():
+            ensure_private_regular_file(sidecar)
 
 
 def connect_db(db_path: str) -> sqlite3.Connection:
@@ -324,6 +331,44 @@ def is_private_client(remote_addr: str) -> bool:
     except ValueError:
         return False
     return bool(address.is_private or address.is_loopback)
+
+
+def normalize_cors_origins(values: Sequence[str]) -> Tuple[str, ...]:
+    """Validate exact HTTP(S) origins; wildcards and opaque origins are refused."""
+    normalized: List[str] = []
+    for raw in values:
+        origin = raw.strip().rstrip("/")
+        if not origin:
+            continue
+        parsed = urlparse(origin)
+        try:
+            parsed_port = parsed.port
+        except ValueError as exc:
+            raise ValueError(f"invalid CORS origin: {raw!r}") from exc
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or not parsed.hostname
+            or parsed.path
+            or parsed.params
+            or parsed.query
+            or parsed.fragment
+            or parsed.username
+            or parsed.password
+            or any(ord(character) < 32 or ord(character) == 127 for character in origin)
+        ):
+            raise ValueError(f"invalid CORS origin: {raw!r}")
+        if parsed_port is not None and not 1 <= parsed_port <= 65535:
+            raise ValueError(f"invalid CORS origin: {raw!r}")
+        canonical = f"{parsed.scheme}://{parsed.netloc}"
+        if canonical not in normalized:
+            normalized.append(canonical)
+    return tuple(normalized)
+
+
+def cors_origins_from_environment() -> Tuple[str, ...]:
+    raw = os.environ.get("WATERCOOLER_CORS_ORIGINS", "")
+    return tuple(value.strip() for value in raw.split(",") if value.strip())
 
 
 def extract_bearer_token(handler: "WatercoolerHandler") -> str:
@@ -1152,12 +1197,6 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                     return
                 self._handle_unblock_task(auth)
                 return
-            if parsed.path == "/v1/tasks/reopen":
-                auth = self._require_session_auth("tasks:write")
-                if auth is None:
-                    return
-                self._handle_reopen_task(auth)
-                return
             if parsed.path == "/v1/summary/publish":
                 auth = self._require_session_auth("summaries:publish")
                 if auth is None:
@@ -1165,7 +1204,7 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 self._handle_publish_summary(auth)
                 return
             if parsed.path == "/v1/summary":
-                auth = self._require_session_auth("messages:write")
+                auth = self._require_session_auth("summaries:publish")
                 if auth is None:
                     return
                 self._handle_update_summary(auth)
@@ -1781,37 +1820,41 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
             self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
             return
 
+        conflict_detail: str | None = None
         with connect_db(self.server_state["db_path"]) as conn:
+            begin_immediate(conn)
             expire_stale_claims(conn)
             row = fetch_task_row(conn, task_id)
             task = task_row_to_dict(row)
             if task["status"] != "claimed" or task["claim_agent"] != agent:
-                self._json_error(HTTPStatus.CONFLICT, "task is not actively claimed by this agent")
-                return
-
-            now = utc_now()
-            lease_expires_ts = utc_after(lease_seconds)
-            conn.execute(
-                """
-                UPDATE tasks
-                SET updated_ts = ?,
-                    last_heartbeat_ts = ?,
-                    lease_expires_ts = ?
-                WHERE id = ?
-                """,
-                (now, now, lease_expires_ts, task_id),
-            )
-            insert_task_event(
-                conn,
-                task_id=task_id,
-                actor=agent,
-                event_type="heartbeat",
-                note=note,
-                details={"lease_seconds": lease_seconds},
-            )
-            row = fetch_task_row(conn, task_id)
+                conflict_detail = "task is not actively claimed by this agent"
+            else:
+                now = utc_now()
+                lease_expires_ts = utc_after(lease_seconds)
+                conn.execute(
+                    """
+                    UPDATE tasks
+                    SET updated_ts = ?,
+                        last_heartbeat_ts = ?,
+                        lease_expires_ts = ?
+                    WHERE id = ?
+                    """,
+                    (now, now, lease_expires_ts, task_id),
+                )
+                insert_task_event(
+                    conn,
+                    task_id=task_id,
+                    actor=agent,
+                    event_type="heartbeat",
+                    note=note,
+                    details={"lease_seconds": lease_seconds},
+                )
+                row = fetch_task_row(conn, task_id)
             conn.commit()
 
+        if conflict_detail is not None:
+            self._json_error(HTTPStatus.CONFLICT, conflict_detail)
+            return
         self._json_response({"ok": True, "task": task_row_to_dict(row)})
 
     def _handle_complete_task(self, auth: AuthContext) -> None:
@@ -1829,53 +1872,54 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
             self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
             return
 
+        conflict_detail: str | None = None
         with connect_db(self.server_state["db_path"]) as conn:
+            begin_immediate(conn)
             expire_stale_claims(conn)
             row = fetch_task_row(conn, task_id)
             task = task_row_to_dict(row)
             if task["status"] == "done":
-                self._json_error(HTTPStatus.CONFLICT, "task is already done")
-                return
-            if task["status"] == "blocked":
-                self._json_error(HTTPStatus.CONFLICT, "task is blocked")
-                return
-            if task["claim_agent"] and task["claim_agent"] != agent:
-                self._json_error(HTTPStatus.CONFLICT, f"task is claimed by {task['claim_agent']}")
-                return
-            if task["assignee"] and task["assignee"] != agent and task["claim_agent"] != agent:
-                self._json_error(HTTPStatus.CONFLICT, f"task is assigned to {task['assignee']}")
-                return
-
-            merged_artifacts = merge_string_arrays(task["artifacts"], artifacts)
-            now = utc_now()
-            conn.execute(
-                """
-                UPDATE tasks
-                SET status = 'done',
-                    updated_ts = ?,
-                    assignee = CASE WHEN assignee = '' THEN ? ELSE assignee END,
-                    claim_agent = '',
-                    claim_ts = '',
-                    last_heartbeat_ts = '',
-                    lease_expires_ts = '',
-                    blocked_reason = '',
-                    completed_ts = ?,
-                    artifacts_json = ?
-                WHERE id = ?
-                """,
-                (now, agent, now, json.dumps(merged_artifacts, ensure_ascii=False), task_id),
-            )
-            insert_task_event(
-                conn,
-                task_id=task_id,
-                actor=agent,
-                event_type="completed",
-                note=note,
-                details={"artifacts": merged_artifacts},
-            )
-            row = fetch_task_row(conn, task_id)
+                conflict_detail = "task is already done"
+            elif task["status"] == "blocked":
+                conflict_detail = "task is blocked"
+            elif task["claim_agent"] and task["claim_agent"] != agent:
+                conflict_detail = f"task is claimed by {task['claim_agent']}"
+            elif task["assignee"] and task["assignee"] != agent and task["claim_agent"] != agent:
+                conflict_detail = f"task is assigned to {task['assignee']}"
+            else:
+                merged_artifacts = merge_string_arrays(task["artifacts"], artifacts)
+                now = utc_now()
+                conn.execute(
+                    """
+                    UPDATE tasks
+                    SET status = 'done',
+                        updated_ts = ?,
+                        assignee = CASE WHEN assignee = '' THEN ? ELSE assignee END,
+                        claim_agent = '',
+                        claim_ts = '',
+                        last_heartbeat_ts = '',
+                        lease_expires_ts = '',
+                        blocked_reason = '',
+                        completed_ts = ?,
+                        artifacts_json = ?
+                    WHERE id = ?
+                    """,
+                    (now, agent, now, json.dumps(merged_artifacts, ensure_ascii=False), task_id),
+                )
+                insert_task_event(
+                    conn,
+                    task_id=task_id,
+                    actor=agent,
+                    event_type="completed",
+                    note=note,
+                    details={"artifacts": merged_artifacts},
+                )
+                row = fetch_task_row(conn, task_id)
             conn.commit()
 
+        if conflict_detail is not None:
+            self._json_error(HTTPStatus.CONFLICT, conflict_detail)
+            return
         self._json_response({"ok": True, "task": task_row_to_dict(row)})
 
     def _handle_block_task(self, auth: AuthContext) -> None:
@@ -1893,44 +1937,47 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
             self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
             return
 
+        conflict_detail: str | None = None
         with connect_db(self.server_state["db_path"]) as conn:
+            begin_immediate(conn)
             expire_stale_claims(conn)
             row = fetch_task_row(conn, task_id)
             task = task_row_to_dict(row)
             if task["status"] == "done":
-                self._json_error(HTTPStatus.CONFLICT, "task is already done")
-                return
-            if task["claim_agent"] and task["claim_agent"] != agent:
-                self._json_error(HTTPStatus.CONFLICT, f"task is claimed by {task['claim_agent']}")
-                return
-
-            now = utc_now()
-            conn.execute(
-                """
-                UPDATE tasks
-                SET status = 'blocked',
-                    updated_ts = ?,
-                    assignee = CASE WHEN assignee = '' THEN ? ELSE assignee END,
-                    claim_agent = '',
-                    claim_ts = '',
-                    last_heartbeat_ts = '',
-                    lease_expires_ts = '',
-                    blocked_reason = ?
-                WHERE id = ?
-                """,
-                (now, agent, blocked_reason, task_id),
-            )
-            insert_task_event(
-                conn,
-                task_id=task_id,
-                actor=agent,
-                event_type="blocked",
-                note=note,
-                details={"blocked_reason": blocked_reason},
-            )
-            row = fetch_task_row(conn, task_id)
+                conflict_detail = "task is already done"
+            elif task["claim_agent"] and task["claim_agent"] != agent:
+                conflict_detail = f"task is claimed by {task['claim_agent']}"
+            else:
+                now = utc_now()
+                conn.execute(
+                    """
+                    UPDATE tasks
+                    SET status = 'blocked',
+                        updated_ts = ?,
+                        assignee = CASE WHEN assignee = '' THEN ? ELSE assignee END,
+                        claim_agent = '',
+                        claim_ts = '',
+                        last_heartbeat_ts = '',
+                        lease_expires_ts = '',
+                        blocked_reason = ?
+                    WHERE id = ?
+                    """,
+                    (now, agent, blocked_reason, task_id),
+                )
+                insert_task_event(
+                    conn,
+                    task_id=task_id,
+                    actor=agent,
+                    event_type="blocked",
+                    note=note,
+                    details={"blocked_reason": blocked_reason},
+                )
+                row = fetch_task_row(conn, task_id)
             conn.commit()
 
+        if conflict_detail is not None:
+            self._json_error(HTTPStatus.CONFLICT, conflict_detail)
+            return
         self._json_response({"ok": True, "task": task_row_to_dict(row)})
 
     def _handle_comment_task(self, auth: AuthContext) -> None:
@@ -2116,60 +2163,6 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 event_type="unblocked",
                 note=note,
                 details={"old_blocked_reason": old_blocked_reason},
-            )
-            row = fetch_task_row(conn, task_id)
-            conn.commit()
-
-        self._json_response({"ok": True, "task": task_row_to_dict(row)})
-
-    def _handle_reopen_task(self, auth: AuthContext) -> None:
-        payload = self._read_json_body()
-        if payload is None:
-            return
-        if self._reject_agent_mismatch(payload, auth):
-            return
-        try:
-            task_id = clamp_int(payload.get("task_id"), field_name="task_id", min_value=1, max_value=10**9)
-            note = clamp_text(payload.get("note", ""), field_name="note", max_len=4000, allow_empty=True)
-        except ValueError as exc:
-            self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
-            return
-
-        with connect_db(self.server_state["db_path"]) as conn:
-            begin_immediate(conn)
-            expire_stale_claims(conn)
-            row = fetch_task_row(conn, task_id)
-            task = task_row_to_dict(row)
-            if task["status"] != "done":
-                self._json_error(HTTPStatus.CONFLICT, "task is not done")
-                return
-            now = utc_now()
-            old_completed_ts = task["completed_ts"]
-            conn.execute(
-                """
-                UPDATE tasks
-                SET status = 'queued',
-                    updated_ts = ?,
-                    claim_agent = '',
-                    claim_ts = '',
-                    last_heartbeat_ts = '',
-                    lease_expires_ts = '',
-                    blocked_reason = '',
-                    completed_ts = ''
-                WHERE id = ?
-                """,
-                (now, task_id),
-            )
-            insert_task_event(
-                conn,
-                task_id=task_id,
-                actor=auth.principal,
-                event_type="reopened",
-                note=note,
-                details={
-                    "old_completed_ts": old_completed_ts,
-                    "artifacts": task["artifacts"],
-                },
             )
             row = fetch_task_row(conn, task_id)
             conn.commit()
@@ -2390,7 +2383,7 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
         params = parse_qs(query, keep_blank_values=False)
         try:
             thread = clamp_text(
-                params.get("thread", ["mamba-bridge"])[0],
+                params.get("thread", ["general"])[0],
                 field_name="thread",
                 max_len=128,
             )
@@ -2439,7 +2432,7 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
         params = parse_qs(query, keep_blank_values=False)
         try:
             thread = clamp_text(
-                params.get("thread", ["mamba-bridge"])[0],
+                params.get("thread", ["general"])[0],
                 field_name="thread",
                 max_len=128,
             )
@@ -2458,7 +2451,7 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
         params = parse_qs(query, keep_blank_values=False)
         try:
             thread = clamp_text(
-                params.get("thread", ["mamba-bridge"])[0],
+                params.get("thread", ["general"])[0],
                 field_name="thread",
                 max_len=128,
             )
@@ -2754,7 +2747,7 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
         if payload is None:
             return
         try:
-            thread = clamp_text(payload.get("thread", "mamba-bridge"), field_name="thread", max_len=128)
+            thread = clamp_text(payload.get("thread", "general"), field_name="thread", max_len=128)
             body = clamp_text(payload.get("body", ""), field_name="body", max_len=100_000)
         except ValueError as exc:
             self._json_error(HTTPStatus.BAD_REQUEST, str(exc))
@@ -2938,22 +2931,10 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
 
     def _cors_headers(self) -> None:
         origin = self.headers.get("Origin", "")
-        # Allow requests from the local 192.168.2.0/24 subnet or file:// origins.
-        # Deny everything else by omitting the header entirely.
-        allowed = False
-        if origin.startswith("file://") or origin == "null":
-            allowed = True
-        else:
-            try:
-                from urllib.parse import urlparse as _urlparse
-                host = _urlparse(origin).hostname or ""
-                addr = ipaddress.ip_address(host)
-                if addr in ipaddress.ip_network("192.168.2.0/24"):
-                    allowed = True
-            except (ValueError, TypeError):
-                pass
-        if allowed:
+        allowed_origins = self.server_state.get("cors_origins", ())
+        if origin and origin in allowed_origins:
             self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 
@@ -2988,18 +2969,27 @@ class WatercoolerServer(ThreadingHTTPServer):
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Local-first Watercooler message bus and Taskboard service.")
-    parser.add_argument("--host", type=str, default=os.environ.get("AI_WATERCOOLER_HOST", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.environ.get("AI_WATERCOOLER_PORT", "8765")))
+    parser.add_argument("--host", type=str, default=os.environ.get("WATERCOOLER_HOST", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(os.environ.get("WATERCOOLER_PORT", "8765")))
     parser.add_argument(
         "--db-path",
         type=str,
-        default=os.environ.get("AI_WATERCOOLER_DB_PATH", "/var/lib/ai-watercooler/messages.db"),
+        default=os.environ.get("WATERCOOLER_DB_PATH", "./watercooler.db"),
     )
     parser.add_argument(
         "--token",
         type=str,
-        default=os.environ.get("AI_WATERCOOLER_ADMIN_TOKEN", os.environ.get("AI_WATERCOOLER_TOKEN", "")),
+        default=os.environ.get("WATERCOOLER_ADMIN_TOKEN", os.environ.get("WATERCOOLER_TOKEN", "")),
         help="Bootstrap admin token used only for minting and revoking session tokens.",
+    )
+    parser.add_argument(
+        "--cors-origin",
+        action="append",
+        default=list(cors_origins_from_environment()),
+        help=(
+            "Exact browser origin allowed to call the API. Repeat as needed. "
+            "Cross-origin access is disabled by default."
+        ),
     )
     return parser
 
@@ -3011,13 +3001,19 @@ def main() -> int:
     )
     args = build_arg_parser().parse_args()
     if not args.token:
-        raise SystemExit("AI_WATERCOOLER_ADMIN_TOKEN / AI_WATERCOOLER_TOKEN / --token is required")
+        raise SystemExit("WATERCOOLER_ADMIN_TOKEN / WATERCOOLER_TOKEN / --token is required")
+
+    try:
+        cors_origins = normalize_cors_origins(args.cors_origin)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
     db_path = Path(args.db_path).expanduser()
     ensure_db(db_path)
     state = {
         "db_path": str(db_path),
         "admin_token": args.token,
+        "cors_origins": cors_origins,
     }
     server = WatercoolerServer((args.host, args.port), WatercoolerHandler, state=state)
     LOGGER.info("watercooler listening on %s:%d db=%s", args.host, args.port, db_path)

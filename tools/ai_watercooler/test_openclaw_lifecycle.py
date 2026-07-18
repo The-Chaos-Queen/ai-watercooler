@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import sqlite3
+import subprocess
 import sys
 import threading
 import urllib.error
@@ -196,3 +198,213 @@ def test_release_unblock_and_comment_lifecycle(watercooler):
     assert "released" in events
     assert "comment" in events
     assert "unblocked" in events
+
+
+def test_reopen_done_task_preserves_completion_history_and_artifacts(watercooler):
+    base_url, tokens, db_path = watercooler
+    task = create_task(base_url, tokens["techno-monk"])
+
+    code, body = request_error(
+        base_url,
+        tokens["techno-monk"],
+        "POST",
+        "/v1/tasks/reopen",
+        {"task_id": task["id"], "agent": "techno-monk", "note": "not done yet"},
+    )
+    assert code == 409
+    assert body["error"] == "task is not done"
+
+    completed = request_json(
+        base_url,
+        tokens["techno-monk"],
+        "POST",
+        "/v1/tasks/complete",
+        {
+            "task_id": task["id"],
+            "agent": "techno-monk",
+            "note": "completed receipt",
+            "artifacts": ["commit:abc123"],
+        },
+    )["task"]
+    assert completed["status"] == "done"
+    assert completed["assignee"] == "techno-monk"
+    assert completed["completed_ts"]
+    assert completed["artifacts"] == ["commit:abc123"]
+
+    code, body = request_error(
+        base_url,
+        tokens["vesper"],
+        "POST",
+        "/v1/tasks/reopen",
+        {"task_id": task["id"], "agent": "techno-monk", "note": "bad impersonation attempt"},
+    )
+    assert code == 403
+    assert "cannot act as techno-monk" in body["error"]
+    still_done = request_json(
+        base_url,
+        tokens["techno-monk"],
+        "GET",
+        f"/v1/tasks?task_id={task['id']}",
+    )["tasks"][0]
+    assert still_done["status"] == "done"
+
+    reopened = request_json(
+        base_url,
+        tokens["techno-monk"],
+        "POST",
+        "/v1/tasks/reopen",
+        {"task_id": task["id"], "agent": "techno-monk", "note": "late source finding needs a repair pass"},
+    )["task"]
+    assert reopened["status"] == "queued"
+    assert reopened["assignee"] == "techno-monk"
+    assert reopened["claim_agent"] == ""
+    assert reopened["claim_ts"] == ""
+    assert reopened["last_heartbeat_ts"] == ""
+    assert reopened["lease_expires_ts"] == ""
+    assert reopened["blocked_reason"] == ""
+    assert reopened["completed_ts"] == ""
+    assert reopened["artifacts"] == ["commit:abc123"]
+    assert event_types(db_path, task["id"])[-2:] == ["completed", "reopened"]
+    context = request_json(
+        base_url,
+        tokens["techno-monk"],
+        "GET",
+        f"/v1/context?task_id={task['id']}",
+    )
+    reopened_event = context["events"][0]
+    assert reopened_event["event_type"] == "reopened"
+    assert reopened_event["actor"] == "techno-monk"
+    assert reopened_event["note"] == "late source finding needs a repair pass"
+    assert reopened_event["details"] == {
+        "old_completed_ts": completed["completed_ts"],
+        "artifacts": ["commit:abc123"],
+    }
+
+    code, body = request_error(
+        base_url,
+        tokens["techno-monk"],
+        "POST",
+        "/v1/tasks/reopen",
+        {"task_id": task["id"], "agent": "techno-monk", "note": "repeat reopen"},
+    )
+    assert code == 409
+    assert body["error"] == "task is not done"
+    assert event_types(db_path, task["id"])[-2:] == ["completed", "reopened"]
+
+
+def test_reopen_allows_audited_cross_owner_repair_without_reassignment(watercooler):
+    base_url, tokens, _db_path = watercooler
+    task = create_task(base_url, tokens["techno-monk"])
+    request_json(
+        base_url,
+        tokens["techno-monk"],
+        "POST",
+        "/v1/tasks/complete",
+        {"task_id": task["id"], "agent": "techno-monk", "note": "completed by owner"},
+    )
+
+    reopened = request_json(
+        base_url,
+        tokens["vesper"],
+        "POST",
+        "/v1/tasks/reopen",
+        {"task_id": task["id"], "agent": "vesper", "note": "keeper repair after new evidence"},
+    )["task"]
+
+    assert reopened["status"] == "queued"
+    assert reopened["assignee"] == "techno-monk"
+    assert reopened["claim_agent"] == ""
+    context = request_json(
+        base_url,
+        tokens["vesper"],
+        "GET",
+        f"/v1/context?task_id={task['id']}",
+    )
+    assert context["events"][0]["event_type"] == "reopened"
+    assert context["events"][0]["actor"] == "vesper"
+    assert context["events"][0]["note"] == "keeper repair after new evidence"
+
+
+def test_reopen_is_atomic_under_concurrent_requests(watercooler):
+    base_url, tokens, db_path = watercooler
+    task = create_task(base_url, tokens["techno-monk"])
+    request_json(
+        base_url,
+        tokens["techno-monk"],
+        "POST",
+        "/v1/tasks/complete",
+        {"task_id": task["id"], "agent": "techno-monk", "note": "completion before race"},
+    )
+    start = threading.Barrier(3)
+
+    def reopen_once() -> tuple[str, int, str]:
+        start.wait(timeout=5)
+        try:
+            response = request_json(
+                base_url,
+                tokens["techno-monk"],
+                "POST",
+                "/v1/tasks/reopen",
+                {"task_id": task["id"], "agent": "techno-monk", "note": "concurrent repair"},
+            )
+            return "ok", 200, response["task"]["status"]
+        except urllib.error.HTTPError as exc:
+            body = json.loads(exc.read().decode("utf-8"))
+            return "error", exc.code, body["error"]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(reopen_once) for _ in range(2)]
+        start.wait(timeout=5)
+        outcomes = [future.result(timeout=10) for future in futures]
+
+    assert outcomes.count(("ok", 200, "queued")) == 1
+    assert outcomes.count(("error", 409, "task is not done")) == 1
+    assert event_types(db_path, task["id"])[-2:] == ["completed", "reopened"]
+
+
+@pytest.mark.parametrize("script_name", ["taskboard.py", "openclaw.py"])
+def test_taskboard_and_openclaw_cli_reopen_hit_local_http_service(watercooler, tmp_path, script_name):
+    base_url, tokens, db_path = watercooler
+    task = create_task(base_url, tokens["techno-monk"])
+    request_json(
+        base_url,
+        tokens["techno-monk"],
+        "POST",
+        "/v1/tasks/complete",
+        {
+            "task_id": task["id"],
+            "agent": "techno-monk",
+            "note": "initial completion",
+            "artifacts": ["commit:def456"],
+        },
+    )
+    config_path = tmp_path / "taskboard-cli.json"
+    config_path.write_text(
+        json.dumps({"base_url": base_url, "token": tokens["techno-monk"], "principal": "techno-monk"}),
+        encoding="utf-8",
+    )
+    script = Path(__file__).with_name(script_name)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--config",
+            str(config_path),
+            "reopen",
+            "--task-id",
+            str(task["id"]),
+            "--note",
+            "actual CLI smoke",
+            "--json",
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["task"]["status"] == "queued"
+    assert event_types(db_path, task["id"])[-2:] == ["completed", "reopened"]
+    if script_name == "openclaw.py":
+        assert "DeprecationWarning: openclaw.py is deprecated; use taskboard.py" in result.stderr

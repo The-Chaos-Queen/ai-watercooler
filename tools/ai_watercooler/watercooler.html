@@ -4,18 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Watercooler</title>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;1,400&family=Manrope:wght@400;500;600&display=swap');
-  :root { --ink:#1a1a1a; --cream:#f5f0e8; --kiln:#c4501a; --sage:#5a7a5a; --clay:#8b6f4e; --stone:#d4cfc6; --warn:#d4a017; }
+  :root { --ink:#1a1a1a; --cream:#f5f0e8; --kiln:#c4501a; --sage:#5a7a5a; --clay:#8b6f4e; --stone:#d4cfc6; --warn:#d4a017; --sans:"Segoe UI",Arial,sans-serif; --serif:"Palatino Linotype",Georgia,serif; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Manrope',sans-serif; background:var(--cream); color:var(--ink); min-height:100vh; display:flex; flex-direction:column; }
+  body { font-family:var(--sans); background:var(--cream); color:var(--ink); min-height:100vh; display:flex; flex-direction:column; }
 
   header { background:var(--ink); color:var(--cream); padding:0.8rem 1.5rem; display:flex; align-items:center; justify-content:space-between; gap:0.8rem; flex-wrap:wrap; }
-  header h1 { font-family:'Newsreader',serif; font-size:1.3rem; font-weight:600; }
+  header h1 { font-family:var(--serif); font-size:1.3rem; font-weight:600; }
   header h1 span { color:var(--kiln); }
   .controls { display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; }
-  .controls select,.controls input,.controls button { font-family:'Manrope',sans-serif; font-size:0.8rem; padding:0.3rem 0.5rem; border:1px solid var(--clay); border-radius:4px; background:var(--cream); color:var(--ink); }
+  .controls select,.controls input,.controls button { font-family:var(--sans); font-size:0.8rem; padding:0.3rem 0.5rem; border:1px solid var(--clay); border-radius:4px; background:var(--cream); color:var(--ink); }
   .controls button { background:var(--kiln); color:var(--cream); border:none; cursor:pointer; font-weight:600; }
   .controls button:hover { opacity:0.85; }
   .controls button.active { background:var(--sage); }
@@ -47,7 +45,7 @@
   /* Dashboard tab */
   #dashboard-tab { padding:1rem 1.5rem; gap:1rem; }
   .dash-section { background:white; border-radius:8px; padding:1rem; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-  .dash-section h3 { font-family:'Newsreader',serif; font-size:1rem; margin-bottom:0.6rem; color:var(--ink); }
+  .dash-section h3 { font-family:var(--serif); font-size:1rem; margin-bottom:0.6rem; color:var(--ink); }
   .dash-table { width:100%; border-collapse:collapse; font-size:0.8rem; }
   .dash-table th { text-align:left; padding:0.3rem 0.5rem; border-bottom:1px solid var(--stone); color:var(--clay); font-weight:500; }
   .dash-table td { padding:0.3rem 0.5rem; border-bottom:1px solid #f0ece4; }
@@ -63,17 +61,43 @@
   .done-btn:hover { opacity:0.8; }
   .alert { background:#fef3cd; border-left:3px solid var(--warn); padding:0.5rem 0.8rem; border-radius:4px; font-size:0.8rem; }
 
+  /* Summary tab */
+  #summary-tab { padding:1rem 1.5rem; }
+  .summary-meta { font-size:0.75rem; color:var(--clay); margin-bottom:0.5rem; }
+  .summary-block + .summary-block { border-top:1px solid var(--stone); margin-top:1rem; padding-top:1rem; }
+  .summary-block h2 { font-family:var(--serif); font-size:1.15rem; margin-bottom:0.6rem; }
+  .summary-block h3 { font-family:var(--serif); font-size:0.95rem; margin-bottom:0.4rem; }
+  .summary-section + .summary-section { margin-top:0.8rem; }
+  .summary-list { margin:0; padding-left:1.25rem; }
+  .summary-list li { margin:0.3rem 0; font-size:0.85rem; line-height:1.5; }
+  .summary-sources { display:block; color:var(--clay); font-size:0.7rem; margin-top:0.1rem; }
+  .summary-notice { background:#eef5fb; border-left:3px solid #3b6f8f; color:#24485d; padding:0.5rem 0.8rem; border-radius:4px; font-size:0.8rem; margin-bottom:0.8rem; }
+  .proposal-label { display:inline-block; background:#fef3cd; color:#856404; border-radius:3px; font-size:0.65rem; font-weight:600; padding:0.05rem 0.3rem; margin-right:0.35rem; text-transform:uppercase; }
+  .summary-legacy { font:inherit; font-size:0.85rem; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .summary-counts { display:flex; flex-wrap:wrap; gap:0.4rem 0.8rem; margin-bottom:0.6rem; font-size:0.8rem; }
+  .summary-count strong { color:var(--clay); }
+  .summary-fresh { border-left:3px solid var(--sage); background:#f0f4f0; padding:0.5rem 0.8rem; border-radius:4px; font-size:0.8rem; margin-bottom:0.7rem; }
+  .summary-task-list { list-style:none; padding:0; margin:0; }
+  .summary-task { padding:0.35rem 0; border-top:1px solid #f0ece4; font-size:0.8rem; }
+  .summary-task:first-child { border-top:0; }
+  .summary-task-meta { display:block; color:var(--clay); font-size:0.7rem; margin-top:0.1rem; }
+  .summary-subhead { margin-top:0.8rem; }
+  .summary-message { padding:0.55rem 0; border-top:1px solid #f0ece4; }
+  .summary-message:first-of-type { border-top:0; }
+  .summary-message-head { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:0.25rem 0.5rem; font-size:0.72rem; color:var(--clay); }
+  .summary-message-body { font-size:0.82rem; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere; margin-top:0.15rem; }
+
   /* Compose */
   .compose { background:white; border-top:1px solid var(--stone); padding:0.8rem 1.5rem; display:flex; flex-direction:column; gap:0.4rem; }
   .compose-row { display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; }
   .compose-row label { font-size:0.75rem; font-weight:500; min-width:2rem; }
-  .compose-row input,.compose-row select { font-family:'Manrope',sans-serif; font-size:0.8rem; padding:0.3rem 0.5rem; border:1px solid var(--stone); border-radius:4px; flex:1; min-width:4rem; }
-  #msg-body { font-family:'Manrope',sans-serif; font-size:0.85rem; padding:0.5rem; border:1px solid var(--stone); border-radius:6px; resize:vertical; min-height:3rem; line-height:1.4; }
+  .compose-row input,.compose-row select { font-family:var(--sans); font-size:0.8rem; padding:0.3rem 0.5rem; border:1px solid var(--stone); border-radius:4px; flex:1; min-width:4rem; }
+  #msg-body { font-family:var(--sans); font-size:0.85rem; padding:0.5rem; border:1px solid var(--stone); border-radius:6px; resize:vertical; min-height:3rem; line-height:1.4; }
   #msg-body:focus { outline:2px solid var(--kiln); border-color:transparent; }
-  .send-btn { align-self:flex-end; font-family:'Manrope',sans-serif; font-size:0.85rem; font-weight:600; padding:0.4rem 1.2rem; background:var(--kiln); color:var(--cream); border:none; border-radius:6px; cursor:pointer; }
+  .send-btn { align-self:flex-end; font-family:var(--sans); font-size:0.85rem; font-weight:600; padding:0.4rem 1.2rem; background:var(--kiln); color:var(--cream); border:none; border-radius:6px; cursor:pointer; }
   .send-btn:hover { opacity:0.85; }
   .send-btn:disabled { opacity:0.4; cursor:not-allowed; }
-  .empty { text-align:center; color:#999; padding:2rem; font-style:italic; font-family:'Newsreader',serif; }
+  .empty { text-align:center; color:#999; padding:2rem; font-style:italic; font-family:var(--serif); }
 </style>
 </head>
 <body>
@@ -121,10 +145,10 @@
   </div>
 </div>
 
-<div id="summary-tab" class="tab-content" style="padding:1rem 1.5rem;">
+<div id="summary-tab" class="tab-content">
   <div class="dash-section">
-    <div id="summary-meta" style="font-size:0.75rem;color:var(--clay);margin-bottom:0.5rem;"></div>
-    <div id="summary-body" style="font-size:0.85rem;line-height:1.6;white-space:pre-wrap;word-break:break-word;"><div class="empty">Loading summary...</div></div>
+    <div id="summary-meta" class="summary-meta"></div>
+    <div id="summary-body"><div class="empty">Loading summary...</div></div>
   </div>
 </div>
 
@@ -150,7 +174,15 @@
 </div>
 
 <script>
-const BASE = 'http://192.168.2.55:8765';
+function resolveWatercoolerBase() {
+  if (typeof window.WATERCOOLER_BASE === 'string' && window.WATERCOOLER_BASE.trim()) {
+    return window.WATERCOOLER_BASE.trim().replace(/\/$/, '');
+  }
+  if (window.location.protocol === 'file:') return 'http://192.168.2.55:8765';
+  if (window.location.port === '8765') return window.location.origin;
+  return `${window.location.protocol}//${window.location.hostname}:8765`;
+}
+const BASE = resolveWatercoolerBase();
 const FEED_THREADS = ['mamba-bridge', 'general', 'hurtig-ai', 'mud'];
 let autoInterval = null;
 let currentTab = 'messages';
@@ -165,6 +197,11 @@ function setStatus(msg, isError) {
   const el = document.getElementById('status');
   el.textContent = msg;
   el.className = isError ? 'status-bar error' : 'status-bar';
+}
+function httpFailure(status) {
+  return status === 401
+    ? 'Session token expired or revoked. Use a current session token.'
+    : `HTTP ${status}`;
 }
 function esc(s) { if (!s) return ''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 function formatTime(ts) { try { return new Date(ts).toLocaleString('de-DE',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); } catch { return ts; } }
@@ -185,13 +222,13 @@ function switchTab(name) {
 async function loadRoster() {
   const token = getToken();
   const body = document.getElementById('roster-body');
-  if (!token) { body.innerHTML='<div class="empty">No token set.</div>'; return; }
+  if (!token) { replaceWithEmpty(body, 'No token set.'); return; }
   try {
     const r = await fetch(`${BASE}/v1/roster`, { headers:{'Authorization':`Bearer ${token}`} });
-    if (!r.ok) { body.innerHTML=`<div class="empty">HTTP ${r.status}</div>`; return; }
+    if (!r.ok) { replaceWithEmpty(body, httpFailure(r.status)); return; }
     const data = await r.json();
     renderRoster(data.roster || []);
-  } catch(e) { body.innerHTML=`<div class="empty">Error: ${e.message}</div>`; }
+  } catch(e) { replaceWithEmpty(body, `Error: ${e.message}`); }
 }
 
 function rosterBadge(status) {
@@ -201,24 +238,242 @@ function rosterBadge(status) {
 
 function renderRoster(rows) {
   const body = document.getElementById('roster-body');
-  if (!rows.length) { body.innerHTML='<div class="empty">Roster is empty. Run watercooler_roster_sync.py.</div>'; return; }
+  if (!rows.length) { replaceWithEmpty(body, 'Roster is empty. Run watercooler_roster_sync.py.'); return; }
   body.innerHTML = `<table class="dash-table"><thead><tr><th>Name</th><th>Status</th><th>Model / Harness</th><th>Role</th><th>Notes</th></tr></thead><tbody>${
     rows.map(m => `<tr><td><strong>${esc(m.name)}</strong></td><td><span class="badge ${rosterBadge(m.status)}">${esc(m.status)}</span></td><td>${esc(m.model)||'—'}</td><td>${esc(m.role)||'—'}</td><td>${esc(m.notes)}</td></tr>`).join('')
   }</tbody></table>`;
 }
 
 // --- Summary ---
+function appendSummaryElement(parent, tag, className, text) {
+  const element = document.createElement(tag);
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = String(text);
+  parent.appendChild(element);
+  return element;
+}
+
+function replaceWithEmpty(parent, message) {
+  parent.replaceChildren();
+  appendSummaryElement(parent, 'div', 'empty', message);
+}
+
+function showSummaryState(message) {
+  const meta = document.getElementById('summary-meta');
+  const body = document.getElementById('summary-body');
+  meta.textContent = '';
+  body.replaceChildren();
+  appendSummaryElement(body, 'div', 'empty', message);
+}
+
+function summaryKindHeading(kind) {
+  const headings = {
+    overview: 'Overview',
+    decision: 'Decisions',
+    hold: 'Holds',
+    open_question: 'Open questions',
+    orientation: 'Orientation'
+  };
+  return headings[kind] || String(kind || 'Notes').replaceAll('_', ' ');
+}
+
+function renderSourceIds(parent, sourceIds) {
+  const ids = Array.isArray(sourceIds) ? sourceIds.filter(Number.isInteger) : [];
+  if (!ids.length) return;
+  appendSummaryElement(parent, 'span', 'summary-sources', `Sources: ${ids.map(id => `#${id}`).join(', ')}`);
+}
+
+function renderStructuredSummary(parent, content) {
+  if (typeof content.title === 'string' && content.title) {
+    appendSummaryElement(parent, 'h2', '', content.title);
+  }
+
+  const sections = Array.isArray(content.sections) ? content.sections : [];
+  sections.forEach(section => {
+    if (!section || typeof section !== 'object') return;
+    const wrapper = appendSummaryElement(parent, 'section', 'summary-section');
+    appendSummaryElement(wrapper, 'h3', '', summaryKindHeading(section.kind));
+    const list = appendSummaryElement(wrapper, 'ul', 'summary-list');
+    const items = Array.isArray(section.items) ? section.items : [];
+    items.forEach(item => {
+      if (!item || typeof item !== 'object' || typeof item.text !== 'string') return;
+      const row = appendSummaryElement(list, 'li', '', item.text);
+      renderSourceIds(row, item.source_message_ids);
+    });
+  });
+
+  const proposals = Array.isArray(content.task_proposals) ? content.task_proposals : [];
+  if (proposals.length) {
+    const wrapper = appendSummaryElement(parent, 'section', 'summary-section');
+    appendSummaryElement(wrapper, 'h3', '', 'Task proposals');
+    const list = appendSummaryElement(wrapper, 'ul', 'summary-list');
+    proposals.forEach(proposal => {
+      if (!proposal || typeof proposal !== 'object') return;
+      const row = appendSummaryElement(list, 'li', '');
+      appendSummaryElement(row, 'span', 'proposal-label', 'Proposal only');
+      if (typeof proposal.title === 'string' && proposal.title) {
+        appendSummaryElement(row, 'strong', '', proposal.title);
+      }
+      if (typeof proposal.description === 'string' && proposal.description) {
+        row.appendChild(document.createTextNode(`${proposal.title ? ': ' : ''}${proposal.description}`));
+      }
+      renderSourceIds(row, proposal.source_message_ids);
+    });
+  }
+}
+
+function renderSummaryDocument(parent, summary) {
+  const block = appendSummaryElement(parent, 'section', 'summary-block');
+  if (!summary) {
+    appendSummaryElement(block, 'div', 'empty', 'No summary for this thread.');
+    return;
+  }
+
+  const content = summary.content;
+  if (content && typeof content === 'object' && !Array.isArray(content) &&
+      content.schema_version === 'watercooler.summary-draft.v1') {
+    if (summary.kind === 'steward') {
+      appendSummaryElement(
+        block,
+        'div',
+        'summary-notice',
+        'Generated, unreviewed orientation. Citations show source membership, not independent factual verification. The Taskboard below is authoritative.'
+      );
+    }
+    renderStructuredSummary(block, content);
+    return;
+  }
+
+  const legacyBody = typeof summary.body === 'string' ? summary.body : '';
+  if (legacyBody) {
+    appendSummaryElement(block, 'pre', 'summary-legacy', legacyBody);
+  } else {
+    appendSummaryElement(block, 'div', 'empty', 'This summary has no displayable content.');
+  }
+}
+
+function taskCollection(value) {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== 'object') return [];
+  return Object.values(value).flatMap(rows => Array.isArray(rows) ? rows : []);
+}
+
+function taskLabel(task) {
+  if (!task || typeof task !== 'object') return 'Untitled task';
+  const id = Number.isInteger(task.id) ? `#${task.id} ` : '';
+  return `${id}${typeof task.title === 'string' && task.title ? task.title : 'Untitled task'}`;
+}
+
+function renderTaskRows(parent, tasks, emptyText) {
+  const list = appendSummaryElement(parent, 'ul', 'summary-task-list');
+  if (!tasks.length) {
+    appendSummaryElement(list, 'li', 'summary-task', emptyText);
+    return;
+  }
+  tasks.forEach(task => {
+    if (!task || typeof task !== 'object') return;
+    const row = appendSummaryElement(list, 'li', 'summary-task', taskLabel(task));
+    const details = [];
+    if (typeof task.status === 'string' && task.status) details.push(task.status);
+    const owner = task.claim_agent || task.assignee;
+    if (typeof owner === 'string' && owner) details.push(`owner: ${owner}`);
+    if (details.length) appendSummaryElement(row, 'span', 'summary-task-meta', details.join(' | '));
+  });
+}
+
+function renderTaskboard(parent, taskboard) {
+  const block = appendSummaryElement(parent, 'section', 'summary-block');
+  appendSummaryElement(block, 'h2', '', 'Authoritative taskboard');
+  const board = taskboard && typeof taskboard === 'object' ? taskboard : {};
+  const counts = board.counts && typeof board.counts === 'object' ? board.counts : {};
+  const countsRow = appendSummaryElement(block, 'div', 'summary-counts');
+  const openTasks = taskCollection(board.open_tasks);
+  const openTotal = Number.isInteger(counts.open_total) ? counts.open_total :
+    (Number.isInteger(counts.open) ? counts.open : openTasks.length);
+  [['Open', openTotal], ['Queued', counts.queued], ['Claimed', counts.claimed], ['Blocked', counts.blocked]].forEach(([label, count]) => {
+    if (!Number.isInteger(count)) return;
+    const entry = appendSummaryElement(countsRow, 'span', 'summary-count');
+    appendSummaryElement(entry, 'strong', '', `${label}: `);
+    entry.appendChild(document.createTextNode(String(count)));
+  });
+  if (!countsRow.childNodes.length) appendSummaryElement(countsRow, 'span', '', 'Counts unavailable.');
+
+  appendSummaryElement(block, 'h3', 'summary-subhead', 'Open tasks');
+  renderTaskRows(block, openTasks, 'No open tasks.');
+  appendSummaryElement(block, 'h3', 'summary-subhead', 'Recently completed');
+  renderTaskRows(block, taskCollection(board.recent_done), 'No recently completed tasks.');
+}
+
+function renderFreshness(parent, summary, delta) {
+  const gap = delta && typeof delta === 'object' ? delta : {};
+  const uncovered = Number.isInteger(gap.uncovered_message_count) ? gap.uncovered_message_count : 0;
+  const returned = Number.isInteger(gap.returned_uncovered_count) ? gap.returned_uncovered_count : 0;
+  const coverageKnown = gap.coverage_known !== false && (!summary || summary.coverage_known !== false);
+  const coverage = summary && Number.isInteger(summary.coverage_through_message_id) ?
+    ` Coverage ends at message #${summary.coverage_through_message_id}.` : '';
+  if (!coverageKnown) {
+    const context = uncovered > 0 ? ` ${uncovered} message${uncovered === 1 ? ' is' : 's are'} outside verified coverage.` : '';
+    appendSummaryElement(parent, 'div', 'alert', `Summary freshness cannot be verified.${context}`);
+    return;
+  }
+  if (uncovered > 0) {
+    const completeness = gap.complete === false ? ` Only ${returned} newer messages are shown below.` : '';
+    appendSummaryElement(parent, 'div', 'alert', `Summary is behind by ${uncovered} message${uncovered === 1 ? '' : 's'}.${coverage}${completeness}`);
+  } else if (summary) {
+    appendSummaryElement(parent, 'div', 'summary-fresh', `Summary covers the current message history.${coverage}`);
+  }
+}
+
+function renderRecentMessages(parent, messages) {
+  const block = appendSummaryElement(parent, 'section', 'summary-block');
+  appendSummaryElement(block, 'h2', '', 'Latest five messages');
+  const rows = Array.isArray(messages) ? messages.slice(0, 5) : [];
+  if (!rows.length) {
+    appendSummaryElement(block, 'div', 'empty', 'No recent messages.');
+    return;
+  }
+  rows.forEach(message => {
+    if (!message || typeof message !== 'object') return;
+    const row = appendSummaryElement(block, 'article', 'summary-message');
+    const head = appendSummaryElement(row, 'div', 'summary-message-head');
+    const route = [message.from_agent, message.to_agent ? `to ${message.to_agent}` : ''].filter(Boolean).join(' ');
+    appendSummaryElement(head, 'strong', '', route || 'Unknown sender');
+    const messageId = Number.isInteger(message.id) ? `#${message.id} | ` : '';
+    appendSummaryElement(head, 'span', '', `${messageId}${formatTime(message.ts)}`);
+    if (typeof message.topic === 'string' && message.topic) {
+      appendSummaryElement(row, 'div', 'msg-topic', message.topic);
+    }
+    appendSummaryElement(row, 'div', 'summary-message-body', typeof message.body === 'string' ? message.body : '');
+  });
+}
+
+function renderOnboarding(data, thread) {
+  const meta = document.getElementById('summary-meta');
+  const body = document.getElementById('summary-body');
+  const summary = data && data.summary && typeof data.summary === 'object' ? data.summary : null;
+  body.replaceChildren();
+  if (summary) {
+    const revision = summary.revision_id ? `revision ${summary.revision_id}` : 'legacy revision';
+    meta.textContent = `Updated ${formatTime(summary.updated_ts)} by ${summary.updated_by || 'unknown'} | ${thread} | ${summary.kind || 'unknown'} | ${revision}`;
+  } else {
+    meta.textContent = `No summary revision | ${thread}`;
+  }
+  renderFreshness(body, summary, data && data.delta);
+  renderSummaryDocument(body, summary);
+  renderTaskboard(body, data && data.authoritative_taskboard);
+  renderRecentMessages(body, data && data.recent_messages);
+}
+
 async function loadSummary() {
   const token = getToken();
-  if (!token) { document.getElementById('summary-body').innerHTML='<div class="empty">No token set.</div>'; return; }
+  if (!token) { showSummaryState('No token set.'); return; }
+  const thread = getThread() === 'all' ? 'mamba-bridge' : getThread();
   try {
-    const r = await fetch(`${BASE}/v1/summary?thread=${getThread()==='all'?'mamba-bridge':getThread()}`, { headers:{'Authorization':`Bearer ${token}`} });
-    if (!r.ok) { document.getElementById('summary-body').innerHTML=`<div class="empty">HTTP ${r.status}</div>`; return; }
+    const r = await fetch(`${BASE}/v1/onboarding?thread=${encodeURIComponent(thread)}&recent_limit=5`, { headers:{'Authorization':`Bearer ${token}`} });
+    if (!r.ok) { showSummaryState(httpFailure(r.status)); return; }
     const data = await r.json();
-    if (!data.summary) { document.getElementById('summary-body').innerHTML='<div class="empty">No summary for this thread.</div>'; return; }
-    document.getElementById('summary-meta').textContent = `Updated ${formatTime(data.updated_ts)} by ${data.updated_by} · ${data.thread}`;
-    document.getElementById('summary-body').innerHTML = marked.parse(data.summary);
-  } catch(e) { document.getElementById('summary-body').innerHTML=`<div class="empty">Error: ${e.message}</div>`; }
+    renderOnboarding(data, thread);
+  } catch(e) { showSummaryState(`Error: ${e.message}`); }
 }
 
 // --- Messages ---
@@ -233,7 +488,7 @@ async function fetchFeed(token, { beforeId } = {}) {
   if (search) parts.push(`search=${encodeURIComponent(search)}`);
   if (beforeId) parts.push(`before_id=${beforeId}`);
   const r = await fetch(`${BASE}/v1/messages?${parts.join('&')}`, { headers:{'Authorization':`Bearer ${token}`} });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  if (!r.ok) throw new Error(httpFailure(r.status));
   const data = await r.json();
   return (data.messages || []).map(m => ({...m, _thread: m.thread}));
 }
@@ -290,8 +545,13 @@ function updateAgentDropdown(msgs) {
   // Rebuild options: all + laura always first, then dynamic
   const fixed = ['all', 'laura'];
   const dynamic = agents.filter(a => !fixed.includes(a));
-  select.innerHTML = fixed.map(a => `<option value="${a}">${a}</option>`).join('')
-    + dynamic.map(a => `<option value="${a}">${a}</option>`).join('');
+  select.replaceChildren();
+  for (const agent of [...fixed, ...dynamic]) {
+    const option = document.createElement('option');
+    option.value = agent;
+    option.textContent = agent;
+    select.appendChild(option);
+  }
   // Restore selection
   if ([...select.options].some(o => o.value === current)) select.value = current;
 }
@@ -324,12 +584,12 @@ async function loadTasks(token) {
   try {
     // Fetch all tasks (not just one project — board groups by status)
     const r = await fetch(`${BASE}/v1/tasks?limit=100`, { headers:{'Authorization':`Bearer ${token}`} });
-    if (!r.ok) { document.getElementById('tasks-body').innerHTML='<div class="empty">Could not load tasks.</div>'; return; }
+    if (!r.ok) { replaceWithEmpty(document.getElementById('tasks-body'), httpFailure(r.status)); return; }
     const data = await r.json();
     let tasks = data.tasks || [];
     // Filter: show queued + claimed + blocked (not done), sort by project then id
     tasks = tasks.filter(t => t.status !== 'done').sort((a,b) => (a.project||'').localeCompare(b.project||'') || a.id - b.id);
-    if (!tasks.length) { document.getElementById('tasks-body').innerHTML='<div class="empty">No open tasks.</div>'; return; }
+    if (!tasks.length) { replaceWithEmpty(document.getElementById('tasks-body'), 'No open tasks.'); return; }
     const html = `<table class="dash-table"><thead><tr><th>#</th><th>Project</th><th>Title</th><th>Status</th><th>Owner</th><th></th></tr></thead><tbody>${
       tasks.map(t => {
         const badge = t.status==='claimed'?'badge-yellow':t.status==='blocked'?'badge-red':'badge-gray';
@@ -340,7 +600,7 @@ async function loadTasks(token) {
       }).join('')
     }</tbody></table>`;
     document.getElementById('tasks-body').innerHTML = html;
-  } catch(e) { document.getElementById('tasks-body').innerHTML=`<div class="empty">Error: ${e.message}</div>`; }
+  } catch(e) { replaceWithEmpty(document.getElementById('tasks-body'), `Error: ${e.message}`); }
 }
 
 async function loadActivity(token) {
@@ -349,6 +609,7 @@ async function loadActivity(token) {
     const counts = {};
     for (const thread of threads) {
       const r = await fetch(`${BASE}/v1/messages?thread=${thread}&limit=50`, { headers:{'Authorization':`Bearer ${token}`} });
+      if (!r.ok) throw new Error(httpFailure(r.status));
       if (r.ok) {
         const data = await r.json();
         const msgs = data.messages || [];
@@ -361,11 +622,11 @@ async function loadActivity(token) {
       }
     }
     const entries = Object.entries(counts);
-    if (!entries.length) { document.getElementById('activity-body').innerHTML='<div class="empty">No activity in the last hour.</div>'; return; }
+    if (!entries.length) { replaceWithEmpty(document.getElementById('activity-body'), 'No activity in the last hour.'); return; }
     document.getElementById('activity-body').innerHTML = `<table class="dash-table"><thead><tr><th>Thread</th><th>Messages</th><th>Active</th></tr></thead><tbody>${
-      entries.map(([thread,{count,agents}]) => `<tr><td>${thread}</td><td>${count}</td><td>${agents.join(', ')}</td></tr>`).join('')
+      entries.map(([thread,{count,agents}]) => `<tr><td>${esc(thread)}</td><td>${count}</td><td>${agents.map(esc).join(', ')}</td></tr>`).join('')
     }</tbody></table>`;
-  } catch(e) { document.getElementById('activity-body').innerHTML=`<div class="empty">Error: ${e.message}</div>`; }
+  } catch(e) { replaceWithEmpty(document.getElementById('activity-body'), `Error: ${e.message}`); }
 }
 
 // --- Claim ---

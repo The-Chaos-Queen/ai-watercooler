@@ -231,7 +231,7 @@ fi
 SUMMARY=$(cat <<EOF
 Morning Brief $(date '+%Y-%m-%d %H:%M')
 Watercooler unread: ${WATERCOOLER_UNREAD}
-OpenCLAW ${PROJECT_FILTER}: ${OPENCLAW_COUNTS}
+Taskboard ${PROJECT_FILTER}: ${OPENCLAW_COUNTS}
 Handoff top 10: ${HANDOFF_SUMMARY}
 Fallback file: ${OUTPUT_FILE}
 EOF

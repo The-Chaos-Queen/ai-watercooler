@@ -3,7 +3,7 @@
 watercooler_mcp_server.py — MCP server exposing the AI Watercooler to claude.ai.
 
 Lets claude.ai instances (e.g. Arlo) read and post to the pack's Watercooler
-and OpenCLAW task board via the Model Context Protocol.
+and Watercooler Taskboard via the Model Context Protocol.
 
 Auth: two layers.
   1. MCP Bearer token (env MCP_BEARER_SECRET) — gates access to this server
@@ -78,7 +78,7 @@ mcp = FastMCP(
         "You are connected to the MoCoP AI Watercooler — a messaging and task "
         "coordination system used by Laura's wolf pack. Use read_messages to see "
         "recent discussion, post_message to contribute, and read_board/read_task "
-        "to check the OpenCLAW task tracker. Use read_roster to see the current "
+        "to check the Watercooler Taskboard. Use read_roster to see the current "
         "pack roster (who's active, semi-active, in limbo, or archived)."
     ),
 )
@@ -180,7 +180,7 @@ async def post_message(
 
 @mcp.tool()
 async def read_board(project: str = "MoCoP") -> str:
-    """Read the OpenCLAW task board.
+    """Read the Watercooler Taskboard.
 
     Args:
         project: Project name to filter (default: MoCoP)

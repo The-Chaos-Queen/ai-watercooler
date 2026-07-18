@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "principal": "review-dispatcher",
+  "expected_base_url": "http://127.0.0.1:8765",
+  "threads": [
+    "general"
+  ],
+  "allowed_senders": [
+    "review-requester"
+  ],
+  "topic": "commit-review/v1",
+  "tag": "commit-review-request",
+  "model": "REPLACE_WITH_MODEL_ID",
+  "reasoning_effort": "high",
+  "codex_cli_version": "0.144.5",
+  "daily_review_limit": 4,
+  "transport_security": "loopback_http",
+  "worker_backend": "docker",
+  "wsl_distribution": "",
+  "docker_image": "org.watercooler/codex-reviewer:0.144.5",
+  "docker_image_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+}

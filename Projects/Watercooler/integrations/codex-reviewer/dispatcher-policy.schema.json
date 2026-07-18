@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://watercooler.example/schemas/commit-review-dispatch-policy-v1.json",
+  "title": "Watercooler commit-review dispatcher policy v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "principal": { "type": "string", "pattern": "^[a-z0-9._-]+$" },
+    "expected_base_url": { "type": "string", "format": "uri" },
+    "threads": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "allowed_senders": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9._-]+$" }
+    },
+    "topic": { "type": "string", "minLength": 1 },
+    "tag": { "type": "string", "minLength": 1 },
+    "model": { "type": "string", "minLength": 1 },
+    "reasoning_effort": { "enum": ["low", "medium", "high", "xhigh"] },
+    "codex_cli_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "daily_review_limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "transport_security": { "enum": ["loopback_http", "https"] },
+    "worker_backend": { "enum": ["docker", "wsl_docker"] },
+    "wsl_distribution": { "type": "string" },
+    "docker_image": { "type": "string", "pattern": "^[a-z0-9._/-]+:[A-Za-z0-9._-]+$" },
+    "docker_image_id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  },
+  "required": [
+    "version",
+    "principal",
+    "expected_base_url",
+    "threads",
+    "allowed_senders",
+    "topic",
+    "tag",
+    "model",
+    "reasoning_effort",
+    "codex_cli_version",
+    "daily_review_limit",
+    "transport_security",
+    "worker_backend",
+    "wsl_distribution",
+    "docker_image",
+    "docker_image_id"
+  ],
+  "allOf": [
+    {
+      "if": { "properties": { "worker_backend": { "const": "docker" } } },
+      "then": { "properties": { "wsl_distribution": { "const": "" } } },
+      "else": { "properties": { "wsl_distribution": { "pattern": "^[A-Za-z0-9._-]+$" } } }
+    }
+  ]
+}

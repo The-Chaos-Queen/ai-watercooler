@@ -19,7 +19,7 @@ def stale_items(report: Dict[str, Any], *, min_age_days: float) -> List[Dict[str
 def format_report_body(report: Dict[str, Any], items: List[Dict[str, Any]], *, project: str, max_items: int) -> str:
     blocked = report.get("blocked", {})
     lines = [
-        f"OpenCLAW liveness report for {project or 'all projects'}: "
+        f"Taskboard liveness report for {project or 'all projects'}: "
         f"blocked={blocked.get('count', 0)}, "
         f"median_age={blocked.get('median_age_days', 0)}d, "
         f"p95_age={blocked.get('p95_age_days', 0)}d, "
@@ -39,13 +39,13 @@ def format_report_body(report: Dict[str, Any], items: List[Dict[str, Any]], *, p
         if reason:
             lines.append(f"  blocked={reason}")
     if len(items) > max_items:
-        lines.append(f"...and {len(items) - max_items} more. Run `openclaw.py liveness --project {project}` for full detail.")
+        lines.append(f"...and {len(items) - max_items} more. Run `taskboard.py liveness --project {project}` for full detail.")
     lines.append("Diagnostic only: use audited lifecycle commands for any repair; watchdog does not mutate tasks.")
     return "\n".join(lines)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Report-only OpenCLAW blocked-card liveness watchdog.")
+    parser = argparse.ArgumentParser(description="Report-only Taskboard blocked-card liveness watchdog.")
     parser.add_argument("--config", type=str, default="", help="Session/service config path.")
     parser.add_argument("--project", type=str, default="MoCoP")
     parser.add_argument("--thread", type=str, default="mamba-bridge")
@@ -83,7 +83,7 @@ def main() -> int:
         payload={
             "to_agent": "all",
             "thread": args.thread,
-            "topic": "OpenCLAW liveness watchdog",
+            "topic": "Taskboard liveness watchdog",
             "lang": "en",
             "body": body,
             "tags": ["openclaw", "board-hygiene", "liveness"],

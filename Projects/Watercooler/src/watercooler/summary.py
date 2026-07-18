@@ -7,7 +7,7 @@ import sys
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from common import load_config, pretty_message, pretty_task, request_json
+from .common import load_config, pretty_message, pretty_task, request_json
 
 
 def handle_read(args, config):
@@ -115,7 +115,7 @@ def handle_onboard(args, config):
 def main() -> int:
     parser = argparse.ArgumentParser(description="Read or update the watercooler rolling summary.")
     parser.add_argument("--config", type=str, default="", help="Config path override.")
-    parser.add_argument("--thread", type=str, default="mamba-bridge", help="Thread name (default: mamba-bridge).")
+    parser.add_argument("--thread", type=str, default="general", help="Thread name (default: general).")
     sub = parser.add_subparsers(dest="command", required=True)
 
     read_p = sub.add_parser("read", help="Read the current summary.")

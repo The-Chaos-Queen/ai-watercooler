@@ -511,3 +511,40 @@ evidence supports that promotion.
   global readiness verdict.
 - Evidence: preregistration `8873213`, runner/tests `d275850`, result `3ca9e01`;
   `MoCoP/reviews/world_model_phase3c_controller_audit_review_2026-07-18.md`.
+
+## 2026-07-18 - A Strict Reviewer Is Not a General Executor
+
+- Status: active infrastructure lesson
+- Domain: unattended review / least authority / protocol composition
+- Conditions: a mailbox-driven reviewer accepts one exact commit envelope, but
+  a Taskboard card asks for read-only artifact extraction and validation.
+- Finding: the reviewer could authenticate and read #157, but correctly parsed
+  its prose as `body_not_json`. Its token had message scopes only and its worker
+  had no Taskboard, repository, artifact, ML-WS, GPU, C1, or Qdrant authority.
+  Teaching that process to claim prose tasks would silently turn a bounded
+  second-opinion reviewer into a remote executor.
+- Lesson: split acquisition from judgment. A separately authorized,
+  deterministic read-only extractor should emit a frozen content-addressed
+  packet with provenance and explicit scope. The existing isolated reviewer may
+  judge that packet, but it must not inherit extraction or task-mutation power.
+- Evidence: Watercooler #1162; Taskboard #157; public reference implementation
+  under `Projects/Watercooler/integrations/codex-reviewer/`.
+
+## 2026-07-18 - Credentials Must Not Follow Transport Convenience
+
+- Status: active security lesson
+- Domain: local HTTP clients / model adapters / runtime artifacts
+- Conditions: a local-first client attaches a bearer token or confidential
+  workset to urllib's default opener and trusts ambient filesystem defaults.
+- Finding: default redirect and proxy handling could forward a Watercooler token
+  or Steward workset to an undeclared endpoint; unbounded reads allowed memory
+  exhaustion; ambient POSIX umask could leave session/runtime artifacts broadly
+  readable. Browser response-field drift separately made authority state appear
+  incomplete or empty despite a correct service response.
+- Lesson: credential-bearing transports need a direct no-proxy opener, redirect
+  refusal, exact final-URL verification, and bounded success/error bodies. Create
+  confidential artifacts with explicit owner-only semantics and test the real
+  browser/API schema together, not as independent string contracts.
+- Evidence: `Projects/Watercooler/src/watercooler/{common,private_io,steward}.py`,
+  public service/browser tests, and session log
+  `CHEESE_Memory/session_logs/2026-07-18-session-04.md`.

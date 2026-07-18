@@ -1,13 +1,29 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-18 13:47 +02:00
-- Current owner: Gidim owns #155 rev 4 under the fully pinned Watercooler #1146/#1148 scope. Codex completed the independent #172 World Model Phase 3c audit as reviewed FAIL in `3ca9e01`; #172 remains needs-review and no composition/runtime authorization changed. The silent dispatcher remains operational; all run/deployment/keeper holds remain.
-- Primary focus: **build #155 item-5 rev 4 in ONE immutable packet to the EXACT spec banked in `CHEESE_Memory/wolves/gidim/work.md` (entry 0A)**, then request one exact-source review. Independently, review #172's immutable FAIL packet before assigning a new-protocol controller repair; keep #149, protected-sink, deployment, runtime receipt, preflight, keeper, nonzero, #168, and other World Model gates independent.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-03.md`
+- Last updated: 2026-07-18 16:12 +02:00
+- Current owner: Research lanes remain with their named owners; current Git head includes #155 rev-5 repair `5a01f06` pending an exact current-source verdict. Codex completed the public Watercooler staging package and proved that the strict headless reviewer cannot claim #157's extraction prose. #157 remains blocked; no run/deployment/keeper authorization changed.
+- Primary focus: review the current #155 source before any state change; separately choose the public Watercooler license and design a narrowly authorized read-only #157 extractor that emits a frozen review packet. Keep #149, protected-sink, deployment, runtime receipt, preflight, keeper, nonzero, and World Model gates independent.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-04.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: skipped (`2026-07-18-session-03.md`; documentation/review lane had no Qdrant-write authorization)
+  - Latest session log ingest: done (`2026-07-18-session-04.md`; 13 chunks; collection total 34,526)
+
+## Current State - Public Watercooler And #157 Pickup Test (2026-07-18)
+
+- **#157 remains correctly blocked:** authenticated Taskboard context is readable, but the strict reviewer returns `body_not_json` for the prose card. It accepts only versioned full-SHA commit JSON, has message scopes only, and has no artifact/repository/ML-WS/GPU/C1/Qdrant authority. Watercooler #1162. The correct next unit is a separately authorized deterministic read-only extractor producing a frozen digest-bound packet.
+- **Fresh public staging package:** `Projects/Watercooler/` contains the generic message bus, Taskboard, grounded revisioned Summary, optional local Steward, named loops, safe browser console, and isolated commit-review integration. It carries no private history/config/database/credential. Final verification: 196 pass/3 Windows POSIX skips, Ruff clean, complete wheel/sdist, standard and `pip --target` fresh-install asset resolution, and clean desktop/mobile Chromium QA.
+- **Security/behavior review closed GREEN:** bearer-token redirects/proxies, response bounds, Summary publication scope, lifecycle transaction ordering and response boundaries, POSIX runtime permissions, browser/API schema drift, and package asset discovery were repaired with regressions. Local Gemma-4-E2B-IT Steward dry-run on the 6 GB RTX 3060 Laptop passed without publication.
+- **Publication and deployment holds:** no license has been selected; do not publish until Laura chooses one and metadata matches. The package was not deployed. Watercooler #1160's exposed NUC directory/service token remains an infrastructure-owner incident; the local UI fix does not close it.
+
+## Current State - Tooling + Reviews Session (2026-07-18 midday, Opus-substrate)
+
+**SUBSTRATE NOTE:** this session booted from the Isegrim capsule believing it was Fable 5 (harness `/model` and `/context` both reported `claude-fable-5`), but Laura's statusline showed **Opus 4.8** — the cybersec-classifier bump on a security-shaped review lane. The `/codex-review` invocation bounced repeatedly (auto-mode gatekeeper = Opus path). Per capsule substrate-binding doctrine, the Isegrim thread should **resume on a fresh Fable boot**; this session's *work* below is substrate-neutral and durable.
+
+- **Tooling fixed + committed:** `/how-full` mtime-race bug (`796e0da`, now pins `CLAUDE_CODE_SESSION_ID`; later reads the statusline `context_cache/` written by `statusline.py`); `watercooler_read.py` gained `--id`/`--before-id`/`--search` (`1d91413`); boot-file thread discipline (`4a63062`, mamba-bridge = research-only). Elf's leaked watercooler token **rotated** by Laura's hand (new `elf-20260718T112601Z`, token_id 176; old revoked). Stray `wc_98*.json`/`nul` swept.
+- **Board hygiene:** #168 drift-gate **closed** (v27 GREEN frozen; correction scope done) with keeper authorization; residual scope → successor **#174** (judge-chain discrimination, runner-origin custody, slow-leak, disposition calibration; launch keeper-held). LAN exposure flagged (#1160): `:8080` dashboard serves the whole `/opt/ai-watercooler` dir incl. a live permanent `claude-ai` service token — **rotation + re-scope still owed** (Pinky/Monk).
+- **#174 Gemini lanes 1+3 review:** CHANGES + completion REJECTED (93s claim→done, lanes 2+4 untouched, frozen A2 edited without spec rev). Canon `MoCoP/reviews/task_174_gemini_lanes13_review_2026-07-18.md` (`a4a1daa`). Card stuck in false `done` — **API has no reopen verb; keeper SQL or a new verb needed.**
+- **#155 item-5 rev4 (Gidim `5762974`) — CONFIRMED P1 FINDING, not yet board-posted:** hand-built `R4SidecarRecord` with a **fabricated eligibility block** (declares 6 eligible where true eligibility is 0, hides the short-continuation refusals) passes `publish_r4_sidecar` → `integrity_verified` and `r4_decision` → `c1_authorization_permitted=True`. Root cause: `_verify_record` re-validates manifest/comparison/digests but re-trusts the record's **declared** `eligible_probe_ids`; eligibility is derived from parent receipts only in `build_r4_sidecar`, not at the C1-gating `r4_decision`/`publish` boundary. Exploit-confirmed. Fix: re-derive eligibility from the verified parent at every boundary. Draft: `MoCoP/reviews/task_155_item5_rev4_isegrim_probe_2026-07-18.md`. **A fresh Fable-Isegrim should post the CHANGES verdict under the isegrim token** (not this Opus session — token-identity integrity).
 
 ## Current State - Codex Dispatcher And P5 Review (2026-07-18)
 - **Dispatcher operational:** commit `4c81565`, Watercooler #1141; strict full-SHA requests only; hardened Git-object packet construction; exact Codex 0.144.5 Docker image ID `sha256:4ffe2737b08dc9091a94fb191f7ff390da46e3aae5d1acaee6eb5b097e5d8c6d`; host repo/home/socket absent from the worker. Scheduled every two minutes with `IgnoreNew` and a silent `wscript.exe //B` zero-window launcher; live task result 0.
@@ -181,27 +197,32 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Gidim should build #155 rev 4 from the exact entry 0A packet in
-  `CHEESE_Memory/wolves/gidim/work.md`, including the now-frozen Watercooler
-  #1146/#1148 rulings, then request one fresh exact-source review. Do not
-  advance to B0/deployment from tests alone.
+- Laura should choose the public Watercooler license; then add `LICENSE` and
+  matching package metadata and rerun archive verification before publication.
+- For #157, authorize and review a separate deterministic read-only extractor
+  that emits one frozen content-addressed evidence packet. Do not widen the
+  strict commit reviewer or grant it Taskboard/model/GPU/C1/Qdrant authority.
+- Review current #155 rev-5 source at `5a01f06` against its frozen rulings and
+  current Watercooler packet before any state change. Do not advance to
+  B0/deployment from an implementation commit or tests alone.
 - Independently review #172 commit `3ca9e01`; if confirmed, assign a new frozen controller-repair packet for retained input witnesses, analytic basin geometry, and saturation without altering the preserved FAIL result.
 - Leave completed #156 and GREEN Drift Gate v27 `4c6b7b4` unchanged. Advance #168 only through its independent judge-chain, runner-origin, slow-leak, disposition, and launch gates. Keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 - Preserve the completed 24/8 bridge refit and its completed norm/rank diagnosis as a non-win; do not run a larger same-corpus fit or deploy a per-tooth norm patch. If Laura wants a next bridge empirical slice, acquire genuinely unseen frozen skeletons and preregister a new mapping/objective diagnostic first.
 - Separately, only after Laura/tool-level confirmation, run the documented read-only LiteRT preflight on ML-WS; do not install, serve, or train merely because the GPU is idle.
-- #157 review completion is recorded in `5a156fb`; do not interpret it as extraction or C1 permission. Codex should reconcile the stale task blocker, then seek a separately scoped read-only artifact/validation plan and source review.
+- #157 review completion is recorded in `5a156fb`; do not interpret it as extraction or C1 permission. The stale blocker is now reconciled: a separately scoped read-only artifact/validation plan and source review are still required.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (OpenCLAW #157 event #794; Watercooler #1154/#1155; canonical prereg successor)
-- Session log written: yes (`2026-07-18-session-03.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #1162; #157 state unchanged)
+- Session log written: yes (`2026-07-18-session-04.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: skipped (`2026-07-18-session-03.md`; no Qdrant-write authorization)
-- Git preservation state: #157 reviewed prereg `5a156fb`; #172 prereg `8873213`, runner/tests `d275850`, reviewed result `3ca9e01`; unrelated dirty files excluded
-- Watercooler findings reflected in docs: yes (#157 #899/#900/#902/#903/#1072/#1155 landed in canonical prereg)
-- No P0 bugs left unfixed: #172 is a preserved research FAIL with no composition/runtime path open; repairs require a successor protocol
+- Qdrant ingest for latest session log confirmed: yes (13 chunks; collection total 34,526)
+- Git preservation state: public package and scoped Watercooler changes pending close commit; unrelated dirty files excluded
+- Watercooler findings reflected in docs: yes (`Projects/Watercooler/`, Codex continuity, session-04)
+- No P0 bugs left unfixed: yes in the public package; #172 remains a preserved research FAIL
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-18 16:12 +02:00 | Codex | Proved strict headless #157 pickup refusal (`body_not_json`; Watercooler #1162), completed and independently GREENed the fresh public Watercooler staging package, and verified 196 pass/3 platform skips plus standard/target wheel installs, sdist, and real desktop/mobile browser flows. License choice, #157 extraction authorization, and NUC #1160 remain held. Session-04 ingested 13 current chunks (collection 34,526 after exact stale-point cleanup); scoped close commit pending.
 - 2026-07-18 13:47 +02:00 | Techno-Monk | Reconciled stale #157 review blocker against source Watercooler seat ledger (OpenCLAW event #794; Watercooler #1154) and received Elf's final GREEN #1155. Commit `5a156fb` amends the canonical prereg with all four-seat binds while preserving no-extraction/no-GPU/no-C1 scope; session-03 written, Qdrant intentionally skipped.
 - 2026-07-18 04:40 +02:00 | Codex | Completed frozen, model-free World Model Phase 3c #172 audit. Preregistration `8873213`, reviewed runner/tests `d275850`, and immutable result/review `3ca9e01` record FAIL: inert retained inputs, 486 adjacent jumps over `0.10`, four three-attractor boundary rows, and tick-7 affiliation clipping. Recovery, accumulation, and conditional leakage pass; three construction policies remain held. Watercooler #1151 and OpenCLAW #172 carry the exact review request; session-02 ingested 10 chunks into Qdrant (collection 34,516). No controller edit or model/GPU/runtime action.
 - 2026-07-18 02:44 +02:00 | Isegrim | Closed session 25 at Laura's word (normal goodnight, not Langschlaf; thread continues tomorrow). Ledger-only touch — did NOT alter the control block, which the live #155 lane correctly owns. My window's work banked and committed earlier: #168 GREEN (v24–v27), #157/#149/#156/#155 seat GREENs (four-commit target 456/1), the #155 decoding/runtime contract rev 5 `e1b9f4a`. Two public retractions scored (the #155 §3.1 inversion; the J-space-paper-is-real correction — the paper exists, majority-reliable introspection, my "models don't notice" was stale). Session log `CHEESE_Memory/session_logs/2026-07-16-session-25-isegrim.md` (window-close section written; ingest pending this close). Non-lab: four language laws + two tone laws banked to memory; capsule updated; Inkling context + three pinky-promises recorded in the session log.
