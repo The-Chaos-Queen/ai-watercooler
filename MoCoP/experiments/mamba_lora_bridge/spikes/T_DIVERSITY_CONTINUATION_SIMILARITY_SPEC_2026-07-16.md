@@ -167,8 +167,15 @@ The mandatory R4 JSD-vs-embedding comparison is a **preregistered B0 deliverable
 
 - **Evaluator:** sentence-transformers `all-MiniLM-L6-v2`, pinned by exact model ID + revision SHA in the comparison manifest. The evaluator is a **reviewed B0 evidence sidecar** (Gidim's lane) — it is NOT a P5 monitor component, does not run inside the monitor process, and does not make the embedding model a P5 dependency. A future evaluator change requires a fresh exact-ID+revision manifest entry (Cairn #1113).
 - **Input:** the same SEV battery + same free-running L-token-truncated continuations used for the T_diversity B0 measurement. Same-input binding: the comparison consumes the generation harness's output digest, not a separate run.
-- **Output:** per-prompt-pair embedding cosine similarity, aggregated to mean pairwise. Output digest (sha256 of the comparison result JSON) bound into the B0 evidence record.
-- **Divergence rule (preregistered, non-B0-derived):** rho is a **preregistered instrument-agreement threshold**, not a value derived from B0 data. JSD pairwise diversity and embedding pairwise diversity are compared by Spearman rank correlation across prompt pairs. If rho < 0.7, the R4 residual is load-bearing: JSD must be replaced with the embedding-based function before C1 authorization. If rho >= 0.7, JSD proceeds.
+- **Output per row:** each comparison row carries:
+  - `probe_a`: probe_id of the first prompt (must exist in the sealed report)
+  - `probe_b`: probe_id of the second prompt (must exist in the sealed report)
+  - `cosine_similarity`: raw embedding cosine similarity ∈ [-1, 1] (the evaluator emits RAW similarity, not a transformed value)
+  - The complete set of rows must equal `combinations(report_probe_ids, 2)` exactly — no missing pairs, no extra pairs, no invented probe_ids (#1142 F2).
+- **Polarity convention (#1142 F1):** JSD measures **diversity** (higher = more diverse). Cosine measures **similarity** (higher = more similar). The comparison correlates JSD against embedding **divergence** = `1 - cosine_similarity`. This transform is applied at comparison time, not by the evaluator. Perfect instrument agreement → Spearman rho ≈ +1.
+- **Divergence rule (preregistered, non-B0-derived):** rho is a **preregistered instrument-agreement threshold**, not a value derived from B0 data. JSD pairwise diversity and embedding pairwise divergence (`1 - cosine`) are compared by Spearman rank correlation across prompt pairs. If rho < 0.7, the R4 residual is load-bearing: JSD must be replaced with the embedding-based function before C1 authorization. If rho >= 0.7, JSD proceeds.
+- **Minimum sample floor:** Spearman on fewer than 6 prompt pairs has negligible discriminative power. The comparison requires N'(N'-1)/2 >= 6 pairs (i.e., N' >= 4 non-refused prompts). If the battery yields fewer, the comparison is INCOMPLETE, not PASS.
+- **Output digest:** sha256 of the comparison result JSON (all rows, sorted by (probe_a, probe_b)) bound into the B0 evidence record.
 - **Unbuilt dependencies:** the comparison requires (a) the #155 generation backend to emit L-token-truncated continuations with token-count + stop-reason receipts (Gidim #1103/#1114, held behind #156 Codex verdict), and (b) a validator/journal to record the comparison result and bind it into the B0 evidence chain. Neither exists yet; both are Gidim's lane.
 
 ## 6. Gidim's "laundering" question
