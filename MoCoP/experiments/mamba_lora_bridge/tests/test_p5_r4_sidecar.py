@@ -67,15 +67,16 @@ def _reseal(report, *, panel_hash=None):
     return report
 
 
-def _sealed_report(n=4, token_count=5, stop="eos"):
+def _sealed_report(n=4, token_count=5, stop="eos", ids=None):
     """A CANONICAL B0 report (Codex #1183 F1): the inner report_digest seal() mints + the runner's
     publication fields; records carry ACTUAL generated_token_ids whose sha256 + count the validator
     cross-checks, a frozen-enum stop_reason, and an execution_descriptor.panel_hash."""
+    labels = ids if ids is not None else [f"probe{i}" for i in range(n)]
     records = []
-    for i in range(n):
+    for i, pid in enumerate(labels):
         gen_ids = list(range(1000 * (i + 1), 1000 * (i + 1) + token_count))   # token_count ints
         records.append({
-            "probe_id": f"probe{i}",
+            "probe_id": pid,
             "raw_generation": f"gen{i}",
             "provenance": {
                 "input_token_ids_sha256": canonical_digest(f"in{i}"),
@@ -86,7 +87,7 @@ def _sealed_report(n=4, token_count=5, stop="eos"):
             },
         })
     report = {"schema_version": "b0-evidence-bundle-v1", "manifest_digest": _MANIFEST_DIGEST,
-              "record_count": n, "records": records}
+              "record_count": len(labels), "records": records}
     return _reseal(report, panel_hash=PANEL_HASH)
 
 
@@ -560,6 +561,55 @@ def test_f6_output_digest_is_invariant_to_row_order_and_endpoint_orientation():
                            aggregate=agg)
     assert fwd.output_digest == rev.output_digest
     assert [r["probe_a"] <= r["probe_b"] for r in fwd.record["per_pair"]] == [True] * len(rows)
+
+
+def test_acodex_stop_reason_str_subclass_cannot_green_c1():
+    # a-Codex pre-board (rev6): restoring the enum dropped the exact-str check, so a str subclass
+    # comparing/hashing as "eos" but serialized as backend_crashed could pass, be eligible, and reach
+    # c1=True. Exact-type-before-membership refuses it. Also: an unhashable value must be a typed
+    # refusal, not a raw TypeError.
+    class _Sneaky(str):
+        def __eq__(self, other):
+            return "eos" == other
+        def __hash__(self):
+            return hash("eos")
+
+    report = _sealed_report(n=4)
+    report["records"][0]["provenance"]["stop_reason"] = _Sneaky("backend_crashed")
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "exact str" in str(ei.value)
+
+    report2 = _sealed_report(n=4)
+    report2["records"][0]["provenance"]["stop_reason"] = ["not", "a", "str"]   # unhashable
+    _reseal(report2)
+    with pytest.raises(R4SidecarError):                          # typed refusal, NOT a raw TypeError
+        verify_sealed_report(report2)
+
+
+def test_acodex_pair_id_has_no_delimiter_collision_for_ids_containing_a_bar(tmp_path):
+    # a-Codex pre-board (rev6): with UNIQUE caller pair_ids, the DERIVED f"{a}|{b}" collided for
+    # probe ids containing "|" (("a","b|c") and ("a|b","c") both -> "a|b|c"), so the built record
+    # failed its OWN _verify_record for a duplicate pair_id. An unambiguous encoding round-trips.
+    report = _sealed_report(ids=["a", "b|c", "a|b", "c"])
+    ids = sorted(_eligible_of(report))
+    pairs = list(combinations(ids, 2))
+    rows = []
+    for idx, (a, b) in enumerate(pairs):
+        jsd = round((idx + 1) / (len(pairs) + 1), 6)
+        rows.append({"pair_id": f"pair-{idx}",              # UNIQUE caller ids (pass build validation)
+                     "probe_a": a, "probe_b": b, "jsd": jsd, "cosine_similarity": round(1.0 - jsd, 6)})
+    jsds = [r["jsd"] for r in rows]
+    sims = [r["cosine_similarity"] for r in rows]
+    agg = {"spearman_rho": diversity_agreement_rho(jsds, sims),
+           "mean_pairwise_jsd": sum(jsds) / len(jsds),
+           "mean_pairwise_embedding": sum(sims) / len(sims), "n_pairs": len(rows)}
+    rec = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=agg)
+    derived = [r["pair_id"] for r in rec.record["per_pair"]]
+    assert len(derived) == len(set(derived))                # DERIVED pair_ids do not collide
+    result = publish_r4_sidecar(report, rec, tmp_path / "r4.json")   # round-trips through _verify_record
+    assert result.disposition == DISPOSITION_VERIFIED
 
 
 # --------------------------------------------------------------------------- #

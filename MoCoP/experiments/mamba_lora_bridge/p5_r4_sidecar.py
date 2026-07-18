@@ -371,9 +371,13 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
             if key not in prov:
                 raise R4SidecarError(f"record {i} provenance missing receipt field {key!r}")
         stop = prov.get("stop_reason")
-        if stop not in _STOP_REASONS:
+        # EXACT str before enum membership (a-Codex): a str subclass with overridden __eq__/__hash__
+        # could compare equal to "eos" while serializing as something else, and an unhashable value
+        # would raise a raw TypeError on `in`. Exact-type first closes both.
+        if type(stop) is not str or stop not in _STOP_REASONS:
             raise R4SidecarError(
-                f"record {i} stop_reason {stop!r} is not in the frozen enum {sorted(_STOP_REASONS)}")
+                f"record {i} stop_reason {stop!r} is not an exact str in the frozen enum "
+                f"{sorted(_STOP_REASONS)}")
         for dkey in ("input_token_ids_sha256", "generated_token_ids_sha256"):
             if type(prov.get(dkey)) is not str or not _SHA256.match(prov[dkey]):
                 raise R4SidecarError(f"record {i} provenance.{dkey} must be a sha256 digest")
@@ -656,7 +660,12 @@ def _canonicalize_comparison(per_pair: Sequence[Mapping[str, Any]]) -> list[dict
         a, b = row["probe_a"], row["probe_b"]
         if a > b:
             a, b = b, a
-        canon.append({"pair_id": f"{a}|{b}", "probe_a": a, "probe_b": b,
+        # Unambiguous pair_id (a-Codex): a single "|" delimiter collides when a probe id contains "|"
+        # (("a","b|c") and ("a|b","c") both -> "a|b|c"), which would then fail _verify_record's
+        # duplicate-pair_id check on a comparison that built fine. JSON of the oriented endpoints is
+        # injective and still order/orientation-canonical.
+        canon.append({"pair_id": json.dumps([a, b], separators=(",", ":")),
+                      "probe_a": a, "probe_b": b,
                       "jsd": row["jsd"], "cosine_similarity": row["cosine_similarity"]})
     canon.sort(key=lambda r: (r["probe_a"], r["probe_b"]))
     return canon
