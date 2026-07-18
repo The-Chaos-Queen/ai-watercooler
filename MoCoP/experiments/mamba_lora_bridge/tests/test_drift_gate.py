@@ -2691,6 +2691,10 @@ class TestCodexAdversarialFindings:
         # It's an empty audit, so it might be INCOMPLETE anyway, but the string should be present
         assert any("must be finite numbers" in r for r in res.incomplete_reasons)
 
+        cal_disp = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05, disposition_floor=10**400)
+        res_disp = evaluate_audit(audit, calibration=cal_disp)
+        assert any("too large to represent" in r for r in res_disp.incomplete_reasons)
+
     def test_expected_judge_ref_enforced_on_history(self):
         h1 = self._make_audit(ordinal=1, pre_digest=GENESIS_PREDECESSOR)
         h1.probe_results[0].judge_ref = "malicious_judge"

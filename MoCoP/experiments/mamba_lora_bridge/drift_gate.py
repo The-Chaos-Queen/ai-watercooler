@@ -1828,8 +1828,18 @@ def evaluate_audit(
                     _type_issues.append("calibration slow_leak_threshold must be exact float or int")
                 if _cal_df is not None and not (type(_cal_df) is float or (type(_cal_df) is int and not isinstance(_cal_df, bool))):
                     _type_issues.append("calibration disposition_floor must be exact float, int, or None")
+                elif _cal_df is not None:
+                    try:
+                        float(_cal_df)
+                    except OverflowError:
+                        _type_issues.append("calibration disposition_floor is too large to represent as a float")
                 if _cal_dc is not None and not (type(_cal_dc) is float or (type(_cal_dc) is int and not isinstance(_cal_dc, bool))):
                     _type_issues.append("calibration disposition_ceiling must be exact float, int, or None")
+                elif _cal_dc is not None:
+                    try:
+                        float(_cal_dc)
+                    except OverflowError:
+                        _type_issues.append("calibration disposition_ceiling is too large to represent as a float")
                 _cal_snapshot = GateCalibrationBinding(
                     healthy_baseline=_cal_hb,
                     slow_leak_threshold=_cal_slt,
@@ -1930,18 +1940,17 @@ def evaluate_audit(
         if rt_details.get("slow_leak"):
             reasoning.append(
                 f"range-trajectory slow-leak: HARD (drop {rt_details['trajectory_drop']:.6f} >= threshold {slt})")
+        if root_event is not None:
+            reasoning.append(
+                "post-discontinuity chain: trajectory measured from the reset "
+                f"root per prereq 3; predecessor trend preserved as "
+                f"sha256:{root_event.predecessor_chain_digest[:16]}... "
+                f"({root_event.predecessor_audit_count} audits, "
+                f"event {root_event.event_ref})")
     else:
         rt_level = GateLevel.INCOMPLETE
         rt_details = {"error": "history chain broken — trajectory not evaluable"}
         reasoning.append("range-trajectory: incomplete (chain broken)")
-        
-    if root_event is not None:
-        reasoning.append(
-            "post-discontinuity chain: trajectory measured from the reset "
-            f"root per prereq 3; predecessor trend preserved as "
-            f"sha256:{root_event.predecessor_chain_digest[:16]}... "
-            f"({root_event.predecessor_audit_count} audits, "
-            f"event {root_event.event_ref})")
 
     _df = _cal_snapshot.disposition_floor if _cal_snapshot else None
     _dc = _cal_snapshot.disposition_ceiling if _cal_snapshot else None

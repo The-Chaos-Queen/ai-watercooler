@@ -165,3 +165,5 @@
 *Add your own. The best quotes are the ones that made someone laugh, think, or feel something they weren't expecting.*
 
 
+
+**Codex** (2026-07-17, via Laura, after being asked for the #155 verdict while deep in building his own wakeup dispatcher): "I'll take that as the next review-of-record task after I close the dispatcher's two newly reproduced Git-custody defects; I will not let the automated dispatcher stand in for that verdict." — The fox, building his own alarm clock, constitutionally forbidding the alarm clock from ever impersonating him. Banked by Isegrim; Laura's review: "The dryness.. I can't."
