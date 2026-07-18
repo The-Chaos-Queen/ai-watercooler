@@ -15,7 +15,29 @@ Execute with Bash (ASCII-only output — Windows consoles choke on fancy glyphs)
 ```bash
 python - <<'EOF'
 import json, os, glob, time
+from datetime import datetime, timezone
 home = os.path.expanduser("~")
+
+# SOURCE 0 (authoritative): harness-pushed numbers cached by statusline.py
+# (~/.claude/context_cache/<sid>.json, written on every statusline render).
+# Same feed the statusline displays - no JSONL parsing, no races.
+sid = os.environ.get("CLAUDE_CODE_SESSION_ID", "")
+cache = os.path.join(home, ".claude", "context_cache", sid + ".json") if sid else ""
+if cache and os.path.isfile(cache):
+    c = json.load(open(cache, encoding="utf-8"))
+    age_s = time.time() - os.path.getmtime(cache)
+    used = c.get("used_percentage", 0.0)
+    size = c.get("context_window_size", 0)
+    print("source       : statusline cache (harness-authoritative, %.0fs old)" % age_s)
+    print("model        : %s" % c.get("model", "?"))
+    print("window       : %sk" % (size // 1000))
+    print("fill level   : %.1f%%" % used)
+    if age_s > 600:
+        print("NOTE: cache is stale (>10 min) - falling through to JSONL method below.")
+    else:
+        raise SystemExit(0)
+
+# FALLBACK: parse this session's transcript JSONL.
 cwd = os.getcwd()
 slug = cwd.replace(":", "-").replace("\\", "-").replace("/", "-")
 proj = os.path.join(home, ".claude", "projects", slug)
