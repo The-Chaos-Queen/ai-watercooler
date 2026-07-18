@@ -24,6 +24,7 @@ from p5_r4_sidecar import (
     R4SidecarError,
     R4SidecarRecord,
     _deep_freeze,
+    _verify_record,
     bind_to_parent_report,
     build_r4_sidecar,
     derive_generation_corpus_digest,
@@ -126,7 +127,7 @@ def test_clean_build_binds_and_decides_proceeds():
     assert len(rec.output_digest) == 64
     link = bind_to_parent_report(report, rec)
     assert link["b0_published_digest"] == report["published_digest"]
-    d = r4_decision(rec)
+    d = r4_decision(report, rec)
     assert d["state"] == DECISION_JSD_PROCEEDS and d["c1_authorization_permitted"] is True
     assert d["recomputed_rho"] == pytest.approx(1.0)
 
@@ -173,14 +174,22 @@ def test_pairs_over_all_records_are_refused_when_some_are_ineligible():
     assert "ELIGIBLE" in str(ei.value)
 
 
-def test_eligibility_is_recorded_in_the_sidecar():
+def test_eligibility_is_derived_from_the_parent_not_stored_on_the_record(tmp_path):
+    # rev5 (Isegrim probe): the record carries NO authoritative eligibility. It is re-derived from
+    # the verified parent at every gating boundary; the PUBLISHED artifact records the DERIVED set
+    # (from the verified parent), and the decision reports the derived counts.
     report = _sealed_report(n=5)
     report["records"][0]["provenance"]["stop_reason"] = "error"
     report["published_digest"] = canonical_digest(
         {k: v for k, v in report.items() if k != "published_digest"})
     rec = _build(report)
-    elig = rec.record["eligibility"]
+    assert "eligibility" not in rec.record                    # not stored as an authority
+    out = tmp_path / "r4.json"
+    publish_r4_sidecar(report, rec, out)
+    artifact = json.loads(out.read_text(encoding="utf-8"))
+    elig = artifact["eligibility"]                            # DERIVED at publish from the parent
     assert elig["n_eligible"] == 4 and len(elig["refusals"]) == 1
+    assert artifact["decision"]["n_eligible"] == 4 and artifact["decision"]["n_refused"] == 1
 
 
 # --------------------------------------------------------------------------- #
@@ -235,25 +244,81 @@ def test_generation_digest_binds_raw_text():
 # The fail-closed C1-precondition decision.                                   #
 # --------------------------------------------------------------------------- #
 def test_disagreement_requires_jsd_replacement_and_denies_c1():
-    d = r4_decision(_build(agree=False))
+    report = _sealed_report()
+    d = r4_decision(report, _build(report, agree=False))
     assert d["state"] == DECISION_JSD_REPLACEMENT_REQUIRED
     assert d["c1_authorization_permitted"] is False
     assert d["recomputed_rho"] == pytest.approx(-1.0)
 
 
 def test_below_the_sample_floor_is_incomplete_not_pass():
-    # 3 eligible probes -> C(3,2)=3 pairs, below Elf's N'>=4 floor -> INCOMPLETE, no C1.
-    rec = _build(_sealed_report(n=3), agree=True)
-    d = r4_decision(rec)
+    # 3 eligible probes -> C(3,2)=3 pairs, below Elf's N'>=4 floor -> INCOMPLETE, no C1. An honest
+    # too-few-eligible build is INCOMPLETE (a decision), NOT a refusal — the re-derivation agrees.
+    report = _sealed_report(n=3)
+    rec = _build(report, agree=True)
+    d = r4_decision(report, rec)
     assert d["state"] == DECISION_INCOMPLETE and d["c1_authorization_permitted"] is False
     assert d["n_eligible"] == 3
 
 
 def test_decision_recomputes_rho_not_the_declared_one():
     # Even a green-looking build gets its rho recomputed from the rows for the decision.
-    rec = _build(agree=False)
-    d = r4_decision(rec)
+    report = _sealed_report()
+    d = r4_decision(report, _build(report, agree=False))
     assert d["recomputed_rho"] < 0.7
+
+
+# --------------------------------------------------------------------------- #
+# rev5 REGRESSION — Isegrim's adversarial probe (2026-07-18), a confirmed P1.  #
+# See MoCoP/reviews/task_155_item5_rev4_isegrim_probe_2026-07-18.md.           #
+# --------------------------------------------------------------------------- #
+def test_declared_eligibility_over_a_zero_eligible_parent_cannot_green_c1(tmp_path):
+    """The rev4 exploit, run: a hand-built record over a REAL sealed report whose TRUE eligibility
+    is 0 (every probe token_count < L => all short_continuation) DECLARES all 6 probes eligible,
+    hides the 6 refusals, and carries a fabricated perfectly-agreeing per_pair over C(6,2)=15 with
+    the REAL parent digest (so parent binding is intact). rev4 returned integrity_verified /
+    jsd_proceeds / c1=True over ZERO eligible prompts. rev5 re-derives eligibility from the verified
+    parent at every gating boundary, so the declaration buys nothing."""
+    report = _sealed_report(n=6, token_count=1)               # token_count 1 < _L (3) => all short
+    assert _eligible_of(report, _L) == ()                     # TRUE eligibility is 0
+
+    probe_ids = [f"probe{i}" for i in range(6)]
+    rows, agg = _comparison(probe_ids, agree=True)            # fabricated 15-pair perfect agreement
+    fabricated = {
+        "schema": SIDECAR_SCHEMA,
+        "evaluator": {"evaluator_id": "sentence-transformers/all-MiniLM-L6-v2",
+                      "revision_sha": EVAL_SHA},
+        "runner": {"runner_id": "r4_compare_sidecar", "runner_digest": "d" * 64},
+        "panel": PANEL_HASH,
+        "parent": {
+            "b0_report_digest": report["published_digest"],   # the REAL parent digest
+            "generation_output_digest": derive_generation_corpus_digest(report),
+            "sequence_length": _L,
+        },
+        "eligibility": {"sequence_length": _L, "n_eligible": 6,
+                        "eligible_probe_ids": probe_ids, "refusals": []},   # the lie rev4 re-trusted
+        "per_pair": rows, "aggregate": agg,
+    }
+    man = {"schema": SIDECAR_SCHEMA, "evaluator": fabricated["evaluator"],
+           "runner": fabricated["runner"], "parent": fabricated["parent"], "panel": fabricated["panel"]}
+    forged = R4SidecarRecord(manifest_digest=canonical_digest(man),
+                             output_digest=canonical_digest(fabricated),
+                             record=_deep_freeze(fabricated))
+
+    # The parent-FREE guard rev4 marketed against hand-built carriers is fooled: a self-consistent
+    # fabrication has matching digests, a valid manifest, and a well-formed comparison. It returns.
+    assert _verify_record(forged)["parent"]["b0_report_digest"] == report["published_digest"]
+
+    # But every parent-AWARE boundary re-derives eligibility (0) and refuses the fabricated pairs.
+    with pytest.raises(R4SidecarError) as ei_dec:
+        r4_decision(report, forged)
+    assert "DERIVED from the bound parent" in str(ei_dec.value)
+    with pytest.raises(R4SidecarError) as ei_pub:
+        publish_r4_sidecar(report, forged, tmp_path / "r4.json")
+    assert "DERIVED from the bound parent" in str(ei_pub.value)
+    with pytest.raises(R4SidecarError):
+        bind_to_parent_report(report, forged)
+    assert not (tmp_path / "r4.json").exists()                # nothing was committed
 
 
 # --------------------------------------------------------------------------- #
@@ -290,8 +355,6 @@ def test_a_semantically_invalid_record_cannot_bind_even_with_consistent_digests(
         "runner": {"runner_id": "r", "runner_digest": "d" * 64},
         "panel": PANEL_HASH,
         "parent": _manifest(report)["parent"],
-        "eligibility": {"sequence_length": _L, "n_eligible": len(_eligible_of(report)),
-                        "eligible_probe_ids": list(_eligible_of(report)), "refusals": []},
         "per_pair": rows, "aggregate": agg,
     }
     man = {"schema": SIDECAR_SCHEMA, "evaluator": bad["evaluator"], "runner": bad["runner"],

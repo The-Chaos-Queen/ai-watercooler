@@ -34,6 +34,20 @@ REV4 (Monk #1146 A-prime — a real model-free source seam; NO live run):
      (rho < 0.7 => JSD replacement required; absent/invalid/non-integrity-verified/INCOMPLETE => no
      C1 authorization).
 
+REV5 (Isegrim adversarial probe, 2026-07-18 — a confirmed P1 in rev4, closed here):
+  ELIGIBILITY IS RE-DERIVED, NEVER TRUSTED. rev4 derived eligibility from the parent only inside
+  build_r4_sidecar and STORED it in the record; the two C1-gating boundaries (r4_decision, publish)
+  then re-trusted that stored block. Isegrim's exploit (run, not reasoned): a hand-built record over
+  a REAL sealed report whose TRUE eligibility is 0 (all short_continuation) declared all probes
+  eligible with a self-consistent fabricated per_pair and the real parent digest — and got
+  integrity_verified / jsd_proceeds / c1=True over ZERO eligible prompts. Root cause: digest
+  self-consistency was mistaken for eligibility custody. Fix: the record carries NO authoritative
+  eligibility; every parent-aware boundary (bind/decision/publish) re-derives it from the VERIFIED
+  parent (partition_eligibility) and cross-checks the record's comparison against the DERIVED
+  eligible set, refusing on divergence. r4_decision now TAKES the sealed report and re-verifies it.
+  _verify_record (which has no parent) no longer runs the completeness check — it cannot know the
+  eligible set without the parent. The published artifact records the DERIVED eligibility for audit.
+
 Torch-free and model-free-testable. Authorizes NO run, sets NO threshold, lifts NO hold.
 """
 from __future__ import annotations
@@ -525,8 +539,10 @@ def build_r4_sidecar(
     """Validate, DERIVE-bind to the verified sealed report over ELIGIBLE probes, and seal.
 
     No model, no comparison, no parent mutation. Eligibility (F1) is derived from the report's own
-    receipts and the manifest's L; the comparison must cover exactly C(N', 2) over eligible probes.
-    The record carries the eligibility (N', refusals) so the C1-precondition decision can read it.
+    receipts and the manifest's L to validate the comparison covers exactly C(N', 2) over eligible
+    probes. rev5 (Isegrim probe): eligibility is NOT stored as an authority on the record — it is a
+    pure function of (verified parent, L) and every gating boundary re-derives it from the bound
+    parent. Storing it would invite a consumer to re-trust a declaration; the parent is the custody.
     """
     manifest = _inert_snapshot(manifest)
     per_pair = _inert_snapshot(per_pair)
@@ -561,12 +577,6 @@ def build_r4_sidecar(
         "runner": dict(manifest["runner"]),
         "panel": manifest["panel"],
         "parent": dict(par),
-        "eligibility": {
-            "sequence_length": par["sequence_length"],
-            "n_eligible": len(elig.eligible),
-            "eligible_probe_ids": list(elig.eligible),
-            "refusals": [dict(r) for r in elig.refusals],
-        },
         "per_pair": [dict(r) for r in per_pair],
         "aggregate": dict(aggregate),
     }
@@ -591,6 +601,12 @@ def _verify_record(sidecar: Any) -> dict[str, Any]:
     content ONCE, confirm both digests match, and re-run the manifest + comparison validation so a
     record whose evaluator revision is "main" cannot bind merely because its digest is self
     consistent.
+
+    rev5 (Isegrim probe): this guard has NO parent report, so it CANNOT know the eligible set and
+    must not check comparison completeness against any declared/stored eligibility — doing so is how
+    rev4 leaked (a self-consistent fabrication passed its own declaration). It validates the
+    comparison's shape/ranges/endpoint-identity/recompute only; completeness over the DERIVED
+    eligible set is enforced at the parent-aware boundaries (bind/decision/publish).
     """
     if type(sidecar) is not R4SidecarRecord:
         raise R4SidecarError(f"not an exact R4SidecarRecord (got {type(sidecar).__name__})")
@@ -607,29 +623,55 @@ def _verify_record(sidecar: Any) -> dict[str, Any]:
     }
     if canonical_digest(reconstructed_manifest) != manifest_digest:
         raise R4SidecarError("record manifest_digest does not match the reconstructed manifest")
-    # Re-validate semantics, not just digest consistency.
+    # Re-validate semantics, not just digest consistency. Completeness-over-eligible is NOT checked
+    # here: without the parent report this boundary cannot derive the eligible set, and trusting a
+    # declared one is exactly the rev4 leak. eligible_probe_ids=None => shape/ranges/endpoints only.
     m_refusals = validate_sidecar_manifest(reconstructed_manifest)
     if m_refusals:
         raise R4SidecarError("record manifest fails re-validation: " + "; ".join(m_refusals))
-    elig = thawed.get("eligibility", {})
     c_refusals = validate_comparison(thawed["per_pair"], thawed["aggregate"],
-                                     eligible_probe_ids=elig.get("eligible_probe_ids"))
+                                     eligible_probe_ids=None)
     if c_refusals:
         raise R4SidecarError("record comparison fails re-validation: " + "; ".join(c_refusals))
     return thawed
+
+
+def _rederive_eligibility(verified_report: Mapping[str, Any],
+                          record: Mapping[str, Any]) -> Eligibility:
+    """Re-derive eligibility from the VERIFIED parent and cross-check the record's comparison.
+
+    rev5 (Isegrim probe, 2026-07-18): the SINGLE custody point for eligibility at every parent-aware
+    boundary. The record carries no authoritative eligibility; it is a pure function of the bound
+    parent's receipts and L. Confirm the record's parent digest matches the verified report, derive
+    the eligible set from the report, and re-run the comparison validation against the DERIVED set
+    (completeness over C(N', 2) eligible pairs). A record whose per_pair does not cover exactly the
+    derived eligible set — the rev4 exploit's 6-declared-over-0-real fabrication — is REFUSED here,
+    before any C1-precondition can be computed. Digest self-consistency is not eligibility custody.
+    """
+    if record["parent"]["b0_report_digest"] != verified_report["published_digest"]:
+        raise R4SidecarError(
+            "sidecar parent digest does not match the sealed report's recomputed published_digest")
+    elig = partition_eligibility(verified_report, record["parent"]["sequence_length"])
+    refusals = validate_comparison(record["per_pair"], record["aggregate"],
+                                   eligible_probe_ids=elig.eligible)
+    if refusals:
+        raise R4SidecarError(
+            "the comparison does not cover the eligibility DERIVED from the bound parent (a stored "
+            "or declared eligibility is not custody): " + "; ".join(refusals))
+    return elig
 
 
 def bind_to_parent_report(sealed_report: Mapping[str, Any],
                           sidecar: R4SidecarRecord) -> dict[str, Any]:
     """The audit LINK between a sealed B0 report and a sidecar — parent read, never written.
 
-    Reads ONLY the verified thawed snapshot (Codex #1140 F4).
+    Reads ONLY the verified thawed snapshot (Codex #1140 F4), and re-derives eligibility from the
+    verified parent (rev5): binding a sidecar whose comparison disagrees with the parent's true
+    eligible set is refused, not linked.
     """
     verified_record = _verify_record(sidecar)
     verified_report = verify_sealed_report(sealed_report)
-    if verified_record["parent"]["b0_report_digest"] != verified_report["published_digest"]:
-        raise R4SidecarError(
-            "sidecar parent digest does not match the sealed report's recomputed published_digest")
+    _rederive_eligibility(verified_report, verified_record)
     link = {
         "schema": SIDECAR_SCHEMA + "-link",
         "b0_published_digest": verified_report["published_digest"],
@@ -646,17 +688,24 @@ def bind_to_parent_report(sealed_report: Mapping[str, Any],
 # --------------------------------------------------------------------------- #
 # The C1-precondition decision (fail-closed).                                  #
 # --------------------------------------------------------------------------- #
-def r4_decision(sidecar: R4SidecarRecord) -> dict[str, Any]:
+def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord) -> dict[str, Any]:
     """Emit the exact, fail-closed R4 decision/precondition record for the future C1 boundary.
 
     Monk #1146: rho < RHO_GATE => JSD replacement required; below the N' >= 4 floor => INCOMPLETE.
     ONLY ``jsd_proceeds`` is a green precondition; every other state (INCOMPLETE, replacement, or any
     invalid/non-integrity-verified evidence upstream) denies C1 authorization. The rho used is the
     recomputed diversity-agreement rho, not merely the declared one.
+
+    rev5 (Isegrim probe): this boundary now TAKES the sealed report and re-verifies it, then
+    RE-DERIVES eligibility from that verified parent — it no longer reads a stored ``eligibility``
+    block off the record (rev4's leak: the block was declared by the caller and re-trusted here).
+    n_eligible is the DERIVED count; a fabricated comparison over non-eligible probes is refused by
+    ``_rederive_eligibility`` before any state is computed.
     """
     record = _verify_record(sidecar)                 # revalidates before deciding
-    elig = record["eligibility"]
-    n_eligible = elig["n_eligible"]
+    verified_report = verify_sealed_report(sealed_report)
+    elig = _rederive_eligibility(verified_report, record)
+    n_eligible = len(elig.eligible)
     rows = record["per_pair"]
     rho = diversity_agreement_rho([r["jsd"] for r in rows],
                                   [r["embedding_similarity"] for r in rows])
@@ -679,7 +728,7 @@ def r4_decision(sidecar: R4SidecarRecord) -> dict[str, Any]:
         "recomputed_rho": rho,
         "rho_gate": RHO_GATE,
         "n_eligible": n_eligible,
-        "n_refused": len(elig["refusals"]),
+        "n_refused": len(elig.refusals),
         "sidecar_output_digest": sidecar.output_digest,
         "b0_report_digest": record["parent"]["b0_report_digest"],
     }
@@ -714,6 +763,10 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     it is WRITABLE, so a surviving temp is a mutation alias on the final artifact — if the post-link
     unlink fails, that is committed_integrity_failed, never success. A directory-durability fault is
     committed_indeterminate. Never report integrity_verified after any of these.
+
+    rev5 (Isegrim probe): re-derives eligibility from the verified parent (has it in hand) and
+    refuses a fabricated comparison BEFORE staging any bytes; the committed artifact records the
+    DERIVED eligibility, never a caller's declaration.
     """
     sidecar_path = Path(sidecar_path)
     if sidecar_path.exists() or sidecar_path.is_symlink():
@@ -723,11 +776,20 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
         raise R4SidecarError(f"sidecar parent dir must be an existing non-symlink: {parent_dir}")
 
     record = _verify_record(sidecar)
+    verified_report = verify_sealed_report(sealed_report)
+    elig = _rederive_eligibility(verified_report, record)   # rev5: refuse a fabrication before commit
     link = bind_to_parent_report(sealed_report, sidecar)
-    decision = r4_decision(sidecar)
+    decision = r4_decision(sealed_report, sidecar)
     artifact = {
         "schema": SIDECAR_SCHEMA + "-artifact",
         "record": record,
+        # The DERIVED eligibility (from the verified parent, not a stored declaration) for audit.
+        "eligibility": {
+            "sequence_length": record["parent"]["sequence_length"],
+            "n_eligible": len(elig.eligible),
+            "eligible_probe_ids": list(elig.eligible),
+            "refusals": [dict(r) for r in elig.refusals],
+        },
         "link": link,
         "decision": decision,
         "sidecar_output_digest": sidecar.output_digest,
@@ -852,7 +914,7 @@ def record_r4_comparison(
     sidecar = build_r4_sidecar(manifest, sealed_report=report, per_pair=per_pair,
                                aggregate=aggregate)
     result = publish_r4_sidecar(report, sidecar, sidecar_path)
-    decision = r4_decision(sidecar)
+    decision = r4_decision(report, sidecar)
     # The seam only reports ok when authority verified, the artifact committed cleanly (a downgraded
     # disposition is NOT ok), AND the precondition permits C1. Fail-closed on everything else.
     ok = (result.disposition == DISPOSITION_VERIFIED
