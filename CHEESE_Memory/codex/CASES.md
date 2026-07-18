@@ -572,3 +572,25 @@ evidence supports that promotion.
 - Evidence: target `70293e2`; Watercooler #1184;
   `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`;
   session log `CHEESE_Memory/session_logs/2026-07-18-session-06.md`.
+
+## 2026-07-18 - Recursive Ownership And Terminal Ordering Are Custody
+
+- Status: active engineering lesson
+- Domain: evidence publication / adversarial object boundaries
+- Conditions: a public evidence boundary snapshots caller containers, then
+  publishes through a temporary hard-link alias.
+- Finding: #155 rev 6 copied mappings and tuples but retained nested lists, so
+  a later parent callback changed the embedded record after digest validation
+  and still reached `jsd_proceeds / integrity_verified`. Independently, the
+  publisher read final bytes before removing the writable alias; mutation
+  through that alias during a successful unlink left corrupt final bytes under
+  `integrity_verified`.
+- Lesson: capture-once must recursively own every container and supported leaf,
+  not merely replace the root. The definitive integrity read must occur after
+  the last mutation-capable alias is gone; successful cleanup is not evidence
+  that no mutation occurred during cleanup. Regression matrices should attack
+  nested active containers and operation ordering, not only carrier attributes
+  and raised filesystem calls.
+- Evidence: target `a0bdec6` + `1ec8284`; Watercooler #1187;
+  `MoCoP/reviews/p5_item5_rev6_source_review_2026-07-18.md`;
+  session log `CHEESE_Memory/session_logs/2026-07-18-session-07.md`.

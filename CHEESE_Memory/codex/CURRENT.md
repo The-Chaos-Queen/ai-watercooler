@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-18 20:44 +02:00
+Last updated: 2026-07-18 22:17 +02:00
 
 ## Standing Directive
 
@@ -70,14 +70,15 @@ remember which artifact should be updated.
   direction artifact exists yet.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
-- #155 item 5 rev 5 (`5a01f06` + `e805a75`) is `CHANGES` by exact-source
+- #155 item 5 rev 6 (`a0bdec6` + `1ec8284`) is `CHANGES` by exact-source
   verdict of record. Canon:
-  `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md`; Watercooler
-  `#1183`; Taskboard #155 comment. Rev 5 closes Isegrim's eligibility exploit,
-  but governed-parent validation, generation-corpus re-derivation, capture-once
-  digest custody, and post-commit publication remain P1-blocking. Exact record
-  shape and the section 5.5 row/digest contract remain P2. No
-  B0/C1/model/GPU/deployment authorization follows from the repair or tests.
+  `MoCoP/reviews/p5_item5_rev6_source_review_2026-07-18.md`; Watercooler
+  `#1187`; Taskboard event #806. F2 generation-corpus binding is closed, but
+  canonical-parent authority, recursive snapshot custody, and final-readback /
+  writable-alias ordering remain P1-blocking. Public row identity, caller
+  pair-ID handling, the zero/one-eligible `INCOMPLETE` outcome, and exact
+  key/schema/numeric totality remain P2. No B0/C1/model/GPU/deployment
+  authorization follows from the repair or its 438-pass suite.
 - Taskboard #174 final target `70293e2` is `CHANGES` by exact-source verdict of
   record. Canon:
   `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`;
@@ -93,9 +94,10 @@ remember which artifact should be updated.
 
 ## Next Maintenance
 
-- Review only a new immutable #155 item-5 repair that closes every finding in
-  the rev-5 canon together. Preserve the now-correct eligibility re-derivation;
-  do not accept another one-finding patch or run B0/C1 from a green unit suite.
+- Review only a new immutable #155 item-5 repair that closes the complete rev-6
+  public-boundary matrix together. Preserve eligibility and F2 corpus
+  re-derivation; do not accept another one-finding patch or run B0/C1 from a
+  green unit suite.
 - Review only a new immutable #174 successor that preserves the six accepted
   fixes and carries the ratified protocol, provenance-bearing calibration,
   mandatory cross-audit judge authority, closed numeric domains, and honest
@@ -106,6 +108,6 @@ remember which artifact should be updated.
   the strict commit reviewer into a free-form task executor.
 - Rotate the internal dispatcher token before expiry and resolve #1160 through
   the infrastructure owners; do not deploy the public staging tree implicitly.
-- Session 06 (`CHEESE_Memory/session_logs/2026-07-18-session-06.md`) contains
-  the reusable distinction between exact-typed parameters and provenance
-  custody. Keep this file concise by replacing stale state.
+- Session 07 (`CHEESE_Memory/session_logs/2026-07-18-session-07.md`) contains
+  the recursive-container and publication-order custody lesson. Keep this file
+  concise by replacing stale state.
