@@ -1,13 +1,20 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-18 16:15 +02:00
-- Current owner: Research lanes remain with their named owners; current Git head includes #155 rev-5 repair `5a01f06` pending an exact current-source verdict. Codex completed the public Watercooler staging package and proved that the strict headless reviewer cannot claim #157's extraction prose. #157 remains blocked; no run/deployment/keeper authorization changed.
-- Primary focus: review the current #155 source before any state change; separately choose the public Watercooler license and design a narrowly authorized read-only #157 extractor that emits a frozen review packet. Keep #149, protected-sink, deployment, runtime receipt, preflight, keeper, nonzero, and World Model gates independent.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-04.md`
+- Last updated: 2026-07-18 19:44 +02:00
+- Current owner: Gidim owns the next #155 item-5 repair after Codex returned exact-source `CHANGES` on rev 5. Research lanes otherwise remain with their named owners. #157 and all run/deployment/keeper gates remain unchanged.
+- Primary focus: repair all six findings in `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md` as one immutable packet while preserving rev-5 eligibility custody. Separately choose the public Watercooler license and keep the #157 extractor as a distinct, narrowly authorized design.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-05.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-18-session-04.md`; 13 chunks; collection total 34,526)
+  - Latest session log ingest: done (`2026-07-18-session-05.md`; 11 chunks; collection total 34,536)
+
+## Current State - #155 Item-5 Rev-5 Review (2026-07-18)
+
+- **Verdict of record: CHANGES.** Exact target `5a01f06` + `e805a75` (final tree `e805a755`) was reviewed from immutable Git archives. Canon: `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md`; Watercooler #1183; Taskboard #155 comment. The card remains blocked and unassigned.
+- **Accepted repair:** eligibility is re-derived from the verified parent at build/bind/decision/publish; completeness uses that derived set; Isegrim's six-declared-over-zero-real exploit and stale top-level `eligibility` smuggling are closed.
+- **Four reproduced P1s remain:** governed-parent validation omits the B0 inner `report_digest` and exact receipt/panel invariants; public consumers fail to re-derive `generation_output_digest`; post-verification live digest rereads can mint contradictory `c1=True` / `integrity_verified` evidence; final readback faults can raise after commit while leaving the writable hard-link alias.
+- **Two P2s remain:** record shape checks extras only, and the frozen `cosine_similarity` plus canonical row-order/digest contract is not implemented. Verification was `426 passed, 1 skipped`, focused `35 passed`, plus twelve adversarial controls and an agreeing independent subreview. No B0/C1/model/GPU/Qdrant/deployment action occurred.
 
 ## Current State - Public Watercooler And #157 Pickup Test (2026-07-18)
 
@@ -23,13 +30,13 @@
 - **Tooling fixed + committed:** `/how-full` mtime-race bug (`796e0da`, now pins `CLAUDE_CODE_SESSION_ID`; later reads the statusline `context_cache/` written by `statusline.py`); `watercooler_read.py` gained `--id`/`--before-id`/`--search` (`1d91413`); boot-file thread discipline (`4a63062`, mamba-bridge = research-only). Elf's leaked watercooler token **rotated** by Laura's hand (new `elf-20260718T112601Z`, token_id 176; old revoked). Stray `wc_98*.json`/`nul` swept.
 - **Board hygiene:** #168 drift-gate **closed** (v27 GREEN frozen; correction scope done) with keeper authorization; residual scope → successor **#174** (judge-chain discrimination, runner-origin custody, slow-leak, disposition calibration; launch keeper-held). LAN exposure flagged (#1160): `:8080` dashboard serves the whole `/opt/ai-watercooler` dir incl. a live permanent `claude-ai` service token — **rotation + re-scope still owed** (Pinky/Monk).
 - **#174 Gemini lanes 1+3 review:** CHANGES + completion REJECTED (93s claim→done, lanes 2+4 untouched, frozen A2 edited without spec rev). Canon `MoCoP/reviews/task_174_gemini_lanes13_review_2026-07-18.md` (`a4a1daa`). Card stuck in false `done` — **API has no reopen verb; keeper SQL or a new verb needed.**
-- **#155 item-5 rev4 (Gidim `5762974`) — CONFIRMED P1 FINDING, not yet board-posted:** hand-built `R4SidecarRecord` with a **fabricated eligibility block** (declares 6 eligible where true eligibility is 0, hides the short-continuation refusals) passes `publish_r4_sidecar` → `integrity_verified` and `r4_decision` → `c1_authorization_permitted=True`. Root cause: `_verify_record` re-validates manifest/comparison/digests but re-trusts the record's **declared** `eligible_probe_ids`; eligibility is derived from parent receipts only in `build_r4_sidecar`, not at the C1-gating `r4_decision`/`publish` boundary. Exploit-confirmed. Fix: re-derive eligibility from the verified parent at every boundary. Draft: `MoCoP/reviews/task_155_item5_rev4_isegrim_probe_2026-07-18.md`. **A fresh Fable-Isegrim should post the CHANGES verdict under the isegrim token** (not this Opus session — token-identity integrity).
+- **Historical #155 rev-4 exploit:** Isegrim's fabricated-eligibility P1 is banked in `MoCoP/reviews/task_155_item5_rev4_isegrim_probe_2026-07-18.md` and is closed by rev 5. The current rev-5 `CHANGES` verdict and remaining findings are in the top control section and Watercooler #1183.
 
 ## Current State - Codex Dispatcher And P5 Review (2026-07-18)
 - **Dispatcher operational:** commit `4c81565`, Watercooler #1141; strict full-SHA requests only; hardened Git-object packet construction; exact Codex 0.144.5 Docker image ID `sha256:4ffe2737b08dc9091a94fb191f7ff390da46e3aae5d1acaee6eb5b097e5d8c6d`; host repo/home/socket absent from the worker. Scheduled every two minutes with `IgnoreNew` and a silent `wscript.exe //B` zero-window launcher; live task result 0.
 - **Authority boundary:** automated results are second opinions only, never wolf-Codex attestation or verdicts of record. Dedicated token has exactly mailbox read/write scopes, expires 2026-07-24 14:14:48Z, and traverses an explicitly accepted plaintext trusted-LAN endpoint.
 - **#156 exact review GREEN:** Watercooler #1122; canon `MoCoP/reviews/p5_manifest_attempt_reconciliation_review_2026-07-17.md`. It clears only the manifest/attempt reconciliation packet.
-- **#155 rev-3 exact review CHANGES:** `bc23ab5`, Watercooler #1144 and OpenCLAW #155. Polarity and exact endpoint coverage are accepted. Remaining source P1s: missing L/short-continuation enforcement; checksum-only parent verification; semantic-validation bypass plus active digest rereads; false publication success with writable alias/unsupported durability; and no B0/C1 caller. Minimum-N/degenerate rho policy remains an owner hold. Canon `MoCoP/reviews/p5_item5_rev3_source_review_2026-07-18.md`. No run is authorized.
+- **#155 current exact review CHANGES:** rev 5 `e805a75`, Watercooler #1183 and Taskboard #155. Eligibility re-derivation is accepted; four P1 custody/publication failures and two P2 shape/section-5.5 gaps remain. Canon `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md`. No run is authorized.
 
 ## Current State - Baseline Drift Gate Review (2026-07-16)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
@@ -158,7 +165,7 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
-- [ ] **#155 R4 sidecar successor (Gidim):** close Codex #1144 against exact rev 3 `bc23ab5`, including contract-correct short exclusion, exact parent/record validation, truthful post-commit dispositions, and a governed B0/C1 integration caller; freeze minimum-N/degenerate rho with the panel owner. Preserve the out-of-process evaluator boundary and no-parent-rewrite design. Do not run B0 or claim closure from tests alone.
+- [ ] **#155 R4 sidecar successor (Gidim):** repair Codex rev-5 `CHANGES` canon against exact `e805a75`: complete the canonical B0/receipt/panel validator, re-derive generation-corpus binding at every public parent-aware boundary, carry one inert verified sidecar snapshot, totalize all post-commit outcomes/alias cleanup, exact-type the record root/key set, and align row naming/canonical ordering with frozen section 5.5. Preserve the now-correct eligibility re-derivation and out-of-process evaluator boundary. Do not run B0 or claim closure from tests alone.
 - [ ] **Dispatcher operations:** rotate the least-privilege token before 2026-07-24 14:14:48Z; preserve the exact image ID and silent scheduled action. Authenticated TLS is the eventual fix for the accepted LAN plaintext residual.
 - [ ] **Gemma 4 / LiteRT ML-WS preflight (Techno-Monk, independent/offline):** requires explicit narrowly scoped remote confirmation. Inspect CLI/version, Python/driver/backend metadata, disk/cache/model presence, and help/config only; no install/download/model load/server/port. A pass authorizes neither a fine-tune nor any MoCoP/C1/live path.
 - [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `60701ed` against Codex #1068/canon `1dd4a9d`. Preserve duplicate acquisition folding, complete-graph early preflight, slots, the plain-local resolver callable, strict direct/full class-replacement canaries, canonical-input contracts, and the explicit CPython non-TEE/process-isolation boundary. Reserve synthetic keys against every readable exact caller anchor, emit duplicate errors deterministically, align per-key receipt documentation, and add the non-acquisition shadow regression. No live/deployment claim before GREEN.
@@ -173,7 +180,7 @@
 
 ## Watch Out For
 - Automated dispatcher output is non-attested and must not update OpenCLAW authority, manifests, or review canon. Requests outside the exact allowlisted envelope fail closed.
-- #155 is not source-GREEN: Watercooler #1144 holds rev 3 `bc23ab5`; its clean suite does not repair the demonstrated length, authority, active-wrapper, publication, or integration failures.
+- #155 is not source-GREEN: Watercooler #1183 holds rev 5 `e805a75`; its 426-pass suite does not cover the reproduced governed-parent, corpus-binding, active-digest, post-commit, exact-shape, or section-5.5 failures.
 - LiteRT-LM `serve` defaults to `0.0.0.0:9379`; any future test must bind `127.0.0.1` and stay deliberately local. The 12B artifact/`v0.13` support evidence is real, but NVIDIA RTX 3090 behavior and useful audio-path behavior are unverified; enough VRAM is not compatibility proof.
 - `Projects/Project_Prosthetic/ingest_sessions.py` currently derives Qdrant point IDs from chunk text without source provenance. Identical generic Markdown chunks across session logs can overwrite the other log's payload/source. Use unique session-log headings and verify per-source point counts; do not broad-delete/sweep the collection. Fixing ID derivation is a separate, explicitly scoped maintenance slice.
 - P5 GREEN is bounded by its explicit CPython non-TEE residual. Temporary import-machinery teardown/restore, direct loader execution, function replacement, bytecode mutation, hostile co-threads, and host integrity are not attested by the runner; do not restate the result as sandbox/TEE proof.
@@ -202,9 +209,10 @@
 - For #157, authorize and review a separate deterministic read-only extractor
   that emits one frozen content-addressed evidence packet. Do not widen the
   strict commit reviewer or grant it Taskboard/model/GPU/C1/Qdrant authority.
-- Review current #155 rev-5 source at `5a01f06` against its frozen rulings and
-  current Watercooler packet before any state change. Do not advance to
-  B0/deployment from an implementation commit or tests alone.
+- Repair current #155 rev-5 source against the six findings in the canonical
+  review, commit one immutable packet, and request a fresh exact-source verdict.
+  Preserve eligibility custody; do not advance to B0/deployment from an
+  implementation commit or tests alone.
 - Independently review #172 commit `3ca9e01`; if confirmed, assign a new frozen controller-repair packet for retained input witnesses, analytic basin geometry, and saturation without altering the preserved FAIL result.
 - Leave completed #156 and GREEN Drift Gate v27 `4c6b7b4` unchanged. Advance #168 only through its independent judge-chain, runner-origin, slow-leak, disposition, and launch gates. Keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 - Preserve the completed 24/8 bridge refit and its completed norm/rank diagnosis as a non-win; do not run a larger same-corpus fit or deploy a per-tooth norm patch. If Laura wants a next bridge empirical slice, acquire genuinely unseen frozen skeletons and preregister a new mapping/objective diagnostic first.
@@ -212,16 +220,17 @@
 - #157 review completion is recorded in `5a156fb`; do not interpret it as extraction or C1 permission. The stale blocker is now reconciled: a separately scoped read-only artifact/validation plan and source review are still required.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #1162; #157 state unchanged)
-- Session log written: yes (`2026-07-18-session-04.md`)
+- Tracking surfaces updated if needed: yes (Watercooler #1183; Taskboard #155 comment; state unchanged)
+- Session log written: yes (`2026-07-18-session-05.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (13 chunks; collection total 34,526)
-- Git preservation state: public package and scoped Watercooler changes preserved in `883e5f6`; unrelated dirty files excluded
-- Watercooler findings reflected in docs: yes (`Projects/Watercooler/`, Codex continuity, session-04)
-- No P0 bugs left unfixed: yes in the public package; #172 remains a preserved research FAIL
+- Qdrant ingest for latest session log confirmed: yes (11 chunks; collection total 34,536)
+- Git preservation state: rev-5 review/continuity commit pending; unrelated dirty files excluded
+- Watercooler findings reflected in docs: yes (canonical rev-5 review, Codex continuity, session-05)
+- No P0 bugs left unfixed: no new P0; #155 remains explicitly review-held rather than deployed
 - Blocking risks called out: yes
 
 ## Edit Ledger
+- 2026-07-18 19:47 +02:00 | Codex | Returned exact-source `CHANGES` on #155 item-5 rev 5 (`5a01f06` + `e805a75`) after immutable-archive verification, twelve adversarial controls, and independent subreview. Rev 5 closes the eligibility exploit; four P1 custody/publication failures and two P2 contract gaps remain. Canon `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md`; Watercooler #1183; Taskboard #155 comment. Session-05 ingested 11 chunks (collection 34,536); scoped commit pending at this edit.
 - 2026-07-18 16:15 +02:00 | Codex | Proved strict headless #157 pickup refusal (`body_not_json`; Watercooler #1162), completed and independently GREENed the fresh public Watercooler staging package, and verified 196 pass/3 platform skips plus standard/target wheel installs, sdist, and real desktop/mobile browser flows. License choice, #157 extraction authorization, and NUC #1160 remain held. Session-04 ingested 13 current chunks (collection 34,526 after exact stale-point cleanup); scoped implementation/continuity commit `883e5f6` excludes unrelated dirty work.
 - 2026-07-18 13:47 +02:00 | Techno-Monk | Reconciled stale #157 review blocker against source Watercooler seat ledger (OpenCLAW event #794; Watercooler #1154) and received Elf's final GREEN #1155. Commit `5a156fb` amends the canonical prereg with all four-seat binds while preserving no-extraction/no-GPU/no-C1 scope; session-03 written, Qdrant intentionally skipped.
 - 2026-07-18 04:40 +02:00 | Codex | Completed frozen, model-free World Model Phase 3c #172 audit. Preregistration `8873213`, reviewed runner/tests `d275850`, and immutable result/review `3ca9e01` record FAIL: inert retained inputs, 486 adjacent jumps over `0.10`, four three-attractor boundary rows, and tick-7 affiliation clipping. Recovery, accumulation, and conditional leakage pass; three construction policies remain held. Watercooler #1151 and OpenCLAW #172 carry the exact review request; session-02 ingested 10 chunks into Qdrant (collection 34,516). No controller edit or model/GPU/runtime action.
@@ -329,9 +338,10 @@
 - Decide first:
   - Treat #172 commit `3ca9e01` as an immutable reviewed FAIL pending an external verdict. Repair only under a new frozen protocol; do not compose or connect it to any model/runtime path.
   - Preserve `bridge_refit_eval_20260716T131105Z` as a mixed/non-win bridge result. Do not scale or reopen C1/injection; read its debrief before proposing any diagnostic or new corpus.
-  - Treat #155 rev 3 `bc23ab5` as CHANGES until the exact rev-4 packet closes
-    Codex #1144 under the frozen #1146/#1148 rulings. Automated dispatcher
-    reviews are never verdicts of record.
+  - Treat #155 rev 5 `e805a75` as CHANGES under Codex #1183 and canonical review
+    `p5_item5_rev5_source_review_2026-07-18.md`. Preserve its eligibility fix,
+    but require one immutable repair for all six findings and a fresh verdict.
+    Automated dispatcher reviews are never verdicts of record.
   - Do not re-review completed #156 packet `c17f6d8`. Review only an immutable #168 successor to `60701ed` against canon `1dd4a9d`; preserve duplicate fail-closed folding, complete-graph preflight, slots, the local callable, strict direct/full proof, canonical domains, and explicit non-TEE boundary. No remaining launch lane is authorized by P5 GREEN or the closed resolver P1.
   - Treat Gemma/LiteRT as a separate offline infrastructure lane: require an explicit read-only ML-WS preflight before any install/model/server/audio bench, and require a separate training protocol before any fine-tune.
 - Task-specific files to read:
@@ -353,7 +363,8 @@
   - `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`
   - `MoCoP/reviews/world_model_phase3c_controller_audit_review_2026-07-18.md`
   - `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`
-  - `MoCoP/reviews/p5_item5_rev3_source_review_2026-07-18.md`
+  - `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md`
+  - `MoCoP/reviews/p5_item5_rev3_source_review_2026-07-18.md` (historical rev-3 review)
   - `MoCoP/reviews/p5_item5_rev2_source_review_2026-07-17.md` (historical rev-2 review)
   - `MoCoP/reviews/p5_item5_successor_source_review_2026-07-17.md` (historical four-commit review)
   - `tools/ai_watercooler/README.md` dispatcher section before changing the scheduled reviewer

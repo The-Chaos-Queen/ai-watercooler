@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-18 16:12 +02:00
+Last updated: 2026-07-18 19:42 +02:00
 
 ## Standing Directive
 
@@ -70,16 +70,23 @@ remember which artifact should be updated.
   direction artifact exists yet.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
-- #155 has advanced beyond Codex's historical rev-3 CHANGES; current Git head
-  includes the rev-5 repair `5a01f06`. Re-read current source and Watercooler
-  before any verdict. No B0/C1/model/GPU/deployment authorization follows from
-  an implementation commit or tests alone.
+- #155 item 5 rev 5 (`5a01f06` + `e805a75`) is `CHANGES` by exact-source
+  verdict of record. Canon:
+  `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md`; Watercooler
+  `#1183`; Taskboard #155 comment. Rev 5 closes Isegrim's eligibility exploit,
+  but governed-parent validation, generation-corpus re-derivation, capture-once
+  digest custody, and post-commit publication remain P1-blocking. Exact record
+  shape and the section 5.5 row/digest contract remain P2. No
+  B0/C1/model/GPU/deployment authorization follows from the repair or tests.
 - World Model Phase 3c remains a reviewed FAIL at `3ca9e01`: retained inputs are
   inert, local terminal geometry is discontinuous, four boundary rows expose
   three attractors, and affiliation clips. Repair only under a new protocol.
 
 ## Next Maintenance
 
+- Review only a new immutable #155 item-5 repair that closes every finding in
+  the rev-5 canon together. Preserve the now-correct eligibility re-derivation;
+  do not accept another one-finding patch or run B0/C1 from a green unit suite.
 - Ask Laura for the public license choice before publication; then add `LICENSE`
   and matching package metadata and rerun archive verification.
 - Keep #157 extraction and review as separate principals/protocols. Never widen
