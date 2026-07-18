@@ -13,11 +13,12 @@ import math
 import re
 import threading
 import time
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, NamedTuple
 from urllib.parse import parse_qs, urlparse
 
 import torch
@@ -130,6 +131,21 @@ class RuntimeBridgeContext:
     rms_scale: bool = False
     dc_vectors: Any = None  # list[fp16 tensor], one per patched target layer, or None
 
+class MambaStateRefs(NamedTuple):
+    latest_path: str
+    immutable_path: str
+    immutable_checksum: str
+
+
+def verify_mamba_state_ref(path: str, expected_checksum: str) -> bool:
+    """Load-time helper to verify that the Mamba state file matches its Qdrant-stored hash."""
+    path_obj = Path(path)
+    if not path_obj.exists():
+        return False
+    with open(path_obj, "rb") as f:
+        actual_checksum = hashlib.sha256(f.read()).hexdigest()
+    return actual_checksum == expected_checksum
+
 
 @dataclass
 class ChatSessionState:
@@ -138,7 +154,6 @@ class ChatSessionState:
     The model, tokenizer, bridge modules, and hooks stay global. These fields are
     swapped in while a serialized request is handled, then saved back.
     """
-
     session_id: str
     user_label: str
     model_label: str
@@ -209,13 +224,17 @@ RUNTIME_STATE = {
     "last_qdrant_retry_at": "",
     "last_qdrant_replay_at": "",
     "qdrant_write_mode": "direct",
+    "dual_gate_tension_salience_support_ratio": 0.55,
     "mamba_state_ref": "",
+    "mamba_state_immutable_ref": "",
+    "mamba_state_immutable_checksum": "",
     "mamba_state_source": "",
-    "mamba_state_updated_at": "",
     "mamba_target_layer": None,
+    "mamba_state_updated_at": "",
     "live_accumulation_enabled": False,
     "live_accumulation_updates": 0,
     "live_accumulation_last_error": "",
+    "turn_index": 0,
     "last_recall": {},
     "last_self_report": {},
     "last_failure": {},
@@ -987,16 +1006,22 @@ def persist_runtime_mamba_state(
     *,
     state_source: str,
     count_as_live_update: bool,
+    is_memory_candidate: bool = False,
+    turn_index: int = 0,
 ):
-    state_ref = persist_mamba_state_ref(
+    refs = persist_mamba_state_ref(
         last_token,
         bridge_ctx.mamba_target_layer,
         bridge_ctx.session_started_at,
         state_source=state_source,
+        is_memory_candidate=is_memory_candidate,
+        turn_index=turn_index,
     )
     snapshot = get_runtime_state_snapshot()
     changes = {
-        "mamba_state_ref": state_ref,
+        "mamba_state_ref": refs.latest_path,
+        "mamba_state_immutable_ref": refs.immutable_path,
+        "mamba_state_immutable_checksum": refs.immutable_checksum,
         "mamba_state_source": state_source,
         "mamba_target_layer": bridge_ctx.mamba_target_layer,
         "mamba_state_updated_at": datetime.now().isoformat(timespec="seconds"),
@@ -1005,7 +1030,7 @@ def persist_runtime_mamba_state(
         changes["live_accumulation_updates"] = int(snapshot.get("live_accumulation_updates", 0) or 0) + 1
         changes["live_accumulation_last_error"] = ""
     update_runtime_state(**changes)
-    return state_ref
+    return refs
 
 
 class ActivationRecorder:
@@ -2011,6 +2036,9 @@ def append_turn(speaker: str, text: str):
             "ts": datetime.now().isoformat(timespec="seconds"),
         }
     )
+    with STATE_LOCK:
+        if speaker.lower() != "system":
+            RUNTIME_STATE["turn_index"] = int(RUNTIME_STATE.get("turn_index", 0) or 0) + 1
     persist_conversation()
 
 
@@ -2360,22 +2388,54 @@ def build_semantic_gate_summary(event):
     )
 
 
-def persist_mamba_state_ref(last_token, target_layer: int, started_at: str, state_source: str = "hidden_last_token"):
+def persist_mamba_state_ref(
+    last_token,
+    target_layer: int,
+    started_at: str,
+    state_source: str = "hidden_last_token",
+    is_memory_candidate: bool = False,
+    turn_index: int = 0,
+) -> MambaStateRefs:
     global MAMBA_STATE_REF_PATH
+
+    payload = {
+        "started_at": started_at,
+        "state_source": str(state_source),
+        "target_layer": int(target_layer),
+        "tensor": last_token.detach().cpu().to(torch.float32),
+    }
+
+    immutable_path = ""
+    immutable_checksum = ""
+
+    # Phase A Crypto Note: This torch.save will follow the same encryption path 
+    # as the rolling state once Task #165 (SecureStateManager) is wired in here.
+    if is_memory_candidate:
+        session_id = normalize_session_id(started_at)
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        immut_p = Path("mamba_states") / session_id / f"turn_{turn_index:04d}_{timestamp}.pt"
+        immut_p.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Write immutable PROVENANCE record FIRST for crash safety
+        torch.save(payload, immut_p)
+        
+        with open(immut_p, "rb") as f:
+            immutable_checksum = hashlib.sha256(f.read()).hexdigest()
+        
+        immutable_path = str(immut_p)
 
     path = Path(ARGS.mamba_state_ref_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {
-            "started_at": started_at,
-            "state_source": str(state_source),
-            "target_layer": int(target_layer),
-            "tensor": last_token.detach().cpu().to(torch.float32),
-        },
-        path,
-    )
+    
+    # Write convenience pointer SECOND
+    torch.save(payload, path)
+    
     MAMBA_STATE_REF_PATH = path
-    return str(path)
+    return MambaStateRefs(
+        latest_path=str(path),
+        immutable_path=immutable_path,
+        immutable_checksum=immutable_checksum,
+    )
 
 
 def build_qdrant_memory_record(event):
@@ -2411,6 +2471,8 @@ def build_qdrant_memory_record(event):
         "target_layers": target_layers,
         "gate_thresholds": event.get("gate_thresholds", {}),
         "mamba_state_ref": event.get("mamba_trace", {}).get("state_ref", ""),
+        "mamba_state_immutable_ref": event.get("mamba_trace", {}).get("immutable_ref", ""),
+        "mamba_state_immutable_checksum": event.get("mamba_trace", {}).get("immutable_checksum", ""),
         "mamba_state_source": event.get("mamba_trace", {}).get("state_source", ""),
         "mamba_target_layer": event.get("mamba_trace", {}).get("target_layer"),
         "coherence_score": event.get("mamba_trace", {}).get("coherence_score"),
@@ -4242,7 +4304,14 @@ def store_qdrant_gate_event(event):
             print(f"[warn] Qdrant write failed: {exc}")
 
 
-def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_transcript: str):
+def evaluate_dual_gate(
+    user_msg: str, 
+    response: str, 
+    prompt_text: str, 
+    pre_turn_transcript: str, 
+    updated_last_token=None,
+    bridge_ctx=None,
+):
     global LAST_CONVERSATION_SNAPSHOT
 
     if LAST_CONVERSATION_SNAPSHOT is None:
@@ -4416,7 +4485,9 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
             },
         },
         "mamba_trace": {
-            "state_ref": state.get("mamba_state_ref", ""),
+            "state_ref": "",
+            "immutable_ref": "",
+            "immutable_checksum": "",
             "state_source": mamba_state_source,
             "target_layer": state.get("mamba_target_layer"),
             "scope": mamba_trace_scope,
@@ -4427,6 +4498,38 @@ def evaluate_dual_gate(user_msg: str, response: str, prompt_text: str, pre_turn_
         "safety_critical": safety_critical,
         "response_diversity": response_diversity,
     }
+
+    sleep_candidate = bool(
+        event.get("mode") == "gate"
+        and (
+            event.get("decision") in {"CONSOLIDATE", "NOTE", "ATTEND"}
+            or open_tension
+        )
+    )
+    is_memory_candidate = sleep_candidate or writes_qdrant
+
+    if updated_last_token is not None and bridge_ctx is not None:
+        try:
+            turn_index = get_runtime_state_snapshot().get("turn_index", 1)
+            refs = persist_runtime_mamba_state(
+                updated_last_token,
+                bridge_ctx,
+                state_source="live_hidden_last_token",
+                count_as_live_update=True,
+                is_memory_candidate=is_memory_candidate,
+                turn_index=turn_index,
+            )
+            event["mamba_trace"]["state_ref"] = refs.latest_path
+            event["mamba_trace"]["immutable_ref"] = refs.immutable_path
+            event["mamba_trace"]["immutable_checksum"] = refs.immutable_checksum
+        except Exception as live_exc:
+            update_runtime_state(live_accumulation_last_error=str(live_exc))
+            print(f"[warn] Live Mamba accumulation failed during persist: {live_exc}")
+    else:
+        # Fallback if we aren't accumulating
+        event["mamba_trace"]["state_ref"] = state.get("mamba_state_ref", "")
+        event["mamba_trace"]["immutable_ref"] = state.get("mamba_state_immutable_ref", "")
+        event["mamba_trace"]["immutable_checksum"] = state.get("mamba_state_immutable_checksum", "")
 
     store_qdrant_gate_event(event)
 
@@ -5382,6 +5485,7 @@ class ChatHandler(BaseHTTPRequestHandler):
                 memory_packet_preview = {}
                 if not transient:
                     append_turn(ARGS.model_label, response)
+                    updated_last_token = None
                     if BRIDGE_CTX.bridge_loaded and BRIDGE_CTX.live_accumulation:
                         try:
                             updated_last_token = process_turn_through_mamba(
@@ -5390,16 +5494,19 @@ class ChatHandler(BaseHTTPRequestHandler):
                                 bridge_ctx=BRIDGE_CTX,
                             )
                             update_bridge_from_mamba_state(updated_last_token, BRIDGE_CTX)
-                            persist_runtime_mamba_state(
-                                updated_last_token,
-                                BRIDGE_CTX,
-                                state_source="live_hidden_last_token",
-                                count_as_live_update=True,
-                            )
                         except Exception as live_exc:
                             update_runtime_state(live_accumulation_last_error=str(live_exc))
-                            print(f"[warn] Live Mamba accumulation failed: {live_exc}")
-                    gate_event = evaluate_dual_gate(user_msg, response, prompt, pre_turn_transcript)
+                            print(f"[warn] Live Mamba accumulation computation failed: {live_exc}")
+                    
+                    gate_event = evaluate_dual_gate(
+                        user_msg, 
+                        response, 
+                        prompt, 
+                        pre_turn_transcript, 
+                        updated_last_token=updated_last_token,
+                        bridge_ctx=BRIDGE_CTX if updated_last_token is not None else None,
+                    )
+                    
                     memory_packet_preview = build_memory_packet_preview(gate_event)
                     failure_context = dict(gate_event or {})
                     failure_context["recall_request_count"] = int(recall_requested)
