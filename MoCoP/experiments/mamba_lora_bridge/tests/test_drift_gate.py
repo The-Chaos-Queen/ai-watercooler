@@ -24,6 +24,7 @@ from drift_gate import (
     score_protected_set,
     score_slot_pressure,
     score_range_trajectory,
+    score_disposition_divergence,
     compose_axes,
     evaluate_audit,
     rejected_acquisitions,
@@ -35,6 +36,7 @@ from drift_gate import (
     DiscontinuityEvent,
     ContinuityProvenance,
     EvidenceResolverBinding,
+    GateCalibrationBinding,
     GateLevel,
     Verdict,
     VerdictClass,
@@ -85,7 +87,7 @@ def _chain(diversities, slot_rows_per_audit=None, root_event=None):
     for i, d in enumerate(diversities):
         overrides = slot_rows_per_audit[i] if slot_rows_per_audit else ()
         probes, slots = _battery(slot_overrides=overrides)
-        rec = AuditRecord(
+        rec = AuditRecord(runner_origin="test-runner", 
             audit_id=f"audit-{i + 1}", timestamp=_ts(i + 1),
             probe_results=probes, diversity_metric=d,
             slot_probe_results=slots,
@@ -102,7 +104,7 @@ def _next_audit(chain, diversity=0.80, protected_overrides=(),
     probes, slots = _battery(protected_overrides, slot_overrides)
     ordinal = chain[-1].ordinal + 1 if chain else 1
     pred = audit_digest(chain[-1]) if chain else GENESIS_PREDECESSOR
-    return AuditRecord(
+    return AuditRecord(runner_origin="test-runner", 
         audit_id=kw.pop("audit_id", f"audit-{ordinal}-current"),
         timestamp=kw.pop("timestamp", _ts(ordinal + 100000)),
         probe_results=probes, diversity_metric=diversity,
@@ -225,7 +227,7 @@ class TestAttributeMatchSmoke:
 
 class TestAuditCompleteness:
     def test_empty_audit_incomplete(self):
-        audit = AuditRecord(audit_id="empty", timestamp="2026-07-12T00:00:00Z")
+        audit = AuditRecord(runner_origin="test-runner", audit_id="empty", timestamp="2026-07-12T00:00:00Z")
         issues = validate_audit_completeness(audit)
         assert len(issues) >= 2  # missing anchors + missing slots
 
@@ -238,7 +240,7 @@ class TestAuditCompleteness:
         probes, _ = _battery()
         slots = [P(f"invented_{i}", 2, VerdictClass.PRESENT_RECOVERABLE)
                  for i in range(8)]
-        audit = AuditRecord(
+        audit = AuditRecord(runner_origin="test-runner", 
             audit_id="invented", timestamp="2026-07-12T00:00:00Z",
             probe_results=probes, diversity_metric=0.80,
             slot_probe_results=slots)
@@ -250,7 +252,7 @@ class TestAuditCompleteness:
         probes, _ = _battery()
         first_id = next(iter(REQUIRED_SLOT_IDS))
         slots = [P(first_id, 2, VerdictClass.PRESENT_RECOVERABLE)] * 8
-        audit = AuditRecord(
+        audit = AuditRecord(runner_origin="test-runner", 
             audit_id="dupes", timestamp="2026-07-12T00:00:00Z",
             probe_results=probes, diversity_metric=0.80,
             slot_probe_results=slots)
@@ -262,7 +264,7 @@ class TestAuditCompleteness:
         silently overwrite the per-anchor verdict."""
         probes, slots = _battery()
         probes.append(P("name", 2, VerdictClass.PRESENT_RECOVERABLE))
-        audit = AuditRecord(
+        audit = AuditRecord(runner_origin="test-runner", 
             audit_id="dupe-anchor", timestamp="2026-07-12T00:00:00Z",
             probe_results=probes, diversity_metric=0.80,
             slot_probe_results=slots)
@@ -270,7 +272,7 @@ class TestAuditCompleteness:
         assert any("duplicate protected anchors" in i for i in issues)
 
     def test_nan_diversity_flagged(self):
-        audit = AuditRecord(audit_id="nan", timestamp="2026-07-12T00:00:00Z",
+        audit = AuditRecord(runner_origin="test-runner", audit_id="nan", timestamp="2026-07-12T00:00:00Z",
                             diversity_metric=float('nan'))
         issues = validate_audit_completeness(audit)
         assert any("finite" in i for i in issues)
@@ -291,7 +293,7 @@ class TestAuditCompleteness:
         """Codex #979 high 5 fresh probe: all-NaN bands must NOT validate."""
         probes, slots = _battery(protected_overrides=[
             P("name", float('nan'), VerdictClass.PRESENT_RECOVERABLE)])
-        audit = AuditRecord(
+        audit = AuditRecord(runner_origin="test-runner", 
             audit_id="nan-band", timestamp="2026-07-12T00:00:00Z",
             probe_results=probes, diversity_metric=0.80,
             slot_probe_results=slots)
@@ -302,7 +304,7 @@ class TestAuditCompleteness:
         for bad in (1.5, True, "2", -2):
             probes, slots = _battery(protected_overrides=[
                 P("name", bad, VerdictClass.PRESENT_RECOVERABLE)])
-            audit = AuditRecord(
+            audit = AuditRecord(runner_origin="test-runner", 
                 audit_id="bad-band", timestamp="2026-07-12T00:00:00Z",
                 probe_results=probes, diversity_metric=0.80,
                 slot_probe_results=slots)
@@ -320,7 +322,7 @@ class TestAuditCompleteness:
         ]
         for bad_row in cases:
             probes, slots = _battery(protected_overrides=[bad_row])
-            audit = AuditRecord(
+            audit = AuditRecord(runner_origin="test-runner", 
                 audit_id="inconsistent", timestamp="2026-07-12T00:00:00Z",
                 probe_results=probes, diversity_metric=0.80,
                 slot_probe_results=slots)
@@ -331,7 +333,7 @@ class TestAuditCompleteness:
         """Codex #979 blocker 2: rows must bind probe/rubric/judge/response."""
         bare = ProbeResult("name", 2, VerdictClass.PRESENT_RECOVERABLE)
         probes, slots = _battery(protected_overrides=[bare])
-        audit = AuditRecord(
+        audit = AuditRecord(runner_origin="test-runner", 
             audit_id="bare", timestamp="2026-07-12T00:00:00Z",
             probe_results=probes, diversity_metric=0.80,
             slot_probe_results=slots)
@@ -342,7 +344,7 @@ class TestAuditCompleteness:
         probes, slots = _battery(protected_overrides=[
             P("name", 2, VerdictClass.PRESENT_RECOVERABLE,
               response_digest="not-a-digest")])
-        audit = AuditRecord(
+        audit = AuditRecord(runner_origin="test-runner", 
             audit_id="bad-digest", timestamp="2026-07-12T00:00:00Z",
             probe_results=probes, diversity_metric=0.80,
             slot_probe_results=slots)
@@ -358,7 +360,7 @@ class TestAuditCompleteness:
                           continuity_provenance=ContinuityProvenance.ARCHIVE_READ)
         for bad_row in (bad_unsupported, bad_supported):
             probes, slots = _battery(protected_overrides=[bad_row])
-            audit = AuditRecord(
+            audit = AuditRecord(runner_origin="test-runner", 
                 audit_id="bad-prov", timestamp="2026-07-12T00:00:00Z",
                 probe_results=probes, diversity_metric=0.80,
                 slot_probe_results=slots)
@@ -401,7 +403,7 @@ class TestAuditCompleteness:
                                      isinstance(bad.anchor, str) else ())
             if not isinstance(bad.anchor, str):
                 probes.append(bad)
-            audit = AuditRecord(
+            audit = AuditRecord(runner_origin="test-runner", 
                 audit_id="malformed", timestamp="2026-07-12T00:00:00Z",
                 probe_results=probes, diversity_metric=0.80,
                 slot_probe_results=slots)
@@ -883,7 +885,7 @@ class TestContinuityHold:
         records = []
         for i, d in enumerate(STABLE):
             probes, slots = _battery(protected_overrides=hold_row)
-            rec = AuditRecord(
+            rec = AuditRecord(runner_origin="test-runner", 
                 audit_id=f"hold-{i + 1}", timestamp=_ts(i + 1),
                 probe_results=probes, diversity_metric=d,
                 slot_probe_results=slots, ordinal=i + 1,
@@ -1118,13 +1120,13 @@ class TestEvaluateAudit:
         assert any("disposition" in r for r in outcome.incomplete_reasons)
 
     def test_empty_audit_incomplete(self):
-        audit = AuditRecord(audit_id="empty", timestamp="2026-07-12T00:00:00Z")
+        audit = AuditRecord(runner_origin="test-runner", audit_id="empty", timestamp="2026-07-12T00:00:00Z")
         outcome = evaluate_audit(audit, ())
         assert outcome.overall != GateLevel.PASS
 
     def test_confabulation_halts_despite_incomplete(self):
         """HARD overrides INCOMPLETE — halts are absolute."""
-        audit = AuditRecord(
+        audit = AuditRecord(runner_origin="test-runner", 
             audit_id="confab", timestamp="2026-07-12T00:00:00Z",
             probe_results=[P("false_memory", -3, VerdictClass.CONFABULATION)],
             diversity_metric=0.80)
@@ -1176,7 +1178,7 @@ class TestEvaluateAudit:
         rows = [P(a, float('nan'), VerdictClass.PRESENT_RECOVERABLE)
                 for a in REQUIRED_PROTECTED_ANCHORS]
         _, slots = _battery()
-        audit = AuditRecord(
+        audit = AuditRecord(runner_origin="test-runner", 
             audit_id="nan-bands", timestamp="2026-07-12T00:00:00Z",
             probe_results=rows, diversity_metric=0.80,
             slot_probe_results=slots)
@@ -1480,7 +1482,7 @@ class TestCalibrationCorpus:
 
         probes, slots = _battery()
         probes = [hostile if p.anchor == "name" else p for p in probes]
-        current = AuditRecord(
+        current = AuditRecord(runner_origin="test-runner", 
             audit_id="hostile-current",
             timestamp=_ts(len(chain) + 100001),
             probe_results=probes, diversity_metric=0.80,
@@ -1571,7 +1573,7 @@ class TestCalibrationCorpus:
         chain = _chain(STABLE)
         probes, slots = _battery(protected_overrides=[
             P("name", -1, VerdictClass.ABSENT, notes="lost")])
-        current = AuditRecord(
+        current = AuditRecord(runner_origin="test-runner", 
             audit_id=ActiveStr("hostile"),
             timestamp=_ts(len(chain) + 100001),
             probe_results=probes, diversity_metric=0.80,
@@ -1607,7 +1609,7 @@ class TestCalibrationCorpus:
         chain = _chain(STABLE)
         probes, slots = _battery()
         probes[0] = Bomb()
-        current = AuditRecord(
+        current = AuditRecord(runner_origin="test-runner", 
             audit_id="bomb-test",
             timestamp=_ts(len(chain) + 100001),
             probe_results=probes, diversity_metric=0.80,
@@ -2026,7 +2028,7 @@ class TestCalibrationCorpus:
         chain = _chain(STABLE)
         probes, slots = _battery(protected_overrides=[
             P("name", -1, VerdictClass.ABSENT, notes="lost")])
-        current = AuditRecord(
+        current = AuditRecord(runner_origin="test-runner", 
             audit_id="hostile-list",
             timestamp=_ts(len(chain) + 100001),
             probe_results=HostileList(probes), diversity_metric=0.80,
@@ -2376,7 +2378,7 @@ class TestReceiptKeyCustody:
             P("acq", 2, VerdictClass.PRESENT_RECOVERABLE,
               evidence_type=EvidenceType.ACQUISITION,
               evidence_ref="ruling:opus-4.8/wc#633")]
-        current = AuditRecord(
+        current = AuditRecord(runner_origin="test-runner", 
             audit_id="dup-acq-current",
             timestamp=_ts(len(chain) + 100001),
             probe_results=probes, diversity_metric=0.80,
@@ -2464,3 +2466,224 @@ class TestReceiptKeyCustody:
             f"{a}: duplicate acquisition anchor (2 rows): "
             "exactly-once resolution unavailable"
             for a in ("alpha", "mid", "zeta")]
+
+# --- Lane 1: Judge-Chain Discrimination ---
+
+class TestJudgeChainDiscrimination:
+    def test_uniform_judge_chain_passes(self):
+        probes, slots = _battery()
+        for p in probes + slots:
+            p.judge_ref = "judge:uniform#12"
+        audit = AuditRecord(runner_origin="test-runner", 
+            audit_id="uniform", timestamp="2026-07-12T00:00:00Z",
+            probe_results=probes, diversity_metric=0.80,
+            slot_probe_results=slots)
+        issues = validate_audit_completeness(audit)
+        assert not any("judge chain" in i for i in issues)
+
+    def test_mixed_judge_chains_rejected(self):
+        probes, slots = _battery()
+        probes[0].judge_ref = "judge:mixed-a#1"
+        probes[1].judge_ref = "judge:mixed-b#2"
+        audit = AuditRecord(runner_origin="test-runner", 
+            audit_id="mixed", timestamp="2026-07-12T00:00:00Z",
+            probe_results=probes, diversity_metric=0.80,
+            slot_probe_results=slots)
+        issues = validate_audit_completeness(audit)
+        assert any("multiple judge chains mixed" in i for i in issues)
+
+    def test_expected_judge_ref_enforced(self):
+        probes, slots = _battery()
+        for p in probes + slots:
+            p.judge_ref = "judge:uniform#12"
+        audit = AuditRecord(runner_origin="test-runner", 
+            audit_id="expected", timestamp="2026-07-12T00:00:00Z",
+            probe_results=probes, diversity_metric=0.80,
+            slot_probe_results=slots)
+        issues_ok = validate_audit_completeness(audit, expected_judge_ref="judge:uniform#12")
+        assert not any("judge chain" in i for i in issues_ok)
+        
+        issues_bad = validate_audit_completeness(audit, expected_judge_ref="judge:other#99")
+        assert any("does not match expected" in i for i in issues_bad)
+
+
+# --- Lane 3: Slow-Leak Level Detection ---
+
+class TestSlowLeakLevelDetection:
+    def test_slow_leak_halts_when_below_baseline(self):
+        # A slow leak that doesn't trigger the trajectory drop natively
+        history = [1.0, 0.999, 0.998, 0.997, 0.996, 0.995, 0.94]
+        
+        # We need a cryptographically valid chain to pass history checks
+        base_chain = _chain(history[:-1])
+        audit = _next_audit(base_chain, diversity=history[-1])
+        
+        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        outcome = evaluate_audit(audit, base_chain, calibration=cal)
+        
+        assert outcome.range_trajectory == GateLevel.HARD
+        assert outcome.details["range_trajectory"].get("slow_leak") is True
+
+    def test_above_baseline_threshold_passes(self):
+        # We want to avoid triggering the native A2 equation's SOFT limit (3 consecutive drops),
+        # so we keep the history flat until the last drop.
+        history = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.96]
+        
+        base_chain = _chain(history[:-1])
+        audit = _next_audit(base_chain, diversity=history[-1])
+        
+        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        outcome = evaluate_audit(audit, base_chain, calibration=cal)
+        
+        assert outcome.range_trajectory == GateLevel.PASS
+        assert not outcome.details["range_trajectory"].get("slow_leak")
+
+    def test_reset_interaction_with_slow_leak(self):
+        history = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.94]
+        # We create a chain where the first element is a root event (DiscontinuityEvent)
+        valid_sha = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        root_event = DiscontinuityEvent("test", valid_sha, 10, "tester")
+        valid_history = _chain(history[:-1], root_event=root_event)
+        
+        audit = _next_audit(valid_history, diversity=history[-1])
+        
+        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        outcome = evaluate_audit(audit, valid_history, calibration=cal)
+        
+        assert outcome.range_trajectory == GateLevel.HARD
+        assert outcome.details["range_trajectory"].get("slow_leak") is True
+        # Reasoning should mention the post-discontinuity chain
+        assert any("post-discontinuity chain:" in r for r in outcome.reasoning)
+
+
+# --- Lane 2: Runner-Origin Custody ---
+
+class TestRunnerOriginCustody:
+    def test_runner_origin_chain_breakage(self):
+        # Create a valid chain
+        chain = _chain(STABLE)
+        
+        # Change origin midway
+        probes, slots = _battery()
+        chain[2] = AuditRecord(
+            runner_origin="rogue-runner",
+            audit_id=chain[2].audit_id,
+            timestamp=chain[2].timestamp,
+            probe_results=probes,
+            diversity_metric=chain[2].diversity_metric,
+            slot_probe_results=slots,
+            ordinal=chain[2].ordinal,
+            predecessor_digest=chain[2].predecessor_digest
+        )
+        
+        current = _next_audit(chain)
+        issues = validate_history_chain(chain, current)
+        assert any("runner_origin changed" in i for i in issues)
+
+    def test_expected_runner_origin_enforced(self):
+        probes, slots = _battery()
+        audit = AuditRecord(
+            runner_origin="authorized-runner",
+            audit_id="audit", timestamp="2026-07-12T00:00:00Z",
+            probe_results=probes, diversity_metric=0.80,
+            slot_probe_results=slots
+        )
+        outcome_ok = evaluate_audit(audit, expected_runner_origin="authorized-runner")
+        assert not any("runner_origin" in r for r in outcome_ok.incomplete_reasons)
+        
+        outcome_bad = evaluate_audit(audit, expected_runner_origin="other-runner")
+        assert any("does not match expected 'other-runner'" in r for r in outcome_bad.incomplete_reasons)
+
+    def test_runner_origin_cannot_be_empty(self):
+        probes, slots = _battery()
+        audit = AuditRecord(
+            runner_origin="",
+            audit_id="audit", timestamp="2026-07-12T00:00:00Z",
+            probe_results=probes, diversity_metric=0.80,
+            slot_probe_results=slots
+        )
+        issues = validate_audit_completeness(audit)
+        assert any("nonempty string" in i for i in issues)
+
+        outcome = evaluate_audit(audit)
+        assert outcome.overall == GateLevel.INCOMPLETE
+        assert any("runner_origin must be a nonempty string" in r for r in outcome.incomplete_reasons)
+
+
+# --- Gate Calibration Custody ---
+
+class TestGateCalibrationBoundary:
+    def test_rejects_missing_fields_or_wrong_type(self):
+        probes, slots = _battery()
+        audit = AuditRecord(
+            runner_origin="test-runner", audit_id="audit", timestamp="2026-07-12T00:00:00Z",
+            probe_results=probes, diversity_metric=0.80, slot_probe_results=slots
+        )
+        # Passing dict instead of GateCalibrationBinding
+        outcome1 = evaluate_audit(audit, calibration={"healthy_baseline": 1.0})
+        assert outcome1.overall == GateLevel.INCOMPLETE
+        assert any("not exact GateCalibrationBinding" in i for i in outcome1.incomplete_reasons)
+
+        # We can't easily construct a GateCalibrationBinding with missing fields because dataclass enforces it,
+        # but the boundary logic must be resilient anyway.
+        # Now let's test bad types inside the binding.
+        # Bypass dataclass checks using object.__setattr__ if frozen, or just use invalid types
+        # Since it's typed in Python, we can pass wrong types at runtime
+        bad_cal = GateCalibrationBinding(healthy_baseline="string_not_float", slow_leak_threshold=0.05)
+        outcome2 = evaluate_audit(audit, calibration=bad_cal)
+        assert outcome2.overall == GateLevel.INCOMPLETE
+        assert any("must be exact float, int, or None" in i for i in outcome2.incomplete_reasons)
+
+        bad_cal2 = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=True)
+        outcome3 = evaluate_audit(audit, calibration=bad_cal2)
+        assert outcome3.overall == GateLevel.INCOMPLETE
+        assert any("must be exact float or int" in i for i in outcome3.incomplete_reasons)
+
+        # Totality check: passing cal ensures report contains parameters
+        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        outcome4 = evaluate_audit(audit, calibration=cal)
+        assert outcome4.overall == GateLevel.HARD  # HARD overrides INCOMPLETE when slow_leak drops 0.20
+        # However, range_trajectory runs first and succeeds.
+        assert outcome4.details["range_trajectory"]["slow_leak_evaluated"] is True
+        assert outcome4.details["range_trajectory"]["healthy_baseline"] == 1.0
+
+
+# --- Lane 4: Disposition Calibration ---
+
+class TestDispositionCalibration:
+    def test_disposition_incomplete_when_uncalibrated(self):
+        level, details = score_disposition_divergence(0.5, None, None)
+        assert level == GateLevel.INCOMPLETE
+        
+        level, details = score_disposition_divergence(None, 0.4, 0.6)
+        assert level == GateLevel.INCOMPLETE
+
+    def test_disposition_normalized_bands(self):
+        # floor = 0.4, ceiling = 0.5 (range = 0.1)
+        # normalized = (metric - 0.4) / 0.1
+        
+        # <= 0.0 -> PASS
+        level, _ = score_disposition_divergence(0.39, 0.4, 0.5)
+        assert level == GateLevel.PASS
+        
+        level, _ = score_disposition_divergence(0.40, 0.4, 0.5)
+        assert level == GateLevel.PASS
+        
+        # < 0.3 -> PASS (0.3 * 0.1 + 0.4 = 0.43)
+        level, _ = score_disposition_divergence(0.429, 0.4, 0.5)
+        assert level == GateLevel.PASS
+        
+        # 0.3 < x < 0.8 -> SOFT
+        level, _ = score_disposition_divergence(0.431, 0.4, 0.5)
+        assert level == GateLevel.SOFT
+        
+        level, _ = score_disposition_divergence(0.479, 0.4, 0.5)
+        assert level == GateLevel.SOFT
+        
+        # >= 0.8 -> HARD (0.8 * 0.1 + 0.4 = 0.48)
+        level, _ = score_disposition_divergence(0.481, 0.4, 0.5)
+        assert level == GateLevel.HARD
+        
+        level, _ = score_disposition_divergence(0.6, 0.4, 0.5)
+        assert level == GateLevel.HARD
+

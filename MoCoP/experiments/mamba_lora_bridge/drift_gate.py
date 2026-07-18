@@ -282,11 +282,14 @@ class AuditRecord:
     ordinal: int = 1  # position in the audit chain, 1 = chain root
     predecessor_digest: str = GENESIS_PREDECESSOR  # audit_digest of prior audit
     discontinuity: Optional[DiscontinuityEvent] = None  # roots only
+    runner_origin: str = ""
+    disposition_metric: Optional[float] = None
 
 
 _AUDIT_RECORD_FIELDS = frozenset({
     'audit_id', 'timestamp', 'probe_results', 'diversity_metric',
     'slot_probe_results', 'ordinal', 'predecessor_digest', 'discontinuity',
+    'runner_origin', 'disposition_metric',
 })
 
 _PROBE_RESULT_FIELDS = frozenset({
@@ -383,6 +386,17 @@ class EvidenceResolverBinding:
     resolve: Callable[[str, ProbeResult], bool]
 
 
+@dataclass(frozen=True, slots=True)
+class GateCalibrationBinding:
+    """Exact-typed calibration schema binding boundary constraints for metric-driven
+    axes. Solves custody gaps by explicitly requiring callers to supply tracked and
+    registered constants (healthy_baseline, slow_leak_threshold, disposition bounds)."""
+    healthy_baseline: Optional[float] = None
+    slow_leak_threshold: float = 0.05
+    disposition_floor: Optional[float] = None
+    disposition_ceiling: Optional[float] = None
+
+
 @dataclass
 class GateOutcome:
     overall: GateLevel
@@ -463,11 +477,17 @@ def audit_digest(audit: AuditRecord) -> str:
         "timestamp": _canon(audit.timestamp),
         "ordinal": _canon(audit.ordinal),
         "predecessor_digest": _canon(audit.predecessor_digest),
+        "runner_origin": _canon(audit.runner_origin),
         "diversity_metric": _canon(
             float(audit.diversity_metric)
             if isinstance(audit.diversity_metric, (int, float))
             and not isinstance(audit.diversity_metric, bool)
             else audit.diversity_metric),
+        "disposition_metric": _canon(
+            float(audit.disposition_metric)
+            if isinstance(audit.disposition_metric, (int, float))
+            and not isinstance(audit.disposition_metric, bool)
+            else audit.disposition_metric),
         "probes": sorted(
             (_probe_canonical(p) for p in audit.probe_results),
             key=_row_sort_key,
@@ -690,7 +710,10 @@ def _validate_probe_row(probe: ProbeResult, where: str) -> List[str]:
     return issues
 
 
-def validate_audit_completeness(audit: AuditRecord) -> List[str]:
+def validate_audit_completeness(
+    audit: AuditRecord,
+    expected_judge_ref: Optional[str] = None,
+) -> List[str]:
     """Check probe coverage AND the total closed input schema (H5).
 
     INPUT CONTRACT (#1056/#1064): a validator reports, it never raises,
@@ -754,6 +777,8 @@ def validate_audit_completeness(audit: AuditRecord) -> List[str]:
             f"diversity_metric outside the [0,1] Response-Diversity domain: {dm!r}")
     if not isinstance(audit.audit_id, str) or not audit.audit_id.strip():
         issues.append("audit_id must be a nonempty string")
+    if not isinstance(audit.runner_origin, str) or not audit.runner_origin.strip():
+        issues.append("runner_origin must be a nonempty string")
     if _parse_timestamp(audit.timestamp) is None:
         issues.append(
             f"timestamp not a parseable offset-aware ISO-8601 instant: "
@@ -766,6 +791,20 @@ def validate_audit_completeness(audit: AuditRecord) -> List[str]:
         issues.extend(_validate_probe_row(probe, "protected"))
     for probe in audit.slot_probe_results:
         issues.extend(_validate_probe_row(probe, "slot"))
+
+    # Judge-chain discrimination (Lane 1)
+    judge_refs = set()
+    for rows in (audit.probe_results, audit.slot_probe_results):
+        for p in rows:
+            if p.judge_ref:
+                judge_refs.add(p.judge_ref)
+    if len(judge_refs) > 1:
+        issues.append(f"multiple judge chains mixed in a single audit: {sorted(judge_refs)}")
+    elif len(judge_refs) == 1 and expected_judge_ref is not None:
+        actual = next(iter(judge_refs))
+        if actual != expected_judge_ref:
+            issues.append(f"audit judge chain {actual!r} does not match expected {expected_judge_ref!r}")
+
     return issues
 
 
@@ -874,6 +913,11 @@ def validate_history_chain(
                 issues.append(
                     f"history[{idx}]: predecessor_digest does not match the "
                     f"digest of {prev.audit_id!r} — chain broken")
+            if rec.runner_origin != prev.runner_origin:
+                issues.append(
+                    f"history[{idx}]: runner_origin changed from {prev.runner_origin!r} "
+                    f"to {rec.runner_origin!r} without discontinuity"
+                )
         last = records[-1]
         if current.discontinuity is not None:
             issues.append(
@@ -888,6 +932,11 @@ def validate_history_chain(
             issues.append(
                 "current predecessor_digest does not match the last history "
                 "record — chain broken")
+        if current.runner_origin != last.runner_origin:
+            issues.append(
+                f"current audit runner_origin {current.runner_origin!r} "
+                f"does not match history chain origin {last.runner_origin!r} without discontinuity"
+            )
     else:
         if current.ordinal != 1 or current.predecessor_digest != GENESIS_PREDECESSOR:
             issues.append(
@@ -969,6 +1018,8 @@ def _canonical_audit(record: AuditRecord) -> AuditRecord:
         ordinal=record.ordinal,
         predecessor_digest=record.predecessor_digest,
         discontinuity=_canonical_discontinuity(record.discontinuity),
+        runner_origin=record.runner_origin,
+        disposition_metric=record.disposition_metric,
     )
 
 
@@ -1436,6 +1487,51 @@ def score_range_trajectory(
     return GateLevel.PASS, details
 
 
+def score_disposition_divergence(
+    metric: Optional[float],
+    floor: Optional[float],
+    ceiling: Optional[float]
+) -> Tuple[GateLevel, Dict[str, Any]]:
+    """Score disposition-divergence per the A4 baseline calibration specification.
+
+    Floor: Anchor self-rolls (noise floor of 'same self, different roll').
+    Ceiling: dissolution-path Anchor.
+
+    Scoring is in normalized space, where floor=0.0 and ceiling=1.0:
+    * normalized <= 0.0          -> PASS (at or below noise)
+    * 0.0 < normalized < 0.3     -> PASS (within noise regime)
+    * 0.3 <= normalized < 0.8    -> SOFT (elevated, monitor)
+    * normalized >= 0.8          -> HARD (approaching dissolution)
+    """
+    details = {"metric": metric, "floor": floor, "ceiling": ceiling, "normalized": None}
+    if metric is None or floor is None or ceiling is None:
+        return GateLevel.INCOMPLETE, details
+        
+    if not isinstance(metric, (int, float)) or isinstance(metric, bool) or not math.isfinite(metric):
+        details["error"] = "non-finite or non-numeric disposition metric"
+        return GateLevel.INCOMPLETE, details
+        
+    if not isinstance(floor, (int, float)) or not isinstance(ceiling, (int, float)) or \
+            isinstance(floor, bool) or isinstance(ceiling, bool) or \
+            not math.isfinite(floor) or not math.isfinite(ceiling):
+        details["error"] = "non-finite or non-numeric floor/ceiling"
+        return GateLevel.INCOMPLETE, details
+        
+    if floor >= ceiling:
+        details["error"] = f"invalid calibration: floor {floor} >= ceiling {ceiling}"
+        return GateLevel.INCOMPLETE, details
+        
+    normalized = (metric - floor) / (ceiling - floor)
+    details["normalized"] = round(normalized, 6)
+    
+    if normalized < 0.3:
+        return GateLevel.PASS, details
+    elif normalized < 0.8:
+        return GateLevel.SOFT, details
+    else:
+        return GateLevel.HARD, details
+
+
 # --- Multi-axis composition (prereq 4 + A1) ---
 
 def compose_axes(protected: GateLevel, trajectory: GateLevel,
@@ -1458,6 +1554,9 @@ def evaluate_audit(
     audit: AuditRecord,
     history: Sequence[AuditRecord] = (),
     resolver: Optional[EvidenceResolverBinding] = None,
+    expected_judge_ref: Optional[str] = None,
+    expected_runner_origin: Optional[str] = None,
+    calibration: Optional[GateCalibrationBinding] = None,
 ) -> GateOutcome:
     """Run the full drift gate on a single audit record.
 
@@ -1547,7 +1646,9 @@ def evaluate_audit(
             _leaf(rec.timestamp, str, where, "timestamp")
             _leaf(rec.ordinal, int, where, "ordinal")
             _leaf(rec.predecessor_digest, str, where, "predecessor_digest")
+            _leaf(rec.runner_origin, str, where, "runner_origin")
             dm = rec.diversity_metric
+            disp_m = rec.disposition_metric
         except AttributeError as e:
             _type_issues.append(f"{where}: missing record field ({e})")
             return
@@ -1556,6 +1657,10 @@ def evaluate_audit(
             _type_issues.append(
                 f"{where}: diversity_metric must be exact float or int, "
                 f"got {_safe_type_name(dm)}")
+        if disp_m is not None and not (type(disp_m) is float or (type(disp_m) is int and not isinstance(disp_m, bool))):
+            _type_issues.append(
+                f"{where}: disposition_metric must be exact float, int, or None, "
+                f"got {_safe_type_name(disp_m)}")
         try:
             pr = rec.probe_results
             spr = rec.slot_probe_results
@@ -1633,9 +1738,15 @@ def evaluate_audit(
     incomplete_reasons: List[str] = []
     reasoning: List[str] = []
 
-    completeness = validate_audit_completeness(audit)
+    completeness = validate_audit_completeness(audit, expected_judge_ref=expected_judge_ref)
     if completeness:
         incomplete_reasons.extend(completeness)
+
+    if expected_runner_origin is not None and audit.runner_origin != expected_runner_origin:
+        incomplete_reasons.append(
+            f"current audit runner_origin {audit.runner_origin!r} does not match "
+            f"expected {expected_runner_origin!r}"
+        )
 
     chain_issues = validate_history_chain(history, audit)
     chain_ok = not chain_issues
@@ -1680,6 +1791,46 @@ def evaluate_audit(
                     _resolver_snapshot = EvidenceResolverBinding(
                         resolver_id=r_id, version=r_ver, resolve=r_fn)
 
+    # Snapshot GateCalibrationBinding ONCE
+    _cal_snapshot: Optional[GateCalibrationBinding] = None
+    if calibration is not None:
+        if type(calibration) is not GateCalibrationBinding:
+            _type_issues.append("calibration is not exact GateCalibrationBinding")
+        else:
+            try:
+                _cal_hb = calibration.healthy_baseline
+                _cal_slt = calibration.slow_leak_threshold
+                _cal_df = calibration.disposition_floor
+                _cal_dc = calibration.disposition_ceiling
+            except AttributeError:
+                _type_issues.append("calibration binding has missing fields")
+            else:
+                if _cal_hb is not None and not (type(_cal_hb) is float or (type(_cal_hb) is int and not isinstance(_cal_hb, bool))):
+                    _type_issues.append("calibration healthy_baseline must be exact float, int, or None")
+                if not (type(_cal_slt) is float or (type(_cal_slt) is int and not isinstance(_cal_slt, bool))):
+                    _type_issues.append("calibration slow_leak_threshold must be exact float or int")
+                if _cal_df is not None and not (type(_cal_df) is float or (type(_cal_df) is int and not isinstance(_cal_df, bool))):
+                    _type_issues.append("calibration disposition_floor must be exact float, int, or None")
+                if _cal_dc is not None and not (type(_cal_dc) is float or (type(_cal_dc) is int and not isinstance(_cal_dc, bool))):
+                    _type_issues.append("calibration disposition_ceiling must be exact float, int, or None")
+                _cal_snapshot = GateCalibrationBinding(
+                    healthy_baseline=_cal_hb,
+                    slow_leak_threshold=_cal_slt,
+                    disposition_floor=_cal_df,
+                    disposition_ceiling=_cal_dc,
+                )
+
+    if _type_issues:
+        return GateOutcome(
+            overall=GateLevel.INCOMPLETE,
+            protected_set=GateLevel.INCOMPLETE,
+            range_trajectory=GateLevel.INCOMPLETE,
+            disposition_divergence=GateLevel.INCOMPLETE,
+            details={"type_rejection": _type_issues},
+            incomplete_reasons=_type_issues,
+            reasoning=["boundary: rejected non-exact input type(s)"],
+        )
+
     # Single-shot acquisition resolution into typed receipts (#984 B4).
     # _binding_error propagates the upstream diagnosis into receipts.
     receipts = _resolve_acquisitions(
@@ -1723,9 +1874,32 @@ def evaluate_audit(
     if chain_ok:
         diversity_values = [rec.diversity_metric for rec in history]
         diversity_values.append(audit.diversity_metric)
-        rt_level, rt_details = score_range_trajectory(diversity_values)
+        rt_level, rt_details = score_range_trajectory(
+            diversity_values,
+        )
+        
+        # Lane 3: Slow-leak level detection with explicit reset semantics
+        rt_details["slow_leak_evaluated"] = False
+        if _cal_snapshot is not None and _cal_snapshot.healthy_baseline is not None:
+            hb = _cal_snapshot.healthy_baseline
+            slt = _cal_snapshot.slow_leak_threshold
+            rt_details["slow_leak_evaluated"] = True
+            rt_details["healthy_baseline"] = hb
+            rt_details["slow_leak_threshold"] = slt
+            
+            current_val = diversity_values[-1]
+            drop = hb - current_val
+            rt_details["trajectory_drop"] = round(drop, 6)
+            
+            if drop >= slt:
+                rt_details["slow_leak"] = True
+                rt_level = _worse(rt_level, GateLevel.HARD)
+
         reasoning.append(f"range-trajectory: {rt_level.value} "
                          f"(window={rt_details['consecutive_decline']})")
+        if rt_details.get("slow_leak"):
+            reasoning.append(
+                f"range-trajectory slow-leak: HARD (drop {rt_details['trajectory_drop']:.6f} >= threshold {_cal_snapshot.slow_leak_threshold})")
         if root_event is not None:
             reasoning.append(
                 "post-discontinuity chain: trajectory measured from the reset "
@@ -1738,12 +1912,26 @@ def evaluate_audit(
         rt_details = {"error": "history chain broken — trajectory not evaluable"}
         reasoning.append("range-trajectory: incomplete (chain broken)")
 
-    disp_level = GateLevel.INCOMPLETE
-    incomplete_reasons.append(
-        "disposition-divergence metric deferred (no floor/ceiling calibration)")
+    _df = _cal_snapshot.disposition_floor if _cal_snapshot else None
+    _dc = _cal_snapshot.disposition_ceiling if _cal_snapshot else None
+    disp_level, disp_details = score_disposition_divergence(
+        audit.disposition_metric, _df, _dc
+    )
+    if disp_level == GateLevel.INCOMPLETE:
+        incomplete_reasons.append(
+            disp_details.get("error", "disposition-divergence metric deferred (missing metric or calibration)")
+        )
+    else:
+        reasoning.append(
+            f"disposition-divergence: {disp_level.value} "
+            f"(normalized={disp_details['normalized']})"
+        )
 
     measured_worst = _worse(combined_ps,
                             rt_level if rt_level != GateLevel.INCOMPLETE
+                            else GateLevel.PASS)
+    measured_worst = _worse(measured_worst,
+                            disp_level if disp_level != GateLevel.INCOMPLETE
                             else GateLevel.PASS)
     if measured_worst == GateLevel.HARD:
         overall = GateLevel.HARD
@@ -1766,12 +1954,15 @@ def evaluate_audit(
         "protected_set_level": ps_level.value,
         "slot_level": slot_level.value,
         "range_trajectory": rt_details,
+        "disposition_divergence": disp_details,
         "audit_digest": audit_digest(audit),
         "chain_length": len(history) + 1,
         "chain_ok": chain_ok,
         "audit_completeness": completeness,
         "acquisition_rejected": laundering,
     }
+    if not completeness and audit.probe_results and audit.probe_results[0].judge_ref:
+        details["judge_ref"] = audit.probe_results[0].judge_ref
     if receipts:
         details["acquisition_receipts"] = {
             anchor: {
