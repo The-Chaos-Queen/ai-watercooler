@@ -51,6 +51,29 @@ REV5 (Isegrim adversarial probe, 2026-07-18 — a confirmed P1 in rev4, closed h
   (closed-world _RECORD_KEYS), so a hand-built carrier cannot smuggle a stale `eligibility` block
   into the verbatim-embedded, integrity_verified artifact alongside the correctly-derived one.
 
+REV6 (Codex exact-source review of record #1183, 2026-07-18 — six findings, one custody pass):
+  F1 CANONICAL B0 PARENT: verify_sealed_report now recomputes the INNER report_digest minted by
+     B0EvidenceBundle.seal() over {schema_version, manifest_digest, record_count, records}, requires
+     manifest_digest + execution_descriptor.panel_hash, enforces the frozen stop_reason enum
+     (eos|length|error), validates receipt digests as sha256, and cross-checks
+     generated_token_ids_sha256 + token_count against the record's actual generated_token_ids.
+  F2 GENERATION-CORPUS AT THE BOUNDARY: the generation_output_digest match lived only in the
+     builder; a hand-built record could lie about it and pass decision/publish. It, the parent
+     digest, and the panel binding now live in ONE _check_parent_binding used by BOTH build and the
+     parent-aware re-derivation — the divergence class itself is removed.
+  F3 ONE CAPTURE: _verify_record returns an inert _VerifiedSidecar (record + both digests captured
+     once). bind/decision/publication read ONLY that snapshot via internal helpers; publication
+     verifies once and never recursively reopens the live public carriers, so a stateful caller
+     mapping cannot swap a second value in after verification.
+  F4 NON-THROWING PUBLICATION TERMINAL: after os.link commits, every readback/unlink/existence/
+     durability fault is caught, best-effort removes the writable alias, and returns a truthful
+     committed_integrity_failed / committed_indeterminate — never raises over a committed artifact.
+  F5 EXACT RECORD SHAPE: _verify_record requires an exact mapping root and exact _RECORD_KEYS set
+     (missing keys / scalar roots become typed refusals, not raw KeyError/TypeError).
+  F6 FROZEN §5.5 SCHEMA: the row field is cosine_similarity (the evaluator's raw output name); rows
+     are canonicalized (endpoints oriented, sorted by (probe_a, probe_b)) before validation and
+     sealing, so equivalent comparisons hash identically (spec §5.5 output-digest rule).
+
 Torch-free and model-free-testable. Authorizes NO run, sets NO threshold, lifts NO hold.
 """
 from __future__ import annotations
@@ -108,10 +131,17 @@ _MIN_ELIGIBLE = 4
 # only COMPARES against it. rho < RHO_GATE => JSD's residual is load-bearing => replacement required.
 RHO_GATE = 0.7
 
-_ROW_KEYS = {"pair_id", "probe_a", "probe_b", "jsd", "embedding_similarity"}
+# F6 (frozen §5.5): the raw evaluator field is `cosine_similarity` (line 173 of the contract), not
+# `embedding_similarity`; using the wrong name would refuse the real evaluator's contract-shaped rows.
+_ROW_KEYS = {"pair_id", "probe_a", "probe_b", "jsd", "cosine_similarity"}
 _AGG_KEYS = {"spearman_rho", "n_pairs", "mean_pairwise_jsd", "mean_pairwise_embedding"}
-_RECEIPT_KEYS = ("input_token_ids_sha256", "generated_token_ids_sha256", "token_count",
-                 "stop_reason")
+# F1: a canonical B0 record carries the actual generated_token_ids; the sha + token_count are
+# cross-checked against them, so the receipt cannot merely assert a hash.
+_RECEIPT_KEYS = ("input_token_ids_sha256", "generated_token_ids", "generated_token_ids_sha256",
+                 "token_count", "stop_reason")
+# The frozen continuation stop-reason enum (spec §4.1 line 60): eos | length | error. A report using
+# any other value (e.g. backend_crashed) must not have its records silently treated as eligible.
+_STOP_REASONS = frozenset({"eos", "length", "error"})
 # The EXACT top-level key set of a sealed record (rev5). Closed-world: a hand-built record may not
 # smuggle extra/deprecated keys (e.g. a stale `eligibility` block) into an integrity_verified
 # artifact, which embeds the record verbatim. eligibility is re-derived, never stored on the record.
@@ -259,13 +289,23 @@ def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
 # --------------------------------------------------------------------------- #
 # F3 — verify the parent report structurally, then derive from the snapshot.    #
 # --------------------------------------------------------------------------- #
-def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
-    """Reject a merely self-hashed Mapping (Monk #1146 F2-depth).
+# The exact base fields B0EvidenceBundle.seal() digests into the inner report_digest (before the
+# runner appends publication fields). Recomputing over these is the frozen #1146 F2-depth check.
+_B0_SEALED_BASE_KEYS = ("schema_version", "manifest_digest", "record_count", "records")
 
-    Inert-snapshot the report, then structurally validate it: the B0 bundle schema, an exact
-    ``record_count`` matching ``len(records)``, a recomputed ``published_digest``, and the required
-    per-record generation receipts. A self-consistent outer checksum over an arbitrary dict is NOT a
-    governed parent; the seam adds journal + terminal-authority verification on top of this.
+
+def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate a CANONICAL B0 evidence report (Monk #1146 F2-depth; Codex #1183 F1).
+
+    A governed parent is not merely a self-hashed Mapping: it is the exact report
+    ``B0EvidenceBundle.seal()`` mints and ``run_b0`` publishes. Inert-snapshot it, then require:
+    the bundle schema; a present ``manifest_digest``; the INNER ``report_digest`` recomputed over the
+    exact base fields ``seal()`` sealed (schema_version/manifest_digest/record_count/records); the
+    OUTER ``published_digest`` recomputed over everything else; an ``execution_descriptor.panel_hash``;
+    ``record_count == len(records)``; and per record the full generation receipts — the frozen
+    ``eos|length|error`` stop-reason enum, sha256 receipt digests, and ``generated_token_ids_sha256``
+    + ``token_count`` cross-checked against the record's OWN ``generated_token_ids``. The seam adds
+    journal + terminal-authority verification on top of this.
     """
     snap = _inert_snapshot(sealed_report)
     if not isinstance(snap, dict):
@@ -274,20 +314,44 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
         raise R4SidecarError(
             f"sealed_report.schema_version must be {B0_BUNDLE_SCHEMA!r} "
             f"(got {snap.get('schema_version')!r})")
-    stated = snap.get("published_digest")
-    if type(stated) is not str or not _SHA256.match(stated):
-        raise R4SidecarError("sealed_report.published_digest is absent or not a sha256; not sealed")
-    recomputed = canonical_digest({k: v for k, v in snap.items() if k != "published_digest"})
-    if recomputed != stated:
-        raise R4SidecarError(
-            f"sealed_report.published_digest {stated[:12]}.. != the digest {recomputed[:12]}.. "
-            "recomputed from its own contents; the report has been modified since sealing")
+
+    mdig = snap.get("manifest_digest")
+    if type(mdig) is not str or not _SHA256.match(mdig):
+        raise R4SidecarError("sealed_report.manifest_digest is absent or not a sha256")
+
     records = snap.get("records")
     if not isinstance(records, list) or not records:
         raise R4SidecarError("sealed_report has no records")
     if snap.get("record_count") != len(records):
         raise R4SidecarError(
             f"sealed_report.record_count {snap.get('record_count')!r} != len(records) {len(records)}")
+
+    # INNER digest: exactly what seal() sealed, before run_b0 appended publication fields (F1).
+    inner_stated = snap.get("report_digest")
+    if type(inner_stated) is not str or not _SHA256.match(inner_stated):
+        raise R4SidecarError("sealed_report.report_digest is absent or not a sha256; not sealed")
+    inner_recomputed = canonical_digest({k: snap[k] for k in _B0_SEALED_BASE_KEYS if k in snap})
+    if inner_recomputed != inner_stated:
+        raise R4SidecarError(
+            f"sealed_report.report_digest {inner_stated[:12]}.. != the inner seal digest "
+            f"{inner_recomputed[:12]}.. recomputed over its base fields; not the sealed report")
+
+    # OUTER digest: the runner's publication digest over everything except itself.
+    outer_stated = snap.get("published_digest")
+    if type(outer_stated) is not str or not _SHA256.match(outer_stated):
+        raise R4SidecarError("sealed_report.published_digest is absent or not a sha256; not sealed")
+    outer_recomputed = canonical_digest({k: v for k, v in snap.items() if k != "published_digest"})
+    if outer_recomputed != outer_stated:
+        raise R4SidecarError(
+            f"sealed_report.published_digest {outer_stated[:12]}.. != the digest "
+            f"{outer_recomputed[:12]}.. recomputed from its own contents; modified since sealing")
+
+    ed = snap.get("execution_descriptor")
+    if not isinstance(ed, Mapping):
+        raise R4SidecarError("sealed_report has no execution_descriptor")
+    if type(ed.get("panel_hash")) is not str or not ed["panel_hash"]:
+        raise R4SidecarError("sealed_report.execution_descriptor.panel_hash is absent or not a str")
+
     seen: set[str] = set()
     for i, rec in enumerate(records):
         if not isinstance(rec, Mapping):
@@ -306,10 +370,26 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
         for key in _RECEIPT_KEYS:
             if key not in prov:
                 raise R4SidecarError(f"record {i} provenance missing receipt field {key!r}")
-        if type(prov.get("token_count")) is not int or prov["token_count"] < 0:
+        stop = prov.get("stop_reason")
+        if stop not in _STOP_REASONS:
+            raise R4SidecarError(
+                f"record {i} stop_reason {stop!r} is not in the frozen enum {sorted(_STOP_REASONS)}")
+        for dkey in ("input_token_ids_sha256", "generated_token_ids_sha256"):
+            if type(prov.get(dkey)) is not str or not _SHA256.match(prov[dkey]):
+                raise R4SidecarError(f"record {i} provenance.{dkey} must be a sha256 digest")
+        gen_ids = prov.get("generated_token_ids")
+        if not isinstance(gen_ids, list) or any(
+                type(t) is not int or isinstance(t, bool) for t in gen_ids):
+            raise R4SidecarError(f"record {i} generated_token_ids must be a list of ints")
+        if canonical_digest(gen_ids) != prov["generated_token_ids_sha256"]:
+            raise R4SidecarError(
+                f"record {i} generated_token_ids_sha256 does not match its own generated_token_ids")
+        tc = prov.get("token_count")
+        if type(tc) is not int or isinstance(tc, bool) or tc < 0:
             raise R4SidecarError(f"record {i} token_count must be a non-negative int")
-        if type(prov.get("stop_reason")) is not str:
-            raise R4SidecarError(f"record {i} stop_reason must be a str")
+        if tc != len(gen_ids):
+            raise R4SidecarError(
+                f"record {i} token_count {tc} != len(generated_token_ids) {len(gen_ids)}")
     return snap
 
 
@@ -475,12 +555,12 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
             refusals.append(f"per-pair row {i} {je}")
         else:
             jsds.append(row["jsd"])
-        se = (_num_in_range(row.get("embedding_similarity"), *_SIM_RANGE, "embedding_similarity")
-              if "embedding_similarity" in row else "embedding_similarity is missing")
+        se = (_num_in_range(row.get("cosine_similarity"), *_SIM_RANGE, "cosine_similarity")
+              if "cosine_similarity" in row else "cosine_similarity is missing")
         if se:
             refusals.append(f"per-pair row {i} {se}")
         else:
-            sims.append(row["embedding_similarity"])
+            sims.append(row["cosine_similarity"])
 
     if probe_set is not None:
         expected = {frozenset(p) for p in combinations(sorted(probe_set), 2)}
@@ -536,6 +616,52 @@ class R4SidecarRecord:
     record: Mapping[str, Any]
 
 
+def _check_parent_binding(verified_report: Mapping[str, Any], *, b0_report_digest: str,
+                          generation_output_digest: str, panel: str) -> None:
+    """The ONE parent-binding custody check, used by build AND the parent-aware boundary (Codex #1183
+    F1/F2). A check that lives only in the builder is the exact class Isegrim (eligibility) and Codex
+    (generation digest) both exploited: a hand-built record reaches decision/publish without it.
+
+    Bind three facts of the record's ``parent``/``panel`` to the VERIFIED report: (1) the outer
+    published_digest is that run; (2) the generation_output_digest equals the corpus digest derived
+    from the report's OWN receipts (frozen same-input rule, spec line 169 — never a second run);
+    (3) the sidecar panel equals the parent execution_descriptor.panel_hash (same SEV battery).
+    """
+    if b0_report_digest != verified_report["published_digest"]:
+        raise R4SidecarError(
+            f"parent.b0_report_digest {b0_report_digest[:12]}.. != the verified report's "
+            f"published_digest {verified_report['published_digest'][:12]}.. — not that run")
+    derived_gen = derive_generation_corpus_digest(verified_report)
+    if generation_output_digest != derived_gen:
+        raise R4SidecarError(
+            f"parent.generation_output_digest {generation_output_digest[:12]}.. != the digest "
+            f"{derived_gen[:12]}.. derived from the report's OWN receipts — never a second generation")
+    parent_panel = verified_report["execution_descriptor"]["panel_hash"]
+    if panel != parent_panel:
+        raise R4SidecarError(
+            f"sidecar panel {panel!r} != the parent execution_descriptor.panel_hash "
+            f"{parent_panel!r} — the comparison must bind to the same SEV battery")
+
+
+def _canonicalize_comparison(per_pair: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Canonicalize comparison rows for a deterministic output digest (Codex #1183 F6 / spec §5.5
+    line 178: rows sorted by (probe_a, probe_b)). Orient each row's endpoints (probe_a <= probe_b)
+    and derive pair_id from the oriented endpoints, then sort rows by (probe_a, probe_b). JSD and
+    cosine are symmetric in the unordered pair, so orientation does not change them. Any row order or
+    endpoint orientation of the same comparison thus hashes identically. Runs AFTER validation, so
+    every row is known well-formed.
+    """
+    canon: list[dict[str, Any]] = []
+    for row in per_pair:
+        a, b = row["probe_a"], row["probe_b"]
+        if a > b:
+            a, b = b, a
+        canon.append({"pair_id": f"{a}|{b}", "probe_a": a, "probe_b": b,
+                      "jsd": row["jsd"], "cosine_similarity": row["cosine_similarity"]})
+    canon.sort(key=lambda r: (r["probe_a"], r["probe_b"]))
+    return canon
+
+
 def build_r4_sidecar(
     manifest: Mapping[str, Any],
     *,
@@ -561,22 +687,16 @@ def build_r4_sidecar(
     par = manifest["parent"]
 
     verified = verify_sealed_report(sealed_report)
-    if par["b0_report_digest"] != verified["published_digest"]:
-        raise R4SidecarError(
-            f"parent.b0_report_digest {par['b0_report_digest'][:12]}.. != the verified report's "
-            f"published_digest {verified['published_digest'][:12]}.. — not that run")
-    derived_gen = derive_generation_corpus_digest(verified)
-    if par["generation_output_digest"] != derived_gen:
-        raise R4SidecarError(
-            f"parent.generation_output_digest {par['generation_output_digest'][:12]}.. != the "
-            f"digest {derived_gen[:12]}.. derived from the report's OWN receipts — never a second "
-            "generation")
+    _check_parent_binding(verified, b0_report_digest=par["b0_report_digest"],
+                          generation_output_digest=par["generation_output_digest"],
+                          panel=manifest["panel"])
 
     elig = partition_eligibility(verified, par["sequence_length"])
     comparison_refusals = validate_comparison(per_pair, aggregate,
                                               eligible_probe_ids=elig.eligible)
     if comparison_refusals:
         raise R4SidecarError("; ".join(comparison_refusals))
+    canonical_per_pair = _canonicalize_comparison(per_pair)     # F6: deterministic order/orientation
 
     plain_record: dict[str, Any] = {
         "schema": SIDECAR_SCHEMA,
@@ -584,7 +704,7 @@ def build_r4_sidecar(
         "runner": dict(manifest["runner"]),
         "panel": manifest["panel"],
         "parent": dict(par),
-        "per_pair": [dict(r) for r in per_pair],
+        "per_pair": canonical_per_pair,
         "aggregate": dict(aggregate),
     }
     assert_strict_json(plain_record)
@@ -599,21 +719,35 @@ def build_r4_sidecar(
 # --------------------------------------------------------------------------- #
 # F4 — capture once, re-validate semantics at every public boundary.           #
 # --------------------------------------------------------------------------- #
-def _verify_record(sidecar: Any) -> dict[str, Any]:
-    """Exact-type the carrier, re-derive both digests, and RE-VALIDATE the semantics.
+@dataclass(frozen=True)
+class _VerifiedSidecar:
+    """An inert, ONCE-captured view of a verified R4SidecarRecord (Codex #1183 F3).
 
-    Codex #1140 F4 + #1144 F3/F4: the deep-freeze stops in-place mutation, but a public boundary
-    must not trust a hand-built or subclassed carrier. Exact-type ``R4SidecarRecord`` (a subclass
-    could override ``output_digest`` to return different values on successive reads), read the frozen
+    The public carrier's fields may be caller-controlled mappings whose ``items()`` runs during
+    verification, and ``frozen=True`` is no defence against ``object.__setattr__``. So every
+    downstream output reads ONLY this snapshot — the thawed record and both digests captured in a
+    single pass — never the live carrier again.
+    """
+    record: dict[str, Any]
+    output_digest: str
+    manifest_digest: str
+
+
+def _verify_record(sidecar: Any) -> _VerifiedSidecar:
+    """Exact-type the carrier, capture its content + digests ONCE, and RE-VALIDATE the semantics.
+
+    Codex #1140 F4 + #1144 F3/F4: the deep-freeze stops in-place mutation, but a public boundary must
+    not trust a hand-built or subclassed carrier. Exact-type ``R4SidecarRecord`` (a subclass could
+    override ``output_digest`` to return different values on successive reads), read the frozen
     content ONCE, confirm both digests match, and re-run the manifest + comparison validation so a
     record whose evaluator revision is "main" cannot bind merely because its digest is self
-    consistent.
+    consistent. Returns an inert ``_VerifiedSidecar`` (Codex #1183 F3): callers must read that, never
+    the live carrier, so a stateful caller mapping cannot swap a second value in after verification.
 
     rev5 (Isegrim probe): this guard has NO parent report, so it CANNOT know the eligible set and
     must not check comparison completeness against any declared/stored eligibility — doing so is how
-    rev4 leaked (a self-consistent fabrication passed its own declaration). It validates the
-    comparison's shape/ranges/endpoint-identity/recompute only; completeness over the DERIVED
-    eligible set is enforced at the parent-aware boundaries (bind/decision/publish).
+    rev4 leaked. It validates the comparison's shape/ranges/endpoint-identity/recompute only;
+    completeness over the DERIVED eligible set is enforced at the parent-aware boundaries.
     """
     if type(sidecar) is not R4SidecarRecord:
         raise R4SidecarError(f"not an exact R4SidecarRecord (got {type(sidecar).__name__})")
@@ -621,28 +755,26 @@ def _verify_record(sidecar: Any) -> dict[str, Any]:
     manifest_digest = sidecar.manifest_digest
     if type(output_digest) is not str or type(manifest_digest) is not str:
         raise R4SidecarError("record digests must be exact strs")
-    thawed = _thaw(sidecar.record)
+    thawed = _thaw(sidecar.record)                 # single read of the (possibly stateful) carrier
+    # F5 (Codex #1183): exact root type + exact key set BEFORE indexing, so a missing key or a scalar
+    # root is a typed refusal, not a raw KeyError/TypeError. Exact set also subsumes the rev5
+    # unknown/deprecated-key rejection (a stale `eligibility` block is an unexpected key).
+    if not isinstance(thawed, dict):
+        raise R4SidecarError("record root is not a mapping")
+    if set(thawed) != _RECORD_KEYS:
+        missing = sorted(_RECORD_KEYS - set(thawed))
+        extra = sorted(set(thawed) - _RECORD_KEYS)
+        raise R4SidecarError(
+            f"record key set is not exact (missing {missing}, unexpected {extra}); eligibility is "
+            "re-derived from the parent, never stored on the record")
     if canonical_digest(thawed) != output_digest:
         raise R4SidecarError("record output_digest does not match its content (stale or tampered)")
-    # Closed-world record shape (rev5 + a-Codex pre-board hardening): reject unknown/deprecated
-    # top-level keys. A digest-consistent carrier may still smuggle a stale `eligibility` block (or
-    # anything else) that publish would embed verbatim into an integrity_verified artifact, next to
-    # the correctly-derived block — contradictory evidence under an integrity claim. eligibility is
-    # re-derived from the parent, never stored on the record.
-    unknown = set(thawed) - _RECORD_KEYS
-    if unknown:
-        raise R4SidecarError(
-            f"record has unknown/deprecated top-level key(s): {sorted(unknown)} "
-            "(rev5: eligibility is re-derived from the parent, never stored on the record)")
     reconstructed_manifest = {
         "schema": thawed["schema"], "evaluator": thawed["evaluator"],
         "runner": thawed["runner"], "parent": thawed["parent"], "panel": thawed["panel"],
     }
     if canonical_digest(reconstructed_manifest) != manifest_digest:
         raise R4SidecarError("record manifest_digest does not match the reconstructed manifest")
-    # Re-validate semantics, not just digest consistency. Completeness-over-eligible is NOT checked
-    # here: without the parent report this boundary cannot derive the eligible set, and trusting a
-    # declared one is exactly the rev4 leak. eligible_probe_ids=None => shape/ranges/endpoints only.
     m_refusals = validate_sidecar_manifest(reconstructed_manifest)
     if m_refusals:
         raise R4SidecarError("record manifest fails re-validation: " + "; ".join(m_refusals))
@@ -650,25 +782,25 @@ def _verify_record(sidecar: Any) -> dict[str, Any]:
                                      eligible_probe_ids=None)
     if c_refusals:
         raise R4SidecarError("record comparison fails re-validation: " + "; ".join(c_refusals))
-    return thawed
+    return _VerifiedSidecar(record=thawed, output_digest=output_digest,
+                            manifest_digest=manifest_digest)
 
 
-def _rederive_eligibility(verified_report: Mapping[str, Any],
-                          record: Mapping[str, Any]) -> Eligibility:
-    """Re-derive eligibility from the VERIFIED parent and cross-check the record's comparison.
+def _reverify_against_parent(verified_report: Mapping[str, Any],
+                             record: Mapping[str, Any]) -> Eligibility:
+    """The SINGLE parent-aware custody point (rev5 Isegrim + Codex #1183 F1/F2).
 
-    rev5 (Isegrim probe, 2026-07-18): the SINGLE custody point for eligibility at every parent-aware
-    boundary. The record carries no authoritative eligibility; it is a pure function of the bound
-    parent's receipts and L. Confirm the record's parent digest matches the verified report, derive
-    the eligible set from the report, and re-run the comparison validation against the DERIVED set
-    (completeness over C(N', 2) eligible pairs). A record whose per_pair does not cover exactly the
-    derived eligible set — the rev4 exploit's 6-declared-over-0-real fabrication — is REFUSED here,
-    before any C1-precondition can be computed. Digest self-consistency is not eligibility custody.
+    Bind the record's parent block + panel to the verified report via ``_check_parent_binding`` (the
+    same check the builder runs — no divergence), then RE-DERIVE eligibility from the verified parent
+    and cross-check the record's comparison covers exactly C(N', 2) over the DERIVED eligible set. A
+    hand-built record that lies about eligibility, the generation-corpus digest, or the panel — none
+    of which digest self-consistency can catch — is REFUSED here, before any C1-precondition.
     """
-    if record["parent"]["b0_report_digest"] != verified_report["published_digest"]:
-        raise R4SidecarError(
-            "sidecar parent digest does not match the sealed report's recomputed published_digest")
-    elig = partition_eligibility(verified_report, record["parent"]["sequence_length"])
+    par = record["parent"]
+    _check_parent_binding(verified_report, b0_report_digest=par["b0_report_digest"],
+                          generation_output_digest=par["generation_output_digest"],
+                          panel=record["panel"])
+    elig = partition_eligibility(verified_report, par["sequence_length"])
     refusals = validate_comparison(record["per_pair"], record["aggregate"],
                                    eligible_probe_ids=elig.eligible)
     if refusals:
@@ -678,54 +810,52 @@ def _rederive_eligibility(verified_report: Mapping[str, Any],
     return elig
 
 
-def bind_to_parent_report(sealed_report: Mapping[str, Any],
-                          sidecar: R4SidecarRecord) -> dict[str, Any]:
-    """The audit LINK between a sealed B0 report and a sidecar — parent read, never written.
-
-    Reads ONLY the verified thawed snapshot (Codex #1140 F4), and re-derives eligibility from the
-    verified parent (rev5): binding a sidecar whose comparison disagrees with the parent's true
-    eligible set is refused, not linked.
-    """
-    verified_record = _verify_record(sidecar)
-    verified_report = verify_sealed_report(sealed_report)
-    _rederive_eligibility(verified_report, verified_record)
+def _build_link(vs: _VerifiedSidecar, verified_report: Mapping[str, Any]) -> dict[str, Any]:
+    """The audit link, built from the ONE verified snapshot (never the live carrier — F3)."""
+    rec = vs.record
     link = {
         "schema": SIDECAR_SCHEMA + "-link",
         "b0_published_digest": verified_report["published_digest"],
-        "sidecar_manifest_digest": sidecar.manifest_digest,
-        "sidecar_output_digest": sidecar.output_digest,
-        "evaluator_id": verified_record["evaluator"]["evaluator_id"],
-        "evaluator_revision_sha": verified_record["evaluator"]["revision_sha"],
+        "sidecar_manifest_digest": vs.manifest_digest,
+        "sidecar_output_digest": vs.output_digest,
+        "evaluator_id": rec["evaluator"]["evaluator_id"],
+        "evaluator_revision_sha": rec["evaluator"]["revision_sha"],
     }
     assert_strict_json(link)
     link["link_digest"] = canonical_digest({k: v for k, v in link.items() if k != "link_digest"})
     return link
 
 
+def bind_to_parent_report(sealed_report: Mapping[str, Any],
+                          sidecar: R4SidecarRecord) -> dict[str, Any]:
+    """The audit LINK between a sealed B0 report and a sidecar — parent read, never written.
+
+    Verifies the carrier ONCE (Codex #1183 F3), re-derives + parent-binds from the verified report
+    (rev5 + F1/F2): binding a sidecar whose comparison, generation digest, or panel disagrees with
+    the parent is refused, not linked.
+    """
+    vs = _verify_record(sidecar)
+    verified_report = verify_sealed_report(sealed_report)
+    _reverify_against_parent(verified_report, vs.record)
+    return _build_link(vs, verified_report)
+
+
 # --------------------------------------------------------------------------- #
 # The C1-precondition decision (fail-closed).                                  #
 # --------------------------------------------------------------------------- #
-def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord) -> dict[str, Any]:
-    """Emit the exact, fail-closed R4 decision/precondition record for the future C1 boundary.
+def _build_decision(vs: _VerifiedSidecar, elig: Eligibility) -> dict[str, Any]:
+    """Compute the fail-closed C1-precondition from the ONE verified snapshot + derived eligibility.
 
     Monk #1146: rho < RHO_GATE => JSD replacement required; below the N' >= 4 floor => INCOMPLETE.
-    ONLY ``jsd_proceeds`` is a green precondition; every other state (INCOMPLETE, replacement, or any
-    invalid/non-integrity-verified evidence upstream) denies C1 authorization. The rho used is the
-    recomputed diversity-agreement rho, not merely the declared one.
-
-    rev5 (Isegrim probe): this boundary now TAKES the sealed report and re-verifies it, then
-    RE-DERIVES eligibility from that verified parent — it no longer reads a stored ``eligibility``
-    block off the record (rev4's leak: the block was declared by the caller and re-trusted here).
-    n_eligible is the DERIVED count; a fabricated comparison over non-eligible probes is refused by
-    ``_rederive_eligibility`` before any state is computed.
+    ONLY ``jsd_proceeds`` is green. The rho is recomputed from the rows, and n_eligible is the
+    DERIVED count — never a stored declaration. All identity fields come from ``vs`` (F3), so a
+    stateful carrier cannot swap a different digest in after verification.
     """
-    record = _verify_record(sidecar)                 # revalidates before deciding
-    verified_report = verify_sealed_report(sealed_report)
-    elig = _rederive_eligibility(verified_report, record)
+    rec = vs.record
     n_eligible = len(elig.eligible)
-    rows = record["per_pair"]
+    rows = rec["per_pair"]
     rho = diversity_agreement_rho([r["jsd"] for r in rows],
-                                  [r["embedding_similarity"] for r in rows])
+                                  [r["cosine_similarity"] for r in rows])
     if n_eligible < _MIN_ELIGIBLE:
         state, c1 = DECISION_INCOMPLETE, False
         reason = (f"n_eligible {n_eligible} < floor {_MIN_ELIGIBLE}: too few non-refused prompts for "
@@ -746,13 +876,27 @@ def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord) -> d
         "rho_gate": RHO_GATE,
         "n_eligible": n_eligible,
         "n_refused": len(elig.refusals),
-        "sidecar_output_digest": sidecar.output_digest,
-        "b0_report_digest": record["parent"]["b0_report_digest"],
+        "sidecar_output_digest": vs.output_digest,
+        "b0_report_digest": rec["parent"]["b0_report_digest"],
     }
     assert_strict_json(decision)
     decision["decision_digest"] = canonical_digest(
         {k: v for k, v in decision.items() if k != "decision_digest"})
     return decision
+
+
+def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord) -> dict[str, Any]:
+    """Emit the exact, fail-closed R4 decision/precondition record for the future C1 boundary.
+
+    Verifies the carrier ONCE (Codex #1183 F3), re-derives eligibility + parent-binds from the
+    verified report (rev5 + F1/F2), and builds the decision from that single snapshot. It no longer
+    reads a stored ``eligibility`` block or re-reads the live carrier; a fabricated comparison,
+    generation digest, or panel is refused by ``_reverify_against_parent`` before any state.
+    """
+    vs = _verify_record(sidecar)
+    verified_report = verify_sealed_report(sealed_report)
+    elig = _reverify_against_parent(verified_report, vs.record)
+    return _build_decision(vs, elig)
 
 
 # --------------------------------------------------------------------------- #
@@ -783,7 +927,9 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
 
     rev5 (Isegrim probe): re-derives eligibility from the verified parent (has it in hand) and
     refuses a fabricated comparison BEFORE staging any bytes; the committed artifact records the
-    DERIVED eligibility, never a caller's declaration.
+    DERIVED eligibility, never a caller's declaration. rev6 (Codex #1183): verifies the carrier ONCE
+    and builds link + decision from that single snapshot (F3), and the whole post-commit region is a
+    non-throwing terminal state machine (F4) — a readback fault downgrades, never escapes.
     """
     sidecar_path = Path(sidecar_path)
     if sidecar_path.exists() or sidecar_path.is_symlink():
@@ -792,25 +938,25 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     if parent_dir.is_symlink() or not parent_dir.is_dir():
         raise R4SidecarError(f"sidecar parent dir must be an existing non-symlink: {parent_dir}")
 
-    record = _verify_record(sidecar)
+    vs = _verify_record(sidecar)                            # F3: capture the carrier ONCE
     verified_report = verify_sealed_report(sealed_report)
-    elig = _rederive_eligibility(verified_report, record)   # rev5: refuse a fabrication before commit
-    link = bind_to_parent_report(sealed_report, sidecar)
-    decision = r4_decision(sealed_report, sidecar)
+    elig = _reverify_against_parent(verified_report, vs.record)   # refuse a fabrication before commit
+    link = _build_link(vs, verified_report)                 # internal helpers over the ONE snapshot,
+    decision = _build_decision(vs, elig)                    # never reopening the live public carrier
     artifact = {
         "schema": SIDECAR_SCHEMA + "-artifact",
-        "record": record,
+        "record": vs.record,
         # The DERIVED eligibility (from the verified parent, not a stored declaration) for audit.
         "eligibility": {
-            "sequence_length": record["parent"]["sequence_length"],
+            "sequence_length": vs.record["parent"]["sequence_length"],
             "n_eligible": len(elig.eligible),
             "eligible_probe_ids": list(elig.eligible),
             "refusals": [dict(r) for r in elig.refusals],
         },
         "link": link,
         "decision": decision,
-        "sidecar_output_digest": sidecar.output_digest,
-        "sidecar_manifest_digest": sidecar.manifest_digest,
+        "sidecar_output_digest": vs.output_digest,
+        "sidecar_manifest_digest": vs.manifest_digest,
     }
     assert_strict_json(artifact)
     artifact["published_digest"] = canonical_digest(
@@ -820,32 +966,44 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     fd, tmp_name = tempfile.mkstemp(prefix=sidecar_path.name + ".", suffix=".tmp",
                                     dir=str(parent_dir))
     tmp = Path(tmp_name)
-    disposition = DISPOSITION_VERIFIED
     try:
         os.write(fd, committed)
         os.fsync(fd)
     finally:
         os.close(fd)
-    if tmp.read_bytes() != committed:
+    if tmp.read_bytes() != committed:                       # PRE-commit: raising is safe, nothing committed
         tmp.unlink(missing_ok=True)
         raise R4SidecarError("staged sidecar bytes did not verify before commit")
-    os.link(str(tmp), str(sidecar_path))          # no-replace: fails if the target appeared
+    os.link(str(tmp), str(sidecar_path))          # COMMIT — no-replace: fails if the target appeared
 
-    # From here the final artifact exists; downgrade the disposition truthfully on any fault, but
-    # never raise over a committed artifact (Monk #1146: never ordinary success after a fault).
-    if sidecar_path.read_bytes() != committed:    # final-byte readback
-        disposition = DISPOSITION_INTEGRITY_FAILED
+    # ---- F4 (Codex #1183): a non-throwing terminal state machine. Past the commit NOTHING may
+    # raise: every readback / alias-unlink / existence / durability fault best-effort removes the
+    # writable hard-link alias and downgrades the disposition truthfully. A committed artifact is
+    # never reported as ordinary success after a fault, and the alias-removal always runs. ----
+    disposition = DISPOSITION_VERIFIED
     try:
-        tmp.unlink()                              # the writable hard-link alias MUST be removed
+        if sidecar_path.read_bytes() != committed:          # final-byte readback
+            disposition = DISPOSITION_INTEGRITY_FAILED
     except OSError:
-        disposition = DISPOSITION_INTEGRITY_FAILED   # a surviving writable alias can mutate the file
-    if tmp.exists():
+        disposition = DISPOSITION_INTEGRITY_FAILED          # cannot confirm the commit => not verified
+    try:
+        tmp.unlink()                                        # the writable hard-link alias MUST be removed
+    except OSError:
+        disposition = DISPOSITION_INTEGRITY_FAILED          # a surviving writable alias can mutate the file
+    try:
+        if tmp.exists():
+            disposition = DISPOSITION_INTEGRITY_FAILED
+    except OSError:
         disposition = DISPOSITION_INTEGRITY_FAILED
     # Directory-entry durability. A real fsync FAULT (supported but failed) is indeterminate; a
     # platform that cannot open a directory fd at all (e.g. Windows) is NOT a fault — the file was
     # already fsync'd, which is the durability the platform offers — so it does not downgrade.
-    if _fsync_dir(parent_dir) is False and disposition == DISPOSITION_VERIFIED:
-        disposition = DISPOSITION_INDETERMINATE
+    try:
+        if _fsync_dir(parent_dir) is False and disposition == DISPOSITION_VERIFIED:
+            disposition = DISPOSITION_INDETERMINATE
+    except OSError:
+        if disposition == DISPOSITION_VERIFIED:
+            disposition = DISPOSITION_INDETERMINATE
     return R4PublishResult(path=str(sidecar_path), published_digest=artifact["published_digest"],
                            committed_bytes=len(committed), disposition=disposition)
 

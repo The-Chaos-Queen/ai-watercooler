@@ -50,25 +50,59 @@ except Exception:  # noqa: BLE001
 
 PANEL_HASH = "primary-holdout-ff5e596304c6b8c4b93c"
 EVAL_SHA = "c" * 40
+_MANIFEST_DIGEST = "a" * 64               # a canonical B0 report's manifest_digest (sha256)
 _L = 3                                    # sequence length used by the synthetic-report tests
 
 
+def _reseal(report, *, panel_hash=None):
+    """Recompute the INNER seal digest + OUTER published_digest after a mutation, mirroring
+    B0EvidenceBundle.seal() + run_b0's publication (Codex #1183 F1). Sets execution_descriptor if
+    absent or if a panel_hash is given."""
+    base = {k: report[k] for k in ("schema_version", "manifest_digest", "record_count", "records")}
+    report["report_digest"] = canonical_digest(base)
+    if panel_hash is not None or "execution_descriptor" not in report:
+        report["execution_descriptor"] = {"panel_hash": panel_hash or PANEL_HASH}
+    report.pop("published_digest", None)
+    report["published_digest"] = canonical_digest({k: v for k, v in report.items()})
+    return report
+
+
 def _sealed_report(n=4, token_count=5, stop="eos"):
-    """A synthetic sealed B0 report: n probes, each with a full generation receipt (token_count>=L)."""
+    """A CANONICAL B0 report (Codex #1183 F1): the inner report_digest seal() mints + the runner's
+    publication fields; records carry ACTUAL generated_token_ids whose sha256 + count the validator
+    cross-checks, a frozen-enum stop_reason, and an execution_descriptor.panel_hash."""
     records = []
     for i in range(n):
+        gen_ids = list(range(1000 * (i + 1), 1000 * (i + 1) + token_count))   # token_count ints
         records.append({
             "probe_id": f"probe{i}",
             "raw_generation": f"gen{i}",
             "provenance": {
                 "input_token_ids_sha256": canonical_digest(f"in{i}"),
-                "generated_token_ids_sha256": canonical_digest(f"out{i}"),
-                "token_count": token_count,
+                "generated_token_ids": gen_ids,
+                "generated_token_ids_sha256": canonical_digest(gen_ids),
+                "token_count": len(gen_ids),
                 "stop_reason": stop,
             },
         })
-    report = {"schema_version": "b0-evidence-bundle-v1", "record_count": n, "records": records}
-    report["published_digest"] = canonical_digest({k: v for k, v in report.items()})
+    report = {"schema_version": "b0-evidence-bundle-v1", "manifest_digest": _MANIFEST_DIGEST,
+              "record_count": n, "records": records}
+    return _reseal(report, panel_hash=PANEL_HASH)
+
+
+def _set_record(report, i, *, tokens=None, stop=None, raw=None):
+    """Mutate a record consistently (generated_token_ids drive token_count + sha256). Caller re-seals
+    unless testing staleness."""
+    prov = report["records"][i]["provenance"]
+    if tokens is not None:
+        gen_ids = list(range(90000, 90000 + tokens))
+        prov["generated_token_ids"] = gen_ids
+        prov["generated_token_ids_sha256"] = canonical_digest(gen_ids)
+        prov["token_count"] = tokens
+    if stop is not None:
+        prov["stop_reason"] = stop
+    if raw is not None:
+        report["records"][i]["raw_generation"] = raw
     return report
 
 
@@ -85,9 +119,9 @@ def _comparison(probe_ids, *, agree=True):
         jsd = round((idx + 1) / (len(pairs) + 1), 6)
         sim = round(1.0 - jsd, 6) if agree else round(jsd, 6)
         rows.append({"pair_id": f"{a}|{b}", "probe_a": a, "probe_b": b,
-                     "jsd": jsd, "embedding_similarity": sim})
+                     "jsd": jsd, "cosine_similarity": sim})
     jsds = [r["jsd"] for r in rows]
-    sims = [r["embedding_similarity"] for r in rows]
+    sims = [r["cosine_similarity"] for r in rows]
     agg = {"spearman_rho": diversity_agreement_rho(jsds, sims),
            "mean_pairwise_jsd": sum(jsds) / len(jsds),
            "mean_pairwise_embedding": sum(sims) / len(sims),
@@ -106,7 +140,8 @@ def _manifest(report, L=_L, **over):
             "generation_output_digest": derive_generation_corpus_digest(report),
             "sequence_length": L,
         },
-        "panel": PANEL_HASH,
+        # F1f: the sidecar panel binds to the parent's execution_descriptor.panel_hash.
+        "panel": report["execution_descriptor"]["panel_hash"],
     }
     m.update(over)
     return m
@@ -141,10 +176,8 @@ def test_clean_manifest_validates():
 # --------------------------------------------------------------------------- #
 def test_short_continuations_are_a_typed_refusal_not_eligible():
     report = _sealed_report(n=5)
-    report["records"][0]["provenance"]["token_count"] = 1     # < L
-    report["records"][0]["raw_generation"] = "x"
-    report["published_digest"] = canonical_digest(
-        {k: v for k, v in report.items() if k != "published_digest"})
+    _set_record(report, 0, tokens=1, raw="x")                 # token_count 1 < L
+    _reseal(report)
     elig = partition_eligibility(verify_sealed_report(report), _L)
     assert "probe0" not in elig.eligible and len(elig.eligible) == 4
     assert any(r["probe_id"] == "probe0" and r["reason"] == "short_continuation"
@@ -153,9 +186,8 @@ def test_short_continuations_are_a_typed_refusal_not_eligible():
 
 def test_error_stop_reason_is_never_laundered_into_eligible_even_if_long():
     report = _sealed_report(n=5)
-    report["records"][0]["provenance"]["stop_reason"] = "error"   # long but unusable
-    report["published_digest"] = canonical_digest(
-        {k: v for k, v in report.items() if k != "published_digest"})
+    _set_record(report, 0, stop="error")                      # long but unusable
+    _reseal(report)
     elig = partition_eligibility(verify_sealed_report(report), _L)
     assert "probe0" not in elig.eligible
     assert any(r["probe_id"] == "probe0" and r["reason"] == "unusable_error"
@@ -164,9 +196,8 @@ def test_error_stop_reason_is_never_laundered_into_eligible_even_if_long():
 
 def test_pairs_over_all_records_are_refused_when_some_are_ineligible():
     report = _sealed_report(n=5)
-    report["records"][4]["provenance"]["token_count"] = 1        # probe4 short
-    report["published_digest"] = canonical_digest(
-        {k: v for k, v in report.items() if k != "published_digest"})
+    _set_record(report, 4, tokens=1)                          # probe4 short
+    _reseal(report)
     # Build a comparison over ALL five probes (including the short one) -> endpoint refusal.
     rows, agg = _comparison([f"probe{i}" for i in range(5)], agree=True)
     with pytest.raises(R4SidecarError) as ei:
@@ -179,9 +210,8 @@ def test_eligibility_is_derived_from_the_parent_not_stored_on_the_record(tmp_pat
     # the verified parent at every gating boundary; the PUBLISHED artifact records the DERIVED set
     # (from the verified parent), and the decision reports the derived counts.
     report = _sealed_report(n=5)
-    report["records"][0]["provenance"]["stop_reason"] = "error"
-    report["published_digest"] = canonical_digest(
-        {k: v for k, v in report.items() if k != "published_digest"})
+    _set_record(report, 0, stop="error")
+    _reseal(report)
     rec = _build(report)
     assert "eligibility" not in rec.record                    # not stored as an authority
     out = tmp_path / "r4.json"
@@ -214,20 +244,23 @@ def test_wrong_record_count_is_refused():
 
 
 def test_a_modified_report_with_a_stale_digest_is_refused():
+    # Tampering a record without re-sealing trips the INNER report_digest (records are in the seal
+    # base) before anything else — the report is not the one seal() minted.
     report = _sealed_report()
     m = _manifest(report)
-    report["records"][0]["raw_generation"] = "TAMPERED"        # digest now stale
+    report["records"][0]["raw_generation"] = "TAMPERED"        # inner+outer digests now stale
     with pytest.raises(R4SidecarError) as ei:
         build_r4_sidecar(m, sealed_report=report, per_pair=_comparison(_eligible_of(_sealed_report()))[0],
                          aggregate=_comparison(_eligible_of(_sealed_report()))[1])
-    assert "modified since sealing" in str(ei.value)
+    assert "not the sealed report" in str(ei.value)
 
 
 def test_missing_generation_receipt_is_refused():
+    # Delete a receipt field and RE-SEAL, so the report is validly sealed but the per-record receipt
+    # check is what refuses it (not the digest).
     report = _sealed_report()
     del report["records"][0]["provenance"]["stop_reason"]
-    report["published_digest"] = canonical_digest(
-        {k: v for k, v in report.items() if k != "published_digest"})
+    _reseal(report)
     with pytest.raises(R4SidecarError) as ei:
         verify_sealed_report(report)
     assert "receipt" in str(ei.value)
@@ -310,7 +343,7 @@ def test_declared_eligibility_over_a_zero_eligible_parent_cannot_green_c1(tmp_pa
 
     # The parent-FREE guard rev4 marketed against hand-built carriers is fooled: a self-consistent
     # fabrication has matching digests, a valid manifest, and a well-formed comparison. It returns.
-    assert _verify_record(forged)["parent"]["b0_report_digest"] == report["published_digest"]
+    assert _verify_record(forged).record["parent"]["b0_report_digest"] == report["published_digest"]
 
     # But every parent-AWARE boundary re-derives eligibility (0) and refuses the fabricated pairs.
     with pytest.raises(R4SidecarError) as ei_dec:
@@ -328,8 +361,8 @@ def test_a_record_smuggling_a_stored_eligibility_block_is_refused(tmp_path):
     # a-Codex pre-board finding (2026-07-18): even when the per_pair matches the DERIVED eligible
     # set (so re-derivation itself passes), a hand-built record can smuggle a stale/lying nested
     # `eligibility` block. publish embeds the record VERBATIM, so an integrity_verified artifact
-    # would carry contradictory evidence (nested says 0, derived top-level + decision say 4). rev5's
-    # closed-world record-key check refuses any unknown/deprecated top-level key before any boundary.
+    # would carry contradictory evidence (nested says 0, derived top-level + decision say 4). rev6's
+    # exact-key-set check (Codex #1183 F5) refuses any unexpected top-level key before any boundary.
     report = _sealed_report(n=4)                              # 4 truly-eligible probes
     rows, agg = _comparison(_eligible_of(report))            # honest, complete comparison over the 4
     smuggled = {
@@ -353,8 +386,180 @@ def test_a_record_smuggling_a_stored_eligibility_block_is_refused(tmp_path):
                lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
         with pytest.raises(R4SidecarError) as ei:
             op()
-        assert "unknown/deprecated top-level key" in str(ei.value)
+        assert "key set is not exact" in str(ei.value) and "eligibility" in str(ei.value)
     assert not (tmp_path / "r4.json").exists()               # nothing was committed
+
+
+# --------------------------------------------------------------------------- #
+# rev6 REGRESSIONS — Codex exact-source review of record #1183 (six findings). #
+# See MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md.                 #
+# --------------------------------------------------------------------------- #
+def _forged(record: dict):
+    """Wrap a hand-built record dict as a self-consistent exact R4SidecarRecord carrier."""
+    man = {k: record[k] for k in ("schema", "evaluator", "runner", "parent", "panel")}
+    return R4SidecarRecord(manifest_digest=canonical_digest(man),
+                           output_digest=canonical_digest(record), record=_deep_freeze(record))
+
+
+def test_f1_a_forged_inner_report_digest_is_refused():
+    # Codex #1183 F1: change ONLY the inner report_digest to 00.. and recompute the outer digest —
+    # rev5 accepted it (never recomputed the inner seal). rev6 recomputes it over the base fields.
+    report = _sealed_report()
+    report["report_digest"] = "0" * 64
+    report["published_digest"] = canonical_digest(
+        {k: v for k, v in report.items() if k != "published_digest"})
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "inner seal digest" in str(ei.value)
+
+
+def test_f1_a_stop_reason_outside_the_frozen_enum_is_refused():
+    # Codex #1183 F1: a backend_crashed stop_reason made records eligible in rev5 (str-only check).
+    report = _sealed_report(n=4)
+    _set_record(report, 0, stop="backend_crashed")
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "frozen enum" in str(ei.value)
+
+
+def test_f1_a_generated_token_ids_sha_mismatch_is_refused():
+    # Codex #1183 F1: the receipt sha must bind the ACTUAL token ids, not merely assert a hash.
+    report = _sealed_report(n=4)
+    report["records"][0]["provenance"]["generated_token_ids"] = [7, 7, 7, 7, 7]   # sha now stale
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "generated_token_ids_sha256 does not match" in str(ei.value)
+
+
+def test_f1_panel_not_bound_to_parent_execution_descriptor_is_refused():
+    # Codex #1183 F1: the sidecar panel must equal the parent execution_descriptor.panel_hash.
+    report = _sealed_report()
+    rows, agg = _comparison(_eligible_of(report))
+    manifest = _manifest(report, panel="a-different-battery-label")
+    with pytest.raises(R4SidecarError) as ei:
+        build_r4_sidecar(manifest, sealed_report=report, per_pair=rows, aggregate=agg)
+    assert "panel_hash" in str(ei.value)
+
+
+def test_f2_a_false_generation_output_digest_is_refused_at_every_boundary(tmp_path):
+    # Codex #1183 F2: the generation-corpus check lived only in the builder. A hand-built record with
+    # the REAL b0 digest + correct pairs but a FALSE generation_output_digest passed decision/publish
+    # in rev5. rev6 re-derives it at the one parent-aware boundary.
+    report = _sealed_report(n=4)
+    rows, agg = _comparison(_eligible_of(report))
+    forged = _forged({
+        "schema": SIDECAR_SCHEMA,
+        "evaluator": {"evaluator_id": "sentence-transformers/all-MiniLM-L6-v2",
+                      "revision_sha": EVAL_SHA},
+        "runner": {"runner_id": "r4_compare_sidecar", "runner_digest": "d" * 64},
+        "panel": report["execution_descriptor"]["panel_hash"],
+        "parent": {
+            "b0_report_digest": report["published_digest"],   # REAL
+            "generation_output_digest": "f" * 64,             # the lie Codex used
+            "sequence_length": _L,
+        },
+        "per_pair": rows, "aggregate": agg,
+    })
+    for op in (lambda: r4_decision(report, forged),
+               lambda: bind_to_parent_report(report, forged),
+               lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
+        with pytest.raises(R4SidecarError) as ei:
+            op()
+        assert "generation_output_digest" in str(ei.value)
+    assert not (tmp_path / "r4.json").exists()
+
+
+def test_f3_publication_uses_one_snapshot_not_live_carrier_rereads(tmp_path):
+    # Codex #1183 F3: a stateful sealed_report whose items() swaps the carrier's output_digest AFTER
+    # the one capture must not make publication embed the swapped digest. rev6 builds link/decision/
+    # artifact from the single verified snapshot, never re-reading the live carrier.
+    report = _sealed_report(n=4)
+    rec = _build(report)
+    good = rec.output_digest
+    fired = {"done": False}
+
+    class _StatefulReport(dict):
+        def items(self):
+            if not fired["done"]:
+                fired["done"] = True
+                object.__setattr__(rec, "output_digest", "f" * 64)   # swap after capture
+            return super().items()
+
+    out = tmp_path / "r4.json"
+    result = publish_r4_sidecar(_StatefulReport(report), rec, out)
+    artifact = json.loads(out.read_text(encoding="utf-8"))
+    assert result.disposition == DISPOSITION_VERIFIED
+    assert artifact["sidecar_output_digest"] == good
+    assert artifact["link"]["sidecar_output_digest"] == good
+    assert artifact["decision"]["sidecar_output_digest"] == good
+    assert "f" * 64 not in json.dumps(artifact)
+
+
+def test_f4_a_post_commit_readback_fault_downgrades_and_does_not_raise(tmp_path, monkeypatch):
+    # Codex #1183 F4: a final-byte readback OSError escaped after os.link in rev5, leaving the
+    # committed artifact + a writable .tmp alias and no disposition. rev6's post-commit region is a
+    # non-throwing terminal state machine: downgrade truthfully, still remove the alias.
+    report = _sealed_report()
+    rec = _build(report)
+    out = tmp_path / "r4.json"
+    orig_read = pathlib.Path.read_bytes
+
+    def boom(self, *a, **k):
+        if str(self) == str(out):                    # only the FINAL artifact readback
+            raise OSError("simulated readback failure")
+        return orig_read(self, *a, **k)
+
+    monkeypatch.setattr(pathlib.Path, "read_bytes", boom)
+    result = publish_r4_sidecar(report, rec, out)    # must NOT raise
+    assert result.disposition == DISPOSITION_INTEGRITY_FAILED
+    assert out.exists()                              # the artifact is committed
+    assert list(tmp_path.glob("*.tmp")) == []        # the writable alias was still removed
+
+
+def test_f5_a_record_missing_a_key_is_a_typed_refusal_not_keyerror():
+    # Codex #1183 F5: rev5's set-difference rejected extras but missing keys escaped as KeyError.
+    report = _sealed_report()
+    rows, agg = _comparison(_eligible_of(report))
+    incomplete = {
+        "schema": SIDECAR_SCHEMA,
+        "evaluator": {"evaluator_id": "sentence-transformers/all-MiniLM-L6-v2",
+                      "revision_sha": EVAL_SHA},
+        "runner": {"runner_id": "r4_compare_sidecar", "runner_digest": "d" * 64},
+        "panel": report["execution_descriptor"]["panel_hash"],
+        "parent": _manifest(report)["parent"],
+        "per_pair": rows,                            # NO "aggregate"
+    }
+    forged = R4SidecarRecord(manifest_digest="a" * 64,
+                             output_digest=canonical_digest(incomplete),
+                             record=_deep_freeze(incomplete))
+    with pytest.raises(R4SidecarError) as ei:
+        r4_decision(report, forged)
+    assert "key set is not exact" in str(ei.value) and "aggregate" in str(ei.value)
+
+
+def test_f5_a_scalar_record_root_is_a_typed_refusal_not_typeerror():
+    forged = R4SidecarRecord(manifest_digest="a" * 64, output_digest=canonical_digest(42), record=42)
+    with pytest.raises(R4SidecarError) as ei:
+        r4_decision(_sealed_report(), forged)
+    assert "root is not a mapping" in str(ei.value)
+
+
+def test_f6_output_digest_is_invariant_to_row_order_and_endpoint_orientation():
+    # Codex #1183 F6 / §5.5 line 178: rows sorted by (probe_a, probe_b), endpoints oriented, before
+    # hashing. Forward and reversed-orientation versions of the same comparison hash identically.
+    report = _sealed_report()
+    rows, agg = _comparison(_eligible_of(report))
+    fwd = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=agg)
+    reversed_rows = [{"pair_id": f'{r["probe_b"]}|{r["probe_a"]}',
+                      "probe_a": r["probe_b"], "probe_b": r["probe_a"],
+                      "jsd": r["jsd"], "cosine_similarity": r["cosine_similarity"]}
+                     for r in reversed(rows)]
+    rev = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=reversed_rows,
+                           aggregate=agg)
+    assert fwd.output_digest == rev.output_digest
+    assert [r["probe_a"] <= r["probe_b"] for r in fwd.record["per_pair"]] == [True] * len(rows)
 
 
 # --------------------------------------------------------------------------- #
@@ -571,13 +776,13 @@ def test_validate_comparison_standalone_accumulates_faults():
     # Public: the out-of-process runner can self-check before the custody boundary; faults accumulate.
     r = validate_comparison(
         per_pair=[{"pair_id": "", "probe_a": "a", "probe_b": "a", "jsd": 5.0,
-                   "embedding_similarity": None}],
+                   "cosine_similarity": None}],
         aggregate={"spearman_rho": "y", "n_pairs": 0},
         eligible_probe_ids=["a", "b"])
     assert any("pair_id" in x for x in r)
     assert any("endpoints are identical" in x for x in r)
     assert any("jsd must be in" in x for x in r)
-    assert any("embedding_similarity" in x for x in r)
+    assert any("cosine_similarity" in x for x in r)
     assert any("spearman_rho" in x for x in r)
 
 
