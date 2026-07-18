@@ -832,6 +832,7 @@ def _validate_discontinuity(event: DiscontinuityEvent, where: str) -> List[str]:
 
 def validate_history_chain(
     history: Sequence[AuditRecord], current: AuditRecord,
+    expected_judge_ref: Optional[str] = None,
 ) -> List[str]:
     """Verify the content-addressed audit chain (A4).
 
@@ -865,7 +866,7 @@ def validate_history_chain(
         return init_issues
 
     for idx, rec in enumerate(records):
-        rec_issues = validate_audit_completeness(rec)
+        rec_issues = validate_audit_completeness(rec, expected_judge_ref=expected_judge_ref)
         if rec_issues:
             issues.append(
                 f"history[{idx}] ({rec.audit_id!r}) fails schema: {rec_issues[0]}"
@@ -1657,10 +1658,23 @@ def evaluate_audit(
             _type_issues.append(
                 f"{where}: diversity_metric must be exact float or int, "
                 f"got {_safe_type_name(dm)}")
-        if disp_m is not None and not (type(disp_m) is float or (type(disp_m) is int and not isinstance(disp_m, bool))):
-            _type_issues.append(
-                f"{where}: disposition_metric must be exact float, int, or None, "
-                f"got {_safe_type_name(disp_m)}")
+        else:
+            try:
+                float(dm)
+            except OverflowError:
+                _type_issues.append(
+                    f"{where}: diversity_metric is too large to represent as a float")
+        if disp_m is not None:
+            if not (type(disp_m) is float or (type(disp_m) is int and not isinstance(disp_m, bool))):
+                _type_issues.append(
+                    f"{where}: disposition_metric must be exact float, int, or None, "
+                    f"got {_safe_type_name(disp_m)}")
+            else:
+                try:
+                    float(disp_m)
+                except OverflowError:
+                    _type_issues.append(
+                        f"{where}: disposition_metric is too large to represent as a float")
         try:
             pr = rec.probe_results
             spr = rec.slot_probe_results
@@ -1700,6 +1714,9 @@ def evaluate_audit(
                 except AttributeError as e:
                     _type_issues.append(
                         f"{where}: missing discontinuity field ({e})")
+
+    _opt_leaf(expected_judge_ref, str, "arguments", "expected_judge_ref")
+    _opt_leaf(expected_runner_origin, str, "arguments", "expected_runner_origin")
 
     _check_record(audit, "current")
     if type(history) not in (list, tuple):
@@ -1748,7 +1765,7 @@ def evaluate_audit(
             f"expected {expected_runner_origin!r}"
         )
 
-    chain_issues = validate_history_chain(history, audit)
+    chain_issues = validate_history_chain(history, audit, expected_judge_ref=expected_judge_ref)
     chain_ok = not chain_issues
     if chain_issues:
         incomplete_reasons.extend(chain_issues)
@@ -1880,37 +1897,51 @@ def evaluate_audit(
         
         # Lane 3: Slow-leak level detection with explicit reset semantics
         rt_details["slow_leak_evaluated"] = False
-        if _cal_snapshot is not None and _cal_snapshot.healthy_baseline is not None:
-            hb = _cal_snapshot.healthy_baseline
-            slt = _cal_snapshot.slow_leak_threshold
-            rt_details["slow_leak_evaluated"] = True
-            rt_details["healthy_baseline"] = hb
-            rt_details["slow_leak_threshold"] = slt
+        if _cal_snapshot is None or _cal_snapshot.healthy_baseline is None:
+            incomplete_reasons.append("slow-leak calibration must be provided for range trajectory")
+            rt_level = _worse(rt_level, GateLevel.INCOMPLETE)
+            rt_details["error"] = "missing calibration binding"
+        else:
+            try:
+                hb = float(_cal_snapshot.healthy_baseline)
+                slt = float(_cal_snapshot.slow_leak_threshold)
+            except OverflowError:
+                hb, slt = float('nan'), float('nan')
             
-            current_val = diversity_values[-1]
-            drop = hb - current_val
-            rt_details["trajectory_drop"] = round(drop, 6)
-            
-            if drop >= slt:
-                rt_details["slow_leak"] = True
-                rt_level = _worse(rt_level, GateLevel.HARD)
+            if not math.isfinite(hb) or not math.isfinite(slt):
+                incomplete_reasons.append("slow-leak calibration bounds must be finite numbers")
+                rt_level = _worse(rt_level, GateLevel.INCOMPLETE)
+                rt_details["error"] = "non-finite calibration bounds"
+            else:
+                rt_details["slow_leak_evaluated"] = True
+                rt_details["healthy_baseline"] = hb
+                rt_details["slow_leak_threshold"] = slt
+                
+                current_val = diversity_values[-1]
+                drop = hb - current_val
+                rt_details["trajectory_drop"] = round(drop, 6)
+                
+                if drop >= slt:
+                    rt_details["slow_leak"] = True
+                    rt_level = _worse(rt_level, GateLevel.HARD)
 
         reasoning.append(f"range-trajectory: {rt_level.value} "
                          f"(window={rt_details['consecutive_decline']})")
         if rt_details.get("slow_leak"):
             reasoning.append(
-                f"range-trajectory slow-leak: HARD (drop {rt_details['trajectory_drop']:.6f} >= threshold {_cal_snapshot.slow_leak_threshold})")
-        if root_event is not None:
-            reasoning.append(
-                "post-discontinuity chain: trajectory measured from the reset "
-                f"root per prereq 3; predecessor trend preserved as "
-                f"sha256:{root_event.predecessor_chain_digest[:16]}... "
-                f"({root_event.predecessor_audit_count} audits, "
-                f"event {root_event.event_ref})")
+                f"range-trajectory slow-leak: HARD (drop {rt_details['trajectory_drop']:.6f} >= threshold {slt})")
     else:
         rt_level = GateLevel.INCOMPLETE
         rt_details = {"error": "history chain broken — trajectory not evaluable"}
         reasoning.append("range-trajectory: incomplete (chain broken)")
+        
+    if root_event is not None:
+        reasoning.append(
+            "post-discontinuity chain: trajectory measured from the reset "
+            f"root per prereq 3; predecessor trend preserved as "
+            f"sha256:{root_event.predecessor_chain_digest[:16]}... "
+            f"({root_event.predecessor_audit_count} audits, "
+            f"event {root_event.event_ref})")
 
     _df = _cal_snapshot.disposition_floor if _cal_snapshot else None
     _dc = _cal_snapshot.disposition_ceiling if _cal_snapshot else None

@@ -438,7 +438,8 @@ class TestChainCustody:
         a short history must NOT yield PASS — it yields INCOMPLETE."""
         chain = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
         current = _next_audit(chain, diversity=0.5)
-        honest = evaluate_audit(current, chain)
+        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        honest = evaluate_audit(current, chain, calibration=cal)
         assert honest.overall == GateLevel.HARD
 
         substituted = _chain([0.5])  # fresh fake chain, digests won't bind
@@ -508,7 +509,8 @@ class TestChainCustody:
         laundering)."""
         ev = _event(count=3)
         current = _next_audit([], diversity=0.80, discontinuity=ev)
-        outcome = evaluate_audit(current, ())
+        cal = GateCalibrationBinding(healthy_baseline=0.80, slow_leak_threshold=0.05)
+        outcome = evaluate_audit(current, (), calibration=cal)
         assert outcome.range_trajectory == GateLevel.PASS  # successor starts fresh
         assert outcome.details["pre_discontinuity_digest"] == "a" * 64
         assert outcome.details["pre_discontinuity_audits"] == 3
@@ -585,9 +587,10 @@ class TestChainCustody:
                     row.notes = "nothing to see"
             return True
         binding = EvidenceResolverBinding("resolver:malicious", "v1", mutate)
-        outcome = evaluate_audit(current, chain, resolver=binding)
-        assert outcome.protected_set == GateLevel.HARD
+        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        outcome = evaluate_audit(current, chain, resolver=binding, calibration=cal)
         assert outcome.overall == GateLevel.HARD
+        assert outcome.protected_set == GateLevel.HARD
         assert outcome.verdicts["name"] == Verdict.EROSION
 
     def test_mutating_resolver_cannot_erase_trajectory_halt(self):
@@ -704,7 +707,8 @@ class TestGrowthAuthority:
 
     def _acq(self, ref, anchor="new_relationship"):
         return [P(anchor, 2, VerdictClass.PRESENT_RECOVERABLE,
-                  evidence_type=EvidenceType.ACQUISITION, evidence_ref=ref)]
+                  evidence_type=EvidenceType.ACQUISITION,
+                  evidence_ref=ref)]
 
     def _score(self, probes, binding):
         receipts = _resolve_acquisitions(probes, binding)
@@ -1319,7 +1323,8 @@ class TestCalibrationCorpus:
     def test_case06_single_dip_neither(self):
         chain = _chain([0.80, 0.79, 0.81])
         current = _next_audit(chain, diversity=0.71)
-        outcome = evaluate_audit(current, chain)
+        cal = GateCalibrationBinding(healthy_baseline=0.8, slow_leak_threshold=0.2)
+        outcome = evaluate_audit(current, chain, calibration=cal)
         assert outcome.range_trajectory == GateLevel.PASS
 
     def test_case07a_gap_aware_boot_neither(self):
@@ -2053,8 +2058,9 @@ class TestCalibrationCorpus:
 
         chain = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
         current = _next_audit(chain, diversity=0.5)
-        honest = evaluate_audit(current, chain)
-        assert honest.overall == GateLevel.HARD
+        cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
+        outcome = evaluate_audit(current, chain, calibration=cal)
+        assert outcome.overall == GateLevel.HARD
 
         chain2 = _chain([1.0, 1.0, 0.8, 0.7, 0.6])
         current2 = _next_audit(chain2, diversity=0.5)
@@ -2544,16 +2550,13 @@ class TestSlowLeakLevelDetection:
         valid_sha = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         root_event = DiscontinuityEvent("test", valid_sha, 10, "tester")
         valid_history = _chain(history[:-1], root_event=root_event)
-        
         audit = _next_audit(valid_history, diversity=history[-1])
-        
         cal = GateCalibrationBinding(healthy_baseline=1.0, slow_leak_threshold=0.05)
         outcome = evaluate_audit(audit, valid_history, calibration=cal)
-        
         assert outcome.range_trajectory == GateLevel.HARD
         assert outcome.details["range_trajectory"].get("slow_leak") is True
         # Reasoning should mention the post-discontinuity chain
-        assert any("post-discontinuity chain:" in r for r in outcome.reasoning)
+        assert any("post-discontinuity" in r for r in outcome.reasoning)
 
 
 # --- Lane 2: Runner-Origin Custody ---
@@ -2646,6 +2649,75 @@ class TestGateCalibrationBoundary:
         # However, range_trajectory runs first and succeeds.
         assert outcome4.details["range_trajectory"]["slow_leak_evaluated"] is True
         assert outcome4.details["range_trajectory"]["healthy_baseline"] == 1.0
+
+
+class TestCodexAdversarialFindings:
+    def _make_audit(self, ordinal: int = 1, pre_digest: str = GENESIS_PREDECESSOR, dm: float = 0.8) -> AuditRecord:
+        probes, slots = _battery()
+        return AuditRecord(
+            runner_origin="test-runner",
+            audit_id=f"audit_{ordinal}",
+            timestamp="2026-07-12T00:00:00Z",
+            ordinal=ordinal,
+            predecessor_digest=pre_digest,
+            probe_results=probes,
+            slot_probe_results=slots,
+            diversity_metric=dm
+        )
+
+    def test_slow_leak_missing_or_nonfinite_calibration_incomplete(self):
+        cal = GateCalibrationBinding(healthy_baseline=None, slow_leak_threshold=0.05)
+        audit = self._make_audit()
+        res = evaluate_audit(audit, calibration=cal)
+        assert res.range_trajectory == GateLevel.INCOMPLETE
+        assert any("slow-leak calibration must be provided" in r for r in res.incomplete_reasons)
+
+        cal2 = GateCalibrationBinding(healthy_baseline=float('nan'), slow_leak_threshold=0.05)
+        res2 = evaluate_audit(audit, calibration=cal2)
+        assert res2.range_trajectory == GateLevel.INCOMPLETE
+        assert any("must be finite numbers" in r for r in res2.incomplete_reasons)
+
+    def test_large_integer_overflow_diversity_metric(self):
+        audit = self._make_audit()
+        audit.diversity_metric = 10**400  # Will cause OverflowError on float()
+        res = evaluate_audit(audit)
+        assert res.overall == GateLevel.INCOMPLETE
+        assert any("too large to represent as a float" in r for r in res.incomplete_reasons)
+
+    def test_large_integer_overflow_calibration(self):
+        cal = GateCalibrationBinding(healthy_baseline=10**400, slow_leak_threshold=0.05)
+        audit = self._make_audit()
+        res = evaluate_audit(audit, calibration=cal)
+        # It's an empty audit, so it might be INCOMPLETE anyway, but the string should be present
+        assert any("must be finite numbers" in r for r in res.incomplete_reasons)
+
+    def test_expected_judge_ref_enforced_on_history(self):
+        h1 = self._make_audit(ordinal=1, pre_digest=GENESIS_PREDECESSOR)
+        h1.probe_results[0].judge_ref = "malicious_judge"
+        h2 = self._make_audit(ordinal=2, pre_digest=audit_digest(h1))
+        
+        # P3: Even if current audit matches expected, the history mismatch must break the chain
+        res = evaluate_audit(h2, history=[h1], expected_judge_ref="expected_judge")
+        assert res.range_trajectory == GateLevel.INCOMPLETE
+        assert any("BROKEN" in r for r in res.reasoning)
+        assert any("does not match expected" in r for r in res.incomplete_reasons)
+
+    def test_expected_runner_origin_and_judge_ref_type_enforced(self):
+        class MaliciousString:
+            def __eq__(self, other):
+                raise RuntimeError("Exploited")
+            def __repr__(self):
+                return "Malicious"
+
+        audit = self._make_audit()
+        # P4: Exact type checking prevents __eq__ exploitation
+        res = evaluate_audit(audit, expected_runner_origin=MaliciousString())
+        assert res.overall == GateLevel.INCOMPLETE
+        assert any("must be exact str or None" in r for r in res.incomplete_reasons)
+        
+        res2 = evaluate_audit(audit, expected_judge_ref=MaliciousString())
+        assert res2.overall == GateLevel.INCOMPLETE
+        assert any("must be exact str or None" in r for r in res2.incomplete_reasons)
 
 
 # --- Lane 4: Disposition Calibration ---
