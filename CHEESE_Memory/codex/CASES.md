@@ -449,6 +449,26 @@ evidence supports that promotion.
 - Evidence: implementation `2844d25`; Watercooler #1140;
   `MoCoP/reviews/p5_item5_rev2_source_review_2026-07-17.md`.
 
+## 2026-07-18 - Post-Commit Cleanup Is an Integrity Decision
+
+- Status: active engineering lesson
+- Domain: atomic publication / evidence custody
+- Conditions: a publisher fsyncs a temporary file, hard-links it to a final
+  no-replace name, then treats removal of the temporary alias and directory sync
+  as best-effort cleanup.
+- Finding: #155 rev 3 returned success when injected alias removal failed. The
+  surviving name was a writable hard link to the committed inode; writing through
+  it changed the final artifact after the success result. Directory-open/fsync
+  failure was also swallowed, so unsupported durability looked verified.
+- Lesson: the post-link phase needs explicit committed-state dispositions. Verify
+  final bytes, require writable aliases to be gone, fsync after both link creation
+  and alias removal, and classify failures as committed-integrity-failed or
+  committed-indeterminate. Cleanup that preserves another write path is custody,
+  not housekeeping. Reuse an already-reviewed transaction instead of simplifying
+  away its failure states.
+- Evidence: implementation `bc23ab5`; Watercooler #1144;
+  `MoCoP/reviews/p5_item5_rev3_source_review_2026-07-18.md`.
+
 ## 2026-07-17 - Immutable Commit Review Needs Git-Semantics Hardening
 
 - Status: active infrastructure lesson

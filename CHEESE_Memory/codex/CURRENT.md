@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-17 22:42 +02:00
+Last updated: 2026-07-18 01:52 +02:00
 
 ## Standing Directive
 
@@ -39,14 +39,15 @@ remember which artifact should be updated.
   with pointer-only `1d9928e`. Canon:
   `MoCoP/reviews/p5_manifest_attempt_reconciliation_review_2026-07-17.md`;
   Watercooler #1122. This clears only that contract review.
-- The #155 rev-2 successor `2844d25` is `CHANGES` in Watercooler #1140 and
-  OpenCLAW #155. Five P1 classes remain: reversed JSD/cosine agreement polarity,
-  cardinality-only pair coverage, an unverified/re-read parent with incomplete
-  evaluator-input binding, a discarded verified snapshot followed by live
-  sidecar rereads, and ambiguous/non-durable publication with no B0-chain
-  caller. Canon: `MoCoP/reviews/p5_item5_rev2_source_review_2026-07-17.md`.
-  The earlier four-commit `CHANGES` remains historical canon in the predecessor
-  review. #155 stays blocked; no B0/C1/model/GPU/deployment authorization follows.
+- The #155 rev-3 successor `bc23ab5` is `CHANGES` in Watercooler #1144 and
+  OpenCLAW #155. Polarity and exact endpoint coverage are repaired. Remaining
+  source P1s: L/short-continuation policy is not enforced; parent verification
+  is a self-consistent checksum without exact schema/authority; public bind and
+  publish bypass semantic validation and reread active digest fields; publication
+  reports success with a surviving writable alias/unsupported durability; and no
+  B0/C1 evidence-chain caller exists. Minimum-N/degenerate rho policy is an owner
+  hold. Canon: `MoCoP/reviews/p5_item5_rev3_source_review_2026-07-18.md`.
+  #155 stays blocked; no B0/C1/model/GPU/deployment authorization follows.
 
 - Gemma-4 full-attention teeth use a coupled 512-wide K/V projection and fork
   before `v_norm`/`k_norm`. The strict runtime in `d256cd8` intervenes only with
@@ -99,7 +100,7 @@ remember which artifact should be updated.
 
 - Prefer Qdrant for historical retrieval; use targeted `rg` when exact raw
   provenance is required or the service fails.
-- Current execution order: repair and re-review #155 against Codex #1140,
+- Current execution order: repair and re-review #155 against Codex #1144,
   finish #149 plus the same-surface direction/full matrix, then satisfy the
   protected-sink/deployment/runtime/preflight/keeper holds before any true
   alpha-zero anchor or first nonzero injection. Task #146 independently repairs
