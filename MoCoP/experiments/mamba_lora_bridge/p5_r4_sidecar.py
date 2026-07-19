@@ -109,14 +109,19 @@ from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
 from p5_b0_harness import (
+    B0_RUN_KIND,
+    B0_SCHEMA_VARIANT,
+    SCHEMA_VARIANTS,
     _is_unset,
     assert_strict_json,
     canonical_digest,
+    check_decoding_contract,
 )
 # The existing terminal-PROTOCOL verifier (Monk #1146 F2-depth). p5_b0_run is torch-free at import
 # (its only torch use is a lazy __import__ inside HFGenerationBackend.__init__), so this keeps the
-# sidecar's zero-torch property while giving "governed parent" real teeth.
-from p5_b0_run import DESCRIPTOR_KEYS, verify_terminal_frames
+# sidecar's zero-torch property while giving "governed parent" real teeth. check_device_map is the
+# producer's own load-route check (Codex #1197 F1 — reuse the frozen authority, do not re-mirror it).
+from p5_b0_run import DESCRIPTOR_KEYS, check_device_map, verify_terminal_frames
 
 SIDECAR_SCHEMA = "p5-r4-comparison-sidecar-v1"
 B0_BUNDLE_SCHEMA = "b0-evidence-bundle-v1"
@@ -222,8 +227,9 @@ def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
         out: dict[str, Any] = {}
         for k, v in obj.items():
             if type(k) is not str:
-                raise R4SidecarError(
-                    f"mapping key must be an exact str (got {type(k).__name__}: {k!r})")
+                # F3 (Codex #1197): render only the TYPE, never repr(k) — a hostile __repr__ on an
+                # untrusted key would raise and escape this refusal.
+                raise R4SidecarError(f"mapping key must be an exact str (got {type(k).__name__})")
             out[k] = _inert_snapshot(v, _depth + 1)
         return out
     if isinstance(obj, (list, tuple)):
@@ -243,6 +249,13 @@ def _canonical_bytes(obj: Any) -> bytes:
     assert_strict_json(obj)
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False,
                       ensure_ascii=True).encode("utf-8")
+
+
+def _safe_keys(keys: Any) -> list[str]:
+    """Sorted key display that never calls repr/str on an untrusted key (Codex #1197 F3): a non-str
+    key (or one with a hostile __repr__) renders as a typed placeholder, so a diagnostic on a public
+    self-check entry cannot itself raise, and sorting stays over strs (no mixed-type TypeError)."""
+    return sorted(k if type(k) is str else f"<non-str {type(k).__name__}>" for k in keys)
 
 
 # --------------------------------------------------------------------------- #
@@ -372,9 +385,12 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     records = snap["records"]
     if not isinstance(records, list) or not records:
         raise R4SidecarError("sealed_report has no records")
-    if snap["record_count"] != len(records):
+    rc = snap["record_count"]
+    if type(rc) is not int or rc != len(records):
+        # F1 (Codex #1197): EXACT int. `4.0 != 4` is False in Python, so a float record_count would
+        # otherwise pass the equality alone; the producer emits an int.
         raise R4SidecarError(
-            f"sealed_report.record_count {snap['record_count']!r} != len(records) {len(records)}")
+            f"sealed_report.record_count must be the exact int len(records) {len(records)} (got {rc!r})")
 
     # INNER digest: exactly what seal() sealed, before run_b0 appended publication fields.
     inner_stated = snap["report_digest"]
@@ -398,8 +414,8 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     ed = snap["execution_descriptor"]
     if not isinstance(ed, Mapping) or set(ed) != _B0_DESCRIPTOR_KEYS:
         raise R4SidecarError("execution_descriptor is not the canonical producer shape")
-    if type(ed["panel_hash"]) is not str or not ed["panel_hash"]:
-        raise R4SidecarError("execution_descriptor.panel_hash is absent or not a str")
+    # F1 (Codex #1197): panel_hash is a sha256 (canonical_panel_hash emits one), not any non-empty str.
+    _require_sha256(ed["panel_hash"], "execution_descriptor.panel_hash")
     _require_sha256(ed["manifest_digest"], "execution_descriptor.manifest_digest")
     _require_sha256(ed["base_manifest_digest"], "execution_descriptor.base_manifest_digest")
     if not (mdig == ed["manifest_digest"] == ed["base_manifest_digest"]):
@@ -417,6 +433,17 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
         if snap[key] != ed[key]:
             raise R4SidecarError(
                 f"sealed_report.{key} {snap[key]!r} != execution_descriptor.{key} {ed[key]!r}")
+    # F1 (Codex #1197): pin the producer POLICY VALUES, not just the top-level==descriptor equality
+    # above. A self-consistent report whose run_kind is 'c1_intervention', or whose schema_variant is
+    # the c1 closed-world value, is not a B0 baseline run_b0 could publish — rev7 checked the SHAPE of
+    # these fields but never that their values are the ones a B0 parent must carry.
+    if snap["run_kind"] != B0_RUN_KIND:
+        raise R4SidecarError(
+            f"sealed_report.run_kind must be {B0_RUN_KIND!r} for a B0 parent (got {snap['run_kind']!r})")
+    if snap["schema_variant"] not in SCHEMA_VARIANTS or snap["schema_variant"] != B0_SCHEMA_VARIANT:
+        raise R4SidecarError(
+            f"sealed_report.schema_variant must be {B0_SCHEMA_VARIANT!r} for a B0 parent "
+            f"(got {snap['schema_variant']!r})")
     if snap["terminal_state"] != "committed":
         raise R4SidecarError(
             f"sealed_report.terminal_state must be 'committed' (got {snap['terminal_state']!r})")
@@ -427,11 +454,36 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     _require_sha256(ed["decoding_hash"], "execution_descriptor.decoding_hash")
     if not isinstance(ed["decoding"], Mapping) or not ed["decoding"]:
         raise R4SidecarError("execution_descriptor.decoding must be a non-empty mapping")
+    # F1 (Codex #1197): the decoding_hash must be the digest OF this decoding (cross-bind, not merely
+    # some sha256), and the decoding must satisfy the producer's own neutralization contract — a
+    # report whose decoding samples (do_sample/temperature/top_p) is not a B0 baseline, however
+    # self-hashed. Reuse the frozen check_decoding_contract rather than re-mirroring the tiers.
+    if ed["decoding_hash"] != canonical_digest(ed["decoding"]):
+        raise R4SidecarError(
+            "execution_descriptor.decoding_hash is not the canonical digest of its own decoding block")
+    decoding_refusals = check_decoding_contract({"decoding": dict(ed["decoding"])})
+    if decoding_refusals:
+        raise R4SidecarError(
+            "execution_descriptor.decoding is not the pinned B0 neutralization set: "
+            + "; ".join(decoding_refusals))
     model = ed["model"]
     if not isinstance(model, Mapping) or not (set(DESCRIPTOR_KEYS) <= set(model)):
         raise R4SidecarError(
             "execution_descriptor.model is not a complete model descriptor "
             f"(must contain {sorted(DESCRIPTOR_KEYS)})")
+    # F1 (Codex #1197): the model descriptor VALUES must be pinned, not merely present. A model with
+    # id=None passes the key-membership check but is not a load the runner could have performed; the
+    # device_map must be an explicit single device — reuse the producer's own check_device_map.
+    for mkey in ("id", "revision", "dtype", "backend", "device", "attention"):
+        if type(model[mkey]) is not str or not model[mkey]:
+            raise R4SidecarError(f"execution_descriptor.model.{mkey} must be a non-empty str")
+    if type(model["use_cache"]) is not bool:
+        raise R4SidecarError("execution_descriptor.model.use_cache must be a bool")
+    try:
+        check_device_map(model["device_map"])
+    except Exception as exc:  # noqa: BLE001 — any check_device_map failure is a refusal of this parent
+        raise R4SidecarError(
+            f"execution_descriptor.model.device_map is not an explicit single device: {exc}") from exc
 
     seen: set[str] = set()
     for i, rec in enumerate(records):
@@ -617,7 +669,8 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
         return []
     unknown = set(aggregate) - _AGG_KEYS
     if unknown:
-        refusals.append(f"aggregate has unknown key(s): {sorted(unknown)}")
+        refusals.append(f"aggregate has unknown key(s): {_safe_keys(unknown)}")
+    range_ok: set[str] = set()
     for key, rng in (("spearman_rho", _RHO_RANGE), ("mean_pairwise_jsd", _JSD_RANGE),
                      ("mean_pairwise_embedding", _SIM_RANGE)):
         if key not in aggregate:
@@ -626,6 +679,8 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
             e = _num_in_range(aggregate[key], *rng, key)
             if e:
                 refusals.append(f"aggregate.{e}")
+            else:
+                range_ok.add(key)          # only range-passing (|v| <= 1) keys are float-recompute safe
     n = aggregate.get("n_pairs")
     if "n_pairs" not in aggregate:
         refusals.append("aggregate.n_pairs is missing")
@@ -641,12 +696,15 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
             ("mean_pairwise_embedding", sum(sims) / len(sims)),
         ]
         for key, computed in checks:
-            declared = aggregate.get(key)
-            if isinstance(declared, (int, float)) and not isinstance(declared, bool):
-                if abs(float(declared) - computed) > _RECOMPUTE_TOL:
-                    refusals.append(
-                        f"aggregate.{key} {declared} does not match the value {computed:.12g} "
-                        "recomputed from the rows; the summary must describe the rows")
+            # F3 (Codex #1197): recompute ONLY keys that passed the range check. A declared value that
+            # failed range (already refused) must not enter float() — a huge declared int (e.g.
+            # 10**400) overflows float() and raises out of this validator. |v| <= 1 makes float safe.
+            if key not in range_ok:
+                continue
+            if abs(float(aggregate[key]) - computed) > _RECOMPUTE_TOL:
+                refusals.append(
+                    f"aggregate.{key} {aggregate[key]} does not match the value {computed:.12g} "
+                    "recomputed from the rows; the summary must describe the rows")
     return refusals
 
 
@@ -685,11 +743,11 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
             refusals.append(f"per-pair row {i} is not a mapping")
             continue
         if set(row) != set(row_keys):                       # exact row shape; §5.5 has no caller pair_id
-            # sort by str: a malformed row may carry a non-str key, and sorting mixed types raises a
-            # raw TypeError on this PUBLIC self-check entry (Codex #1187 a-Codex).
+            # F3 (Codex #1197): render keys safely — never repr/str an untrusted key (a hostile
+            # __repr__ would raise) on this PUBLIC self-check entry; _safe_keys also keeps the sort
+            # over strs so a non-str key cannot raise a mixed-type TypeError either.
             refusals.append(
-                f"per-pair row {i} key set is not {sorted(row_keys)} "
-                f"(got {sorted(map(repr, row))})")
+                f"per-pair row {i} key set is not {sorted(row_keys)} (got {_safe_keys(row)})")
             continue
         a, b = row["probe_a"], row["probe_b"]
         ae = _field_error(a, _ID)
@@ -768,13 +826,24 @@ def _check_parent_binding(verified_report: Mapping[str, Any], *, b0_report_diges
             f"{parent_panel!r} — the comparison must bind to the same SEV battery")
 
 
+def _norm_num(value: Any) -> float:
+    """Canonical float for a range-VALIDATED metric (|value| <= 1): collapse -0.0 to 0.0 and any int
+    to float, so equivalent comparisons mint ONE digest (Codex #1197 F6: "0.0" and "-0.0" are
+    distinct canonical-JSON tokens, and int/float spellings differ too). float() is safe only because
+    the caller has already range-checked the value; a huge int would otherwise overflow."""
+    f = float(value)
+    return 0.0 if f == 0.0 else f
+
+
 def _canonicalize_comparison(per_pair: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     """Canonicalize comparison rows for a deterministic output digest (Codex #1183 F6 / spec §5.5
     line 178: rows sorted by (probe_a, probe_b)). Orient each row's endpoints (probe_a <= probe_b)
     and derive pair_id from the oriented endpoints, then sort rows by (probe_a, probe_b). JSD and
-    cosine are symmetric in the unordered pair, so orientation does not change them. Any row order or
-    endpoint orientation of the same comparison thus hashes identically. Runs AFTER validation, so
-    every row is known well-formed.
+    cosine are symmetric in the unordered pair, so orientation does not change them. The jsd/cosine
+    metrics are normalized to canonical float (Codex #1197 F6), so 0.0 vs -0.0 and int vs float
+    cannot mint different digests for the same comparison. Any row order, endpoint orientation, or
+    numeric spelling of the same comparison thus hashes identically. Runs AFTER validation, so every
+    row is well-formed and every metric is in range (float-safe).
     """
     canon: list[dict[str, Any]] = []
     for row in per_pair:
@@ -787,9 +856,24 @@ def _canonicalize_comparison(per_pair: Sequence[Mapping[str, Any]]) -> list[dict
         # injective and still order/orientation-canonical.
         canon.append({"pair_id": json.dumps([a, b], separators=(",", ":")),
                       "probe_a": a, "probe_b": b,
-                      "jsd": row["jsd"], "cosine_similarity": row["cosine_similarity"]})
+                      "jsd": _norm_num(row["jsd"]),
+                      "cosine_similarity": _norm_num(row["cosine_similarity"])})
     canon.sort(key=lambda r: (r["probe_a"], r["probe_b"]))
     return canon
+
+
+def _canonicalize_aggregate(aggregate: Mapping[str, Any]) -> dict[str, Any]:
+    """Normalize the stored aggregate's float metrics to canonical form (Codex #1197 F6); n_pairs
+    stays an int. Runs only over an aggregate _validate_aggregate has already accepted, so every
+    metric present is range-checked (float-safe) and the keys are exactly _AGG_KEYS. Without this a
+    hand-built record carrying a -0.0 (or int-spelled) metric would pass verify and mint a divergent
+    public digest for an equivalent comparison — the same equivalence leak the rows normalization
+    closes."""
+    out = dict(aggregate)
+    for key in ("spearman_rho", "mean_pairwise_jsd", "mean_pairwise_embedding"):
+        if key in out:
+            out[key] = _norm_num(out[key])
+    return out
 
 
 def build_r4_sidecar(
@@ -835,7 +919,7 @@ def build_r4_sidecar(
         "panel": manifest["panel"],
         "parent": dict(par),
         "per_pair": canonical_per_pair,
-        "aggregate": dict(aggregate),
+        "aggregate": _canonicalize_aggregate(aggregate),    # F6: canonical numeric form, one digest
     }
     assert_strict_json(plain_record)
     output_digest = canonical_digest(plain_record)
@@ -921,10 +1005,22 @@ def _verify_record(sidecar: Any) -> _VerifiedSidecar:
     # sorted, derived pair_id). Otherwise a hand-built non-canonical record mints a different public
     # digest for an equivalent comparison. Canonical form is a validated property of any accepted
     # record, not merely a builder convention.
-    if record["per_pair"] != _canonicalize_comparison(record["per_pair"]):
+    # F6 (Codex #1197) + rev7: the stored rows AND aggregate must BE their canonical serialization,
+    # compared by canonical BYTES, not ==. Python == treats -0.0 == 0.0 and 1 == 1.0 as equal, but
+    # those serialize to distinct canonical-JSON tokens ("-0.0" vs "0.0", "1" vs "1.0") and mint
+    # DIFFERENT public digests; a byte compare is what actually pins "equivalent comparisons share one
+    # digest" across row order, endpoint orientation, pair_id, AND numeric spelling.
+    if _canonical_bytes(record["per_pair"]) != _canonical_bytes(
+            _canonicalize_comparison(record["per_pair"])):
         raise R4SidecarError(
             "stored comparison is not in canonical form (endpoints oriented, rows sorted by "
-            "(probe_a, probe_b), pair_id derived); equivalent comparisons must share one digest")
+            "(probe_a, probe_b), pair_id derived, metrics normalized); equivalent comparisons "
+            "must share one digest")
+    if _canonical_bytes(record["aggregate"]) != _canonical_bytes(
+            _canonicalize_aggregate(record["aggregate"])):
+        raise R4SidecarError(
+            "stored aggregate is not in canonical numeric form (metrics normalized to canonical "
+            "float); equivalent comparisons must share one digest")
     return _VerifiedSidecar(record=record, output_digest=output_digest,
                             manifest_digest=manifest_digest)
 
@@ -986,13 +1082,19 @@ def bind_to_parent_report(sealed_report: Mapping[str, Any],
 # --------------------------------------------------------------------------- #
 # The C1-precondition decision (fail-closed).                                  #
 # --------------------------------------------------------------------------- #
-def _build_decision(vs: _VerifiedSidecar, elig: Eligibility) -> dict[str, Any]:
+def _build_decision(vs: _VerifiedSidecar, elig: Eligibility, *, gate: float,
+                    floor: int) -> dict[str, Any]:
     """Compute the fail-closed C1-precondition from the ONE verified snapshot + derived eligibility.
 
-    Monk #1146: rho < RHO_GATE => JSD replacement required; below the N' >= 4 floor => INCOMPLETE.
-    ONLY ``jsd_proceeds`` is green. The rho is recomputed from the rows, and n_eligible is the
-    DERIVED count — never a stored declaration. All identity fields come from ``vs`` (F3), so a
-    stateful carrier cannot swap a different digest in after verification.
+    Monk #1146: rho < gate => JSD replacement required; below the N' >= floor => INCOMPLETE. ONLY
+    ``jsd_proceeds`` is green. The rho is recomputed from the rows, and n_eligible is the DERIVED
+    count — never a stored declaration. All identity fields come from ``vs`` (F3), so a stateful
+    carrier cannot swap a different digest in after verification.
+
+    F2 (Codex #1197): ``gate`` and ``floor`` are the caller's LOCAL snapshot of RHO_GATE /
+    _MIN_ELIGIBLE, captured before any caller-controlled ``.items()`` ran during verification. Reading
+    the live module globals here would let a report/carrier whose ``items()`` reassigns
+    ``p5_r4_sidecar.RHO_GATE = -2.0`` mid-verify green a failing comparison.
     """
     rec = vs.record
     n_eligible = len(elig.eligible)
@@ -1004,24 +1106,24 @@ def _build_decision(vs: _VerifiedSidecar, elig: Eligibility) -> dict[str, Any]:
     # Take the floor outcome BEFORE trusting rho (Codex #1187 #6). Fewer than the N' >= 4 floor —
     # including N' = 0/1 whose canonical comparison is EMPTY — is the frozen INCOMPLETE, never a
     # division-by-zero or a structural refusal.
-    if n_eligible < _MIN_ELIGIBLE:
+    if n_eligible < floor:
         state, c1 = DECISION_INCOMPLETE, False
-        reason = (f"n_eligible {n_eligible} < floor {_MIN_ELIGIBLE}: too few non-refused prompts for "
+        reason = (f"n_eligible {n_eligible} < floor {floor}: too few non-refused prompts for "
                   "a meaningful Spearman; INCOMPLETE, not PASS")
-    elif rho < RHO_GATE:
+    elif rho < gate:
         state, c1 = DECISION_JSD_REPLACEMENT_REQUIRED, False
-        reason = (f"rho {rho:.6g} < {RHO_GATE}: JSD's residual is load-bearing; JSD must be replaced "
+        reason = (f"rho {rho:.6g} < {gate}: JSD's residual is load-bearing; JSD must be replaced "
                   "with the embedding measure before C1")
     else:
         state, c1 = DECISION_JSD_PROCEEDS, True
-        reason = f"rho {rho:.6g} >= {RHO_GATE}: JSD and the embedding measure agree; JSD may proceed"
+        reason = f"rho {rho:.6g} >= {gate}: JSD and the embedding measure agree; JSD may proceed"
     decision = {
         "schema": SIDECAR_SCHEMA + "-decision",
         "state": state,
         "c1_authorization_permitted": c1,
         "reason": reason,
         "recomputed_rho": rho,
-        "rho_gate": RHO_GATE,
+        "rho_gate": gate,
         "n_eligible": n_eligible,
         "n_refused": len(elig.refusals),
         "sidecar_output_digest": vs.output_digest,
@@ -1041,10 +1143,14 @@ def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord) -> d
     reads a stored ``eligibility`` block or re-reads the live carrier; a fabricated comparison,
     generation digest, or panel is refused by ``_reverify_against_parent`` before any state.
     """
+    # F2 (Codex #1197): snapshot the gate policy into LOCALS BEFORE any caller-controlled .items()
+    # runs (both verifies below iterate caller mappings), so a mid-verify reassignment of the module
+    # global RHO_GATE cannot drive the verdict. RHO_GATE stays a public, documentable module constant.
+    gate, floor = RHO_GATE, _MIN_ELIGIBLE
     vs = _verify_record(sidecar)
     verified_report = verify_sealed_report(sealed_report)
     elig = _reverify_against_parent(verified_report, vs.record)
-    return _build_decision(vs, elig)
+    return _build_decision(vs, elig, gate=gate, floor=floor)
 
 
 # --------------------------------------------------------------------------- #
@@ -1079,6 +1185,9 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     and builds link + decision from that single snapshot (F3), and the whole post-commit region is a
     non-throwing terminal state machine (F4) — a readback fault downgrades, never escapes.
     """
+    # F2 (Codex #1197): snapshot the gate policy into LOCALS before any caller-controlled .items()
+    # runs (the verifies below), so a mid-verify reassignment of RHO_GATE cannot green a commit.
+    gate, floor = RHO_GATE, _MIN_ELIGIBLE
     sidecar_path = Path(sidecar_path)
     if sidecar_path.exists() or sidecar_path.is_symlink():
         raise R4SidecarError(f"sidecar path already exists (no-replace): {sidecar_path}")
@@ -1090,7 +1199,7 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     verified_report = verify_sealed_report(sealed_report)
     elig = _reverify_against_parent(verified_report, vs.record)   # refuse a fabrication before commit
     link = _build_link(vs, verified_report)                 # internal helpers over the ONE snapshot,
-    decision = _build_decision(vs, elig)                    # never reopening the live public carrier
+    decision = _build_decision(vs, elig, gate=gate, floor=floor)   # never reopening the live carrier
     artifact = {
         "schema": SIDECAR_SCHEMA + "-artifact",
         "record": vs.record,

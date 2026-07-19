@@ -10,7 +10,7 @@ from itertools import combinations
 
 import pytest
 
-from p5_b0_harness import canonical_digest
+from p5_b0_harness import canonical_digest, check_decoding_contract
 from p5_r4_sidecar import (
     DECISION_INCOMPLETE,
     DECISION_JSD_PROCEEDS,
@@ -49,10 +49,22 @@ try:
 except Exception:  # noqa: BLE001
     _HAVE_B0 = False
 
-PANEL_HASH = "primary-holdout-ff5e596304c6b8c4b93c"
+PANEL_HASH = canonical_digest("primary-holdout-panel")   # a real sha256 (F1c: panel_hash is a digest)
 EVAL_SHA = "c" * 40
 _MANIFEST_DIGEST = "a" * 64               # a canonical B0 report's manifest_digest (sha256)
 _L = 3                                    # sequence length used by the synthetic-report tests
+
+# The pinned B0 neutralization set exactly as run_b0 emits it into execution_descriptor.decoding
+# (the effective generate kwargs, no "hash" meta-key): 8 required-explicit + 5 pinned-inert, values
+# fixed. decoding_hash is canonical_digest(decoding), matching run_b0 (~line 1900). Self-checked, so
+# any drift in the frozen contract fails HERE, loudly, not obscurely downstream.
+_DECODING = {
+    "do_sample": False, "num_beams": 1, "max_new_tokens": 160, "min_new_tokens": 0,
+    "repetition_penalty": 1.0, "no_repeat_ngram_size": 0, "eos_token_id": 1, "pad_token_id": 0,
+    "temperature": 1.0, "top_p": 1.0, "top_k": 0, "length_penalty": 1.0, "early_stopping": False,
+}
+assert check_decoding_contract({"decoding": _DECODING}) == []
+_DECODING_HASH = canonical_digest(_DECODING)
 
 
 def _exec_descriptor(panel_hash=PANEL_HASH):
@@ -61,12 +73,12 @@ def _exec_descriptor(panel_hash=PANEL_HASH):
         "panel_hash": panel_hash,
         "model": {"id": "gemma", "revision": "r", "dtype": "bf16", "backend": "hf",
                   "device": "cuda:0", "device_map": "cuda:0", "attention": "sdpa", "use_cache": False},
-        "decoding": {"do_sample": False, "max_new_tokens": 160},
-        "decoding_hash": "d" * 64,
+        "decoding": dict(_DECODING),
+        "decoding_hash": _DECODING_HASH,
         "scorer_id": "scorer", "scorer_version": "1", "scorer_blob_sha256": "e" * 64,
         "scorer_allowlist_digest": "f" * 64, "scorer_review_ref": "review#1",
         "rubric_version": "rv1", "processor_revision": "0" * 40, "runtime_hash": "b" * 64,
-        "runner_digest": "d" * 64, "schema_variant": "primary_holdout", "base_manifest_id": "base#1",
+        "runner_digest": "d" * 64, "schema_variant": "closed_world_b0", "base_manifest_id": "base#1",
         "run_kind": "b0_baseline",
         "base_manifest_digest": _MANIFEST_DIGEST, "manifest_digest": _MANIFEST_DIGEST,
     }
@@ -114,7 +126,7 @@ def _sealed_report(n=4, token_count=5, stop="eos", ids=None, panel_hash=PANEL_HA
         "record_count": len(labels),
         "records": records,
         "run_kind": "b0_baseline",
-        "schema_variant": "primary_holdout",
+        "schema_variant": "closed_world_b0",
         "base_manifest_id": "base#1",
         "execution_descriptor": _exec_descriptor(panel_hash),
         "terminal_state": "committed",
@@ -1067,3 +1079,197 @@ def test_validate_comparison_standalone_accumulates_faults():
 def test_eligibility_dataclass_shape():
     e = partition_eligibility(verify_sealed_report(_sealed_report()), _L)
     assert isinstance(e, Eligibility) and e.eligible == ("probe0", "probe1", "probe2", "probe3")
+
+
+# --------------------------------------------------------------------------- #
+# rev8 REGRESSIONS — Codex exact-source review of record #1197 (four findings).#
+# See MoCoP/reviews/p5_item5_rev7_source_review_2026-07-19.md.                 #
+# --------------------------------------------------------------------------- #
+# F1 (P1): verify_sealed_report checked producer SHAPE but not producer VALUES. Six self-consistent
+# reports run_b0 could never publish (wrong run_kind/variant, float record_count, unbound/sampling
+# decoding, null model.id, non-digest panel_hash) reached jsd_proceeds/c1=true in rev7.
+def test_f1_run_kind_must_be_the_b0_baseline_value():
+    # 'c1_intervention' on BOTH top-level and descriptor (so the duplicated-field agreement check
+    # passes) is not a B0 parent. rev7 checked shape/agreement, never the value.
+    report = _sealed_report()
+    report["run_kind"] = report["execution_descriptor"]["run_kind"] = "c1_intervention"
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "b0_baseline" in str(ei.value)
+
+
+def test_f1_schema_variant_must_be_the_b0_baseline_value():
+    # closed_world_c1 is a VALID schema-variant member but the C1 lane's, not B0's. A self-consistent
+    # c1-variant report passed rev7 (which only pinned closed-world-union membership via agreement).
+    report = _sealed_report()
+    report["schema_variant"] = report["execution_descriptor"]["schema_variant"] = "closed_world_c1"
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "closed_world_b0" in str(ei.value)
+
+
+def test_f1_record_count_must_be_an_exact_int_not_a_float():
+    # 4.0 == 4 is True in Python, so a float record_count passed rev7's equality-only check.
+    report = _sealed_report(n=4)
+    report["record_count"] = 4.0
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "exact int" in str(ei.value)
+
+
+def test_f1_decoding_hash_must_bind_its_own_decoding():
+    # rev7 only checked decoding_hash was SOME sha256, not the digest OF this decoding block.
+    report = _sealed_report()
+    report["execution_descriptor"]["decoding_hash"] = "d" * 64      # a real sha256, but unrelated
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "not the canonical digest of its own decoding" in str(ei.value)
+
+
+def test_f1_decoding_must_be_the_pinned_neutralization_set():
+    # A decoding block that samples is not a B0 baseline, however self-hashed. Re-derive its hash so
+    # the cross-bind passes and the neutralization-contract check is what fires.
+    report = _sealed_report()
+    dec = dict(_DECODING)
+    dec["do_sample"] = True                                         # sampling => not greedy baseline
+    report["execution_descriptor"]["decoding"] = dec
+    report["execution_descriptor"]["decoding_hash"] = canonical_digest(dec)
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "neutralization set" in str(ei.value)
+
+
+def test_f1_model_id_null_and_auto_device_map_are_refused():
+    # rev7 only checked model CONTAINED DESCRIPTOR_KEYS; model.id=None passed the membership check.
+    r1 = _sealed_report()
+    r1["execution_descriptor"]["model"]["id"] = None
+    _reseal(r1)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(r1)
+    assert "model.id must be a non-empty str" in str(ei.value)
+
+    r2 = _sealed_report()
+    r2["execution_descriptor"]["model"]["device_map"] = "auto"     # auto-sharding route
+    _reseal(r2)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(r2)
+    assert "explicit single device" in str(ei.value)
+
+
+def test_f1_panel_hash_must_be_a_sha256_not_any_string():
+    report = _sealed_report()
+    report["execution_descriptor"]["panel_hash"] = "not-a-digest"
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "panel_hash" in str(ei.value)
+
+
+# F2 (P1): RHO_GATE / _MIN_ELIGIBLE are mutable module globals; a caller mapping whose items() runs
+# during verification could reassign them mid-verify and green a failing decision.
+def test_f2_a_midverify_rho_gate_swap_cannot_green_a_failing_decision(monkeypatch, tmp_path):
+    import p5_r4_sidecar
+    monkeypatch.setattr(p5_r4_sidecar, "RHO_GATE", 0.7)            # ensure teardown restores 0.7
+    report = _sealed_report()
+    rec = _build(report, agree=False)                             # rho ~ -1 => replacement required
+
+    fired = {"n": 0}
+
+    class _SwapReport(dict):
+        def items(self):
+            if fired["n"] == 0:
+                p5_r4_sidecar.RHO_GATE = -2.0                     # reassign the global mid-verify
+            fired["n"] += 1
+            return super().items()
+
+    d = r4_decision(_SwapReport(report), rec)
+    assert d["c1_authorization_permitted"] is False              # captured gate 0.7, not -2.0
+    assert d["state"] == DECISION_JSD_REPLACEMENT_REQUIRED
+    assert d["rho_gate"] == 0.7
+
+    p5_r4_sidecar.RHO_GATE = 0.7                                  # reset for the publish leg
+    fired["n"] = 0
+    publish_r4_sidecar(_SwapReport(report), rec, tmp_path / "r4.json")
+    art = json.loads((tmp_path / "r4.json").read_text(encoding="utf-8"))
+    assert art["decision"]["c1_authorization_permitted"] is False and art["decision"]["rho_gate"] == 0.7
+
+
+# F3 (P2): numeric/key totality — a huge declared aggregate metric must not overflow float() in the
+# recompute, and no untrusted key may be fed to repr()/str() on a public self-check.
+def test_f3_a_huge_aggregate_metric_does_not_overflow_the_recompute():
+    report = _sealed_report(n=4)
+    rows, agg = _comparison(_eligible_of(report))
+    agg["spearman_rho"] = 10 ** 400                              # range-fail; must not enter float()
+    r = validate_comparison(rows, agg, eligible_probe_ids=list(_eligible_of(report)))
+    assert any("spearman_rho must be in" in x for x in r)        # range refusal, NOT an OverflowError
+
+
+class _BadRepr:
+    def __repr__(self):
+        raise RuntimeError("hostile __repr__")
+
+    def __hash__(self):
+        return 0
+
+    def __eq__(self, other):
+        return other is self
+
+
+def test_f3_a_hostile_repr_row_key_does_not_escape_the_refusal():
+    r = validate_comparison(
+        per_pair=[{"probe_a": "a", "probe_b": "b", "jsd": 0.5, "cosine_similarity": 0.5, _BadRepr(): "x"}],
+        aggregate={"spearman_rho": 0.0, "mean_pairwise_jsd": 0.5,
+                   "mean_pairwise_embedding": 0.5, "n_pairs": 1},
+        eligible_probe_ids=["a", "b"])
+    assert any("key set is not" in x for x in r)                 # refused; hostile __repr__ never called
+
+
+def test_f3_inert_snapshot_nonstr_key_refusal_never_reprs_the_key():
+    from p5_r4_sidecar import _inert_snapshot
+    with pytest.raises(R4SidecarError):                          # typed refusal, NOT the RuntimeError
+        _inert_snapshot({_BadRepr(): 1})
+
+
+# F6 (P2): numeric normalization — 0.0 vs -0.0 (and int vs float) verify equal under == but serialize
+# to distinct canonical-JSON tokens, minting divergent digests for equivalent comparisons.
+def test_f6_a_hand_built_negative_zero_aggregate_is_refused(tmp_path):
+    report = _sealed_report(n=3)
+    for j in range(1, 3):
+        _set_record(report, j, tokens=1)                         # leave exactly 1 eligible => empty cmp
+    _reseal(report)
+    assert len(_eligible_of(report)) == 1
+    forged = _forged({
+        "schema": SIDECAR_SCHEMA,
+        "evaluator": {"evaluator_id": "sentence-transformers/all-MiniLM-L6-v2", "revision_sha": EVAL_SHA},
+        "runner": {"runner_id": "r4_compare_sidecar", "runner_digest": "d" * 64},
+        "panel": report["execution_descriptor"]["panel_hash"],
+        "parent": _manifest(report)["parent"],
+        "per_pair": [],
+        "aggregate": {"spearman_rho": -0.0, "mean_pairwise_jsd": 0.0,
+                      "mean_pairwise_embedding": 0.0, "n_pairs": 0},
+    })
+    for op in (lambda: r4_decision(report, forged),
+               lambda: bind_to_parent_report(report, forged),
+               lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
+        with pytest.raises(R4SidecarError) as ei:
+            op()
+        assert "canonical numeric form" in str(ei.value)
+    assert not (tmp_path / "r4.json").exists()
+
+
+def test_f6_build_normalizes_negative_zero_to_one_digest():
+    report = _sealed_report(n=3)
+    for j in range(1, 3):
+        _set_record(report, j, tokens=1)
+    _reseal(report)
+    rows, _agg = _comparison(_eligible_of(report))               # empty comparison (1 eligible)
+    zero = {"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0, "mean_pairwise_embedding": 0.0, "n_pairs": 0}
+    neg = {**zero, "spearman_rho": -0.0}
+    a = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=zero)
+    b = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=neg)
+    assert a.output_digest == b.output_digest                    # -0.0 normalized to 0.0: one digest
