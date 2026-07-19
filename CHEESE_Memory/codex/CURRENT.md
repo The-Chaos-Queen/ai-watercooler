@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-18 22:17 +02:00
+Last updated: 2026-07-19 02:03 +02:00
 
 ## Standing Directive
 
@@ -37,7 +37,7 @@ remember which artifact should be updated.
   optional local-model Steward, durable named loops, safe browser console, and
   optional isolated commit-review integration. The clean package has no private
   history, live configuration, database, or credential.
-- Final public verification: 196 passed, 3 Windows-side POSIX-mode skips; Ruff
+- Final public verification: 198 passed, 3 Windows-side POSIX-mode skips; Ruff
   clean; wheel and sdist contain the advertised UI/docs/reviewer assets; fresh
   standard and `pip --target` installs resolve them through
   `watercooler-assets`. Live Chromium QA at desktop and 390px mobile had zero
@@ -50,8 +50,13 @@ remember which artifact should be updated.
   model/API responses, message-writer Summary replacement, stale-check Taskboard
   races, ambient POSIX permissions, browser/API schema drift, and incomplete
   wheel/sdist assets. Canon is the public package docs and tests.
-- Public release is still held on Laura's license choice. Do not infer or add a
-  license. The source README states this hold explicitly.
+- Laura selected Apache-2.0 under `Laura Isabell Turner`. The staging tree now
+  has matching `LICENSE`, `NOTICE`, README, SPDX package metadata, install asset
+  discovery, and archive regressions in `5545825`. Commit `39740d2` adds a
+  system-default, theme-only persisted dark-mode toggle to both frontend
+  surfaces. Verification is public 198 passed/3 Windows POSIX skips, internal
+  165 passed, Ruff clean, and desktop/mobile Chromium QA with no overlap or
+  horizontal overflow. The changes remain local and unpublished.
 - Live NUC dashboard exposure from Watercooler #1160 remains an infrastructure
   incident: port 8080 served a directory containing a permanent service token.
   The local UI fix does not rotate that token or repair the deployed web root.
@@ -70,15 +75,15 @@ remember which artifact should be updated.
   direction artifact exists yet.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
-- #155 item 5 rev 6 (`a0bdec6` + `1ec8284`) is `CHANGES` by exact-source
+- #155 item 5 rev 7 (`6597800` + `6307cf2`) is `CHANGES` by exact-source
   verdict of record. Canon:
-  `MoCoP/reviews/p5_item5_rev6_source_review_2026-07-18.md`; Watercooler
-  `#1187`; Taskboard event #806. F2 generation-corpus binding is closed, but
-  canonical-parent authority, recursive snapshot custody, and final-readback /
-  writable-alias ordering remain P1-blocking. Public row identity, caller
-  pair-ID handling, the zero/one-eligible `INCOMPLETE` outcome, and exact
-  key/schema/numeric totality remain P2. No B0/C1/model/GPU/deployment
-  authorization follows from the repair or its 438-pass suite.
+  `MoCoP/reviews/p5_item5_rev7_source_review_2026-07-19.md` at `cf93484`;
+  Watercooler `#1197`; Taskboard event #807. F2, recursive snapshot custody,
+  and alias-first final readback are closed. Canonical producer-policy value
+  membership and callback-stable decision authority remain P1. Huge numeric /
+  hostile rejected-key typed totality and canonical numeric normalization
+  remain P2. No B0/C1/model/GPU/sink/deployment authorization follows from the
+  repair or its 450-pass suite.
 - Taskboard #174 final target `70293e2` is `CHANGES` by exact-source verdict of
   record. Canon:
   `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`;
@@ -94,20 +99,21 @@ remember which artifact should be updated.
 
 ## Next Maintenance
 
-- Review only a new immutable #155 item-5 repair that closes the complete rev-6
-  public-boundary matrix together. Preserve eligibility and F2 corpus
-  re-derivation; do not accept another one-finding patch or run B0/C1 from a
-  green unit suite.
+- Review only a new immutable #155 item-5 repair that closes the complete rev-7
+  producer-policy, authority-snapshot, typed-totality, and numeric-normalization
+  matrix together. Preserve all accepted repairs; do not run B0/C1 from a green
+  unit suite.
 - Review only a new immutable #174 successor that preserves the six accepted
   fixes and carries the ratified protocol, provenance-bearing calibration,
   mandatory cross-audit judge authority, closed numeric domains, and honest
   external raw/origin scope together.
-- Ask Laura for the public license choice before publication; then add `LICENSE`
-  and matching package metadata and rerun archive verification.
+- Preserve the Apache-2.0 license and copyright metadata when committing or
+  publishing the public staging tree; publication itself remains a separate
+  explicit action.
 - Keep #157 extraction and review as separate principals/protocols. Never widen
   the strict commit reviewer into a free-form task executor.
 - Rotate the internal dispatcher token before expiry and resolve #1160 through
   the infrastructure owners; do not deploy the public staging tree implicitly.
-- Session 07 (`CHEESE_Memory/session_logs/2026-07-18-session-07.md`) contains
-  the recursive-container and publication-order custody lesson. Keep this file
-  concise by replacing stale state.
+- Session 02 (`CHEESE_Memory/session_logs/2026-07-19-session-02.md`) contains
+  rev-7 producer-policy and callback-authority evidence plus the Watercooler UI
+  verification. Keep this file concise by replacing stale state.

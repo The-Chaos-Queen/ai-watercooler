@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-18 22:17 +02:00
-- Current owner: Gidim owns the next #155 item-5 successor after Codex returned exact-source `CHANGES` on rev 6; Gemini independently owns the next #174 protocol-plus-custody repair. #157 and all run/deployment/keeper gates remain unchanged.
-- Primary focus: repair #155's canonical-parent, recursive-snapshot, and publication-order P1s as one immutable packet while preserving F2; repair #174 only after ratifying its decisive policy.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-18-session-07.md`
+- Last updated: 2026-07-19 02:03 +02:00
+- Current owner: Gidim owns the next #155 item-5 successor after Codex returned exact-source `CHANGES` on rev 7; all B0/C1/model/GPU/sink/deployment gates remain held.
+- Primary focus: close rev 7's producer-policy membership and callback-stable authority P1s together with typed totality and numeric normalization in one immutable successor.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-19-session-02.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-18-session-07.md`; 11 chunks; collection total 34,557)
+  - Latest session log ingest: done (`2026-07-19-session-02.md`; 12 chunks; collection total 34,567)
 
 ## Current State - #174 Final Exact-Source Review (2026-07-18)
 
@@ -16,19 +16,19 @@
 - **Four P1 blockers:** no owner-ratified spec for the new decisive level detector or `0.3/0.8` disposition cutoffs; judge identity may change on every audit and still `PASS` when `expected_judge_ref` is omitted; `GateCalibrationBinding` has no provenance custody; and accepted numeric domains allow invalid baseline/span configurations to produce overall `PASS`.
 - **Two P2 plus P3:** the direct disposition scorer can raise on a huge exact int, source authority/deferred-status prose is stale, and the exact delta has non-driving whitespace failures. Raw judge discrimination and true root runner origin remain external evidence/integration work. The card's existing `done` state is not endorsed or mutated; operational launch remains keeper-held.
 
-## Current State - #155 Item-5 Rev-6 Review (2026-07-18)
+## Current State - #155 Item-5 Rev-7 Review (2026-07-19)
 
-- **Verdict of record: CHANGES.** Exact target `a0bdec6` + `1ec8284` was reviewed from an immutable Git archive. Canon: `MoCoP/reviews/p5_item5_rev6_source_review_2026-07-18.md` (`d3e41a5`); Watercooler #1187; Taskboard #155 event #806. The card remains blocked and unassigned.
-- **Accepted:** F2 generation-corpus binding is closed at every reviewed parent-aware boundary. Inner-digest checking, ordinary receipt/enum/panel checks, normal-builder row canonicalization, ordinary missing/scalar refusals, and an ordinary final-read `OSError` downgrade also work.
-- **Three reproduced P1s remain:** `_thaw()` retains live nested lists and can publish record bytes that contradict the claimed sidecar digest; selected-field parent validation accepts impossible producer shapes and contradictory manifest/EOS authority; and the sole final readback occurs before writable-alias removal, permitting corrupt final bytes under `integrity_verified` after successful cleanup.
-- **Four P2 groups remain:** public verification does not enforce canonical rows/derived pair IDs; the delimiter collision repair runs after caller-ID validation; `N'=0/1` cannot emit the frozen `INCOMPLETE` outcome; and exact-key/schema/numeric totality is incomplete. Verification was `438 passed, 1 skipped`, focused `47 passed`, nine disposable probes, and two agreeing independent subreviews. No B0/C1/model/GPU/Qdrant experiment/deployment action occurred.
+- **Verdict of record: CHANGES.** Exact target `6597800` + `6307cf2` was reviewed from an immutable Git archive. Canon: `MoCoP/reviews/p5_item5_rev7_source_review_2026-07-19.md` (`cf93484`); Watercooler #1197; Taskboard #155 event #807. The card remains blocked and unassigned.
+- **Accepted:** F2 remains closed. Rev 7 closes the nested-list capture and writable-alias/readback P1s, and materially improves exact shapes, row identity/order/orientation, `N'=0/1` `INCOMPLETE`, EOS/token custody, and ordinary typed refusal.
+- **Two reproduced P1s remain:** six impossible but self-consistent B0 producer-value variants all authorize C1; and a caller `Mapping.items()` callback can replace the public live `RHO_GATE` decision authority and green anti-correlated evidence.
+- **Two P2 groups remain:** a huge aggregate int and hostile rejected-key formatter escape typed refusal; equivalent `0.0`/`-0.0` rows mint distinct public digests. Verification was `450 passed, 1 skipped`, focused R4 `59 passed`, ten disposable exact-target canaries, and clean Ruff/`py_compile`/diff checks. No B0/C1/model/GPU/Qdrant/sink/deployment/keeper action occurred.
 
 ## Current State - Public Watercooler And #157 Pickup Test (2026-07-18)
 
 - **#157 remains correctly blocked:** authenticated Taskboard context is readable, but the strict reviewer returns `body_not_json` for the prose card. It accepts only versioned full-SHA commit JSON, has message scopes only, and has no artifact/repository/ML-WS/GPU/C1/Qdrant authority. Watercooler #1162. The correct next unit is a separately authorized deterministic read-only extractor producing a frozen digest-bound packet.
-- **Fresh public staging package:** `Projects/Watercooler/` contains the generic message bus, Taskboard, grounded revisioned Summary, optional local Steward, named loops, safe browser console, and isolated commit-review integration. It carries no private history/config/database/credential. Final verification: 196 pass/3 Windows POSIX skips, Ruff clean, complete wheel/sdist, standard and `pip --target` fresh-install asset resolution, and clean desktop/mobile Chromium QA.
+- **Fresh public staging package:** `Projects/Watercooler/` contains the generic message bus, Taskboard, grounded revisioned Summary, optional local Steward, named loops, safe browser console, and isolated commit-review integration. It carries no private history/config/database/credential. Final verification: 198 pass/3 Windows POSIX skips, Ruff clean, complete wheel/sdist, standard and `pip --target` fresh-install asset resolution, and clean desktop/mobile Chromium QA.
 - **Security/behavior review closed GREEN:** bearer-token redirects/proxies, response bounds, Summary publication scope, lifecycle transaction ordering and response boundaries, POSIX runtime permissions, browser/API schema drift, and package asset discovery were repaired with regressions. Local Gemma-4-E2B-IT Steward dry-run on the 6 GB RTX 3060 Laptop passed without publication.
-- **Publication and deployment holds:** no license has been selected; do not publish until Laura chooses one and metadata matches. The package was not deployed. Watercooler #1160's exposed NUC directory/service token remains an infrastructure-owner incident; the local UI fix does not close it.
+- **Publication and deployment state:** Laura selected Apache-2.0 under `Laura Isabell Turner`; commit `5545825` carries matching license, notice, package metadata, installed assets, and archive regressions. Commit `39740d2` adds a system-default, theme-only persisted dark-mode toggle to both frontend surfaces. Public `198 passed`/3 Windows POSIX skips, internal `165 passed`, Ruff clean, and desktop/mobile Chromium QA are GREEN. The changes remain local and unpublished; publication and deployment are separate explicit actions. Watercooler #1160's exposed NUC directory/service token remains an infrastructure-owner incident; the local UI fix does not close it.
 
 ## Current State - Tooling + Reviews Session (2026-07-18 midday, Opus-substrate)
 
@@ -384,3 +384,7 @@
   - `MoCoP/experiments/mamba_lora_bridge/spikes/world_model_phase2b.py`
   - `MoCoP/experiments/mamba_lora_bridge/{world_model_trace.py,world_model_baselines.py}`
   - OpenCLAW #146/#149/#152 context before recorder, C1, or new World Model work
+
+## Edit Ledger
+- 2026-07-19 01:45 +02:00 | Gemini | Verified implementation status of #155 Rev 7 (pre-board hardening pass merged), waiting for Codex's formal review. Updated control block.
+- 2026-07-19 02:03 +02:00 | Codex / Techno-Monk | Recorded rev-7 `CHANGES`, Watercooler theme/license commits, exact verification, and unchanged operational holds.
