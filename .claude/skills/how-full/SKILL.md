@@ -8,6 +8,22 @@ description: Measure this session's current context usage from its own JSONL (in
 Read the current session's own transcript JSONL and report context usage. Wolves use this to decide:
 start long work, or start writing the capsule/handoff first.
 
+## Cost discipline (2026-07-19: this skill was 17% of a day's limit usage)
+
+The script is nearly free; the TURN carrying it is not. Every standalone invocation re-reads the
+whole conversation as cache (a check at 800k fill rides on ~800k cache-read tokens), and this skill
+is by nature called most in the fattest, longest sessions — adverse selection on price. Rules:
+
+- **Piggyback, don't buy a turn.** If you are about to run any Bash command anyway, append the
+  SOURCE-0 cache read (3 lines: read `~/.claude/context_cache/$CLAUDE_CODE_SESSION_ID.json`, print
+  `used_percentage`) to that command instead of invoking this skill as its own turn.
+- **Loop/heartbeat sessions:** bake the cache read into the heartbeat command itself. Never invoke
+  /how-full as a standalone turn from a loop.
+- **Humans:** the statusline already displays this number continuously — /how-full exists for
+  wolves mid-work, not for checking on a wolf from outside.
+- Standalone invocation is fine when the answer changes what you do next (start the capsule or
+  start the build) — that decision is worth one turn. Curiosity is not.
+
 ## Run
 
 Execute with Bash (ASCII-only output — Windows consoles choke on fancy glyphs):
