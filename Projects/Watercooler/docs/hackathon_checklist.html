@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:,">
+  <title>AI Watercooler - Build Week Checklist</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f5;
+      --surface: #ffffff;
+      --surface-quiet: #eef2ef;
+      --text: #18201b;
+      --muted: #5f6b63;
+      --border: #d1d8d3;
+      --border-strong: #9ba89f;
+      --accent: #176b4d;
+      --accent-soft: #dff1e9;
+      --blue: #245b8a;
+      --blue-soft: #e4eef8;
+      --amber: #8a5a08;
+      --amber-soft: #f8edcf;
+      --red: #a03832;
+      --red-soft: #f8e5e2;
+      --shadow: 0 8px 24px rgba(22, 32, 25, 0.08);
+      --radius: 6px;
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #151917;
+      --surface: #1d231f;
+      --surface-quiet: #252c27;
+      --text: #eef3ef;
+      --muted: #aab5ad;
+      --border: #3b463f;
+      --border-strong: #667369;
+      --accent: #69c89e;
+      --accent-soft: #203d31;
+      --blue: #8ab8e3;
+      --blue-soft: #24384b;
+      --amber: #e2bb69;
+      --amber-soft: #43371e;
+      --red: #ee938b;
+      --red-soft: #482b29;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --bg: #151917;
+        --surface: #1d231f;
+        --surface-quiet: #252c27;
+        --text: #eef3ef;
+        --muted: #aab5ad;
+        --border: #3b463f;
+        --border-strong: #667369;
+        --accent: #69c89e;
+        --accent-soft: #203d31;
+        --blue: #8ab8e3;
+        --blue-soft: #24384b;
+        --amber: #e2bb69;
+        --amber-soft: #43371e;
+        --red: #ee938b;
+        --red-soft: #482b29;
+        --shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 280px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    button, select, input { font: inherit; }
+
+    button, select {
+      min-height: 36px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    button {
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+
+    button:hover { border-color: var(--border-strong); }
+    button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      outline-offset: 2px;
+    }
+
+    a { color: var(--blue); }
+
+    .shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: start;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 680px;
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .theme-control {
+      display: inline-grid;
+      grid-template-columns: repeat(3, 1fr);
+      min-width: 220px;
+      padding: 3px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-quiet);
+    }
+
+    .theme-control button {
+      min-height: 30px;
+      padding: 4px 9px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .theme-control button[aria-pressed="true"] {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    .identity-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin: 20px 0 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .identity-item {
+      min-width: 0;
+      padding: 12px;
+      border-right: 1px solid var(--border);
+    }
+
+    .identity-item:last-child { border-right: 0; }
+    .identity-item span { display: block; }
+    .identity-label { color: var(--muted); font-size: 12px; }
+    .identity-value { margin-top: 2px; font-weight: 700; overflow-wrap: anywhere; }
+
+    .status-band {
+      display: grid;
+      grid-template-columns: 1.25fr repeat(3, minmax(120px, 0.75fr));
+      gap: 1px;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .status-cell {
+      min-height: 92px;
+      padding: 16px;
+      background: var(--surface);
+    }
+
+    .status-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-value {
+      display: block;
+      margin-top: 5px;
+      font-size: 23px;
+      font-weight: 760;
+      line-height: 1.2;
+    }
+
+    .progress-track {
+      height: 9px;
+      margin-top: 12px;
+      overflow: hidden;
+      border-radius: 5px;
+      background: var(--surface-quiet);
+    }
+
+    .progress-fill {
+      width: 0;
+      height: 100%;
+      background: var(--accent);
+      transition: width 160ms ease;
+    }
+
+    .deadline-warning { color: var(--amber); }
+    .deadline-overdue { color: var(--red); }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: end;
+      margin: 22px 0 12px;
+    }
+
+    .control {
+      display: grid;
+      gap: 4px;
+      min-width: 150px;
+    }
+
+    .control label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .control select { padding: 6px 32px 6px 9px; }
+    .toolbar-spacer { flex: 1 1 24px; }
+    .button-danger { color: var(--red); }
+
+    .notice {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      margin: 18px 0;
+      padding: 12px 14px;
+      border-left: 4px solid var(--amber);
+      background: var(--amber-soft);
+    }
+
+    .notice strong { color: var(--amber); }
+
+    .section {
+      margin-top: 28px;
+      border-top: 2px solid var(--border-strong);
+    }
+
+    .section-heading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: baseline;
+      padding: 14px 2px 10px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-size: 19px;
+      letter-spacing: 0;
+    }
+
+    .section-heading p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .section-count { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+    .task-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .task {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .task:last-child { border-bottom: 0; }
+    .task:hover { background: var(--surface-quiet); }
+    .task[hidden] { display: none; }
+
+    .task input[type="checkbox"] {
+      width: 19px;
+      height: 19px;
+      margin: 2px 0 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .task-title { display: block; font-weight: 680; }
+    .task-detail { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; }
+    .task input:checked + .task-copy .task-title { color: var(--muted); text-decoration: line-through; }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+      max-width: 260px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 2px 7px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--muted);
+      background: var(--surface);
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tag-p0 { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+    .tag-p1 { border-color: var(--amber); color: var(--amber); background: var(--amber-soft); }
+    .tag-done { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .tag-owner { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+
+    .empty-state {
+      display: none;
+      padding: 34px 16px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      text-align: center;
+      background: var(--surface);
+    }
+
+    .references {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .references a { margin-right: 14px; }
+    .save-status { min-height: 20px; margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 820px) {
+      .masthead { grid-template-columns: 1fr; }
+      .theme-control { width: 100%; }
+      .identity-grid { grid-template-columns: 1fr 1fr; }
+      .identity-item { border-bottom: 1px solid var(--border); }
+      .identity-item:nth-child(2n) { border-right: 0; }
+      .identity-item:last-child { grid-column: 1 / -1; border-bottom: 0; }
+      .status-band { grid-template-columns: 1fr 1fr; }
+      .task { grid-template-columns: 28px minmax(0, 1fr); }
+      .tags { grid-column: 2; justify-content: flex-start; max-width: none; }
+    }
+
+    @media (max-width: 520px) {
+      .shell { width: min(100% - 20px, 1120px); padding-top: 18px; }
+      h1 { font-size: 25px; }
+      .identity-grid, .status-band { grid-template-columns: 1fr; }
+      .identity-item { border-right: 0; }
+      .status-cell { min-height: 78px; }
+      .toolbar { align-items: stretch; }
+      .control, .toolbar button { width: 100%; }
+      .toolbar-spacer { display: none; }
+      .section-heading { grid-template-columns: 1fr; gap: 2px; }
+    }
+
+    @media print {
+      body { background: #fff; color: #000; }
+      .shell { width: 100%; padding: 0; }
+      .theme-control, .toolbar, .save-status { display: none; }
+      .status-band { box-shadow: none; }
+      .task { break-inside: avoid; }
+      .section { break-before: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">OpenAI Build Week 2026</p>
+        <h1>AI Watercooler Launch Checklist</h1>
+        <p class="subtitle">Local-first coordination for human and AI teams. Developer Tools track.</p>
+      </div>
+      <div class="theme-control" aria-label="Theme">
+        <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
+        <button type="button" data-theme-choice="system" aria-pressed="true">System</button>
+      </div>
+    </header>
+
+    <section class="identity-grid" aria-label="Project identity">
+      <div class="identity-item"><span class="identity-label">Display name</span><span class="identity-value">AI Watercooler</span></div>
+      <div class="identity-item"><span class="identity-label">Repository</span><span class="identity-value">ai-watercooler</span></div>
+      <div class="identity-item"><span class="identity-label">Python package</span><span class="identity-value">watercooler-agents</span></div>
+      <div class="identity-item"><span class="identity-label">Demo</span><span class="identity-value">watercooler.hurtig.ai</span></div>
+      <div class="identity-item"><span class="identity-label">Deadline</span><span class="identity-value">22 Jul, 02:00 CEST</span></div>
+    </section>
+
+    <section class="status-band" aria-label="Checklist status">
+      <div class="status-cell">
+        <span class="status-label">Overall progress</span>
+        <span class="status-value" id="progressText">0 / 0</span>
+        <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+      <div class="status-cell">
+        <span class="status-label">Hard blockers open</span>
+        <span class="status-value" id="blockerCount">0</span>
+      </div>
+      <div class="status-cell">
+        <span class="status-label">Time remaining</span>
+        <span class="status-value" id="countdown">Calculating</span>
+      </div>
+      <div class="status-cell">
+        <span class="status-label">Last change</span>
+        <span class="status-value" id="lastChange">Initial state</span>
+      </div>
+    </section>
+
+    <div class="notice">
+      <strong>Release boundary</strong>
+      <span>The hosted demo uses synthetic data, restricted identities, rate limits, automatic reset, and no lab database or permanent service token.</span>
+    </div>
+
+    <div class="toolbar" aria-label="Checklist controls">
+      <div class="control">
+        <label for="ownerFilter">Owner</label>
+        <select id="ownerFilter">
+          <option value="all">Everyone</option>
+          <option value="engineering">Engineering</option>
+          <option value="laura">Laura</option>
+          <option value="shared">Shared</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="statusFilter">Status</label>
+        <select id="statusFilter">
+          <option value="all">All items</option>
+          <option value="open">Open</option>
+          <option value="done">Complete</option>
+        </select>
+      </div>
+      <div class="toolbar-spacer"></div>
+      <button type="button" id="exportButton">Export progress</button>
+      <button type="button" id="importButton">Import progress</button>
+      <button type="button" id="printButton">Print</button>
+      <button type="button" id="resetButton" class="button-danger">Reset</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+    <p class="save-status" id="saveStatus" aria-live="polite"></p>
+
+    <div id="checklist"></div>
+    <div class="empty-state" id="emptyState">No checklist items match these filters.</div>
+
+    <footer class="references">
+      <strong>References:</strong>
+      <a href="https://openai.devpost.com/" target="_blank" rel="noreferrer">Build Week</a>
+      <a href="https://openai.devpost.com/rules" target="_blank" rel="noreferrer">Rules</a>
+      <a href="https://openai.devpost.com/details/faqs" target="_blank" rel="noreferrer">Submission FAQ</a>
+      <a href="https://learn.chatgpt.com/docs/auth#openai-authentication" target="_blank" rel="noreferrer">OpenAI authentication</a>
+      <a href="../README.md">Project README</a>
+    </footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    const STORAGE_KEY = "ai-watercooler-hackathon-checklist-v1";
+    const THEME_KEY = "ai-watercooler-hackathon-theme";
+    const DEADLINE = new Date("2026-07-22T02:00:00+02:00");
+
+    const sections = [
+      {
+        id: "foundation",
+        title: "Foundation",
+        description: "Reviewed capabilities already present in the public staging tree.",
+        tasks: [
+          { id: "foundation-package", title: "Public staging package", detail: "Generic message bus, Taskboard, Summary, Steward, loops, web console, and isolated reviewer.", owner: "engineering", priority: "done", defaultDone: true },
+          { id: "foundation-license", title: "Apache-2.0 licensing", detail: "LICENSE, NOTICE, package metadata, and archive coverage under Laura Isabell Turner.", owner: "engineering", priority: "done", defaultDone: true },
+          { id: "foundation-dispatch", title: "Silent Codex review dispatcher", detail: "Bounded commit review integration with isolated execution and least-privilege authority.", owner: "engineering", priority: "done", defaultDone: true },
+          { id: "foundation-theme", title: "Persistent dark mode", detail: "System default plus explicit theme persistence across both existing frontend surfaces.", owner: "engineering", priority: "done", defaultDone: true },
+          { id: "foundation-steward", title: "Local Gemma Steward", detail: "Dry-run tested with Gemma-4-E2B-IT through LM Studio; strict grounded Summary contract remains CAS-bound.", owner: "engineering", priority: "done", defaultDone: true },
+          { id: "foundation-tests", title: "Public release verification", detail: "198 tests passed, 3 Windows POSIX-mode skips, Ruff clean, package asset and browser checks complete.", owner: "engineering", priority: "done", defaultDone: true },
+          { id: "foundation-evidence", title: "Post-July-13 build evidence", detail: "Commit history records meaningful Codex-assisted extensions during the submission period.", owner: "engineering", priority: "done", defaultDone: true }
+        ]
+      },
+      {
+        id: "eligibility",
+        title: "Eligibility and Steward",
+        description: "The shortest defensible path to meaningful GPT-5.6 use.",
+        tasks: [
+          { id: "provider-contract", title: "Introduce Steward provider profiles", detail: "Separate protocol, base URL, model, credential reference, timeout, output limit, and active state.", owner: "engineering", priority: "p0" },
+          { id: "provider-openai", title: "Add the direct OpenAI provider", detail: "Use GPT-5.6 for citation-bound Summary drafting while deterministic validation and publication authority stay unchanged.", owner: "engineering", priority: "p0" },
+          { id: "provider-compatible", title: "Preserve local and OpenAI-compatible providers", detail: "Keep LM Studio and support presets for OpenRouter, Kimi/Moonshot, vLLM, Ollama, and custom endpoints.", owner: "engineering", priority: "p0" },
+          { id: "provider-secrets", title: "Add protected credential handling", detail: "Support .env for headless use and a server-side secret store for Administration; never return existing secrets to the browser.", owner: "engineering", priority: "p0" },
+          { id: "provider-ui", title: "Build Administration > Steward setup", detail: "Provider selector, model field/catalog, masked credential state, connection test, and activate action.", owner: "engineering", priority: "p0" },
+          { id: "provider-proof", title: "Capture one real GPT-5.6 dry-run proof", detail: "Record model, provider, bounded workset, validated output, and non-publication by default without recording the API key.", owner: "shared", priority: "p0" },
+          { id: "provider-codex", title: "Optional Codex CLI provider", detail: "Delegate ChatGPT authentication to installed Codex rather than implementing or storing OpenAI OAuth tokens ourselves.", owner: "engineering", priority: "p2" }
+        ]
+      },
+      {
+        id: "repository",
+        title: "Repository and Release",
+        description: "Standalone publication, reproducible installation, and reviewable history.",
+        tasks: [
+          { id: "repo-create", title: "Create empty public GitHub repository: ai-watercooler", detail: "Do not initialize it with a generated README, license, or .gitignore.", owner: "laura", priority: "p0" },
+          { id: "repo-publish", title: "Publish the reviewed staging tree", detail: "Preserve Apache-2.0 metadata and document the source commit mapping from the private development repository.", owner: "engineering", priority: "p0" },
+          { id: "repo-ci", title: "Add GitHub Actions CI", detail: "Run unit tests, Ruff, package build, and clean-install verification on supported platforms.", owner: "engineering", priority: "p0" },
+          { id: "repo-release", title: "Create the v0.1.0 release", detail: "Build wheel and source distribution, attach artifacts, and verify installation from the release artifact.", owner: "engineering", priority: "p1" },
+          { id: "repo-security", title: "Run the final publication audit", detail: "Secret scan, private-name scan, dependency notices, fresh install, browser checks, and clean Git status.", owner: "engineering", priority: "p0" }
+        ]
+      },
+      {
+        id: "human-ui",
+        title: "Human Workspace",
+        description: "Operational controls needed when the human is not reading every thread.",
+        tasks: [
+          { id: "messages-filters", title: "Add message filters", detail: "Filter by author, recipient, thread, and explicit time range; expose author separately from participant.", owner: "engineering", priority: "p0" },
+          { id: "messages-search", title: "Make search compose with filters", detail: "Apply all active filters to FTS results and retain them across pagination.", owner: "engineering", priority: "p0" },
+          { id: "messages-order", title: "Add newest-first and oldest-first ordering", detail: "Implement an explicit API order parameter and stable cursor behavior in both directions.", owner: "engineering", priority: "p0" },
+          { id: "task-details", title: "Add a task detail view", detail: "Render the existing task event timeline, comments, artifacts, assignee, lease, and blocked reason.", owner: "engineering", priority: "p0" },
+          { id: "task-actions-existing", title: "Expose existing task lifecycle actions", detail: "Add comment, block, unblock, release, and reassign controls alongside Claim and Done.", owner: "engineering", priority: "p0" },
+          { id: "task-reopen", title: "Implement task reopen", detail: "Add a reviewed server transition, CLI action, UI control, event record, and tests.", owner: "engineering", priority: "p0" },
+          { id: "task-manage-scope", title: "Introduce tasks:manage authority", detail: "Reserve reassign, reopen, and orchestrator transitions for designated identities rather than every tasks:write token.", owner: "engineering", priority: "p0" },
+          { id: "fable-design", title: "Run the Claude Fable design pass", detail: "Polish the frozen information architecture and interaction states before final cross-viewport verification.", owner: "laura", priority: "p1" },
+          { id: "ui-regression", title: "Run browser and accessibility regression", detail: "Check desktop and mobile layout, keyboard navigation, focus states, empty/error/loading states, and console output.", owner: "engineering", priority: "p0" }
+        ]
+      },
+      {
+        id: "administration",
+        title: "Administration",
+        description: "Server-owned configuration and identity management, gated by explicit authority.",
+        tasks: [
+          { id: "admin-shell", title: "Create the Administration workspace", detail: "Expose Steward, Identities, Tokens, Appearance, and Data sections only to authorized sessions.", owner: "engineering", priority: "p0" },
+          { id: "admin-tokens", title: "Expose token lifecycle management", detail: "List, mint, rotate, revoke, inspect expiry, and select scopes without exposing stored bearer values.", owner: "engineering", priority: "p0" },
+          { id: "admin-roster", title: "Make the roster editable", detail: "Add, edit, order, activate, and retire entities using the existing roster synchronization contract.", owner: "engineering", priority: "p1" },
+          { id: "admin-appearance", title: "Add constrained appearance settings", detail: "Theme, accent, density, and application name; do not accept arbitrary HTML, CSS, or script.", owner: "engineering", priority: "p1" },
+          { id: "admin-export", title: "Export a versioned backup", detail: "Use a consistent SQLite snapshot plus a manifest; omit provider secrets unless separately encrypted.", owner: "engineering", priority: "p1" },
+          { id: "admin-import", title: "Implement guarded backup import", detail: "Maintenance mode, schema validation, integrity check, pre-import backup, atomic replacement, and restart.", owner: "engineering", priority: "p2" }
+        ]
+      },
+      {
+        id: "mcp",
+        title: "MCP Integration",
+        description: "Promote the existing internal adapter into a generic, supported package surface.",
+        tasks: [
+          { id: "mcp-generic", title: "Genericize the internal MCP server", detail: "Remove MoCoP-specific defaults and language from tools/ai_watercooler/watercooler_mcp_server.py.", owner: "engineering", priority: "p0" },
+          { id: "mcp-package", title: "Package the MCP server as an optional extra", detail: "Support pip install watercooler-agents[mcp] and a watercooler-mcp entry point.", owner: "engineering", priority: "p0" },
+          { id: "mcp-transports", title: "Support STDIO and authenticated streamable HTTP", detail: "Cover local clients and remote installations without weakening bearer-token boundaries.", owner: "engineering", priority: "p0" },
+          { id: "mcp-scopes", title: "Preserve Watercooler scopes through MCP", detail: "Every tool remains bounded by the configured session token; administrative tools stay disabled by default.", owner: "engineering", priority: "p0" },
+          { id: "mcp-docs", title: "Add MCP documentation and tests", detail: "Publish client examples, capability matrix, authentication guidance, and transport regression tests.", owner: "engineering", priority: "p1" }
+        ]
+      },
+      {
+        id: "activity",
+        title: "Activity and Health",
+        description: "Coordination signals rather than a raw posting leaderboard.",
+        tasks: [
+          { id: "activity-api", title: "Add bounded activity metrics endpoints", detail: "Support 7-day and 30-day windows with indexed aggregate queries and explicit timezone handling.", owner: "engineering", priority: "p1" },
+          { id: "activity-page", title: "Build the Activity page", detail: "Show message volume, active participants and threads, task flow, completion time, blocked age, stale claims, and response latency.", owner: "engineering", priority: "p1" },
+          { id: "activity-topics", title: "Add trending tags and topics", detail: "Use deterministic tags and bounded FTS aggregation; keep model-generated topic clustering out of the initial release.", owner: "engineering", priority: "p1" },
+          { id: "activity-contributors", title: "Show contributor activity with context", detail: "Treat post count as activity only, never as a performance or success score.", owner: "engineering", priority: "p2" }
+        ]
+      },
+      {
+        id: "demo",
+        title: "Hosted Demo",
+        description: "A judge-ready instance isolated from the live research environment.",
+        tasks: [
+          { id: "demo-dns", title: "Point watercooler.hurtig.ai at the Hetzner host", detail: "Prepare DNS and server access without exposing existing lab services.", owner: "laura", priority: "p0" },
+          { id: "demo-container", title: "Add reproducible deployment configuration", detail: "Containerize the service, static frontend, persistent demo volume, and reverse proxy configuration.", owner: "engineering", priority: "p0" },
+          { id: "demo-data", title: "Create synthetic seed data", detail: "Demonstrate multi-agent messages, task comments, lifecycle transitions, summaries, and activity metrics without copying private records.", owner: "engineering", priority: "p0" },
+          { id: "demo-access", title: "Create restricted judge access", detail: "Use a disposable test identity or server-side session with only the scopes required for the demonstration.", owner: "shared", priority: "p0" },
+          { id: "demo-hardening", title: "Harden the public boundary", detail: "HTTPS, same-origin proxy, rate limiting, security headers, request limits, no directory listing, and no token in static files.", owner: "engineering", priority: "p0" },
+          { id: "demo-reset", title: "Automate demo reset and health monitoring", detail: "Regularly restore the synthetic database and keep the testing route available through judging.", owner: "engineering", priority: "p1" },
+          { id: "demo-smoke", title: "Run external clean-browser smoke tests", detail: "Verify onboarding, messages, filters, Taskboard actions, Summary, Activity, and mobile layout through the public hostname.", owner: "shared", priority: "p0" }
+        ]
+      },
+      {
+        id: "submission",
+        title: "Devpost Submission",
+        description: "Human-owned publication steps and judge-facing evidence.",
+        tasks: [
+          { id: "submit-register", title: "Join the Build Week challenge", detail: "Confirm Laura's Devpost registration and project eligibility.", owner: "laura", priority: "p0" },
+          { id: "submit-track", title: "Select Developer Tools", detail: "Position AI Watercooler as a local-first coordination plane for heterogeneous agent teams.", owner: "laura", priority: "p0" },
+          { id: "submit-doc", title: "Add HACKATHON.md", detail: "Document pre-existing work, post-July-13 extensions, Codex contribution, GPT-5.6 role, supported platforms, limitations, and judge quickstart.", owner: "engineering", priority: "p0" },
+          { id: "submit-feedback", title: "Record the primary Codex /feedback Session ID", detail: "Use the Codex build thread containing the majority of the submitted functionality.", owner: "laura", priority: "p0" },
+          { id: "submit-copy", title: "Write the Devpost description", detail: "Explain the problem, workflow, architecture, Codex use, GPT-5.6 use, privacy boundary, and impact without internal project lore.", owner: "shared", priority: "p0" },
+          { id: "submit-screens", title: "Capture submission screenshots", detail: "Show the message workspace, Taskboard details, Steward summary, Administration, Activity, and mobile view.", owner: "shared", priority: "p0" },
+          { id: "submit-video", title: "Record a public demo under three minutes", detail: "Use spoken narration, show the working product and both required model roles, and use no unlicensed commercial music.", owner: "laura", priority: "p0" },
+          { id: "submit-repo", title: "Attach repository and testing route", detail: "Provide the public repository, release artifact, supported platforms, demo URL, and test instructions.", owner: "laura", priority: "p0" },
+          { id: "submit-final", title: "Submit before 22 July, 02:00 CEST", detail: "Perform a final link, visibility, video, repository, license, and testing-path check before submission.", owner: "laura", priority: "p0" }
+        ]
+      }
+    ];
+
+    const knownTasks = new Map(sections.flatMap(section => section.tasks).map(task => [task.id, task]));
+
+    function defaultState() {
+      const checked = {};
+      for (const [id, task] of knownTasks) checked[id] = Boolean(task.defaultDone);
+      return { version: 1, checked, updatedAt: null };
+    }
+
+    function loadState() {
+      const fallback = defaultState();
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!parsed || parsed.version !== 1 || typeof parsed.checked !== "object") return fallback;
+        for (const id of knownTasks.keys()) {
+          if (typeof parsed.checked[id] === "boolean") fallback.checked[id] = parsed.checked[id];
+        }
+        fallback.updatedAt = typeof parsed.updatedAt === "string" ? parsed.updatedAt : null;
+      } catch (_) {
+        return fallback;
+      }
+      return fallback;
+    }
+
+    let state = loadState();
+
+    function saveState(message) {
+      state.updatedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      document.getElementById("saveStatus").textContent = message || "Progress saved in this browser.";
+      updateSummary();
+    }
+
+    function ownerLabel(owner) {
+      return owner === "laura" ? "Laura" : owner === "shared" ? "Shared" : "Engineering";
+    }
+
+    function priorityLabel(priority) {
+      if (priority === "p0") return "P0";
+      if (priority === "p1") return "P1";
+      if (priority === "p2") return "Post-submission";
+      return "Verified";
+    }
+
+    function renderChecklist() {
+      const root = document.getElementById("checklist");
+      root.replaceChildren();
+
+      for (const section of sections) {
+        const wrapper = document.createElement("section");
+        wrapper.className = "section";
+        wrapper.dataset.section = section.id;
+
+        const heading = document.createElement("div");
+        heading.className = "section-heading";
+        heading.innerHTML = `<div><h2>${section.title}</h2><p>${section.description}</p></div><span class="section-count" data-section-count="${section.id}"></span>`;
+        wrapper.appendChild(heading);
+
+        const list = document.createElement("ul");
+        list.className = "task-list";
+        for (const task of section.tasks) {
+          const item = document.createElement("li");
+          item.className = "task";
+          item.dataset.taskId = task.id;
+          item.dataset.owner = task.owner;
+          item.dataset.priority = task.priority;
+
+          const input = document.createElement("input");
+          input.type = "checkbox";
+          input.id = `task-${task.id}`;
+          input.checked = Boolean(state.checked[task.id]);
+          input.setAttribute("aria-label", task.title);
+          input.addEventListener("change", () => {
+            state.checked[task.id] = input.checked;
+            updateFilters();
+            saveState(input.checked ? `Completed: ${task.title}` : `Reopened: ${task.title}`);
+          });
+
+          const copy = document.createElement("label");
+          copy.className = "task-copy";
+          copy.htmlFor = input.id;
+          const title = document.createElement("span");
+          title.className = "task-title";
+          title.textContent = task.title;
+          const detail = document.createElement("span");
+          detail.className = "task-detail";
+          detail.textContent = task.detail;
+          copy.append(title, detail);
+
+          const tags = document.createElement("div");
+          tags.className = "tags";
+          const priority = document.createElement("span");
+          priority.className = `tag tag-${task.priority}`;
+          priority.textContent = priorityLabel(task.priority);
+          const owner = document.createElement("span");
+          owner.className = "tag tag-owner";
+          owner.textContent = ownerLabel(task.owner);
+          tags.append(priority, owner);
+
+          item.append(input, copy, tags);
+          list.appendChild(item);
+        }
+        wrapper.appendChild(list);
+        root.appendChild(wrapper);
+      }
+      updateFilters();
+      updateSummary();
+    }
+
+    function updateFilters() {
+      const owner = document.getElementById("ownerFilter").value;
+      const status = document.getElementById("statusFilter").value;
+      let visibleTotal = 0;
+
+      for (const section of sections) {
+        let visibleInSection = 0;
+        let completedInSection = 0;
+        for (const task of section.tasks) {
+          const done = Boolean(state.checked[task.id]);
+          const ownerMatches = owner === "all" || task.owner === owner;
+          const statusMatches = status === "all" || (status === "done" ? done : !done);
+          const visible = ownerMatches && statusMatches;
+          const row = document.querySelector(`[data-task-id="${task.id}"]`);
+          row.hidden = !visible;
+          if (visible) {
+            visibleInSection += 1;
+            visibleTotal += 1;
+          }
+          if (done) completedInSection += 1;
+        }
+        const wrapper = document.querySelector(`[data-section="${section.id}"]`);
+        wrapper.hidden = visibleInSection === 0;
+        document.querySelector(`[data-section-count="${section.id}"]`).textContent = `${completedInSection} / ${section.tasks.length} complete`;
+      }
+      document.getElementById("emptyState").style.display = visibleTotal === 0 ? "block" : "none";
+    }
+
+    function updateSummary() {
+      const tasks = [...knownTasks.values()];
+      const completed = tasks.filter(task => state.checked[task.id]).length;
+      const blockers = tasks.filter(task => task.priority === "p0" && !state.checked[task.id]).length;
+      const percent = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
+      document.getElementById("progressText").textContent = `${completed} / ${tasks.length} (${percent}%)`;
+      document.getElementById("progressFill").style.width = `${percent}%`;
+      document.getElementById("blockerCount").textContent = String(blockers);
+      document.getElementById("lastChange").textContent = state.updatedAt
+        ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(state.updatedAt))
+        : "Initial state";
+    }
+
+    function updateCountdown() {
+      const output = document.getElementById("countdown");
+      const delta = DEADLINE.getTime() - Date.now();
+      const absolute = Math.abs(delta);
+      const days = Math.floor(absolute / 86400000);
+      const hours = Math.floor((absolute % 86400000) / 3600000);
+      const minutes = Math.floor((absolute % 3600000) / 60000);
+      output.classList.toggle("deadline-warning", delta > 0 && delta < 24 * 3600000);
+      output.classList.toggle("deadline-overdue", delta <= 0);
+      output.textContent = delta > 0
+        ? `${days}d ${hours}h ${minutes}m`
+        : `Overdue ${days}d ${hours}h`;
+    }
+
+    function setTheme(choice) {
+      if (choice === "system") document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.dataset.theme = choice;
+      localStorage.setItem(THEME_KEY, choice);
+      document.querySelectorAll("[data-theme-choice]").forEach(button => {
+        button.setAttribute("aria-pressed", String(button.dataset.themeChoice === choice));
+      });
+    }
+
+    function exportProgress() {
+      const payload = {
+        product: "AI Watercooler",
+        exportedAt: new Date().toISOString(),
+        deadline: DEADLINE.toISOString(),
+        state,
+        tasks: [...knownTasks.values()].map(task => ({ id: task.id, title: task.title }))
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ai-watercooler-checklist-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      document.getElementById("saveStatus").textContent = "Progress exported.";
+    }
+
+    async function importProgress(file) {
+      try {
+        const parsed = JSON.parse(await file.text());
+        const imported = parsed && parsed.state ? parsed.state : parsed;
+        if (!imported || imported.version !== 1 || typeof imported.checked !== "object") throw new Error("Unsupported checklist file");
+        const next = defaultState();
+        for (const id of knownTasks.keys()) {
+          if (typeof imported.checked[id] === "boolean") next.checked[id] = imported.checked[id];
+        }
+        state = next;
+        saveState("Progress imported.");
+        renderChecklist();
+      } catch (_) {
+        document.getElementById("saveStatus").textContent = "Import refused: invalid checklist file.";
+      }
+    }
+
+    document.getElementById("ownerFilter").addEventListener("change", updateFilters);
+    document.getElementById("statusFilter").addEventListener("change", updateFilters);
+    document.getElementById("exportButton").addEventListener("click", exportProgress);
+    document.getElementById("importButton").addEventListener("click", () => document.getElementById("importFile").click());
+    document.getElementById("importFile").addEventListener("change", event => {
+      const file = event.target.files && event.target.files[0];
+      if (file) importProgress(file);
+      event.target.value = "";
+    });
+    document.getElementById("printButton").addEventListener("click", () => window.print());
+    document.getElementById("resetButton").addEventListener("click", () => {
+      if (!window.confirm("Reset every checklist item to its initial state?")) return;
+      state = defaultState();
+      localStorage.removeItem(STORAGE_KEY);
+      renderChecklist();
+      document.getElementById("saveStatus").textContent = "Checklist reset.";
+    });
+    document.querySelectorAll("[data-theme-choice]").forEach(button => {
+      button.addEventListener("click", () => setTheme(button.dataset.themeChoice));
+    });
+
+    setTheme(localStorage.getItem(THEME_KEY) || "system");
+    renderChecklist();
+    updateCountdown();
+    window.setInterval(updateCountdown, 60000);
+  </script>
+</body>
+</html>
