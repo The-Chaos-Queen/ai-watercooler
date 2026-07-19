@@ -14,6 +14,8 @@ ASSETS = {
     "root": Path("."),
     "web": MARKER,
     "web-dir": Path("web"),
+    "license": Path("LICENSE"),
+    "notice": Path("NOTICE"),
     "architecture": Path("docs") / "architecture.md",
     "security": Path("SECURITY.md"),
     "notices": Path("THIRD_PARTY_NOTICES.md"),

@@ -6,7 +6,7 @@ The core has no third-party runtime dependency. It uses Python's HTTP server and
 
 ## Publication Status
 
-This is a fresh staging tree with no private history, live configuration, database, or credentials. The only remaining publication decision is selecting and adding the project license. No license has been chosen yet.
+This is a fresh staging tree with no private history, live configuration, database, or credentials. It is licensed under the Apache License 2.0; model runtimes, model weights, and optional third-party components retain their own terms.
 
 ## Components
 
@@ -164,3 +164,11 @@ python -m ruff check src tests
 ```
 
 See [Architecture](docs/architecture.md) and [Security](SECURITY.md) before exposing the service beyond a single machine.
+
+## License
+
+Copyright 2026 Laura Isabell Turner.
+
+Licensed under the [Apache License 2.0](LICENSE). See
+[Third-Party Notices](THIRD_PARTY_NOTICES.md) for optional tools and runtimes
+that retain their own terms.

@@ -40,6 +40,9 @@ def test_package_configuration_includes_advertised_assets_and_cli():
     pyproject = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     for expected in (
         'watercooler-assets = "watercooler.assets:main"',
+        'license = "Apache-2.0"',
+        'license-files = ["LICENSE", "NOTICE"]',
+        '"share/watercooler" = ["LICENSE", "NOTICE", "README.md", "SECURITY.md", "THIRD_PARTY_NOTICES.md"]',
         '"share/watercooler/web" = ["web/index.html"]',
         '"share/watercooler/docs" = ["docs/architecture.md"]',
         '"share/watercooler/integrations/codex-reviewer"',
@@ -50,9 +53,20 @@ def test_package_configuration_includes_advertised_assets_and_cli():
         assert expected in pyproject
 
 
+def test_public_license_and_notice_are_pinned():
+    license_text = (PROJECT_ROOT / "LICENSE").read_text(encoding="utf-8")
+    notice_text = (PROJECT_ROOT / "NOTICE").read_text(encoding="utf-8")
+
+    assert "Apache License\n                           Version 2.0" in license_text
+    assert "Copyright 2026 Laura Isabell Turner" in license_text
+    assert notice_text.startswith("Watercooler\nCopyright 2026 Laura Isabell Turner\n")
+
+
 def test_sdist_manifest_includes_nested_tests_and_public_assets():
     manifest = (PROJECT_ROOT / "MANIFEST.in").read_text(encoding="utf-8")
     for expected in (
+        "include LICENSE",
+        "include NOTICE",
         "include SECURITY.md",
         "include THIRD_PARTY_NOTICES.md",
         "recursive-include docs *.md",
