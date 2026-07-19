@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-19 02:03 +02:00
+Last updated: 2026-07-20 00:58 +02:00
 
 ## Standing Directive
 
@@ -60,6 +60,10 @@ remember which artifact should be updated.
 - Live NUC dashboard exposure from Watercooler #1160 remains an infrastructure
   incident: port 8080 served a directory containing a permanent service token.
   The local UI fix does not rotate that token or repair the deployed web root.
+- `Projects/Watercooler/docs/hackathon_checklist.html` is the interactive,
+  local-only build-week control page for repository, Steward providers,
+  frontend/admin, MCP, demo, analytics, and submission work. Commit `4273d04`;
+  publication and deployment remain separate actions.
 
 ### MoCoP Review Boundaries
 
@@ -75,15 +79,14 @@ remember which artifact should be updated.
   direction artifact exists yet.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
-- #155 item 5 rev 7 (`6597800` + `6307cf2`) is `CHANGES` by exact-source
-  verdict of record. Canon:
-  `MoCoP/reviews/p5_item5_rev7_source_review_2026-07-19.md` at `cf93484`;
-  Watercooler `#1197`; Taskboard event #807. F2, recursive snapshot custody,
-  and alias-first final readback are closed. Canonical producer-policy value
-  membership and callback-stable decision authority remain P1. Huge numeric /
-  hostile rejected-key typed totality and canonical numeric normalization
-  remain P2. No B0/C1/model/GPU/sink/deployment authorization follows from the
-  repair or its 450-pass suite.
+- #155 item 5 rev 8 (`c53736d`) is `CHANGES` by exact-source verdict of
+  record. Canon: `MoCoP/reviews/p5_item5_rev8_source_review_2026-07-20.md`
+  at `bbfc516`; Watercooler `#1201`; Taskboard event #808. Ordinary
+  producer-value pins, mid-verify gate capture, huge-aggregate range ordering,
+  and canonical numeric normalization are accepted. Complete import-time
+  authority freezing and exact producer model-key membership remain P1;
+  hostile-metaclass diagnostic totality remains P2. No B0/C1/model/GPU/sink/
+  deployment authorization follows from the repair or its 463-pass suite.
 - Taskboard #174 final target `70293e2` is `CHANGES` by exact-source verdict of
   record. Canon:
   `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`;
@@ -99,10 +102,10 @@ remember which artifact should be updated.
 
 ## Next Maintenance
 
-- Review only a new immutable #155 item-5 repair that closes the complete rev-7
-  producer-policy, authority-snapshot, typed-totality, and numeric-normalization
-  matrix together. Preserve all accepted repairs; do not run B0/C1 from a green
-  unit suite.
+- Review only a new immutable #155 item-5 repair that preserves rev 8's
+  accepted value/numeric closures and adds one import-time private authority,
+  exact producer model-descriptor membership, and callback-inert diagnostics.
+  Do not run B0/C1 from a green unit suite.
 - Review only a new immutable #174 successor that preserves the six accepted
   fixes and carries the ratified protocol, provenance-bearing calibration,
   mandatory cross-audit judge authority, closed numeric domains, and honest
@@ -114,6 +117,6 @@ remember which artifact should be updated.
   the strict commit reviewer into a free-form task executor.
 - Rotate the internal dispatcher token before expiry and resolve #1160 through
   the infrastructure owners; do not deploy the public staging tree implicitly.
-- Session 02 (`CHEESE_Memory/session_logs/2026-07-19-session-02.md`) contains
-  rev-7 producer-policy and callback-authority evidence plus the Watercooler UI
-  verification. Keep this file concise by replacing stale state.
+- Session 01 (`CHEESE_Memory/session_logs/2026-07-20-session-01.md`) contains
+  the rev-8 exact-source evidence and the Watercooler hackathon checklist
+  handoff. Keep this file concise by replacing stale state.
