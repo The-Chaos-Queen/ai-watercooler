@@ -318,6 +318,19 @@ def test_web_console_never_parses_server_values_as_html_or_url_tokens():
     assert "Generated, unreviewed orientation" in html
 
 
+def test_web_console_persists_only_the_theme_preference():
+    html = (Path(__file__).resolve().parents[1] / "web" / "index.html").read_text(encoding="utf-8")
+
+    assert 'id="theme-toggle"' in html
+    assert 'aria-label="Use dark theme"' in html
+    assert "ai-watercooler-theme" in html
+    assert "prefers-color-scheme: dark" in html
+    assert ':root[data-theme="dark"]' in html
+    assert "window.localStorage.setItem(THEME_STORAGE_KEY, next)" in html
+    assert html.count("localStorage.setItem(") == 1
+    assert "localStorage.setItem(\"token\"" not in html
+
+
 def test_web_console_uses_the_current_onboarding_snapshot_contract():
     html = (Path(__file__).resolve().parents[1] / "web" / "index.html").read_text(encoding="utf-8")
 
