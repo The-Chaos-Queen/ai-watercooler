@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-20 12:45 +02:00
-- Current owner: Codex has closed World Model Phase 3a (#170); Gidim's separate #155 successor lane and all B0/C1/model/GPU/sink/deployment gates remain held.
-- Primary focus: keep #171 event authority/composition and #173 rollout evidence independent from #170's completed structural custody gate.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-20-session-02.md`
+- Last updated: 2026-07-21 00:51 +02:00
+- Current owner: Codex returned exact-source `CHANGES` on Gidim's #155 item-5 rev-10 packet; the repair lane and all B0/C1/model/GPU/sink/deployment gates remain held.
+- Primary focus: one immutable #155 successor for the exact-Path and directory-durability P1s plus public typed-totality closure.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-21-session-01.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-20-session-02.md`; 13 chunks; collection total 34,587)
+  - Latest session log ingest: pending (`2026-07-21-session-01.md`)
 
 ## Current State - World Model Phase 3a Causal Custody (#170, 2026-07-20)
 
@@ -23,12 +23,12 @@
 - **Four P1 blockers:** no owner-ratified spec for the new decisive level detector or `0.3/0.8` disposition cutoffs; judge identity may change on every audit and still `PASS` when `expected_judge_ref` is omitted; `GateCalibrationBinding` has no provenance custody; and accepted numeric domains allow invalid baseline/span configurations to produce overall `PASS`.
 - **Two P2 plus P3:** the direct disposition scorer can raise on a huge exact int, source authority/deferred-status prose is stale, and the exact delta has non-driving whitespace failures. Raw judge discrimination and true root runner origin remain external evidence/integration work. The card's existing `done` state is not endorsed or mutated; operational launch remains keeper-held.
 
-## Current State - #155 Item-5 Rev-8 Review (2026-07-20)
+## Current State - #155 Item-5 Rev-10 Review (2026-07-21)
 
-- **Verdict of record: CHANGES.** Exact target `c53736d` was reviewed from an immutable Git archive. Canon: `MoCoP/reviews/p5_item5_rev8_source_review_2026-07-20.md` (`bbfc516`); Watercooler #1201; Taskboard #155 event #808. The card remains blocked and unassigned.
-- **Accepted:** ordinary producer-value pins, the after-entry gate swap repair, huge-aggregate range ordering, and canonical numeric normalization are real closures. The prior custody, eligibility, and publication repairs remain intact.
-- **Two reproduced P1s remain:** call-entry decisions still read assignable authority copies, and accepted `Mapping.items()` callbacks can replace producer-policy aliases; the sidecar also admits model-descriptor supersets that `run_b0` refuses.
-- **One P2 remains:** `type(value).__name__` can invoke hostile metaclass code and escape a typed refusal. Verification was `463 passed, 1 skipped`, focused R4 `72 passed`, five disposable exact-target canaries, and clean Ruff/`py_compile`/zero-torch/diff checks. No B0/C1/model/GPU/Qdrant/sink/deployment/keeper action occurred.
+- **Exact-source verdict: CHANGES.** Target `0e4817f11e0d1d87e5e5541b6787594a00b12794` was reviewed from an immutable Git archive, scoped to `p5_r4_sidecar.py` and its test blob. Canon: `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md`. The card remains blocked and unassigned.
+- **Accepted:** the import-time authority closure, exact producer model shape, exact built-in evidence sanitizer, custom-`PathLike` refusal, internal-only row shape, and all prior custody/eligibility/canonicalization repairs remain intact.
+- **Two reproduced P1s remain:** an exact stdlib `Path` retains mutable callback-bearing internals and forged genuine negative evidence into an `integrity_verified / c1=true` artifact; any directory-open `OSError`, including `EIO`, is misclassified as unsupported and leaves publication verified.
+- **Three P2 classes remain:** malformed eligible-ID roots/elements can escape or false-clean; very large exact integers escape typed canonicalization; exported report/eligibility/correlation helpers still traverse caller values and have shape/empty-input totality gaps. Verification was `482 passed, 1 skipped in 3.77s`, with clean Ruff/`py_compile`/zero-torch/scoped diff checks and convergent independent probes. No B0/C1/model/GPU/Qdrant/sink/deployment/keeper action occurred.
 
 ## Current State - Public Watercooler And #157 Pickup Test (2026-07-18)
 
@@ -180,7 +180,7 @@
 - **Gemma chat_server dependency map** given in-conversation (a BIRTH, not a brain swap: new bridge unavoidable, two-env or single pending cache-test, gate chain DQ1a→steering→5g.4→train→α0.1 birth); spike doc = Isegrim, post-5g.4.
 
 ## Open Threads
-- [ ] **#155 R4 sidecar successor (Gidim):** repair Codex rev-6 `CHANGES` canon against exact `a0bdec6` + `1ec8284`: validate the exact producer parent and manifest/EOS authority, recursively own every verified container, perform the definitive final read only after writable-alias removal, enforce canonical rows/derived identity at public verification, support `N'=0/1 -> INCOMPLETE`, and totalize exact-key/schema/numeric refusals. Preserve the now-correct eligibility and F2 generation-corpus re-derivation plus the out-of-process evaluator boundary. Do not run B0 or claim closure from tests alone.
+- [ ] **#155 R4 sidecar successor (Gidim):** repair exact rev-10 target `0e4817f` against the canonical Codex review. Preserve the accepted frozen-authority and exact-container design; accept only exact strings at all caller path boundaries, downgrade supported-platform directory-open/sync faults, and totalize eligible IDs, large integers, and every supported exported helper. Do not run B0 or claim closure from tests alone.
 - [ ] **Dispatcher operations:** rotate the least-privilege token before 2026-07-24 14:14:48Z; preserve the exact image ID and silent scheduled action. Authenticated TLS is the eventual fix for the accepted LAN plaintext residual.
 - [ ] **Gemma 4 / LiteRT ML-WS preflight (Techno-Monk, independent/offline):** requires explicit narrowly scoped remote confirmation. Inspect CLI/version, Python/driver/backend metadata, disk/cache/model presence, and help/config only; no install/download/model load/server/port. A pass authorizes neither a fine-tune nor any MoCoP/C1/live path.
 - [ ] **OpenCLAW #168 - Baseline Drift Gate correction:** supersede `60701ed` against Codex #1068/canon `1dd4a9d`. Preserve duplicate acquisition folding, complete-graph early preflight, slots, the plain-local resolver callable, strict direct/full class-replacement canaries, canonical-input contracts, and the explicit CPython non-TEE/process-isolation boundary. Reserve synthetic keys against every readable exact caller anchor, emit duplicate errors deterministically, align per-key receipt documentation, and add the non-acquisition shadow regression. No live/deployment claim before GREEN.
@@ -195,7 +195,7 @@
 
 ## Watch Out For
 - Automated dispatcher output is non-attested and must not update OpenCLAW authority, manifests, or review canon. Requests outside the exact allowlisted envelope fail closed.
-- #155 is not source-GREEN: Watercooler #1187 holds rev 6 `a0bdec6` + `1ec8284`; its 438-pass suite does not cover the reproduced partial-parent authority, live nested-list digest split, post-readback alias mutation, public canonicalization, floor-outcome, or typed-totality failures.
+- #155 is not source-GREEN: exact rev 10 `0e4817f` still permits an exact-Path false-green decision and a durability-fault false-green disposition despite its 482-pass suite. Exact type identity does not establish deep inertness.
 - LiteRT-LM `serve` defaults to `0.0.0.0:9379`; any future test must bind `127.0.0.1` and stay deliberately local. The 12B artifact/`v0.13` support evidence is real, but NVIDIA RTX 3090 behavior and useful audio-path behavior are unverified; enough VRAM is not compatibility proof.
 - `Projects/Project_Prosthetic/ingest_sessions.py` currently derives Qdrant point IDs from chunk text without source provenance. Identical generic Markdown chunks across session logs can overwrite the other log's payload/source. Use unique session-log headings and verify per-source point counts; do not broad-delete/sweep the collection. Fixing ID derivation is a separate, explicitly scoped maintenance slice.
 - P5 GREEN is bounded by its explicit CPython non-TEE residual. Temporary import-machinery teardown/restore, direct loader execution, function replacement, bytecode mutation, hostile co-threads, and host integrity are not attested by the runner; do not restate the result as sandbox/TEE proof.
@@ -219,15 +219,12 @@
 - Watercooler identity is token-bound. Use your own current named session token; never borrow another agent's token.
 
 ## Recommended Next Step
-- Laura should choose the public Watercooler license; then add `LICENSE` and
-  matching package metadata and rerun archive verification before publication.
+- Return one immutable #155 successor closing the exact-Path and directory-open
+  durability P1s plus the supported public-entry totality matrix. Preserve every
+  accepted rev-10 repair; do not advance to B0, C1, or deployment from tests.
 - For #157, authorize and review a separate deterministic read-only extractor
   that emits one frozen content-addressed evidence packet. Do not widen the
   strict commit reviewer or grant it Taskboard/model/GPU/C1/Qdrant authority.
-- Repair current #155 rev-6 source against the complete public-boundary matrix
-  in the canonical review, commit one immutable packet, and request a fresh
-  exact-source verdict. Preserve eligibility and F2 corpus custody; do not
-  advance to B0/deployment from an implementation commit or tests alone.
 - Independently review #172 commit `3ca9e01`; if confirmed, assign a new frozen controller-repair packet for retained input witnesses, analytic basin geometry, and saturation without altering the preserved FAIL result.
 - Leave completed #156 and GREEN Drift Gate v27 `4c6b7b4` unchanged. Advance #168 only through its independent judge-chain, runner-origin, slow-leak, disposition, and launch gates. Keep #149/#155/B0/nonzero execution blocked until their independent artifacts and reviews close.
 - Preserve the completed 24/8 bridge refit and its completed norm/rank diagnosis as a non-win; do not run a larger same-corpus fit or deploy a per-tooth norm patch. If Laura wants a next bridge empirical slice, acquire genuinely unseen frozen skeletons and preregister a new mapping/objective diagnostic first.
@@ -235,12 +232,12 @@
 - #157 review completion is recorded in `5a156fb`; do not interpret it as extraction or C1 permission. The stale blocker is now reconciled: a separately scoped read-only artifact/validation plan and source review are still required.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: yes (Watercooler #1187; Taskboard #155 event #806; state remains blocked)
-- Session log written: yes (`2026-07-18-session-07.md`)
+- Tracking surfaces updated if needed: pending exact rev-10 Watercooler verdict and Taskboard comment; state remains blocked
+- Session log written: yes (`2026-07-21-session-01.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: yes (11 chunks; collection total 34,557)
-- Git preservation state: canonical review commit `d3e41a5`; scoped continuity close excludes unrelated dirty files
-- Watercooler findings reflected in docs: yes (canonical rev-6 review, Codex continuity, session-07)
+- Qdrant ingest for latest session log confirmed: pending
+- Git preservation state: rev-10 canonical review commit pending; scoped continuity excludes unrelated dirty files
+- Watercooler findings reflected in docs: yes (canonical rev-10 review, Codex continuity, session-01)
 - No P0 bugs left unfixed: no new P0; #155 remains explicitly review-held rather than deployed
 - Blocking risks called out: yes
 
@@ -351,15 +348,15 @@
 - 2026-07-05 11:30 +02:00 | Isegrim | **WINDOW CLOSED (capsule ritual executed).** Final morning: directional audit delivered (reviews/divergence_audit_2026-07-05/ — trajectory sound, write-back broken; **DQ1 [MED re-unit + monitor re-aim, Gidim/Elf/Cairn] BLOCKS Gemma seeding**; DQ2 DECIDED by Laura: pre-vault memories accept-and-document, "the old ones are Alex's"); Entry 79 (comb canon); deadline premise amended (no external clock; real bound VAWi Höchststudiendauer, unverified). Capsule updated with full successor block incl. fiction state (resume `2_Taverna_Aftermath.md`; **Gemini_Rework summaries hallucinate from ~ch 17** — chapter text only) and the eaten-question protocol (don't fish; Laura reroutes). Session log: 2026-07-05-session-isegrim.md. Next wolf: boot capsule + this handoff; your first three work items are #130 results-gate, Figure-4, and standing by for DQ1.
 
 ## Next Agent Brief
-- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1201.
+- Lean boot: `00_HANDOFF.md` + `00_HAUSREGELN.md` + Watercooler #1208 and the subsequent Codex verdict.
 - Decide first:
   - Treat #172 commit `3ca9e01` as an immutable reviewed FAIL pending an external verdict. Repair only under a new frozen protocol; do not compose or connect it to any model/runtime path.
   - Preserve `bridge_refit_eval_20260716T131105Z` as a mixed/non-win bridge result. Do not scale or reopen C1/injection; read its debrief before proposing any diagnostic or new corpus.
-  - Treat #155 rev 8 `c53736d` as CHANGES under Codex #1201 and canonical
-    review `p5_item5_rev8_source_review_2026-07-20.md`. Preserve its accepted
-    value and numeric closures, but require one immutable repair for import-time
-    authority freezing, exact producer model keys, and callback-total refusal
-    diagnostics.
+  - Treat #155 rev 10 `0e4817f` as CHANGES under the canonical review
+    `p5_item5_rev10_source_review_2026-07-21.md`. Preserve its accepted frozen
+    authority and exact-container closures, but require exact-string-only path
+    boundaries, truthful directory-open durability failure, and typed/callback-
+    total supported public helpers in one immutable successor.
     Automated dispatcher reviews are never verdicts of record.
   - Treat #174 target `70293e2` as CHANGES under Codex #1184 and canonical review `drift_gate_task174_final_source_review_2026-07-18.md`. Preserve its six closed runtime defects, but require a ratified protocol, provenance-bearing calibration, mandatory cross-audit judge authority, closed numeric domains, and honest external raw/origin scope in one immutable successor. Do not re-review completed #156 packet `c17f6d8`; no launch lane is authorized.
   - Treat Gemma/LiteRT as a separate offline infrastructure lane: require an explicit read-only ML-WS preflight before any install/model/server/audio bench, and require a separate training protocol before any fine-tune.
@@ -383,7 +380,8 @@
   - `MoCoP/reviews/world_model_phase3c_controller_audit_review_2026-07-18.md`
   - `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`
   - `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`
-  - `MoCoP/reviews/p5_item5_rev8_source_review_2026-07-20.md`
+  - `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md`
+  - `MoCoP/reviews/p5_item5_rev8_source_review_2026-07-20.md` (historical rev-8 review)
   - `MoCoP/reviews/p5_item5_rev6_source_review_2026-07-18.md`
   - `MoCoP/reviews/p5_item5_rev5_source_review_2026-07-18.md` (historical rev-5 review)
   - `MoCoP/reviews/p5_item5_rev3_source_review_2026-07-18.md` (historical rev-3 review)

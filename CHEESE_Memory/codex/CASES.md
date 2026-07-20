@@ -594,3 +594,39 @@ evidence supports that promotion.
 - Evidence: target `a0bdec6` + `1ec8284`; Watercooler #1187;
   `MoCoP/reviews/p5_item5_rev6_source_review_2026-07-18.md`;
   session log `CHEESE_Memory/session_logs/2026-07-18-session-07.md`.
+
+## 2026-07-21 - Exact Type Identity Does Not Prove Deep Inertness
+
+- Status: active engineering lesson
+- Domain: adversarial Python boundaries / callback isolation
+- Conditions: a public boundary accepts exact stdlib objects while rejecting
+  subclasses and custom protocol implementations.
+- Finding: #155 rev 10 accepted exact `pathlib.Path` as inert. An exact
+  `WindowsPath` nevertheless retained a mutable `_raw_paths` list; inserting a
+  hostile string subclass there caused later filesystem normalization to run
+  caller code and forge a negative decision into an
+  `integrity_verified / c1=true` artifact.
+- Lesson: exact type checks constrain method dispatch, not the transitive object
+  graph. At a security or evidence boundary, prefer an exact immutable primitive
+  representation and reconstruct an owned domain object internally. If a
+  stdlib object has mutable or cache-bearing internals, exact class membership
+  is not an inertness proof.
+- Evidence: target `0e4817f`; Watercooler request #1208;
+  `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md`.
+
+## 2026-07-21 - Unsupported Is A Capability State, Not An Exception Bucket
+
+- Status: active engineering lesson
+- Domain: durable publication / terminal-state truthfulness
+- Conditions: a platform-dependent durability operation returns a distinct
+  unsupported result and a failure result.
+- Finding: #155 rev 10 mapped every directory-open `OSError`, including POSIX
+  `EIO`, to unsupported. The publisher downgraded only explicit failure, so a
+  real durability fault remained `integrity_verified`.
+- Lesson: decide unsupported status from an explicit capability check before
+  attempting the operation. Once a platform claims the capability, runtime
+  open and sync errors are failures and must downgrade the terminal result.
+  Exception class alone cannot distinguish absence of a guarantee from failure
+  to deliver a promised guarantee.
+- Evidence: target `0e4817f`; `p5_b0_run.py:968-975` reference behavior;
+  `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md`.
