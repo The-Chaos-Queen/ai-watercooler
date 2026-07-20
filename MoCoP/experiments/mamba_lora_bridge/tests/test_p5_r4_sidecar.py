@@ -1517,3 +1517,58 @@ def test_fauth_a_carrier_callback_reassigning_auth_itself_cannot_accept_a_mutabl
     with pytest.raises(R4SidecarError) as ei:
         r4_decision(report, carrier)
     assert "MUTABLE ref" in str(ei.value)                       # threaded frozen authority refuses 'main'
+
+
+def test_fauth_a_carrier_callback_swapping_field_kind_tags_cannot_accept_a_mutable_ref(monkeypatch):
+    # (a-Codex #1201 pass 2) Dispatching _field_error against the LIVE module tags was NOT fail-closed:
+    # a callback that SWAPS _ID <-> _SHA40F mis-routes revision_sha='main' down the id-branch (non-empty
+    # str only), bypassing the mutable-ref + 40-hex checks. rev9 dispatches against the frozen _A.*_kind
+    # tags, so a module-tag swap can neither re-route dispatch nor reach a decision.
+    import p5_r4_sidecar
+    monkeypatch.setattr(p5_r4_sidecar, "_ID", p5_r4_sidecar._ID)         # register for teardown
+    monkeypatch.setattr(p5_r4_sidecar, "_SHA40F", p5_r4_sidecar._SHA40F)
+    real_ID, real_SHA40F = p5_r4_sidecar._ID, p5_r4_sidecar._SHA40F
+    report = _sealed_report(n=4)
+    rows, agg = _comparison(_eligible_of(report))
+    record = {
+        "schema": SIDECAR_SCHEMA,
+        "evaluator": {"evaluator_id": "a" * 40, "revision_sha": "main"},   # 40-hex id, mutable rev
+        "runner": {"runner_id": "b" * 40, "runner_digest": "d" * 64},
+        "panel": report["execution_descriptor"]["panel_hash"],
+        "parent": _manifest(report)["parent"],
+        "per_pair": _canonicalize_comparison(rows), "aggregate": agg,
+    }
+    man = {k: record[k] for k in ("schema", "evaluator", "runner", "parent", "panel")}
+    fired = {"done": False}
+
+    class _TagSwap(dict):
+        def items(self):
+            if not fired["done"]:
+                fired["done"] = True
+                p5_r4_sidecar._ID, p5_r4_sidecar._SHA40F = real_SHA40F, real_ID   # SWAP the tags
+            return super().items()
+
+    carrier = R4SidecarRecord(manifest_digest=canonical_digest(man),
+                              output_digest=canonical_digest(record), record=_TagSwap(record))
+    with pytest.raises(R4SidecarError) as ei:
+        r4_decision(report, carrier)
+    assert "MUTABLE ref" in str(ei.value)                       # frozen dispatch tags refuse 'main'
+
+
+def test_the_public_c1_gates_reject_a_caller_supplied_authority():
+    # (a-Codex #1201 pass 2) A public `authority` param on the C1 gate is a trivial bypass: a caller
+    # passes _auth()._replace(gate=-2.0) so anti-correlated evidence greens. The public gates take NO
+    # caller authority; threading lives ONLY behind the private _r4_decision / _publish_r4_sidecar
+    # workers. Forging via the public gate is a TypeError, and the genuine gate still refuses.
+    import inspect
+
+    import p5_r4_sidecar
+    for fn in ("r4_decision", "publish_r4_sidecar", "build_r4_sidecar"):
+        params = inspect.signature(getattr(p5_r4_sidecar, fn)).parameters
+        assert not any("authorit" in p for p in params), f"{fn} exposes a caller authority param"
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=False)                          # rho ~ -1 => must be replacement
+    with pytest.raises(TypeError):                             # public gate has no authority param
+        r4_decision(report, rec, authority=p5_r4_sidecar._auth()._replace(gate=-2.0))
+    d = r4_decision(report, rec)
+    assert d["state"] == DECISION_JSD_REPLACEMENT_REQUIRED and d["c1_authorization_permitted"] is False

@@ -285,6 +285,11 @@ class _SidecarAuthority(NamedTuple):
     decision_proceeds: str                        # DECISION_JSD_PROCEEDS — stamped into decision.state
     decision_replacement: str                     # DECISION_JSD_REPLACEMENT_REQUIRED
     decision_incomplete: str                      # DECISION_INCOMPLETE
+    # ---- field-kind DISPATCH tags (a-Codex #1201 pass 2): swapping these mis-routes _field_error ----
+    id_kind: str                                  # _ID — dispatch tag for id fields
+    sha40_kind: str                               # _SHA40F — dispatch tag for 40-hex fields
+    sha256_kind: str                              # _SHA256F — dispatch tag for sha256 fields
+    posint_kind: str                              # _POSINT — dispatch tag for positive-int fields
 
 
 def _bind_authority() -> "Callable[[], _SidecarAuthority]":
@@ -329,6 +334,10 @@ def _bind_authority() -> "Callable[[], _SidecarAuthority]":
         decision_proceeds=str(DECISION_JSD_PROCEEDS),
         decision_replacement=str(DECISION_JSD_REPLACEMENT_REQUIRED),
         decision_incomplete=str(DECISION_INCOMPLETE),
+        id_kind=str(_ID),
+        sha40_kind=str(_SHA40F),
+        sha256_kind=str(_SHA256F),
+        posint_kind=str(_POSINT),
     )
 
     def authority() -> _SidecarAuthority:
@@ -443,18 +452,19 @@ def _safe_keys(keys: Any) -> list[str]:
 # --------------------------------------------------------------------------- #
 def _field_error(value: Any, kind: str, *, authority: "_SidecarAuthority | None" = None) -> str | None:
     # F-AUTH (a-Codex #1201): read the accept/reject policy (placeholder check, mutable-ref set, format
-    # regexes) from the frozen snapshot THREADED from the public entry (bound before any caller items()
-    # fired), so neither a value-global rebind nor an _auth-accessor rebind mid-verification can reach
-    # these decisions. The kind TAG dispatch (_ID/_SHA40F/…) stays live: rebinding a tag only routes to
-    # "unknown field kind", a refusal — it fails closed.
+    # regexes) AND the dispatch tags from the frozen snapshot. rev9-pass2 (a-Codex): dispatching against
+    # the LIVE module tags was NOT fail-closed — a callback that SWAPS _ID<->_SHA40F mis-routes a
+    # mutable ref down the id-branch (non-empty-str only), bypassing the mutable-ref + 40-hex checks.
+    # The frozen specs carry the frozen tag VALUES and we compare them to the frozen _A.*_kind, so a
+    # module-tag swap can neither re-route dispatch nor reach a decision.
     _A = authority if authority is not None else _auth()
-    if kind == _ID:
+    if kind == _A.id_kind:
         if type(value) is not str:
             return f"must be an exact str (got {_safe_typename(value)})"
         if _A.is_unset(value):
             return f"is a placeholder/unset value ({value!r})"
         return None
-    if kind == _SHA40F:
+    if kind == _A.sha40_kind:
         if type(value) is not str:
             return f"must be an exact str 40-hex SHA (got {_safe_typename(value)})"
         if value.strip().lower() in _A.mutable_refs:
@@ -463,13 +473,13 @@ def _field_error(value: Any, kind: str, *, authority: "_SidecarAuthority | None"
         if not _A.sha40.match(value):
             return f"must be an immutable lowercase 40-hex SHA (got {value!r})"
         return None
-    if kind == _SHA256F:
+    if kind == _A.sha256_kind:
         if type(value) is not str:
             return f"must be an exact str sha256 digest (got {_safe_typename(value)})"
         if not _A.sha256.match(value):
             return f"must be a lowercase sha256 hex digest (got {value!r})"
         return None
-    if kind == _POSINT:
+    if kind == _A.posint_kind:
         if type(value) is not int:
             return f"must be an exact positive int (got {_safe_typename(value)})"
         if value <= 0:
@@ -531,7 +541,7 @@ def validate_sidecar_manifest(manifest: Mapping[str, Any], *,
     _check_block(manifest.get("evaluator"), "evaluator", _A.evaluator_spec, refusals, authority=_A)
     _check_block(manifest.get("runner"), "runner", _A.runner_spec, refusals, authority=_A)
     _check_block(manifest.get("parent"), "parent", _A.parent_spec, refusals, authority=_A)
-    err = _field_error(manifest.get("panel"), _ID, authority=_A)
+    err = _field_error(manifest.get("panel"), _A.id_kind, authority=_A)
     if err:
         refusals.append(f"panel {err}")
     return refusals
@@ -969,8 +979,8 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
                 f"per-pair row {i} key set is not {sorted(row_keys)} (got {_safe_keys(row)})")
             continue
         a, b = row["probe_a"], row["probe_b"]
-        ae = _field_error(a, _ID, authority=_A)
-        be = _field_error(b, _ID, authority=_A)
+        ae = _field_error(a, _A.id_kind, authority=_A)
+        be = _field_error(b, _A.id_kind, authority=_A)
         if ae:
             refusals.append(f"per-pair row {i} probe_a {ae}")
         if be:
@@ -1101,7 +1111,6 @@ def build_r4_sidecar(
     sealed_report: Mapping[str, Any],
     per_pair: Sequence[Mapping[str, Any]],
     aggregate: Mapping[str, Any],
-    authority: "_SidecarAuthority | None" = None,
 ) -> R4SidecarRecord:
     """Validate, DERIVE-bind to the verified sealed report over ELIGIBLE probes, and seal.
 
@@ -1111,10 +1120,10 @@ def build_r4_sidecar(
     pure function of (verified parent, L) and every gating boundary re-derives it from the bound
     parent. Storing it would invite a consumer to re-trust a declaration; the parent is the custody.
     """
-    # F-AUTH (a-Codex #1201): use the authority THREADED from the seam when present, else bind it ONCE
-    # here, before _inert_snapshot fires the caller manifest's items() callback, and thread it through
-    # every validator — none re-fetches _auth() after caller code has run.
-    _A = authority if authority is not None else _auth()
+    # F-AUTH (a-Codex #1201): bind the GENUINE frozen authority ONCE here, before _inert_snapshot fires
+    # the caller manifest's items() callback, and thread it through every validator — none re-fetches
+    # _auth() after caller code has run. build takes no caller authority (self-safe; a-Codex pass 2).
+    _A = _auth()
     manifest = _inert_snapshot(manifest)
     per_pair = _inert_snapshot(per_pair)
     aggregate = _inert_snapshot(aggregate)
@@ -1378,20 +1387,32 @@ def _build_decision(vs: _VerifiedSidecar, elig: Eligibility,
     return decision
 
 
-def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
-                *, authority: "_SidecarAuthority | None" = None) -> dict[str, Any]:
+def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord) -> dict[str, Any]:
+    """Public C1-precondition entry. Binds the GENUINE frozen authority and delegates.
+
+    a-Codex #1201 pass 2: the public C1 gate takes NO caller authority — a public ``authority`` param
+    is a trivial C1 bypass (a caller could pass ``_auth()._replace(gate=-2.0)`` and green anti-
+    correlated evidence). Authority threading lives only behind the private ``_r4_decision`` worker,
+    called by this wrapper and by the seam.
+    """
+    return _r4_decision(sealed_report, sidecar, authority=_auth())
+
+
+def _r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
+                 *, authority: "_SidecarAuthority | None" = None) -> dict[str, Any]:
     """Emit the exact, fail-closed R4 decision/precondition record for the future C1 boundary.
 
     Verifies the carrier ONCE (Codex #1183 F3), re-derives eligibility + parent-binds from the
     verified report (rev5 + F1/F2), and builds the decision from that single snapshot. It no longer
     reads a stored ``eligibility`` block or re-reads the live carrier; a fabricated comparison,
     generation digest, or panel is refused by ``_reverify_against_parent`` before any state.
+
+    PRIVATE: ``authority`` is the genuine snapshot threaded from the seam (bound before any caller
+    items() ran); the public ``r4_decision`` wrapper supplies ``_auth()``. Not a public parameter.
     """
-    # F-AUTH (Codex #1201 + a-Codex): use the authority THREADED from the seam when present, else bind
-    # it ONCE here, before _verify_record fires the carrier's items() callback, and thread it through
-    # every verdict helper — none re-fetches _auth() after caller code has run, so neither a
-    # value-global rebind nor an _auth-accessor rebind mid-verification (nor a pre-call rebind of
-    # RHO_GATE) can drive the verdict.
+    # F-AUTH (Codex #1201 + a-Codex): every verdict helper below consumes this ONE threaded snapshot;
+    # none re-fetches _auth() after caller code has run, so neither a value-global rebind nor an
+    # _auth-accessor rebind mid-verification (nor a pre-call rebind of RHO_GATE) can drive the verdict.
     _A = authority if authority is not None else _auth()
     vs = _verify_record(sidecar, authority=_A)
     verified_report = verify_sealed_report(sealed_report, authority=_A)
@@ -1415,9 +1436,21 @@ class R4PublishResult:
 
 
 def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
-                       sidecar_path: Path, *,
-                       authority: "_SidecarAuthority | None" = None) -> R4PublishResult:
+                       sidecar_path: Path) -> R4PublishResult:
+    """Public publication entry. Binds the GENUINE frozen authority and delegates.
+
+    a-Codex #1201 pass 2: takes NO caller authority (a public authority param is a bypass — a forged
+    ``disp_verified`` could mislabel a downgraded commit). Threading lives behind ``_publish_r4_sidecar``.
+    """
+    return _publish_r4_sidecar(sealed_report, sidecar, sidecar_path, authority=_auth())
+
+
+def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
+                        sidecar_path: Path, *,
+                        authority: "_SidecarAuthority | None" = None) -> R4PublishResult:
     """Atomically publish the artifact (record + link + decision). No-replace, truthful disposition.
+
+    PRIVATE: ``authority`` is the genuine snapshot threaded from the seam / public wrapper.
 
     Monk #1146 F5: after linking, READ BACK the final bytes and confirm they equal what was meant to
     commit; a mismatch => committed_integrity_failed. The temp is a hard link to the same inode, and
@@ -1599,15 +1632,17 @@ def record_r4_comparison(
     C1-precondition. A non-integrity-verified / absent / invalid parent, or an INCOMPLETE /
     replacement-required comparison, all deny C1 authorization.
     """
-    # F-AUTH (a-Codex #1201): bind the frozen authority ONCE at the seam entry and thread it through
-    # load/build/publish/decide, so a caller-manifest items() callback (fired inside build) that
-    # reassigns _auth cannot poison the later publish/decision reads.
+    # F-AUTH (a-Codex #1201 + pass 2): bind the frozen authority ONCE at the seam entry and thread it
+    # through the PRIVATE workers, so a caller-manifest items() callback (fired inside build, which
+    # binds its OWN genuine _A before that callback) cannot poison the later publish/decision reads.
+    # The public gates take no caller authority; the seam uses the private _publish_r4_sidecar /
+    # _r4_decision workers to thread its genuine _A.
     _A = _auth()
     report, _report_bytes = _load_governed_report(report_path, journal_path, authority=_A)
     sidecar = build_r4_sidecar(manifest, sealed_report=report, per_pair=per_pair,
-                               aggregate=aggregate, authority=_A)
-    result = publish_r4_sidecar(report, sidecar, sidecar_path, authority=_A)
-    decision = r4_decision(report, sidecar, authority=_A)
+                               aggregate=aggregate)
+    result = _publish_r4_sidecar(report, sidecar, sidecar_path, authority=_A)
+    decision = _r4_decision(report, sidecar, authority=_A)
     # The seam only reports ok when authority verified, the artifact committed cleanly (a downgraded
     # disposition is NOT ok), AND the precondition permits C1. Fail-closed on everything else. The
     # "verified" label is the frozen one, so a rebound DISPOSITION_VERIFIED cannot make a downgraded
