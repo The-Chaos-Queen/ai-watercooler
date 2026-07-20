@@ -106,7 +106,7 @@ from dataclasses import dataclass
 from itertools import combinations
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, NamedTuple, Sequence
 
 from p5_b0_harness import (
     B0_RUN_KIND,
@@ -198,8 +198,112 @@ DECISION_JSD_REPLACEMENT_REQUIRED = "jsd_replacement_required"
 DECISION_INCOMPLETE = "incomplete"
 
 
+# --------------------------------------------------------------------------- #
+# F-AUTH (Codex #1201): the frozen sidecar authority snapshot.                 #
+#                                                                              #
+# rev8 read the producer-policy and decision authorities (RHO_GATE, run_kind,  #
+# schema_variant, the neutralization/device validators, the policy key sets)   #
+# through ASSIGNABLE module attributes, and only CALL-ENTRY-copied RHO_GATE.   #
+# So a caller ``Mapping.items()`` callback (run during ``_inert_snapshot``) —  #
+# or a mere pre-call ``setattr`` — could rebind ``p5_r4_sidecar.B0_RUN_KIND``, #
+# ``check_decoding_contract``, or ``RHO_GATE`` and drive the verdict. A copy   #
+# of a mutable module attribute is not an authority freeze.                    #
+#                                                                              #
+# This mirrors the producer's own accepted freeze (``p5_b0_run._bind_authority #
+# `` / ``_authority()``, Codex #1009 B2 / #1013 B1): capture every verdict     #
+# authority ONCE into a closure cell at import; the public names above stay    #
+# documentation copies that NO verdict path reads. Reassign any of them and    #
+# ``_auth()`` still returns the import-frozen snapshot. (Known residual, same  #
+# as the producer's: the ``_auth`` NAME is itself a reassignable module attr — #
+# free-var cells are as immutable as the language offers in-process; replacing #
+# the accessor wholesale is the ordinary monkeypatch-the-module class, not one #
+# of the value-rebind vectors the review canaried.)                            #
+# --------------------------------------------------------------------------- #
+class _SidecarAuthority(NamedTuple):
+    gate: float                                  # RHO_GATE — the instrument-agreement threshold
+    floor: int                                   # _MIN_ELIGIBLE — the N' Spearman floor
+    run_kind: str                                # B0_RUN_KIND — the only run_kind a B0 parent carries
+    variant: str                                 # B0_SCHEMA_VARIANT — the B0 closed-world variant
+    variants: frozenset                          # SCHEMA_VARIANTS — the closed-world union
+    model_keys: frozenset                        # DESCRIPTOR_KEYS — the producer's exact 8 model keys
+    decoding_check: Callable[[Mapping[str, Any]], list]   # check_decoding_contract (neutralization set)
+    device_check: Callable[[Any], str]           # check_device_map (explicit single device)
+    report_keys: frozenset                       # _B0_REPORT_KEYS — exact top-level report shape
+    record_keys: frozenset                       # _B0_RECORD_KEYS — exact per-record shape
+    provenance_keys: frozenset                   # _B0_PROVENANCE_KEYS — exact provenance receipt shape
+    descriptor_keys: frozenset                   # _B0_DESCRIPTOR_KEYS — exact execution_descriptor shape
+    sealed_base_keys: tuple                      # _B0_SEALED_BASE_KEYS — the inner-digest base fields
+    stop_reasons: frozenset                      # _STOP_REASONS — the frozen eos|length|error enum
+    bundle_schema: str                           # B0_BUNDLE_SCHEMA — the evidence-bundle schema tag
+
+
+def _bind_authority() -> "Callable[[], _SidecarAuthority]":
+    """Freeze the verdict authorities into ONE closure cell at import (F-AUTH)."""
+    snap = _SidecarAuthority(
+        gate=float(RHO_GATE),
+        floor=int(_MIN_ELIGIBLE),
+        run_kind=str(B0_RUN_KIND),
+        variant=str(B0_SCHEMA_VARIANT),
+        variants=frozenset(SCHEMA_VARIANTS),
+        model_keys=frozenset(DESCRIPTOR_KEYS),
+        decoding_check=check_decoding_contract,
+        device_check=check_device_map,
+        report_keys=frozenset(_B0_REPORT_KEYS),
+        record_keys=frozenset(_B0_RECORD_KEYS),
+        provenance_keys=frozenset(_B0_PROVENANCE_KEYS),
+        descriptor_keys=frozenset(_B0_DESCRIPTOR_KEYS),
+        sealed_base_keys=tuple(_B0_SEALED_BASE_KEYS),
+        stop_reasons=frozenset(_STOP_REASONS),
+        bundle_schema=str(B0_BUNDLE_SCHEMA),
+    )
+
+    def authority() -> _SidecarAuthority:
+        return snap
+
+    return authority
+
+
+_auth = _bind_authority()
+
+
 class R4SidecarError(ValueError):
     """A structural refusal of the comparison sidecar (bug/unsafe config), not an outcome."""
+
+
+def _safe_typename(value: Any) -> str:
+    """A diagnostic type label chosen by EXACT built-in type IDENTITY (Codex #1201 F-TYPENAME).
+
+    ``type(x).__name__`` dispatches the ``__name__`` lookup through x's METACLASS, so a hostile
+    metaclass that raises on it escapes a typed refusal as a raw exception. A ``dict.get(type(x))``
+    would be no safer — it HASHES the type, re-opening the same escape through a hostile ``__hash__``.
+    Identity never touches foreign type metadata: ``type(x)`` reads the true type from the object
+    header (not the spoofable ``__class__``) and ``is`` is a pointer compare. Anything that is not a
+    plain built-in renders as a constant placeholder, never by inspecting the foreign type.
+    """
+    t = type(value)
+    if t is str:
+        return "str"
+    if t is bool:
+        return "bool"
+    if t is int:
+        return "int"
+    if t is float:
+        return "float"
+    if t is bytes:
+        return "bytes"
+    if t is list:
+        return "list"
+    if t is tuple:
+        return "tuple"
+    if t is dict:
+        return "dict"
+    if t is set:
+        return "set"
+    if t is frozenset:
+        return "frozenset"
+    if value is None:
+        return "NoneType"
+    return "<non-builtin>"
 
 
 # --------------------------------------------------------------------------- #
@@ -227,14 +331,15 @@ def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
         out: dict[str, Any] = {}
         for k, v in obj.items():
             if type(k) is not str:
-                # F3 (Codex #1197): render only the TYPE, never repr(k) — a hostile __repr__ on an
-                # untrusted key would raise and escape this refusal.
-                raise R4SidecarError(f"mapping key must be an exact str (got {type(k).__name__})")
+                # F3 (Codex #1197) + F-TYPENAME (Codex #1201): render only an INERT type label, never
+                # repr(k) (a hostile __repr__ raises) and never type(k).__name__ (a hostile metaclass
+                # raises on the __name__ lookup) — either would escape this refusal as a raw exception.
+                raise R4SidecarError(f"mapping key must be an exact str (got {_safe_typename(k)})")
             out[k] = _inert_snapshot(v, _depth + 1)
         return out
     if isinstance(obj, (list, tuple)):
         return [_inert_snapshot(v, _depth + 1) for v in obj]
-    raise R4SidecarError(f"non-exact/JSON value in input: {type(obj).__name__}")
+    raise R4SidecarError(f"non-exact/JSON value in input: {_safe_typename(obj)}")
 
 
 def _deep_freeze(obj: Any) -> Any:
@@ -252,10 +357,11 @@ def _canonical_bytes(obj: Any) -> bytes:
 
 
 def _safe_keys(keys: Any) -> list[str]:
-    """Sorted key display that never calls repr/str on an untrusted key (Codex #1197 F3): a non-str
-    key (or one with a hostile __repr__) renders as a typed placeholder, so a diagnostic on a public
-    self-check entry cannot itself raise, and sorting stays over strs (no mixed-type TypeError)."""
-    return sorted(k if type(k) is str else f"<non-str {type(k).__name__}>" for k in keys)
+    """Sorted key display that never calls repr/str on an untrusted key (Codex #1197 F3 / #1201
+    F-TYPENAME): a non-str key (or one with a hostile __repr__/metaclass) renders as an INERT
+    placeholder, so a diagnostic on a public self-check entry cannot itself raise, and sorting stays
+    over strs (no mixed-type TypeError)."""
+    return sorted(k if type(k) is str else f"<non-str {_safe_typename(k)}>" for k in keys)
 
 
 # --------------------------------------------------------------------------- #
@@ -264,13 +370,13 @@ def _safe_keys(keys: Any) -> list[str]:
 def _field_error(value: Any, kind: str) -> str | None:
     if kind == _ID:
         if type(value) is not str:
-            return f"must be an exact str (got {type(value).__name__})"
+            return f"must be an exact str (got {_safe_typename(value)})"
         if _is_unset(value):
             return f"is a placeholder/unset value ({value!r})"
         return None
     if kind == _SHA40F:
         if type(value) is not str:
-            return f"must be an exact str 40-hex SHA (got {type(value).__name__})"
+            return f"must be an exact str 40-hex SHA (got {_safe_typename(value)})"
         if value.strip().lower() in _MUTABLE_REFS:
             return (f"{value!r} is a MUTABLE ref; the R4 comparison gates C1 and must pin an "
                     "immutable 40-hex revision")
@@ -279,13 +385,13 @@ def _field_error(value: Any, kind: str) -> str | None:
         return None
     if kind == _SHA256F:
         if type(value) is not str:
-            return f"must be an exact str sha256 digest (got {type(value).__name__})"
+            return f"must be an exact str sha256 digest (got {_safe_typename(value)})"
         if not _SHA256.match(value):
             return f"must be a lowercase sha256 hex digest (got {value!r})"
         return None
     if kind == _POSINT:
         if type(value) is not int:
-            return f"must be an exact positive int (got {type(value).__name__})"
+            return f"must be an exact positive int (got {_safe_typename(value)})"
         if value <= 0:
             return f"must be a positive int (got {value!r})"
         return None
@@ -294,7 +400,9 @@ def _field_error(value: Any, kind: str) -> str | None:
 
 def _num_in_range(value: Any, lo: float, hi: float, name: str) -> str | None:
     if isinstance(value, bool) or type(value) not in (int, float):
-        return f"{name} must be a finite number (got {type(value).__name__}: {value!r})"
+        # F-TYPENAME (Codex #1201): inert type label only — no metaclass __name__, no repr of an
+        # untrusted value; both could escape this refusal as a raw exception.
+        return f"{name} must be a finite number (got {_safe_typename(value)})"
     # math.isfinite() on a huge exact int raises OverflowError (Codex #1187 #7). Only floats need
     # the finiteness test; int-vs-float range comparison is exact and never overflows.
     if type(value) is float and not math.isfinite(value):
@@ -367,17 +475,23 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     ``generated_token_ids``, and the producer's EOS mutual-consistency rule. The seam adds journal +
     terminal-authority verification on top of this.
     """
+    # F-AUTH (Codex #1201): bind the frozen authority as the VERY FIRST statement, before
+    # _inert_snapshot runs the caller's Mapping.items(). Every producer-policy decision below reads
+    # this inert snapshot, never a reassignable module global, so a mid-verify (or pre-call) rebind of
+    # B0_RUN_KIND / SCHEMA_VARIANTS / check_decoding_contract / DESCRIPTOR_KEYS / the _B0_* key sets
+    # cannot change what this call accepts.
+    _A = _auth()
     snap = _inert_snapshot(sealed_report)                   # owned, exact-typed (rejects subclasses)
     if not isinstance(snap, dict):
         raise R4SidecarError("sealed_report must be a mapping")
-    if set(snap) != _B0_REPORT_KEYS:
-        missing = sorted(_B0_REPORT_KEYS - set(snap))
-        extra = sorted(set(snap) - _B0_REPORT_KEYS)
+    if set(snap) != _A.report_keys:
+        missing = sorted(_A.report_keys - set(snap))
+        extra = sorted(set(snap) - _A.report_keys)
         raise R4SidecarError(
             f"sealed_report is not the canonical B0 shape (missing {missing}, unexpected {extra})")
-    if snap["schema_version"] != B0_BUNDLE_SCHEMA:
+    if snap["schema_version"] != _A.bundle_schema:
         raise R4SidecarError(
-            f"sealed_report.schema_version must be {B0_BUNDLE_SCHEMA!r} (got {snap['schema_version']!r})")
+            f"sealed_report.schema_version must be {_A.bundle_schema!r} (got {snap['schema_version']!r})")
 
     mdig = snap["manifest_digest"]
     _require_sha256(mdig, "sealed_report.manifest_digest")
@@ -395,7 +509,7 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     # INNER digest: exactly what seal() sealed, before run_b0 appended publication fields.
     inner_stated = snap["report_digest"]
     _require_sha256(inner_stated, "sealed_report.report_digest")
-    inner_recomputed = canonical_digest({k: snap[k] for k in _B0_SEALED_BASE_KEYS})
+    inner_recomputed = canonical_digest({k: snap[k] for k in _A.sealed_base_keys})
     if inner_recomputed != inner_stated:
         raise R4SidecarError(
             f"sealed_report.report_digest {inner_stated[:12]}.. != the inner seal digest "
@@ -412,7 +526,7 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
 
     # Execution descriptor: exact producer shape + panel_hash + manifest-authority equality (F1).
     ed = snap["execution_descriptor"]
-    if not isinstance(ed, Mapping) or set(ed) != _B0_DESCRIPTOR_KEYS:
+    if not isinstance(ed, Mapping) or set(ed) != _A.descriptor_keys:
         raise R4SidecarError("execution_descriptor is not the canonical producer shape")
     # F1 (Codex #1197): panel_hash is a sha256 (canonical_panel_hash emits one), not any non-empty str.
     _require_sha256(ed["panel_hash"], "execution_descriptor.panel_hash")
@@ -437,12 +551,12 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     # above. A self-consistent report whose run_kind is 'c1_intervention', or whose schema_variant is
     # the c1 closed-world value, is not a B0 baseline run_b0 could publish — rev7 checked the SHAPE of
     # these fields but never that their values are the ones a B0 parent must carry.
-    if snap["run_kind"] != B0_RUN_KIND:
+    if snap["run_kind"] != _A.run_kind:
         raise R4SidecarError(
-            f"sealed_report.run_kind must be {B0_RUN_KIND!r} for a B0 parent (got {snap['run_kind']!r})")
-    if snap["schema_variant"] not in SCHEMA_VARIANTS or snap["schema_variant"] != B0_SCHEMA_VARIANT:
+            f"sealed_report.run_kind must be {_A.run_kind!r} for a B0 parent (got {snap['run_kind']!r})")
+    if snap["schema_variant"] not in _A.variants or snap["schema_variant"] != _A.variant:
         raise R4SidecarError(
-            f"sealed_report.schema_variant must be {B0_SCHEMA_VARIANT!r} for a B0 parent "
+            f"sealed_report.schema_variant must be {_A.variant!r} for a B0 parent "
             f"(got {snap['schema_variant']!r})")
     if snap["terminal_state"] != "committed":
         raise R4SidecarError(
@@ -461,16 +575,21 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     if ed["decoding_hash"] != canonical_digest(ed["decoding"]):
         raise R4SidecarError(
             "execution_descriptor.decoding_hash is not the canonical digest of its own decoding block")
-    decoding_refusals = check_decoding_contract({"decoding": dict(ed["decoding"])})
+    decoding_refusals = _A.decoding_check({"decoding": dict(ed["decoding"])})
     if decoding_refusals:
         raise R4SidecarError(
             "execution_descriptor.decoding is not the pinned B0 neutralization set: "
             + "; ".join(decoding_refusals))
     model = ed["model"]
-    if not isinstance(model, Mapping) or not (set(DESCRIPTOR_KEYS) <= set(model)):
+    # F-MODEL (Codex #1201): the producer requires the EXACT frozen model-descriptor key set
+    # (_descriptor_schema_error, p5_b0_run:1485-1503 — extra fields would publish UNBOUND under
+    # integrity_verified). rev8 used a SUBSET test, so a re-sealed report with an extra unbound model
+    # field was accepted though run_b0 would refuse it. Require exact key-set equality; the per-key
+    # value checks below cover exactly those eight keys.
+    if not isinstance(model, Mapping) or set(model) != _A.model_keys:
         raise R4SidecarError(
-            "execution_descriptor.model is not a complete model descriptor "
-            f"(must contain {sorted(DESCRIPTOR_KEYS)})")
+            "execution_descriptor.model is not the exact producer model descriptor "
+            f"(must have exactly {sorted(_A.model_keys)})")
     # F1 (Codex #1197): the model descriptor VALUES must be pinned, not merely present. A model with
     # id=None passes the key-membership check but is not a load the runner could have performed; the
     # device_map must be an explicit single device — reuse the producer's own check_device_map.
@@ -480,14 +599,14 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     if type(model["use_cache"]) is not bool:
         raise R4SidecarError("execution_descriptor.model.use_cache must be a bool")
     try:
-        check_device_map(model["device_map"])
+        _A.device_check(model["device_map"])
     except Exception as exc:  # noqa: BLE001 — any check_device_map failure is a refusal of this parent
         raise R4SidecarError(
             f"execution_descriptor.model.device_map is not an explicit single device: {exc}") from exc
 
     seen: set[str] = set()
     for i, rec in enumerate(records):
-        if not isinstance(rec, Mapping) or set(rec) != _B0_RECORD_KEYS:
+        if not isinstance(rec, Mapping) or set(rec) != _A.record_keys:
             raise R4SidecarError(f"record {i} is not the canonical producer record shape")
         pid = rec["probe_id"]
         if type(pid) is not str or not pid:
@@ -500,7 +619,7 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
         if type(rec["ordinal"]) is not int or isinstance(rec["ordinal"], bool) or rec["ordinal"] != i:
             raise R4SidecarError(f"record {i} ordinal must be the sequential int {i}")
         prov = rec["provenance"]
-        if not isinstance(prov, Mapping) or set(prov) != _B0_PROVENANCE_KEYS:
+        if not isinstance(prov, Mapping) or set(prov) != _A.provenance_keys:
             raise R4SidecarError(f"record {i} provenance is not the canonical producer shape")
         _require_sha256(prov["prompt_sha256"], f"record {i} provenance.prompt_sha256")
         _require_sha256(prov["input_token_ids_sha256"], f"record {i} provenance.input_token_ids_sha256")
@@ -511,9 +630,9 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
         if type(prov["wall_time_ms"]) not in (int, float) or isinstance(prov["wall_time_ms"], bool):
             raise R4SidecarError(f"record {i} provenance.wall_time_ms must be a number")
         stop = prov["stop_reason"]
-        if type(stop) is not str or stop not in _STOP_REASONS:  # exact str before enum membership
+        if type(stop) is not str or stop not in _A.stop_reasons:  # exact str before enum membership
             raise R4SidecarError(
-                f"record {i} stop_reason {stop!r} is not an exact str in {sorted(_STOP_REASONS)}")
+                f"record {i} stop_reason {stop!r} is not an exact str in {sorted(_A.stop_reasons)}")
         gen_ids = prov["generated_token_ids"]
         if not isinstance(gen_ids, list) or any(
                 type(t) is not int or isinstance(t, bool) for t in gen_ids):
@@ -964,7 +1083,7 @@ def _verify_record(sidecar: Any) -> _VerifiedSidecar:
     completeness over the DERIVED eligible set is enforced at the parent-aware boundaries.
     """
     if type(sidecar) is not R4SidecarRecord:
-        raise R4SidecarError(f"not an exact R4SidecarRecord (got {type(sidecar).__name__})")
+        raise R4SidecarError(f"not an exact R4SidecarRecord (got {_safe_typename(sidecar)})")
     output_digest = sidecar.output_digest          # read the digest attributes exactly once
     manifest_digest = sidecar.manifest_digest
     if type(output_digest) is not str or type(manifest_digest) is not str:
@@ -1082,8 +1201,7 @@ def bind_to_parent_report(sealed_report: Mapping[str, Any],
 # --------------------------------------------------------------------------- #
 # The C1-precondition decision (fail-closed).                                  #
 # --------------------------------------------------------------------------- #
-def _build_decision(vs: _VerifiedSidecar, elig: Eligibility, *, gate: float,
-                    floor: int) -> dict[str, Any]:
+def _build_decision(vs: _VerifiedSidecar, elig: Eligibility) -> dict[str, Any]:
     """Compute the fail-closed C1-precondition from the ONE verified snapshot + derived eligibility.
 
     Monk #1146: rho < gate => JSD replacement required; below the N' >= floor => INCOMPLETE. ONLY
@@ -1091,11 +1209,13 @@ def _build_decision(vs: _VerifiedSidecar, elig: Eligibility, *, gate: float,
     count — never a stored declaration. All identity fields come from ``vs`` (F3), so a stateful
     carrier cannot swap a different digest in after verification.
 
-    F2 (Codex #1197): ``gate`` and ``floor`` are the caller's LOCAL snapshot of RHO_GATE /
-    _MIN_ELIGIBLE, captured before any caller-controlled ``.items()`` ran during verification. Reading
-    the live module globals here would let a report/carrier whose ``items()`` reassigns
-    ``p5_r4_sidecar.RHO_GATE = -2.0`` mid-verify green a failing comparison.
+    F-AUTH (Codex #1201, supersedes the rev8 F2 call-entry copy): ``gate`` and ``floor`` come from the
+    import-frozen ``_auth()`` snapshot, not the reassignable module globals. So a report/carrier whose
+    ``items()`` reassigns ``p5_r4_sidecar.RHO_GATE = -2.0`` — whether mid-verify or before the call —
+    cannot green a failing comparison. The public ``RHO_GATE`` stays a documentable constant.
     """
+    _A = _auth()
+    gate, floor = _A.gate, _A.floor
     rec = vs.record
     n_eligible = len(elig.eligible)
     rows = rec["per_pair"]
@@ -1143,14 +1263,13 @@ def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord) -> d
     reads a stored ``eligibility`` block or re-reads the live carrier; a fabricated comparison,
     generation digest, or panel is refused by ``_reverify_against_parent`` before any state.
     """
-    # F2 (Codex #1197): snapshot the gate policy into LOCALS BEFORE any caller-controlled .items()
-    # runs (both verifies below iterate caller mappings), so a mid-verify reassignment of the module
-    # global RHO_GATE cannot drive the verdict. RHO_GATE stays a public, documentable module constant.
-    gate, floor = RHO_GATE, _MIN_ELIGIBLE
+    # F-AUTH (Codex #1201): the gate/floor policy is frozen in _auth() (read inside _build_decision),
+    # so it no longer needs a call-entry copy of the reassignable module globals — a rebind of
+    # RHO_GATE mid-verify OR before this call can no longer drive the verdict.
     vs = _verify_record(sidecar)
     verified_report = verify_sealed_report(sealed_report)
     elig = _reverify_against_parent(verified_report, vs.record)
-    return _build_decision(vs, elig, gate=gate, floor=floor)
+    return _build_decision(vs, elig)
 
 
 # --------------------------------------------------------------------------- #
@@ -1185,9 +1304,8 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     and builds link + decision from that single snapshot (F3), and the whole post-commit region is a
     non-throwing terminal state machine (F4) — a readback fault downgrades, never escapes.
     """
-    # F2 (Codex #1197): snapshot the gate policy into LOCALS before any caller-controlled .items()
-    # runs (the verifies below), so a mid-verify reassignment of RHO_GATE cannot green a commit.
-    gate, floor = RHO_GATE, _MIN_ELIGIBLE
+    # F-AUTH (Codex #1201): the gate/floor policy is frozen in _auth() (read inside _build_decision),
+    # so a rebind of RHO_GATE — mid-verify or before this call — can no longer green a commit.
     sidecar_path = Path(sidecar_path)
     if sidecar_path.exists() or sidecar_path.is_symlink():
         raise R4SidecarError(f"sidecar path already exists (no-replace): {sidecar_path}")
@@ -1199,7 +1317,7 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     verified_report = verify_sealed_report(sealed_report)
     elig = _reverify_against_parent(verified_report, vs.record)   # refuse a fabrication before commit
     link = _build_link(vs, verified_report)                 # internal helpers over the ONE snapshot,
-    decision = _build_decision(vs, elig, gate=gate, floor=floor)   # never reopening the live carrier
+    decision = _build_decision(vs, elig)                     # never reopening the live carrier
     artifact = {
         "schema": SIDECAR_SCHEMA + "-artifact",
         "record": vs.record,

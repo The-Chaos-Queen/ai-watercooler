@@ -668,7 +668,7 @@ def test_acodex_null_runner_digest_and_incomplete_model_are_refused():
     _reseal(r2)
     with pytest.raises(R4SidecarError) as ei:
         verify_sealed_report(r2)
-    assert "complete model descriptor" in str(ei.value)
+    assert "exact producer model descriptor" in str(ei.value)   # rev9 F-MODEL: exact key-set equality
 
 
 def test_acodex_empty_comparison_requires_the_canonical_zero_aggregate():
@@ -1273,3 +1273,121 @@ def test_f6_build_normalizes_negative_zero_to_one_digest():
     a = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=zero)
     b = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=neg)
     assert a.output_digest == b.output_digest                    # -0.0 normalized to 0.0: one digest
+
+
+# --------------------------------------------------------------------------- #
+# rev9 REGRESSIONS — Codex exact-source review of record #1201 (three findings).
+# See MoCoP/reviews/p5_item5_rev8_source_review_2026-07-20.md.                 #
+# --------------------------------------------------------------------------- #
+# F-AUTH (P1): rev8 read the producer/decision authorities through ASSIGNABLE module attributes and
+# only CALL-ENTRY-copied RHO_GATE. A copy of a mutable attr is not a freeze: a pre-call setattr, or a
+# caller Mapping.items() callback during verification, could rebind RHO_GATE / B0_RUN_KIND /
+# check_decoding_contract and drive the verdict. rev9 freezes them all in an import-time closure
+# (_auth()), mirroring p5_b0_run._bind_authority. These are Codex's three exact-target canaries.
+def test_fauth_a_precall_rho_gate_rebind_cannot_green_anticorrelated_evidence(monkeypatch):
+    # Canary 1: RHO_GATE = -2.0 BEFORE r4_decision(anti-correlated evidence). rev8 captured the gate
+    # from the live global at call entry, so a pre-call rebind still became the verdict authority.
+    import p5_r4_sidecar
+    report = _sealed_report()
+    rec = _build(report, agree=False)                            # rho ~ -1 => replacement required
+    monkeypatch.setattr(p5_r4_sidecar, "RHO_GATE", -2.0)         # rebind BEFORE the call (auto-restored)
+    d = r4_decision(report, rec)
+    assert d["c1_authorization_permitted"] is False              # frozen gate 0.7, not the -2.0 rebind
+    assert d["state"] == DECISION_JSD_REPLACEMENT_REQUIRED
+    assert d["rho_gate"] == 0.7
+
+
+def test_fauth_a_callback_run_kind_rebind_cannot_accept_a_c1_parent(monkeypatch):
+    # Canary 2: a top-level Mapping.items() callback rebinds p5_r4_sidecar.B0_RUN_KIND to match a
+    # self-consistent c1_intervention parent. rev8 read the live global AFTER the callback.
+    import p5_r4_sidecar
+    monkeypatch.setattr(p5_r4_sidecar, "B0_RUN_KIND", "b0_baseline")   # register for teardown
+    report = _sealed_report()
+    report["run_kind"] = report["execution_descriptor"]["run_kind"] = "c1_intervention"
+    _reseal(report)
+    fired = {"n": 0}
+
+    class _RunKindSwap(dict):
+        def items(self):
+            if fired["n"] == 0:
+                p5_r4_sidecar.B0_RUN_KIND = "c1_intervention"   # rebind the global mid-snapshot
+            fired["n"] += 1
+            return super().items()
+
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(_RunKindSwap(report))
+    assert "b0_baseline" in str(ei.value)                       # frozen authority refuses it
+
+
+def test_fauth_a_callback_decoding_validator_rebind_cannot_accept_a_sampling_parent(monkeypatch):
+    # Canary 3: a top-level Mapping.items() callback replaces p5_r4_sidecar.check_decoding_contract
+    # with a permissive stub, so a do_sample=true (non-neutral) decoding block would pass. rev8 called
+    # the live global reference AFTER the callback.
+    import p5_r4_sidecar
+    monkeypatch.setattr(p5_r4_sidecar, "check_decoding_contract",
+                        p5_r4_sidecar.check_decoding_contract)  # register for teardown
+    report = _sealed_report()
+    dec = dict(_DECODING)
+    dec["do_sample"] = True                                     # sampling => not the B0 neutral set
+    report["execution_descriptor"]["decoding"] = dec
+    report["execution_descriptor"]["decoding_hash"] = canonical_digest(dec)   # cross-bind still passes
+    _reseal(report)
+    fired = {"n": 0}
+
+    class _DecodingSwap(dict):
+        def items(self):
+            if fired["n"] == 0:
+                p5_r4_sidecar.check_decoding_contract = lambda spec: []   # permissive stub
+            fired["n"] += 1
+            return super().items()
+
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(_DecodingSwap(report))
+    assert "neutralization set" in str(ei.value)                # frozen real validator refuses it
+
+
+# F-MODEL (P1): the producer requires the EXACT frozen 8-key model descriptor; rev8 used a subset
+# test, so a re-sealed report carrying an extra unbound model field was accepted though run_b0 refuses
+# it before execution (_descriptor_schema_error).
+def test_fmodel_an_extra_unbound_model_field_is_refused():
+    report = _sealed_report()
+    report["execution_descriptor"]["model"]["unbound_extra"] = "accepted"
+    _reseal(report)
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "exact producer model descriptor" in str(ei.value)
+
+
+# F-TYPENAME (P2): type(key).__name__ dispatches through the key type's METACLASS; a hostile metaclass
+# that raises on the __name__ lookup escaped a typed refusal as the caller's raw exception. rev9 labels
+# types by exact built-in identity, never by inspecting foreign type metadata.
+class _HostileNameMeta(type):
+    @property
+    def __name__(cls):                                          # noqa: A003 — intentionally hostile
+        raise RuntimeError("hostile type name")
+
+
+class _HostileTypeName(metaclass=_HostileNameMeta):
+    def __hash__(self):
+        return 0
+
+    def __eq__(self, other):
+        return other is self
+
+
+def test_ftypename_a_hostile_metaclass_key_does_not_escape_inert_snapshot():
+    from p5_r4_sidecar import _inert_snapshot
+    with pytest.raises(R4SidecarError):                         # typed refusal, NOT the metaclass error
+        _inert_snapshot({_HostileTypeName(): 1})
+
+
+def test_ftypename_a_hostile_metaclass_key_does_not_escape_a_public_self_check():
+    # validate_comparison is a PUBLIC self-check: a malformed row carrying a hostile-metaclass key must
+    # accumulate a refusal (via _safe_keys), never raise the metaclass's RuntimeError.
+    r = validate_comparison(
+        per_pair=[{"probe_a": "a", "probe_b": "b", "jsd": 0.5, "cosine_similarity": 0.5,
+                   _HostileTypeName(): "x"}],
+        aggregate={"spearman_rho": 0.0, "mean_pairwise_jsd": 0.5,
+                   "mean_pairwise_embedding": 0.5, "n_pairs": 1},
+        eligible_probe_ids=["a", "b"])
+    assert any("key set is not" in x for x in r)                # refused; __name__ never inspected
