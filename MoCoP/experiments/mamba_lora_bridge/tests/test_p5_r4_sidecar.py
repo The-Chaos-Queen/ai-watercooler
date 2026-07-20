@@ -1478,3 +1478,42 @@ def test_fauth_a_precall_decision_label_rebind_cannot_spoof_the_state(monkeypatc
     d = r4_decision(report, rec)
     assert d["state"] == DECISION_JSD_PROCEEDS                  # frozen label, not the rebound module value
     assert d["c1_authorization_permitted"] is True
+
+
+def test_fauth_a_carrier_callback_reassigning_auth_itself_cannot_accept_a_mutable_ref(monkeypatch):
+    # The DEEPEST incomplete-freeze vector (advisor): a carrier record.items() callback that reassigns
+    # _auth ITSELF (not a value global). It fires during _verify_record's snapshot; helpers called
+    # afterward (validate_sidecar_manifest -> _field_error) re-fetched _auth() post-callback in the
+    # first hardening pass, so a swapped accessor still drove the verdict. rev9 now binds ONE _A at the
+    # public entry (before any caller items()) and THREADS it through every verdict helper — none
+    # re-fetches _auth() after caller code ran — so 'main' (a mutable ref) stays refused. Only a
+    # PRE-call _auth reassignment remains a residual, which is the producer's accepted bar.
+    import p5_r4_sidecar
+    monkeypatch.setattr(p5_r4_sidecar, "_auth", p5_r4_sidecar._auth)   # register for teardown
+    real = p5_r4_sidecar._auth()
+    report = _sealed_report(n=4)
+    rows, agg = _comparison(_eligible_of(report))
+    record = {
+        "schema": SIDECAR_SCHEMA,
+        "evaluator": {"evaluator_id": "sentence-transformers/all-MiniLM-L6-v2", "revision_sha": "main"},
+        "runner": {"runner_id": "r4_compare_sidecar", "runner_digest": "d" * 64},
+        "panel": report["execution_descriptor"]["panel_hash"],
+        "parent": _manifest(report)["parent"],
+        "per_pair": _canonicalize_comparison(rows), "aggregate": agg,
+    }
+    man = {k: record[k] for k in ("schema", "evaluator", "runner", "parent", "panel")}
+    fired = {"done": False}
+
+    class _AuthSwap(dict):
+        def items(self):
+            if not fired["done"]:
+                fired["done"] = True
+                p5_r4_sidecar._auth = lambda: real._replace(mutable_refs=frozenset(),
+                                                            sha40=re.compile(r".*"))
+            return super().items()
+
+    carrier = R4SidecarRecord(manifest_digest=canonical_digest(man),
+                              output_digest=canonical_digest(record), record=_AuthSwap(record))
+    with pytest.raises(R4SidecarError) as ei:
+        r4_decision(report, carrier)
+    assert "MUTABLE ref" in str(ei.value)                       # threaded frozen authority refuses 'main'

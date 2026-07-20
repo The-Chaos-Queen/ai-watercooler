@@ -219,11 +219,16 @@ DISPOSITION_INDETERMINATE = "committed_indeterminate"
 # `` / ``_authority()``, Codex #1009 B2 / #1013 B1): capture every verdict     #
 # authority ONCE into a closure cell at import; the public names above stay    #
 # documentation copies that NO verdict path reads. Reassign any of them and    #
-# ``_auth()`` still returns the import-frozen snapshot. (Known residual, same  #
-# as the producer's: the ``_auth`` NAME is itself a reassignable module attr — #
-# free-var cells are as immutable as the language offers in-process; replacing #
-# the accessor wholesale is the ordinary monkeypatch-the-module class, not one #
-# of the value-rebind vectors the review canaried.)                            #
+# ``_auth()`` still returns the import-frozen snapshot for a value-global      #
+# rebind. The ``_auth`` NAME itself is also a reassignable module attr, and a   #
+# carrier ``.items()`` callback CAN reassign it mid-verification — so every     #
+# public entry binds ``_A = _auth()`` ONCE, before any caller ``.items()`` in   #
+# the whole call chain runs, and THREADS that inert ``_A`` through every        #
+# verdict helper (``authority=`` param). No verdict path re-fetches ``_auth()`` #
+# after caller code has run, so a mid-verification ``_auth`` swap is inert.     #
+# The ONLY residual is a PRE-call reassignment of ``_auth`` (before the entry   #
+# binds ``_A``) — the producer's accepted bar; free-var cells / accessor names  #
+# are as immutable as the language offers in-process.                           #
 #                                                                              #
 # a-Codex hardening (Codex #1201 pre-board): the freeze now covers the         #
 # COMPLETE policy authority set reachable from the public entry points — not   #
@@ -436,13 +441,13 @@ def _safe_keys(keys: Any) -> list[str]:
 # --------------------------------------------------------------------------- #
 # Field + number validation.                                                   #
 # --------------------------------------------------------------------------- #
-def _field_error(value: Any, kind: str) -> str | None:
+def _field_error(value: Any, kind: str, *, authority: "_SidecarAuthority | None" = None) -> str | None:
     # F-AUTH (a-Codex #1201): read the accept/reject policy (placeholder check, mutable-ref set, format
-    # regexes) from the frozen snapshot. _verify_record fires the carrier's items() BEFORE calling this
-    # (via validate_sidecar_manifest / validate_comparison), so a callback that clears _MUTABLE_REFS or
-    # loosens _SHA40 must not reach these decisions. The kind TAG dispatch (_ID/_SHA40F/…) stays live:
-    # rebinding a tag only routes to "unknown field kind", a refusal — it fails closed.
-    _A = _auth()
+    # regexes) from the frozen snapshot THREADED from the public entry (bound before any caller items()
+    # fired), so neither a value-global rebind nor an _auth-accessor rebind mid-verification can reach
+    # these decisions. The kind TAG dispatch (_ID/_SHA40F/…) stays live: rebinding a tag only routes to
+    # "unknown field kind", a refusal — it fails closed.
+    _A = authority if authority is not None else _auth()
     if kind == _ID:
         if type(value) is not str:
             return f"must be an exact str (got {_safe_typename(value)})"
@@ -487,7 +492,8 @@ def _num_in_range(value: Any, lo: float, hi: float, name: str) -> str | None:
     return None
 
 
-def _check_block(block: Any, name: str, spec: Mapping[str, str], refusals: list[str]) -> None:
+def _check_block(block: Any, name: str, spec: Mapping[str, str], refusals: list[str],
+                 *, authority: "_SidecarAuthority | None" = None) -> None:
     if not isinstance(block, Mapping):
         refusals.append(f"{name} block missing or not a mapping")
         return
@@ -498,17 +504,19 @@ def _check_block(block: Any, name: str, spec: Mapping[str, str], refusals: list[
         if key not in block:
             refusals.append(f"{name}.{key} is missing")
             continue
-        err = _field_error(block[key], kind)
+        err = _field_error(block[key], kind, authority=authority)
         if err:
             refusals.append(f"{name}.{key} {err}")
 
 
-def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
+def validate_sidecar_manifest(manifest: Mapping[str, Any], *,
+                              authority: "_SidecarAuthority | None" = None) -> list[str]:
     """Return refusal reasons ([] means clean). Never runs anything, never loads a model."""
-    # F-AUTH (a-Codex #1201): the required key set, schema tag, and per-block field specs are read from
-    # the frozen snapshot — _verify_record calls this after the carrier's items() callback, so a
-    # rebind of REQUIRED_SIDECAR_KEYS / SIDECAR_SCHEMA / _*_SPEC cannot loosen the manifest gate.
-    _A = _auth()
+    # F-AUTH (a-Codex #1201): the required key set, schema tag, and per-block field specs come from the
+    # frozen snapshot THREADED from the public entry (bound before the carrier's items() callback), so
+    # neither a rebind of REQUIRED_SIDECAR_KEYS / SIDECAR_SCHEMA / _*_SPEC nor an _auth-accessor rebind
+    # mid-verification can loosen the manifest gate.
+    _A = authority if authority is not None else _auth()
     refusals: list[str] = []
     if not isinstance(manifest, Mapping):
         return ["sidecar manifest is not a mapping"]
@@ -520,10 +528,10 @@ def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
             refusals.append(f"required key {key!r} is missing")
     if manifest.get("schema") != _A.sidecar_schema:
         refusals.append(f"schema must be {_A.sidecar_schema!r} (got {manifest.get('schema')!r})")
-    _check_block(manifest.get("evaluator"), "evaluator", _A.evaluator_spec, refusals)
-    _check_block(manifest.get("runner"), "runner", _A.runner_spec, refusals)
-    _check_block(manifest.get("parent"), "parent", _A.parent_spec, refusals)
-    err = _field_error(manifest.get("panel"), _ID)
+    _check_block(manifest.get("evaluator"), "evaluator", _A.evaluator_spec, refusals, authority=_A)
+    _check_block(manifest.get("runner"), "runner", _A.runner_spec, refusals, authority=_A)
+    _check_block(manifest.get("parent"), "parent", _A.parent_spec, refusals, authority=_A)
+    err = _field_error(manifest.get("panel"), _ID, authority=_A)
     if err:
         refusals.append(f"panel {err}")
     return refusals
@@ -532,12 +540,14 @@ def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
 # --------------------------------------------------------------------------- #
 # F1 — verify the parent is the CANONICAL B0 producer's report, then derive.    #
 # --------------------------------------------------------------------------- #
-def _require_sha256(value: Any, name: str) -> None:
-    if type(value) is not str or not _auth().sha256.match(value):   # F-AUTH: frozen format regex
+def _require_sha256(value: Any, name: str, *, authority: "_SidecarAuthority | None" = None) -> None:
+    _A = authority if authority is not None else _auth()
+    if type(value) is not str or not _A.sha256.match(value):   # F-AUTH: frozen format regex
         raise R4SidecarError(f"{name} must be a lowercase sha256 hex digest (got {value!r})")
 
 
-def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
+def verify_sealed_report(sealed_report: Mapping[str, Any], *,
+                         authority: "_SidecarAuthority | None" = None) -> dict[str, Any]:
     """Validate a CANONICAL B0 evidence report (Monk #1146 F2-depth; Codex #1183/#1187 F1).
 
     A governed parent is not merely a self-hashed Mapping, and not merely a report with the fields
@@ -554,12 +564,13 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     ``generated_token_ids``, and the producer's EOS mutual-consistency rule. The seam adds journal +
     terminal-authority verification on top of this.
     """
-    # F-AUTH (Codex #1201): bind the frozen authority as the VERY FIRST statement, before
-    # _inert_snapshot runs the caller's Mapping.items(). Every producer-policy decision below reads
-    # this inert snapshot, never a reassignable module global, so a mid-verify (or pre-call) rebind of
-    # B0_RUN_KIND / SCHEMA_VARIANTS / check_decoding_contract / DESCRIPTOR_KEYS / the _B0_* key sets
-    # cannot change what this call accepts.
-    _A = _auth()
+    # F-AUTH (Codex #1201 + a-Codex): use the frozen authority THREADED from the public entry when
+    # present (bound before ANY caller items() in the whole call chain ran), else bind it here as the
+    # VERY FIRST statement, before _inert_snapshot runs this report's Mapping.items(). Every
+    # producer-policy decision below — and the digest-format checks it delegates — reads this inert
+    # snapshot, never a reassignable module global and never a re-fetch of _auth() after caller code
+    # ran, so no mid-verify value-rebind OR _auth-accessor-rebind can change what this call accepts.
+    _A = authority if authority is not None else _auth()
     snap = _inert_snapshot(sealed_report)                   # owned, exact-typed (rejects subclasses)
     if not isinstance(snap, dict):
         raise R4SidecarError("sealed_report must be a mapping")
@@ -573,7 +584,7 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
             f"sealed_report.schema_version must be {_A.bundle_schema!r} (got {snap['schema_version']!r})")
 
     mdig = snap["manifest_digest"]
-    _require_sha256(mdig, "sealed_report.manifest_digest")
+    _require_sha256(mdig, "sealed_report.manifest_digest", authority=_A)
 
     records = snap["records"]
     if not isinstance(records, list) or not records:
@@ -587,7 +598,7 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
 
     # INNER digest: exactly what seal() sealed, before run_b0 appended publication fields.
     inner_stated = snap["report_digest"]
-    _require_sha256(inner_stated, "sealed_report.report_digest")
+    _require_sha256(inner_stated, "sealed_report.report_digest", authority=_A)
     inner_recomputed = canonical_digest({k: snap[k] for k in _A.sealed_base_keys})
     if inner_recomputed != inner_stated:
         raise R4SidecarError(
@@ -596,7 +607,7 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
 
     # OUTER digest: the runner's publication digest over everything except itself.
     outer_stated = snap["published_digest"]
-    _require_sha256(outer_stated, "sealed_report.published_digest")
+    _require_sha256(outer_stated, "sealed_report.published_digest", authority=_A)
     outer_recomputed = canonical_digest({k: v for k, v in snap.items() if k != "published_digest"})
     if outer_recomputed != outer_stated:
         raise R4SidecarError(
@@ -608,9 +619,9 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(ed, Mapping) or set(ed) != _A.descriptor_keys:
         raise R4SidecarError("execution_descriptor is not the canonical producer shape")
     # F1 (Codex #1197): panel_hash is a sha256 (canonical_panel_hash emits one), not any non-empty str.
-    _require_sha256(ed["panel_hash"], "execution_descriptor.panel_hash")
-    _require_sha256(ed["manifest_digest"], "execution_descriptor.manifest_digest")
-    _require_sha256(ed["base_manifest_digest"], "execution_descriptor.base_manifest_digest")
+    _require_sha256(ed["panel_hash"], "execution_descriptor.panel_hash", authority=_A)
+    _require_sha256(ed["manifest_digest"], "execution_descriptor.manifest_digest", authority=_A)
+    _require_sha256(ed["base_manifest_digest"], "execution_descriptor.base_manifest_digest", authority=_A)
     if not (mdig == ed["manifest_digest"] == ed["base_manifest_digest"]):
         raise R4SidecarError(
             "manifest authority disagreement: report.manifest_digest, "
@@ -640,11 +651,11 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
     if snap["terminal_state"] != "committed":
         raise R4SidecarError(
             f"sealed_report.terminal_state must be 'committed' (got {snap['terminal_state']!r})")
-    _require_sha256(snap["journal_digest"], "sealed_report.journal_digest")
+    _require_sha256(snap["journal_digest"], "sealed_report.journal_digest", authority=_A)
     # Descriptor authority values must be PINNED, not null/incomplete (Codex #1187 a-Codex): a
     # runner_digest=None or an incomplete model is not a report the runner could publish.
-    _require_sha256(ed["runner_digest"], "execution_descriptor.runner_digest")
-    _require_sha256(ed["decoding_hash"], "execution_descriptor.decoding_hash")
+    _require_sha256(ed["runner_digest"], "execution_descriptor.runner_digest", authority=_A)
+    _require_sha256(ed["decoding_hash"], "execution_descriptor.decoding_hash", authority=_A)
     if not isinstance(ed["decoding"], Mapping) or not ed["decoding"]:
         raise R4SidecarError("execution_descriptor.decoding must be a non-empty mapping")
     # F1 (Codex #1197): the decoding_hash must be the digest OF this decoding (cross-bind, not merely
@@ -700,10 +711,11 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
         prov = rec["provenance"]
         if not isinstance(prov, Mapping) or set(prov) != _A.provenance_keys:
             raise R4SidecarError(f"record {i} provenance is not the canonical producer shape")
-        _require_sha256(prov["prompt_sha256"], f"record {i} provenance.prompt_sha256")
-        _require_sha256(prov["input_token_ids_sha256"], f"record {i} provenance.input_token_ids_sha256")
+        _require_sha256(prov["prompt_sha256"], f"record {i} provenance.prompt_sha256", authority=_A)
+        _require_sha256(prov["input_token_ids_sha256"],
+                        f"record {i} provenance.input_token_ids_sha256", authority=_A)
         _require_sha256(prov["generated_token_ids_sha256"],
-                        f"record {i} provenance.generated_token_ids_sha256")
+                        f"record {i} provenance.generated_token_ids_sha256", authority=_A)
         if type(prov["attempt_id"]) is not str or not prov["attempt_id"]:
             raise R4SidecarError(f"record {i} provenance.attempt_id must be a non-empty str")
         if type(prov["wall_time_ms"]) not in (int, float) or isinstance(prov["wall_time_ms"], bool):
@@ -845,13 +857,14 @@ def diversity_agreement_rho(jsds: Sequence[float], sims: Sequence[float]) -> flo
 
 
 def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
-                        jsds: list[float], sims: list[float]) -> list[str]:
+                        jsds: list[float], sims: list[float],
+                        *, authority: "_SidecarAuthority | None" = None) -> list[str]:
     """Range-check the aggregate, bind n_pairs to the row count, and recompute from the rows.
 
     n_pairs is a NON-NEGATIVE int (0 is the canonical value for a below-floor empty comparison);
     the recompute runs only when there are rows to describe.
     """
-    _A = _auth()                               # F-AUTH (a-Codex #1201): frozen key set / ranges / tol
+    _A = authority if authority is not None else _auth()   # F-AUTH: frozen key set / ranges / tol
     refusals: list[str] = []
     if not isinstance(aggregate, Mapping):
         return ["aggregate must be a mapping"]
@@ -909,7 +922,8 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
 
 def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
                         *, eligible_probe_ids: Sequence[str] | None = None,
-                        row_keys: frozenset[str] | None = None) -> list[str]:
+                        row_keys: frozenset[str] | None = None,
+                        authority: "_SidecarAuthority | None" = None) -> list[str]:
     """Row shape + endpoint identity + COMPLETENESS over ELIGIBLE probes + RECOMPUTATION.
 
     Completeness is over the ELIGIBLE set (Monk #1146 F1), never all report probes. §5.5 (Codex
@@ -923,7 +937,7 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
     snapshot (default row shape too — via ``None`` sentinel, not a reassignable default arg), so a
     caller callback cannot loosen them mid-validation.
     """
-    _A = _auth()
+    _A = authority if authority is not None else _auth()
     row_keys = _A.input_row_keys if row_keys is None else row_keys
     if not isinstance(per_pair, Sequence) or isinstance(per_pair, (str, bytes)):
         return ["per_pair must be a sequence of rows"]
@@ -937,7 +951,7 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
         # enforces completeness. A non-empty expected set with no rows is a refusal.
         refusals = ([f"empty comparison but the eligible set requires {len(expected)} pair(s)"]
                     if expected else [])
-        return refusals + _validate_aggregate(aggregate, per_pair, [], [])
+        return refusals + _validate_aggregate(aggregate, per_pair, [], [], authority=_A)
 
     refusals = []
     seen_endpoints: set[frozenset] = set()
@@ -955,8 +969,8 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
                 f"per-pair row {i} key set is not {sorted(row_keys)} (got {_safe_keys(row)})")
             continue
         a, b = row["probe_a"], row["probe_b"]
-        ae = _field_error(a, _ID)
-        be = _field_error(b, _ID)
+        ae = _field_error(a, _ID, authority=_A)
+        be = _field_error(b, _ID, authority=_A)
         if ae:
             refusals.append(f"per-pair row {i} probe_a {ae}")
         if be:
@@ -992,7 +1006,7 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
             f"comparison endpoint set is not the complete ELIGIBLE pair set "
             f"(missing {len(missing)}, extra {len(extra)} of {len(expected)})")
 
-    return refusals + _validate_aggregate(aggregate, per_pair, jsds, sims)
+    return refusals + _validate_aggregate(aggregate, per_pair, jsds, sims, authority=_A)
 
 
 @dataclass(frozen=True)
@@ -1087,6 +1101,7 @@ def build_r4_sidecar(
     sealed_report: Mapping[str, Any],
     per_pair: Sequence[Mapping[str, Any]],
     aggregate: Mapping[str, Any],
+    authority: "_SidecarAuthority | None" = None,
 ) -> R4SidecarRecord:
     """Validate, DERIVE-bind to the verified sealed report over ELIGIBLE probes, and seal.
 
@@ -1096,29 +1111,33 @@ def build_r4_sidecar(
     pure function of (verified parent, L) and every gating boundary re-derives it from the bound
     parent. Storing it would invite a consumer to re-trust a declaration; the parent is the custody.
     """
+    # F-AUTH (a-Codex #1201): use the authority THREADED from the seam when present, else bind it ONCE
+    # here, before _inert_snapshot fires the caller manifest's items() callback, and thread it through
+    # every validator — none re-fetches _auth() after caller code has run.
+    _A = authority if authority is not None else _auth()
     manifest = _inert_snapshot(manifest)
     per_pair = _inert_snapshot(per_pair)
     aggregate = _inert_snapshot(aggregate)
 
-    refusals = validate_sidecar_manifest(manifest)
+    refusals = validate_sidecar_manifest(manifest, authority=_A)
     if refusals:
         raise R4SidecarError("; ".join(refusals))
     par = manifest["parent"]
 
-    verified = verify_sealed_report(sealed_report)
+    verified = verify_sealed_report(sealed_report, authority=_A)
     _check_parent_binding(verified, b0_report_digest=par["b0_report_digest"],
                           generation_output_digest=par["generation_output_digest"],
                           panel=manifest["panel"])
 
     elig = partition_eligibility(verified, par["sequence_length"])
     comparison_refusals = validate_comparison(per_pair, aggregate,
-                                              eligible_probe_ids=elig.eligible)
+                                              eligible_probe_ids=elig.eligible, authority=_A)
     if comparison_refusals:
         raise R4SidecarError("; ".join(comparison_refusals))
     canonical_per_pair = _canonicalize_comparison(per_pair)     # F6: deterministic order/orientation
 
     plain_record: dict[str, Any] = {
-        "schema": _auth().sidecar_schema,                        # F-AUTH: frozen label (fail-closed at verify)
+        "schema": _A.sidecar_schema,                             # F-AUTH: frozen label (fail-closed at verify)
         "evaluator": dict(manifest["evaluator"]),
         "runner": dict(manifest["runner"]),
         "panel": manifest["panel"],
@@ -1152,7 +1171,7 @@ class _VerifiedSidecar:
     manifest_digest: str
 
 
-def _verify_record(sidecar: Any) -> _VerifiedSidecar:
+def _verify_record(sidecar: Any, *, authority: "_SidecarAuthority | None" = None) -> _VerifiedSidecar:
     """Exact-type the carrier, capture its content + digests ONCE, and RE-VALIDATE the semantics.
 
     Codex #1140 F4 + #1144 F3/F4: the deep-freeze stops in-place mutation, but a public boundary must
@@ -1174,10 +1193,12 @@ def _verify_record(sidecar: Any) -> _VerifiedSidecar:
     manifest_digest = sidecar.manifest_digest
     if type(output_digest) is not str or type(manifest_digest) is not str:
         raise R4SidecarError("record digests must be exact strs")
-    # F-AUTH (a-Codex #1201): bind the frozen authority BEFORE _inert_snapshot fires the carrier's
-    # items() callback, so the exact-record-shape and canonical-row-shape decisions below (and the
-    # manifest/comparison re-validation they delegate to) read frozen policy, not a rebound global.
-    _A = _auth()
+    # F-AUTH (a-Codex #1201): use the authority THREADED from the public entry (bound before ANY caller
+    # items() ran), else bind it here BEFORE _inert_snapshot fires THIS carrier's items() callback. The
+    # exact-record-shape and canonical-row-shape decisions below — and the manifest/comparison
+    # re-validation they delegate to — read this frozen snapshot, never a rebound value-global and
+    # never a re-fetch of _auth() after the callback (which could reassign _auth itself).
+    _A = authority if authority is not None else _auth()
     # F3 (Codex #1187): capture a fully-OWNED, EXACT-typed deep copy in one pass — _inert_snapshot
     # rebuilds nested lists too (no live list survives) and refuses str/int subclasses (which could
     # compare as one value but serialize as another) and non-str keys, so a stateful/subclass carrier
@@ -1202,12 +1223,12 @@ def _verify_record(sidecar: Any) -> _VerifiedSidecar:
     }
     if canonical_digest(reconstructed_manifest) != manifest_digest:
         raise R4SidecarError("record manifest_digest does not match the reconstructed manifest")
-    m_refusals = validate_sidecar_manifest(reconstructed_manifest)
+    m_refusals = validate_sidecar_manifest(reconstructed_manifest, authority=_A)
     if m_refusals:
         raise R4SidecarError("record manifest fails re-validation: " + "; ".join(m_refusals))
     # Stored rows carry the DERIVED pair_id -> validate against the canonical row shape.
     c_refusals = validate_comparison(record["per_pair"], record["aggregate"],
-                                     eligible_probe_ids=None, row_keys=_A.canon_row_keys)
+                                     eligible_probe_ids=None, row_keys=_A.canon_row_keys, authority=_A)
     if c_refusals:
         raise R4SidecarError("record comparison fails re-validation: " + "; ".join(c_refusals))
     # F6 (Codex #1187): the stored rows must already BE their canonical representation (oriented,
@@ -1234,8 +1255,8 @@ def _verify_record(sidecar: Any) -> _VerifiedSidecar:
                             manifest_digest=manifest_digest)
 
 
-def _reverify_against_parent(verified_report: Mapping[str, Any],
-                             record: Mapping[str, Any]) -> Eligibility:
+def _reverify_against_parent(verified_report: Mapping[str, Any], record: Mapping[str, Any],
+                             *, authority: "_SidecarAuthority | None" = None) -> Eligibility:
     """The SINGLE parent-aware custody point (rev5 Isegrim + Codex #1183 F1/F2).
 
     Bind the record's parent block + panel to the verified report via ``_check_parent_binding`` (the
@@ -1244,13 +1265,15 @@ def _reverify_against_parent(verified_report: Mapping[str, Any],
     hand-built record that lies about eligibility, the generation-corpus digest, or the panel — none
     of which digest self-consistency can catch — is REFUSED here, before any C1-precondition.
     """
+    _A = authority if authority is not None else _auth()
     par = record["parent"]
     _check_parent_binding(verified_report, b0_report_digest=par["b0_report_digest"],
                           generation_output_digest=par["generation_output_digest"],
                           panel=record["panel"])
     elig = partition_eligibility(verified_report, par["sequence_length"])
     refusals = validate_comparison(record["per_pair"], record["aggregate"],
-                                   eligible_probe_ids=elig.eligible, row_keys=_auth().canon_row_keys)
+                                   eligible_probe_ids=elig.eligible, row_keys=_A.canon_row_keys,
+                                   authority=_A)
     if refusals:
         raise R4SidecarError(
             "the comparison does not cover the eligibility DERIVED from the bound parent (a stored "
@@ -1258,11 +1281,13 @@ def _reverify_against_parent(verified_report: Mapping[str, Any],
     return elig
 
 
-def _build_link(vs: _VerifiedSidecar, verified_report: Mapping[str, Any]) -> dict[str, Any]:
+def _build_link(vs: _VerifiedSidecar, verified_report: Mapping[str, Any],
+                *, authority: "_SidecarAuthority | None" = None) -> dict[str, Any]:
     """The audit link, built from the ONE verified snapshot (never the live carrier — F3)."""
+    _A = authority if authority is not None else _auth()
     rec = vs.record
     link = {
-        "schema": _auth().sidecar_schema + "-link",
+        "schema": _A.sidecar_schema + "-link",
         "b0_published_digest": verified_report["published_digest"],
         "sidecar_manifest_digest": vs.manifest_digest,
         "sidecar_output_digest": vs.output_digest,
@@ -1282,16 +1307,21 @@ def bind_to_parent_report(sealed_report: Mapping[str, Any],
     (rev5 + F1/F2): binding a sidecar whose comparison, generation digest, or panel disagrees with
     the parent is refused, not linked.
     """
-    vs = _verify_record(sidecar)
-    verified_report = verify_sealed_report(sealed_report)
-    _reverify_against_parent(verified_report, vs.record)
-    return _build_link(vs, verified_report)
+    # F-AUTH (a-Codex #1201): bind the frozen authority ONCE, before _verify_record fires the carrier's
+    # items() callback, and thread it through every verdict helper. No helper re-fetches _auth() after
+    # caller code has run, so a callback that reassigns _auth itself cannot poison a later read.
+    _A = _auth()
+    vs = _verify_record(sidecar, authority=_A)
+    verified_report = verify_sealed_report(sealed_report, authority=_A)
+    _reverify_against_parent(verified_report, vs.record, authority=_A)
+    return _build_link(vs, verified_report, authority=_A)
 
 
 # --------------------------------------------------------------------------- #
 # The C1-precondition decision (fail-closed).                                  #
 # --------------------------------------------------------------------------- #
-def _build_decision(vs: _VerifiedSidecar, elig: Eligibility) -> dict[str, Any]:
+def _build_decision(vs: _VerifiedSidecar, elig: Eligibility,
+                    *, authority: "_SidecarAuthority | None" = None) -> dict[str, Any]:
     """Compute the fail-closed C1-precondition from the ONE verified snapshot + derived eligibility.
 
     Monk #1146: rho < gate => JSD replacement required; below the N' >= floor => INCOMPLETE. ONLY
@@ -1304,7 +1334,7 @@ def _build_decision(vs: _VerifiedSidecar, elig: Eligibility) -> dict[str, Any]:
     ``items()`` reassigns ``p5_r4_sidecar.RHO_GATE = -2.0`` — whether mid-verify or before the call —
     cannot green a failing comparison. The public ``RHO_GATE`` stays a documentable constant.
     """
-    _A = _auth()
+    _A = authority if authority is not None else _auth()
     gate, floor = _A.gate, _A.floor
     rec = vs.record
     n_eligible = len(elig.eligible)
@@ -1348,7 +1378,8 @@ def _build_decision(vs: _VerifiedSidecar, elig: Eligibility) -> dict[str, Any]:
     return decision
 
 
-def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord) -> dict[str, Any]:
+def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
+                *, authority: "_SidecarAuthority | None" = None) -> dict[str, Any]:
     """Emit the exact, fail-closed R4 decision/precondition record for the future C1 boundary.
 
     Verifies the carrier ONCE (Codex #1183 F3), re-derives eligibility + parent-binds from the
@@ -1356,13 +1387,16 @@ def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord) -> d
     reads a stored ``eligibility`` block or re-reads the live carrier; a fabricated comparison,
     generation digest, or panel is refused by ``_reverify_against_parent`` before any state.
     """
-    # F-AUTH (Codex #1201): the gate/floor policy is frozen in _auth() (read inside _build_decision),
-    # so it no longer needs a call-entry copy of the reassignable module globals — a rebind of
-    # RHO_GATE mid-verify OR before this call can no longer drive the verdict.
-    vs = _verify_record(sidecar)
-    verified_report = verify_sealed_report(sealed_report)
-    elig = _reverify_against_parent(verified_report, vs.record)
-    return _build_decision(vs, elig)
+    # F-AUTH (Codex #1201 + a-Codex): use the authority THREADED from the seam when present, else bind
+    # it ONCE here, before _verify_record fires the carrier's items() callback, and thread it through
+    # every verdict helper — none re-fetches _auth() after caller code has run, so neither a
+    # value-global rebind nor an _auth-accessor rebind mid-verification (nor a pre-call rebind of
+    # RHO_GATE) can drive the verdict.
+    _A = authority if authority is not None else _auth()
+    vs = _verify_record(sidecar, authority=_A)
+    verified_report = verify_sealed_report(sealed_report, authority=_A)
+    elig = _reverify_against_parent(verified_report, vs.record, authority=_A)
+    return _build_decision(vs, elig, authority=_A)
 
 
 # --------------------------------------------------------------------------- #
@@ -1381,7 +1415,8 @@ class R4PublishResult:
 
 
 def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
-                       sidecar_path: Path) -> R4PublishResult:
+                       sidecar_path: Path, *,
+                       authority: "_SidecarAuthority | None" = None) -> R4PublishResult:
     """Atomically publish the artifact (record + link + decision). No-replace, truthful disposition.
 
     Monk #1146 F5: after linking, READ BACK the final bytes and confirm they equal what was meant to
@@ -1400,8 +1435,8 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     # and the terminal DISPOSITION_* labels below are read from this frozen snapshot too — bound BEFORE
     # _verify_record fires the carrier's items() — so a rebind of RHO_GATE or of DISPOSITION_VERIFIED
     # (mid-verify or before the call) can neither green a failing decision nor mislabel a downgraded
-    # commit as verified.
-    _A = _auth()
+    # commit as verified. Uses the authority THREADED from the seam when present, else binds here.
+    _A = authority if authority is not None else _auth()
     sidecar_path = Path(sidecar_path)
     if sidecar_path.exists() or sidecar_path.is_symlink():
         raise R4SidecarError(f"sidecar path already exists (no-replace): {sidecar_path}")
@@ -1409,11 +1444,11 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     if parent_dir.is_symlink() or not parent_dir.is_dir():
         raise R4SidecarError(f"sidecar parent dir must be an existing non-symlink: {parent_dir}")
 
-    vs = _verify_record(sidecar)                            # F3: capture the carrier ONCE
-    verified_report = verify_sealed_report(sealed_report)
-    elig = _reverify_against_parent(verified_report, vs.record)   # refuse a fabrication before commit
-    link = _build_link(vs, verified_report)                 # internal helpers over the ONE snapshot,
-    decision = _build_decision(vs, elig)                     # never reopening the live carrier
+    vs = _verify_record(sidecar, authority=_A)             # F3: capture the carrier ONCE
+    verified_report = verify_sealed_report(sealed_report, authority=_A)
+    elig = _reverify_against_parent(verified_report, vs.record, authority=_A)  # refuse a fabrication
+    link = _build_link(vs, verified_report, authority=_A)   # internal helpers over the ONE snapshot,
+    decision = _build_decision(vs, elig, authority=_A)       # never reopening the live carrier
     artifact = {
         "schema": _A.sidecar_schema + "-artifact",
         "record": vs.record,
@@ -1507,7 +1542,8 @@ class R4RecordResult:
     ok: bool                                  # True iff authority verified AND artifact committed clean
 
 
-def _load_governed_report(report_path: Path, journal_path: Path) -> tuple[dict[str, Any], bytes]:
+def _load_governed_report(report_path: Path, journal_path: Path, *,
+                          authority: "_SidecarAuthority | None" = None) -> tuple[dict[str, Any], bytes]:
     """Load a GOVERNED B0 evidence reference: the report bytes cross-verified by the journal.
 
     Monk #1146 F2-depth: a governed parent is a verified report+JOURNAL reference, not a caller's
@@ -1518,8 +1554,8 @@ def _load_governed_report(report_path: Path, journal_path: Path) -> tuple[dict[s
     # integrity-verified disposition label are all read from the frozen snapshot. Rebinding
     # verify_terminal_frames to a permissive stub, or DISPOSITION_VERIFIED to a downgraded label
     # (so a committed-integrity-FAILED B0 parent clears this gate), can no longer admit an
-    # inadmissible parent to the C1 precondition.
-    _A = _auth()
+    # inadmissible parent to the C1 precondition. Authority THREADED from the seam when present.
+    _A = authority if authority is not None else _auth()
     report_path, journal_path = Path(report_path), Path(journal_path)
     if not report_path.is_file():
         raise R4SidecarError(f"B0 report artifact not found: {report_path}")
@@ -1563,15 +1599,19 @@ def record_r4_comparison(
     C1-precondition. A non-integrity-verified / absent / invalid parent, or an INCOMPLETE /
     replacement-required comparison, all deny C1 authorization.
     """
-    report, _report_bytes = _load_governed_report(report_path, journal_path)
+    # F-AUTH (a-Codex #1201): bind the frozen authority ONCE at the seam entry and thread it through
+    # load/build/publish/decide, so a caller-manifest items() callback (fired inside build) that
+    # reassigns _auth cannot poison the later publish/decision reads.
+    _A = _auth()
+    report, _report_bytes = _load_governed_report(report_path, journal_path, authority=_A)
     sidecar = build_r4_sidecar(manifest, sealed_report=report, per_pair=per_pair,
-                               aggregate=aggregate)
-    result = publish_r4_sidecar(report, sidecar, sidecar_path)
-    decision = r4_decision(report, sidecar)
+                               aggregate=aggregate, authority=_A)
+    result = publish_r4_sidecar(report, sidecar, sidecar_path, authority=_A)
+    decision = r4_decision(report, sidecar, authority=_A)
     # The seam only reports ok when authority verified, the artifact committed cleanly (a downgraded
-    # disposition is NOT ok), AND the precondition permits C1. Fail-closed on everything else. F-AUTH
-    # (a-Codex #1201): the "verified" label is the frozen one, so a rebound DISPOSITION_VERIFIED cannot
-    # make a downgraded publish read as ok.
-    ok = (result.disposition == _auth().disp_verified
+    # disposition is NOT ok), AND the precondition permits C1. Fail-closed on everything else. The
+    # "verified" label is the frozen one, so a rebound DISPOSITION_VERIFIED cannot make a downgraded
+    # publish read as ok.
+    ok = (result.disposition == _A.disp_verified
           and bool(decision["c1_authorization_permitted"]))
     return R4RecordResult(decision=decision, publish=result, ok=ok)
