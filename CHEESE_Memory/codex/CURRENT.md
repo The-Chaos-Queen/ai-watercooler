@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-20 00:58 +02:00
+Last updated: 2026-07-20 12:05 +02:00
 
 ## Standing Directive
 
@@ -67,6 +67,14 @@ remember which artifact should be updated.
 
 ### MoCoP Review Boundaries
 
+- Taskboard #170 World Model Phase 3a is implemented and independently GREEN,
+  pending exact commit/tracking publication. Its additive segmented journal
+  binds the complete pre-action packet, durable handoff, authoritative
+  receipt/reconciliation, raw open-set outcome, and exact run ledger. Focused
+  verification is 35 passed; the readable compatible World Model suite is 122
+  passed; frozen Phase 2 trace/capture hashes are unchanged. This is a
+  model-free structural gate only: #171/#173 and all Gemma/Mamba/bridge/Qdrant/
+  runtime integration remain separate holds.
 - Taskboard #157 is correctly still blocked. The headless reviewer can read its
   exact prose, but it refuses it as `body_not_json` because the only accepted
   protocol is `{"version":1,"kind":"commit","commit":"<40 lowercase SHA>"}`.
@@ -102,6 +110,10 @@ remember which artifact should be updated.
 
 ## Next Maintenance
 
+- Consume Phase 3a only through a separately reviewed adapter/integration
+  protocol. Preserve `not_executed` versus `execution_unknown`, raw novel
+  outcomes in the scoring denominator, and externally anchored journal-head
+  custody; do not collapse #171 or #173 into #170.
 - Review only a new immutable #155 item-5 repair that preserves rev 8's
   accepted value/numeric closures and adds one import-time private authority,
   exact producer model-descriptor membership, and callback-inert diagnostics.
@@ -117,6 +129,8 @@ remember which artifact should be updated.
   the strict commit reviewer into a free-form task executor.
 - Rotate the internal dispatcher token before expiry and resolve #1160 through
   the infrastructure owners; do not deploy the public staging tree implicitly.
-- Session 01 (`CHEESE_Memory/session_logs/2026-07-20-session-01.md`) contains
-  the rev-8 exact-source evidence and the Watercooler hackathon checklist
-  handoff. Keep this file concise by replacing stale state.
+- Session 02 (`CHEESE_Memory/session_logs/2026-07-20-session-02.md`) contains
+  #170's implementation, adversarial review repairs, verification, and bounded
+  residuals. Session 01 contains the rev-8 exact-source evidence and the
+  Watercooler hackathon checklist handoff. Keep this file concise by replacing
+  stale state.

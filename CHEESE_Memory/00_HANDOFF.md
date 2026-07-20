@@ -1,13 +1,20 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-20 00:58 +02:00
-- Current owner: Gidim owns the next #155 item-5 successor after Codex returned exact-source `CHANGES` on rev 8; all B0/C1/model/GPU/sink/deployment gates remain held.
-- Primary focus: preserve rev 8's accepted repairs while freezing every sidecar authority, enforcing exact producer model keys, and making refusal diagnostics callback-total.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-20-session-01.md`
+- Last updated: 2026-07-20 12:05 +02:00
+- Current owner: Codex is publishing the independently reviewed World Model Phase 3a structural gate (#170); Gidim's separate #155 successor lane and all B0/C1/model/GPU/sink/deployment gates remain held.
+- Primary focus: close #170 with exact causal custody and open-set accounting, then keep #171 event authority/composition and #173 rollout evidence independent.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-20-session-02.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-20-session-01.md`; 11 chunks; collection total 34,577)
+  - Latest session log ingest: done (`2026-07-20-session-02.md`; 13 chunks; collection total 34,587)
+
+## Current State - World Model Phase 3a Causal Custody (#170, 2026-07-20)
+
+- **Independent implementation review: GREEN.** The additive Phase 3a journal binds state, candidate set, selected action, estimator/config, durable execution handoff, authoritative receipt/reconciliation, raw outcome, and the exact planned-step ledger through canonical content hashes and a segmented hash chain. Commit publication is in progress.
+- **Failure semantics are explicit:** commit-only recovery is `not_executed`; a durable handoff without authoritative reconciliation is `execution_unknown`. Literal positive-mass `OTHER`/`UNKNOWN` outcomes are mandatory, and raw novel outcomes remain in the committed denominator under the frozen mapping policy.
+- **Verification:** focused `35 passed`; readable World Model compatibility suite `122 passed`; Ruff, `py_compile`, and `git diff --check` clean. Frozen `world_model_trace.py` and `world_model_capture.py` remain byte-identical.
+- **Boundary:** model-free/local only. Trusted adapter authority, externally anchored terminal-head custody, and Windows sudden-power-loss directory durability remain named external boundaries. This result authorizes no Gemma, Mamba, bridge, Qdrant, memory, dynamic-alpha, persistence, or action-runtime integration; #171 and #173 remain separate holds.
 
 ## Current State - #174 Final Exact-Source Review (2026-07-18)
 
@@ -65,12 +72,12 @@
 - **Custody and verification:** `phase2b_ls20_prereg_v1/` and `phase2b_ls20_real_v1/` are self-verifying canonical bundles. Eval SHA `d0a57bcf...`; report SHA `0f53e7f4...`; Markdown SHA `8eacfa11...`. Final pre-freeze intended roots: `480 passed, 45 deselected, 5 subtests passed`; independent result verifier PASS.
 - **#163 implemented, no runtime integration:** strict `WorldEvent` schema plus deterministic appraisal/controller reference kernel and tests are on disk. The contract now names the agency crossover, per-turn re-emission duty, and other-attributed norm-decomposition duty from Isegrim #926. No model, bridge, GPU, Qdrant, persistence, or action selection is connected.
 - **External architecture verdict:** ChatGPT Pro plus Codex reproduction returns `COHERENT_BUT_INCOMPLETE`. Caller-trusted trace chronology, novel-outcome rejection, replay/session ambiguity, appraisal aliases, neutral dead zones, and unregistered multiple attractors block composition/runtime use. Canon: `MoCoP/reviews/world_model_pro_external_review_2026-07-12.md`; Watercooler #952.
-- **Cerebellar novelty-gate intake:** Kang et al.'s memtransistor work is indexed as `cognitive-theory / adjacent` in `bee3a1e`. Its opposing short-term dynamics support a cheap novelty interrupt after complete raw trace custody, potentially informing #170/#171. It is not an action-conditioned transition model, semantic event authority, appraisal, rollout, hormone, memory, or welfare result; #170-#173 remain open. Watercooler #967.
+- **Cerebellar novelty-gate intake:** Kang et al.'s memtransistor work is indexed as `cognitive-theory / adjacent` in `bee3a1e`. Its opposing short-term dynamics support a cheap novelty interrupt after complete raw trace custody, potentially informing #170/#171. It is not an action-conditioned transition model, semantic event authority, appraisal, rollout, hormone, memory, or welfare result; Phase 3a now supplies the structural custody gate, while #171/#173 and any integration remain open. Watercooler #967.
 - **Phase 2b remains scoped GO:** the external one-action-per-state hypothetical does not match the real support. Fresh state-only/action-only checks remain weaker than primary in aggregate and on both metrics in 13/16 and 14/16 runs. No causal, unseen-state, multi-step, or general-dynamics claim follows.
-- **Independent gates:** #172 now has the audited FAIL below. #170 trace
-  custody/open set, #171 event authority/lifecycle/composition, and #173
-  matched-null/rollout LS20 evidence remain separate. Passing one authorizes
-  none of the others.
+- **Independent gates:** #172 has the audited FAIL below. #170 trace
+  custody/open-set structure is implemented and independently GREEN; #171 event
+  authority/lifecycle/composition and #173 matched-null/rollout LS20 evidence
+  remain separate. Passing one authorizes none of the others.
 - **#172 Phase 3c audited FAIL:** frozen preregistration `8873213`, reviewed
   runner/tests `d275850`, and result/review `3ca9e01`. Positive goal progress
   and prediction error are inert; 486 one-bin terminal jumps exceed `0.10`;
@@ -184,7 +191,7 @@
 - [ ] **C1 completion / #158:** #157's estimator-family prereg is now reviewed/amended (`5a156fb`), but there is no second artifact/digest and no extraction authorization. First reconcile #157's board state and separately scope/review a read-only extractor/validator; then freeze an admissible second positive 512-wide `value_norm_pre` artifact/full matrix only if it passes. Keep #149, #155, #156, final-manifest, Stage-A keeper GO, and separate Stage-B keeper GO independent before exactly one birth injection #1.
 - [ ] **#146 matched-delta lane (broad production work remains):** the full-32 train establishes only in-sample learnability. The separate 24/8 fresh non-C1 bridge refit/evaluation (`bridge_refit_eval_20260716T131105Z`, artifact SHA `bdc245ad…2d27ee`) is **mixed/not a useful constant-baseline win**: pair-aware versus deranged pairing, but 1/3 teeth better cosine and 0/3 better relative-L2 than train-mean constant. Its completed CPU-only variance/rank/norm diagnosis (`bridge_refit_norm_rank_diagnostic_20260716T145624Z`) rules out simple train-only per-tooth scale/affine norm rescue; do not scale or patch it. Production work remains: correct-surface paired scenario-neutral source deltas, trainer targets, `L_sep`, provenance/atomic gates, and throughput. Any future empirical readout needs genuinely new frozen non-C1 skeletons and a separately predeclared mapping/objective diagnostic; never the eight C1-primary holdouts.
 - [ ] **#141 owner close:** the bounded offline v2 evaluator is GREEN. Any real capture exporter/model hook is a new reviewed slice.
-- [ ] **World Model #170/#171/#173 plus failed #172:** independently review the immutable #172 packet, then freeze a successor for retained-input responses, basin geometry, and affiliation saturation. Keep every gate model-free and independent. Do not connect Gemma, Mamba, bridge, Qdrant, memory, dynamic alpha, persistence, or action selection on the strength of any one sidecar.
+- [ ] **World Model #171/#173 plus failed #172:** consume #170 only as the independently reviewed structural custody/open-set gate. Freeze separate contracts for event authority/composition and matched-null/rollout evidence, and a #172 successor for retained-input responses, basin geometry, and affiliation saturation. Keep every gate model-free and independent. Do not connect Gemma, Mamba, bridge, Qdrant, memory, dynamic alpha, persistence, or action selection on the strength of any one sidecar.
 
 ## Watch Out For
 - Automated dispatcher output is non-attested and must not update OpenCLAW authority, manifests, or review canon. Requests outside the exact allowlisted envelope fail closed.
@@ -194,7 +201,7 @@
 - P5 GREEN is bounded by its explicit CPython non-TEE residual. Temporary import-machinery teardown/restore, direct loader execution, function replacement, bytecode mutation, hostile co-threads, and host integrity are not attested by the runner; do not restate the result as sandbox/TEE proof.
 - `4d1ac76` remains a partial scorer with exact-identity/history, corpus/provenance, protected-semantics, frozen-trajectory, and custody gaps. Do not wire, deploy, or cite it as the operational Baseline Drift Gate.
 - Phase 2b is complete and single-use. Preserve `phase2b_ls20_prereg_v1` and `phase2b_ls20_real_v1` unchanged; do not rerun, pool v1 evaluation rows, or inflate the scoped LS20 consistency GO into downstream authorization.
-- The appraisal/controller kernel is bounded but not composable under the frozen #172 audit: retained inputs are inert, one-bin changes switch terminal basins by as much as `1.0`, four boundary rows have three attractors, and moderate affiliation clips. Preserve the FAIL packet and require a new protocol for repair. OpenCLAW #170/#171/#173 remain independent integration holds.
+- The appraisal/controller kernel is bounded but not composable under the frozen #172 audit: retained inputs are inert, one-bin changes switch terminal basins by as much as `1.0`, four boundary rows have three attractors, and moderate affiliation clips. Preserve the FAIL packet and require a new protocol for repair. #170 closes only structural custody; #171/#173 and all runtime integration remain independent holds.
 - Qdrant is TLS-only. Never revive `http://192.168.2.191:6333`, `curl -k`, or `verify=False` to accommodate a stale client; install the public CA instead.
 - ML-WS remains a no-Git deployed bundle. #151's reviewed runtime has been synchronized and hash-verified, but future changes must use a staged/hash-checked deployment plus backup; do not revive any pre-#151 copy or bypass the private writer wrapper.
 - PVE snapshot `pre-qdrant-tls-20260711T122338` predates later writes. Rollback can discard data and requires explicit maintenance approval.
@@ -392,3 +399,4 @@
 - 2026-07-19 01:45 +02:00 | Gemini | Verified implementation status of #155 Rev 7 (pre-board hardening pass merged), waiting for Codex's formal review. Updated control block.
 - 2026-07-19 02:03 +02:00 | Codex / Techno-Monk | Recorded rev-7 `CHANGES`, Watercooler theme/license commits, exact verification, and unchanged operational holds.
 - 2026-07-20 00:58 +02:00 | Codex / Techno-Monk | Recorded rev-8 `CHANGES` at Watercooler #1201 / Taskboard event #808, accepted closures, remaining authority/model-key/typed-totality findings, and the interactive hackathon checklist commit.
+- 2026-07-20 12:05 +02:00 | Codex | Implemented and independently reviewed World Model Phase 3a causal trace custody/open-set accounting for #170; focused 35 and compatible World Model 122 tests pass. Publication and tracking closure are in progress; no runtime integration is authorized.
