@@ -393,12 +393,23 @@ def _safe_typename(value: Any) -> str:
 # Inert snapshot / deep-freeze (F2/F4).                                        #
 # --------------------------------------------------------------------------- #
 def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
-    """A fully-OWNED, EXACT-typed deep copy (Codex #1183 F3 + #1187 F3/#7).
+    """A fully-OWNED, EXACT-BUILT-IN deep copy — the callback-free sanitizer (rev10, wolf-Codex #1206).
 
-    Rebuilds mappings AND lists AND tuples into new dicts/lists (no shared mutable reference survives
-    — a caller cannot mutate a nested list after this returns), and requires EXACT built-in leaf
-    types: a str/int/float subclass (which could compare/hash as one value but serialize as another)
-    is refused, not silently accepted. Also used as the record-capture snapshot in _verify_record.
+    THE PRIMARY DEFENSE. rev9 proved that freezing the policy authorities cannot reach completeness:
+    once a hostile input's ``.items()`` (dict subclass) or ``__iter__`` (list/tuple subclass) runs
+    DURING this traversal, its callback can rebind ANY still-live module-level name a verdict path uses
+    afterward — not just policy, but the rho fn, the hasher, their callees. There is no finite set to
+    freeze. So this sanitizer refuses to invoke ANY caller-overridable traversal: it accepts CONTAINERS
+    only when they are EXACT built-ins (``type(obj) is dict / is list / is tuple``) and rebuilds them
+    into new owned exact objects; it REFUSES every subclass, every ABC mapping, AND ``MappingProxyType``
+    (⚠ a proxy can WRAP a hostile backing mapping and delegate ``.items()`` to it, so a proxy is NOT
+    inert as caller input — Codex #1206's constraint). Exact-dict/list/tuple ``.items()``/iteration are
+    not caller-overridable, so NO caller code runs during verification and the ENTIRE mid-verify rebind
+    class (policy + primitives + digests) is structurally impossible — only a PRE-call rebind (the
+    producer's accepted bar) remains. Leaf scalars must be EXACT built-in types too (a str/int/float
+    subclass could compare/hash as one value but serialize as another). The 43-authority freeze +
+    threading (rev9) stays as DEFENSE-IN-DEPTH behind this. Callers pass exact dicts (json.loads output,
+    plain-dict manifests); any owned record is rebuilt to an exact dict before storage, never a proxy.
     """
     if _depth > 64:
         raise R4SidecarError("input nesting too deep")
@@ -410,19 +421,22 @@ def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
         if not math.isfinite(obj):
             raise R4SidecarError(f"non-finite float in input: {obj!r}")
         return obj
-    if isinstance(obj, Mapping):
+    if type(obj) is dict:                                # EXACT dict — .items() is not overridable
         out: dict[str, Any] = {}
         for k, v in obj.items():
             if type(k) is not str:
-                # F3 (Codex #1197) + F-TYPENAME (Codex #1201): render only an INERT type label, never
-                # repr(k) (a hostile __repr__ raises) and never type(k).__name__ (a hostile metaclass
-                # raises on the __name__ lookup) — either would escape this refusal as a raw exception.
+                # F-TYPENAME (Codex #1201): render only an INERT type label — never repr(k) (hostile
+                # __repr__ raises) nor type(k).__name__ (hostile metaclass raises on the lookup).
                 raise R4SidecarError(f"mapping key must be an exact str (got {_safe_typename(k)})")
             out[k] = _inert_snapshot(v, _depth + 1)
         return out
-    if isinstance(obj, (list, tuple)):
+    if type(obj) is list or type(obj) is tuple:          # EXACT list/tuple — iteration is not overridable
         return [_inert_snapshot(v, _depth + 1) for v in obj]
-    raise R4SidecarError(f"non-exact/JSON value in input: {_safe_typename(obj)}")
+    # Everything else (dict/list/tuple SUBCLASS, ABC mapping, MappingProxyType, arbitrary object) is
+    # refused BEFORE any caller-overridable traversal runs — that is what closes the whole callback class.
+    raise R4SidecarError(
+        f"input must be an exact built-in dict/list/tuple/str/int/float/bool/None (got "
+        f"{_safe_typename(obj)}); subclasses, ABC mappings and MappingProxyType are refused (rev10)")
 
 
 def _deep_freeze(obj: Any) -> Any:
@@ -509,7 +523,7 @@ def _check_block(block: Any, name: str, spec: Mapping[str, str], refusals: list[
         return
     unknown = set(block) - set(spec)
     if unknown:
-        refusals.append(f"{name} has unknown key(s): {sorted(unknown)}")
+        refusals.append(f"{name} has unknown key(s): {_safe_keys(unknown)}")
     for key, kind in spec.items():
         if key not in block:
             refusals.append(f"{name}.{key} is missing")
@@ -520,8 +534,13 @@ def _check_block(block: Any, name: str, spec: Mapping[str, str], refusals: list[
 
 
 def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
-    """Public sidecar-manifest validator. Binds the GENUINE frozen authority and delegates (a-Codex
-    #1201 pass 3: no caller authority — a direct caller could otherwise supply a loosened policy)."""
+    """Public sidecar-manifest validator. SANITIZES the caller manifest to an owned exact dict FIRST
+    (rev10, Codex #1206 — before any set/get/membership/iteration a hostile subclass could hook), binds
+    the genuine authority, and delegates. No caller authority (pass 3)."""
+    try:
+        manifest = _inert_snapshot(manifest)          # reject subclass/ABC/proxy before any key read
+    except R4SidecarError as exc:
+        return [str(exc)]
     return _validate_sidecar_manifest(manifest, authority=_auth())
 
 
@@ -539,7 +558,7 @@ def _validate_sidecar_manifest(manifest: Mapping[str, Any], *,
         return ["sidecar manifest is not a mapping"]
     unknown = set(manifest) - set(_A.required_sidecar_keys)
     if unknown:
-        refusals.append(f"sidecar manifest has unknown key(s): {sorted(unknown)}")
+        refusals.append(f"sidecar manifest has unknown key(s): {_safe_keys(unknown)}")
     for key in _A.required_sidecar_keys:
         if key not in manifest:
             refusals.append(f"required key {key!r} is missing")
@@ -953,8 +972,16 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
 def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
                         *, eligible_probe_ids: Sequence[str] | None = None,
                         row_keys: frozenset[str] | None = None) -> list[str]:
-    """Public comparison validator. Binds the GENUINE frozen authority and delegates (a-Codex #1201
-    pass 3: no caller authority — a direct caller could otherwise loosen the row shape / ranges)."""
+    """Public comparison validator. SANITIZES the caller per_pair / aggregate / eligible_probe_ids to
+    owned exact built-ins FIRST (rev10, Codex #1206 — before any membership/iteration a hostile
+    subclass could hook), binds the genuine authority, and delegates. No caller authority (pass 3)."""
+    try:
+        per_pair = _inert_snapshot(per_pair)          # exact list of exact-dict rows, or refused
+        aggregate = _inert_snapshot(aggregate)         # exact dict, or refused
+        if eligible_probe_ids is not None:             # exact list/tuple of strs, or refused
+            eligible_probe_ids = _inert_snapshot(eligible_probe_ids)
+    except R4SidecarError as exc:
+        return [str(exc)]
     return _validate_comparison(per_pair, aggregate, eligible_probe_ids=eligible_probe_ids,
                                 row_keys=row_keys, authority=_auth())
 
@@ -1186,10 +1213,15 @@ def build_r4_sidecar(
     }
     assert_strict_json(plain_record)
     output_digest = canonical_digest(plain_record)
+    # rev10 (Codex #1206): store the record as an OWNED EXACT dict, not a MappingProxyType. plain_record
+    # is already sanitizer-owned (built from _inert_snapshot'd manifest + canonicalized rows), and
+    # _verify_record re-sanitizes the carrier's record via _inert_snapshot — which now REJECTS a proxy
+    # (a proxy can wrap a hostile backing mapping). Immutability is provided by _verify_record's owned
+    # snapshot + the output_digest check, not by freezing the stored dict.
     return R4SidecarRecord(
         manifest_digest=canonical_digest(dict(manifest)),
         output_digest=output_digest,
-        record=_deep_freeze(plain_record),
+        record=plain_record,
     )
 
 

@@ -25,7 +25,6 @@ from p5_r4_sidecar import (
     R4SidecarError,
     R4SidecarRecord,
     _canonicalize_comparison,
-    _deep_freeze,
     _verify_record,
     bind_to_parent_report,
     build_r4_sidecar,
@@ -390,7 +389,7 @@ def test_declared_eligibility_over_a_zero_eligible_parent_cannot_green_c1(tmp_pa
            "runner": fabricated["runner"], "parent": fabricated["parent"], "panel": fabricated["panel"]}
     forged = R4SidecarRecord(manifest_digest=canonical_digest(man),
                              output_digest=canonical_digest(fabricated),
-                             record=_deep_freeze(fabricated))
+                             record=fabricated)
 
     # The parent-FREE guard rev4 marketed against hand-built carriers is fooled: a self-consistent
     # fabrication has matching digests, a valid manifest, and a well-formed comparison. It returns.
@@ -431,7 +430,7 @@ def test_a_record_smuggling_a_stored_eligibility_block_is_refused(tmp_path):
            "runner": smuggled["runner"], "parent": smuggled["parent"], "panel": smuggled["panel"]}
     forged = R4SidecarRecord(manifest_digest=canonical_digest(man),
                              output_digest=canonical_digest(smuggled),
-                             record=_deep_freeze(smuggled))
+                             record=smuggled)
     for op in (lambda: r4_decision(report, forged),
                lambda: bind_to_parent_report(report, forged),
                lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
@@ -452,7 +451,7 @@ def _forged(record: dict):
     record = {**record, "per_pair": _canonicalize_comparison(record["per_pair"])}
     man = {k: record[k] for k in ("schema", "evaluator", "runner", "parent", "panel")}
     return R4SidecarRecord(manifest_digest=canonical_digest(man),
-                           output_digest=canonical_digest(record), record=_deep_freeze(record))
+                           output_digest=canonical_digest(record), record=record)
 
 
 def test_f1_a_forged_inner_report_digest_is_refused():
@@ -560,11 +559,15 @@ def test_f3_a_post_capture_list_mutation_cannot_reach_the_artifact(tmp_path):
             return super().items()
 
     out = tmp_path / "r4.json"
-    result = publish_r4_sidecar(_StatefulReport(report), carrier, out)
-    artifact = json.loads(out.read_text(encoding="utf-8"))
-    assert result.disposition == DISPOSITION_VERIFIED
-    assert canonical_digest(artifact["record"]) == good       # embedded record still matches its digest
-    assert artifact["sidecar_output_digest"] == good
+    # rev10: the hostile dict-subclass report is refused at sanitize BEFORE its items() can fire, so the
+    # post-capture list mutation never runs and nothing is published. (Owned-snapshot capture stays as
+    # defense-in-depth; _ = good keeps the pre-mutation digest referenced for clarity.)
+    _ = good
+    with pytest.raises(R4SidecarError) as ei:
+        publish_r4_sidecar(_StatefulReport(report), carrier, out)
+    assert "exact built-in" in str(ei.value)
+    assert fired["done"] is False                             # the mutating callback NEVER ran
+    assert not out.exists()
 
 
 def test_f4_alias_mutation_during_unlink_is_caught(tmp_path, monkeypatch):
@@ -603,7 +606,7 @@ def test_f6_a_noncanonical_hand_built_record_is_refused(tmp_path):
     }
     man = {k: record[k] for k in ("schema", "evaluator", "runner", "parent", "panel")}
     forged = R4SidecarRecord(manifest_digest=canonical_digest(man),
-                             output_digest=canonical_digest(record), record=_deep_freeze(record))
+                             output_digest=canonical_digest(record), record=record)
     for op in (lambda: r4_decision(report, forged),
                lambda: bind_to_parent_report(report, forged),
                lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
@@ -697,7 +700,7 @@ def test_acodex_heterogeneous_row_key_is_a_typed_refusal_not_typeerror():
         aggregate={"spearman_rho": 0.0, "mean_pairwise_jsd": 0.5,
                    "mean_pairwise_embedding": 0.5, "n_pairs": 1},
         eligible_probe_ids=["a", "b"])
-    assert any("key set is not" in x for x in r)
+    assert any("exact str" in x for x in r)                      # rev10: non-str key refused at sanitize
 
 
 def test_f2_a_false_generation_output_digest_is_refused_at_every_boundary(tmp_path):
@@ -745,13 +748,15 @@ def test_f3_publication_uses_one_snapshot_not_live_carrier_rereads(tmp_path):
             return super().items()
 
     out = tmp_path / "r4.json"
-    result = publish_r4_sidecar(_StatefulReport(report), rec, out)
-    artifact = json.loads(out.read_text(encoding="utf-8"))
-    assert result.disposition == DISPOSITION_VERIFIED
-    assert artifact["sidecar_output_digest"] == good
-    assert artifact["link"]["sidecar_output_digest"] == good
-    assert artifact["decision"]["sidecar_output_digest"] == good
-    assert "f" * 64 not in json.dumps(artifact)
+    _ = good
+    # rev10: the hostile dict-subclass report is refused at sanitize BEFORE its items() can fire, so the
+    # digest-swap callback never runs and nothing is published. (Single-snapshot capture stays as
+    # defense-in-depth.)
+    with pytest.raises(R4SidecarError) as ei:
+        publish_r4_sidecar(_StatefulReport(report), rec, out)
+    assert "exact built-in" in str(ei.value)
+    assert fired["done"] is False                             # the digest-swap callback NEVER ran
+    assert not out.exists()
 
 
 def test_f4_a_post_commit_readback_fault_downgrades_and_does_not_raise(tmp_path, monkeypatch):
@@ -790,7 +795,7 @@ def test_f5_a_record_missing_a_key_is_a_typed_refusal_not_keyerror():
     }
     forged = R4SidecarRecord(manifest_digest="a" * 64,
                              output_digest=canonical_digest(incomplete),
-                             record=_deep_freeze(incomplete))
+                             record=incomplete)
     with pytest.raises(R4SidecarError) as ei:
         r4_decision(report, forged)
     assert "key set is not exact" in str(ei.value) and "aggregate" in str(ei.value)
@@ -894,7 +899,7 @@ def test_a_semantically_invalid_record_cannot_bind_even_with_consistent_digests(
     man = {"schema": SIDECAR_SCHEMA, "evaluator": bad["evaluator"], "runner": bad["runner"],
            "parent": bad["parent"], "panel": bad["panel"]}
     forged = R4SidecarRecord(manifest_digest=canonical_digest(man),
-                             output_digest=canonical_digest(bad), record=_deep_freeze(bad))
+                             output_digest=canonical_digest(bad), record=bad)
     with pytest.raises(R4SidecarError) as ei:
         bind_to_parent_report(report, forged)
     assert "re-validation" in str(ei.value) and "revision_sha" in str(ei.value)
@@ -1194,16 +1199,16 @@ def test_f2_a_midverify_rho_gate_swap_cannot_green_a_failing_decision(monkeypatc
             fired["n"] += 1
             return super().items()
 
-    d = r4_decision(_SwapReport(report), rec)
-    assert d["c1_authorization_permitted"] is False              # captured gate 0.7, not -2.0
-    assert d["state"] == DECISION_JSD_REPLACEMENT_REQUIRED
-    assert d["rho_gate"] == 0.7
-
-    p5_r4_sidecar.RHO_GATE = 0.7                                  # reset for the publish leg
-    fired["n"] = 0
-    publish_r4_sidecar(_SwapReport(report), rec, tmp_path / "r4.json")
-    art = json.loads((tmp_path / "r4.json").read_text(encoding="utf-8"))
-    assert art["decision"]["c1_authorization_permitted"] is False and art["decision"]["rho_gate"] == 0.7
+    # rev10: the hostile dict-subclass report is refused at sanitize BEFORE its items() can fire, so the
+    # RHO_GATE rebind never runs. (The frozen gate is defense-in-depth behind this — the pre-call
+    # rho-gate test exercises the freeze directly.)
+    for op in (lambda: r4_decision(_SwapReport(report), rec),
+               lambda: publish_r4_sidecar(_SwapReport(report), rec, tmp_path / "r4.json")):
+        with pytest.raises(R4SidecarError) as ei:
+            op()
+        assert "exact built-in" in str(ei.value)
+    assert fired["n"] == 0                                        # the callback NEVER ran
+    assert p5_r4_sidecar.RHO_GATE == 0.7                          # gate untouched
 
 
 # F3 (P2): numeric/key totality — a huge declared aggregate metric must not overflow float() in the
@@ -1233,7 +1238,7 @@ def test_f3_a_hostile_repr_row_key_does_not_escape_the_refusal():
         aggregate={"spearman_rho": 0.0, "mean_pairwise_jsd": 0.5,
                    "mean_pairwise_embedding": 0.5, "n_pairs": 1},
         eligible_probe_ids=["a", "b"])
-    assert any("key set is not" in x for x in r)                 # refused; hostile __repr__ never called
+    assert any("exact str" in x for x in r)                      # rev10: refused at sanitize; __repr__ never called
 
 
 def test_f3_inert_snapshot_nonstr_key_refusal_never_reprs_the_key():
@@ -1323,7 +1328,8 @@ def test_fauth_a_callback_run_kind_rebind_cannot_accept_a_c1_parent(monkeypatch)
 
     with pytest.raises(R4SidecarError) as ei:
         verify_sealed_report(_RunKindSwap(report))
-    assert "b0_baseline" in str(ei.value)                       # frozen authority refuses it
+    assert "exact built-in" in str(ei.value)                    # rev10: dict subclass refused at sanitize
+    assert fired["n"] == 0                                       # the callback's rebind NEVER ran
 
 
 def test_fauth_a_callback_decoding_validator_rebind_cannot_accept_a_sampling_parent(monkeypatch):
@@ -1350,7 +1356,8 @@ def test_fauth_a_callback_decoding_validator_rebind_cannot_accept_a_sampling_par
 
     with pytest.raises(R4SidecarError) as ei:
         verify_sealed_report(_DecodingSwap(report))
-    assert "neutralization set" in str(ei.value)                # frozen real validator refuses it
+    assert "exact built-in" in str(ei.value)                    # rev10: dict subclass refused at sanitize
+    assert fired["n"] == 0                                       # the callback's rebind NEVER ran
 
 
 # F-MODEL (P1): the producer requires the EXACT frozen 8-key model descriptor; rev8 used a subset
@@ -1397,7 +1404,7 @@ def test_ftypename_a_hostile_metaclass_key_does_not_escape_a_public_self_check()
         aggregate={"spearman_rho": 0.0, "mean_pairwise_jsd": 0.5,
                    "mean_pairwise_embedding": 0.5, "n_pairs": 1},
         eligible_probe_ids=["a", "b"])
-    assert any("key set is not" in x for x in r)                # refused; __name__ never inspected
+    assert any("exact str" in x for x in r)                     # rev10: refused at sanitize; __name__ never inspected
 
 
 # --------------------------------------------------------------------------- #
@@ -1464,7 +1471,8 @@ def test_fauth_a_carrier_callback_loosening_sidecar_policy_cannot_accept_a_mutab
                               record=_PolicySwapRecord(record))
     with pytest.raises(R4SidecarError) as ei:
         r4_decision(report, carrier)
-    assert "MUTABLE ref" in str(ei.value)                       # frozen denylist refuses 'main'
+    assert "exact built-in" in str(ei.value)                    # rev10: dict subclass refused at sanitize
+    assert fired["done"] is False                               # the callback's policy-loosen NEVER ran
 
 
 def test_fauth_a_precall_decision_label_rebind_cannot_spoof_the_state(monkeypatch):
@@ -1516,7 +1524,8 @@ def test_fauth_a_carrier_callback_reassigning_auth_itself_cannot_accept_a_mutabl
                               output_digest=canonical_digest(record), record=_AuthSwap(record))
     with pytest.raises(R4SidecarError) as ei:
         r4_decision(report, carrier)
-    assert "MUTABLE ref" in str(ei.value)                       # threaded frozen authority refuses 'main'
+    assert "exact built-in" in str(ei.value)                    # rev10: dict subclass refused at sanitize
+    assert fired["done"] is False                               # the callback's _auth swap NEVER ran
 
 
 def test_fauth_a_carrier_callback_swapping_field_kind_tags_cannot_accept_a_mutable_ref(monkeypatch):
@@ -1552,7 +1561,90 @@ def test_fauth_a_carrier_callback_swapping_field_kind_tags_cannot_accept_a_mutab
                               output_digest=canonical_digest(record), record=_TagSwap(record))
     with pytest.raises(R4SidecarError) as ei:
         r4_decision(report, carrier)
-    assert "MUTABLE ref" in str(ei.value)                       # frozen dispatch tags refuse 'main'
+    assert "exact built-in" in str(ei.value)                    # rev10: dict subclass refused at sanitize
+    assert fired["done"] is False                               # the callback's tag swap NEVER ran
+
+
+# --------------------------------------------------------------------------- #
+# rev10 (wolf-Codex #1206) — the SANITIZER is the PRIMARY defense. _inert_snapshot
+# accepts ONLY exact built-in containers, so NO caller-overridable traversal runs
+# during verification: the entire mid-verify rebind class (policy + primitives +
+# digests) is structurally impossible. Codex's canaries — dict subclass (the
+# reframed tests above), MappingProxyType(hostile backing), list subclass, tuple
+# subclass, standalone validator — each rebinds a decision primitive DURING the
+# attempted traversal, each REFUSED WITHOUT the callback firing.
+# --------------------------------------------------------------------------- #
+def test_rev10_sanitizer_refuses_a_mappingproxytype_wrapping_a_hostile_mapping(monkeypatch):
+    from types import MappingProxyType
+    import p5_r4_sidecar
+    monkeypatch.setattr(p5_r4_sidecar, "diversity_agreement_rho", p5_r4_sidecar.diversity_agreement_rho)
+    fired = {"n": 0}
+
+    class _HostileBacking(dict):
+        def items(self):                                        # would run if the proxy were traversed
+            fired["n"] += 1
+            p5_r4_sidecar.diversity_agreement_rho = lambda j, s: 1.0
+            return super().items()
+
+    proxy = MappingProxyType(_HostileBacking(_sealed_report(n=4)))
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(proxy)                             # Codex's constraint: a proxy is NOT inert
+    assert "exact built-in" in str(ei.value)
+    assert fired["n"] == 0                                      # the hostile backing was NEVER delegated to
+
+
+def test_rev10_sanitizer_refuses_a_hostile_list_subclass(monkeypatch):
+    import p5_r4_sidecar
+    monkeypatch.setattr(p5_r4_sidecar, "diversity_agreement_rho", p5_r4_sidecar.diversity_agreement_rho)
+    fired = {"n": 0}
+
+    class _HostileRows(list):
+        def __iter__(self):
+            fired["n"] += 1
+            p5_r4_sidecar.diversity_agreement_rho = lambda j, s: 1.0
+            return super().__iter__()
+
+    rows = _HostileRows([{"probe_a": "a", "probe_b": "b", "jsd": 0.5, "cosine_similarity": 0.5}])
+    agg = {"spearman_rho": 0.0, "mean_pairwise_jsd": 0.5, "mean_pairwise_embedding": 0.5, "n_pairs": 1}
+    r = validate_comparison(rows, agg, eligible_probe_ids=["a", "b"])
+    assert any("exact built-in" in x for x in r)               # list subclass refused at sanitize
+    assert fired["n"] == 0                                      # the __iter__ callback NEVER ran
+
+
+def test_rev10_sanitizer_refuses_a_hostile_tuple_subclass(monkeypatch):
+    import p5_r4_sidecar
+    monkeypatch.setattr(p5_r4_sidecar, "diversity_agreement_rho", p5_r4_sidecar.diversity_agreement_rho)
+    fired = {"n": 0}
+
+    class _HostileTuple(tuple):
+        def __iter__(self):
+            fired["n"] += 1
+            p5_r4_sidecar.diversity_agreement_rho = lambda j, s: 1.0
+            return super().__iter__()
+
+    report = _sealed_report(n=4)
+    report["records"] = _HostileTuple(report["records"])       # tuple subclass nested in an exact dict
+    with pytest.raises(R4SidecarError) as ei:
+        verify_sealed_report(report)
+    assert "exact built-in" in str(ei.value)
+    assert fired["n"] == 0                                      # the __iter__ callback NEVER ran
+
+
+def test_rev10_standalone_manifest_validator_refuses_a_hostile_subclass(monkeypatch):
+    import p5_r4_sidecar
+    monkeypatch.setattr(p5_r4_sidecar, "diversity_agreement_rho", p5_r4_sidecar.diversity_agreement_rho)
+    fired = {"n": 0}
+
+    class _HostileManifest(dict):
+        def items(self):
+            fired["n"] += 1
+            p5_r4_sidecar.diversity_agreement_rho = lambda j, s: 1.0
+            return super().items()
+
+    man = _HostileManifest(_manifest(_sealed_report()))
+    r = validate_sidecar_manifest(man)                         # standalone public validator
+    assert any("exact built-in" in x for x in r)               # subclass refused at sanitize (returns list)
+    assert fired["n"] == 0                                      # the items() callback NEVER ran
 
 
 def test_the_public_c1_gates_reject_a_caller_supplied_authority():
