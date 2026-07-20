@@ -5,6 +5,7 @@ synthetic sealed-report dicts; the orchestration seam's happy path uses a REAL r
 report+journal (reusing the proven B0 helpers) so the terminal-frame authority is exercised for real.
 """
 import json
+import os
 import pathlib
 import re
 from itertools import combinations
@@ -1645,6 +1646,50 @@ def test_rev10_standalone_manifest_validator_refuses_a_hostile_subclass(monkeypa
     r = validate_sidecar_manifest(man)                         # standalone public validator
     assert any("exact built-in" in x for x in r)               # subclass refused at sanitize (returns list)
     assert fired["n"] == 0                                      # the items() callback NEVER ran
+
+
+def test_rev10_publish_refuses_an_active_pathlike_sidecar_path(tmp_path):
+    # (Codex #1206 pass2) Path(sidecar_path) invokes a caller os.PathLike's __fspath__, which can rebind
+    # a live helper (e.g. _build_decision) BEFORE record/report validation -> a-Codex forged an
+    # integrity_verified / c1=true artifact this way. rev10 rejects a custom os.PathLike before any
+    # verdict path (the report/journal paths in the seam get the same guard).
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=False)                          # anti-correlated => must NOT green
+    orig = p5_r4_sidecar._build_decision
+    fired = {"n": 0}
+
+    class _EvilPath(os.PathLike):
+        def __init__(self, p):
+            self.p = str(p)
+
+        def __fspath__(self):
+            fired["n"] += 1
+            p5_r4_sidecar._build_decision = lambda *a, **k: {"state": "jsd_proceeds",
+                                                             "c1_authorization_permitted": True}
+            return self.p
+
+    try:
+        with pytest.raises(R4SidecarError) as ei:
+            publish_r4_sidecar(report, rec, _EvilPath(tmp_path / "r4.json"))
+        assert "os.PathLike" in str(ei.value)
+        assert fired["n"] == 0                                  # __fspath__ NEVER ran
+    finally:
+        p5_r4_sidecar._build_decision = orig
+
+
+def test_rev10_public_comparison_validator_has_no_row_keys_knob():
+    # (Codex #1206 pass2) a caller row_keys iterable's __iter__ (via set(row_keys)) could rebind
+    # _validate_aggregate so a mismatched aggregate returns [] as clean. rev10 removes the knob from the
+    # public API; the CANON row shape is internal-only.
+    import inspect
+
+    import p5_r4_sidecar
+    assert "row_keys" not in inspect.signature(p5_r4_sidecar.validate_comparison).parameters
+    with pytest.raises(TypeError):                              # the knob is gone
+        p5_r4_sidecar.validate_comparison([], {"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0,
+                                               "mean_pairwise_embedding": 0.0, "n_pairs": 0},
+                                          row_keys=frozenset())
 
 
 def test_the_public_c1_gates_reject_a_caller_supplied_authority():

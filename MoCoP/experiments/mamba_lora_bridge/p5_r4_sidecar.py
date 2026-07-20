@@ -104,7 +104,7 @@ import re
 import tempfile
 from dataclasses import dataclass
 from itertools import combinations
-from pathlib import Path
+from pathlib import Path, PosixPath, PurePath, PurePosixPath, PureWindowsPath, WindowsPath
 from types import MappingProxyType
 from typing import Any, Callable, Mapping, NamedTuple, Sequence
 
@@ -445,6 +445,28 @@ def _deep_freeze(obj: Any) -> Any:
     if isinstance(obj, list):
         return tuple(_deep_freeze(v) for v in obj)
     return obj
+
+
+# The stdlib path types whose __fspath__/__str__ are INERT (no caller code). A caller-defined
+# os.PathLike is refused BEFORE any Path()/verdict path runs.
+_SAFE_PATH_TYPES = (str, Path, PurePath, PosixPath, WindowsPath, PurePosixPath, PureWindowsPath)
+
+
+def _safe_path(p: Any, name: str) -> Path:
+    """Reject a caller-defined os.PathLike before entering any verdict path (rev10, Codex #1206 pass2).
+
+    ``Path(p)`` invokes ``p.__fspath__()``; a caller-supplied PathLike can run arbitrary code there
+    (e.g. rebind ``_build_decision``) BEFORE any record/report validation — a-Codex reproduced a forged
+    ``integrity_verified`` / ``c1=true`` artifact this way. Accept only ``str`` or a stdlib pathlib type
+    (checked by EXACT type identity — no ``__fspath__``/hash on the untrusted object); everything else,
+    including a Path SUBCLASS that could override ``__fspath__``, is refused.
+    """
+    t = type(p)
+    if any(t is ok for ok in _SAFE_PATH_TYPES):
+        return Path(p)
+    raise R4SidecarError(
+        f"{name} must be a str or a stdlib pathlib path, not a custom os.PathLike (got "
+        f"{_safe_typename(p)}); active path-like values are refused (rev10)")
 
 
 def _canonical_bytes(obj: Any) -> bytes:
@@ -970,11 +992,15 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
 
 
 def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
-                        *, eligible_probe_ids: Sequence[str] | None = None,
-                        row_keys: frozenset[str] | None = None) -> list[str]:
+                        *, eligible_probe_ids: Sequence[str] | None = None) -> list[str]:
     """Public comparison validator. SANITIZES the caller per_pair / aggregate / eligible_probe_ids to
     owned exact built-ins FIRST (rev10, Codex #1206 — before any membership/iteration a hostile
-    subclass could hook), binds the genuine authority, and delegates. No caller authority (pass 3)."""
+    subclass could hook), binds the genuine authority, and delegates over the frozen INPUT row shape.
+
+    rev10 pass2 (Codex #1206): the ``row_keys`` policy knob is REMOVED from the public API — a caller
+    ``row_keys`` is an unsanitized iterable whose ``__iter__`` (via ``set(row_keys)``) could rebind a
+    live helper. The CANON row shape is internal-only, threaded to the private ``_validate_comparison``
+    by the verdict paths. No caller authority (pass 3)."""
     try:
         per_pair = _inert_snapshot(per_pair)          # exact list of exact-dict rows, or refused
         aggregate = _inert_snapshot(aggregate)         # exact dict, or refused
@@ -983,7 +1009,7 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
     except R4SidecarError as exc:
         return [str(exc)]
     return _validate_comparison(per_pair, aggregate, eligible_probe_ids=eligible_probe_ids,
-                                row_keys=row_keys, authority=_auth())
+                                authority=_auth())
 
 
 def _validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
@@ -1532,7 +1558,7 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
     # (mid-verify or before the call) can neither green a failing decision nor mislabel a downgraded
     # commit as verified. Uses the authority THREADED from the seam when present, else binds here.
     _A = authority if authority is not None else _auth()
-    sidecar_path = Path(sidecar_path)
+    sidecar_path = _safe_path(sidecar_path, "sidecar_path")   # reject active PathLike BEFORE any verdict
     if sidecar_path.exists() or sidecar_path.is_symlink():
         raise R4SidecarError(f"sidecar path already exists (no-replace): {sidecar_path}")
     parent_dir = sidecar_path.parent
@@ -1651,7 +1677,8 @@ def _load_governed_report(report_path: Path, journal_path: Path, *,
     # (so a committed-integrity-FAILED B0 parent clears this gate), can no longer admit an
     # inadmissible parent to the C1 precondition. Authority THREADED from the seam when present.
     _A = authority if authority is not None else _auth()
-    report_path, journal_path = Path(report_path), Path(journal_path)
+    report_path = _safe_path(report_path, "report_path")      # reject active PathLike BEFORE any verdict
+    journal_path = _safe_path(journal_path, "journal_path")
     if not report_path.is_file():
         raise R4SidecarError(f"B0 report artifact not found: {report_path}")
     if not journal_path.is_file():
