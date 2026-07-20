@@ -1,9 +1,9 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-20 12:05 +02:00
-- Current owner: Codex is publishing the independently reviewed World Model Phase 3a structural gate (#170); Gidim's separate #155 successor lane and all B0/C1/model/GPU/sink/deployment gates remain held.
-- Primary focus: close #170 with exact causal custody and open-set accounting, then keep #171 event authority/composition and #173 rollout evidence independent.
+- Last updated: 2026-07-20 12:45 +02:00
+- Current owner: Codex has closed World Model Phase 3a (#170); Gidim's separate #155 successor lane and all B0/C1/model/GPU/sink/deployment gates remain held.
+- Primary focus: keep #171 event authority/composition and #173 rollout evidence independent from #170's completed structural custody gate.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-20-session-02.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
@@ -11,7 +11,7 @@
 
 ## Current State - World Model Phase 3a Causal Custody (#170, 2026-07-20)
 
-- **Independent implementation review: GREEN.** The additive Phase 3a journal binds state, candidate set, selected action, estimator/config, durable execution handoff, authoritative receipt/reconciliation, raw outcome, and the exact planned-step ledger through canonical content hashes and a segmented hash chain. Commit publication is in progress.
+- **DONE / independent implementation review GREEN:** exact commit `e6e1e240bb78f7fdafda7b044130f7f03075343d`; Watercooler #1202; Taskboard #170 completed 2026-07-20T10:43:55Z. The additive Phase 3a journal binds state, candidate set, selected action, estimator/config, durable execution handoff, authoritative receipt/reconciliation, raw outcome, and the exact planned-step ledger through canonical content hashes and a segmented hash chain.
 - **Failure semantics are explicit:** commit-only recovery is `not_executed`; a durable handoff without authoritative reconciliation is `execution_unknown`. Literal positive-mass `OTHER`/`UNKNOWN` outcomes are mandatory, and raw novel outcomes remain in the committed denominator under the frozen mapping policy.
 - **Verification:** focused `35 passed`; readable World Model compatibility suite `122 passed`; Ruff, `py_compile`, and `git diff --check` clean. Frozen `world_model_trace.py` and `world_model_capture.py` remain byte-identical.
 - **Boundary:** model-free/local only. Trusted adapter authority, externally anchored terminal-head custody, and Windows sudden-power-loss directory durability remain named external boundaries. This result authorizes no Gemma, Mamba, bridge, Qdrant, memory, dynamic-alpha, persistence, or action-runtime integration; #171 and #173 remain separate holds.
@@ -399,4 +399,4 @@
 - 2026-07-19 01:45 +02:00 | Gemini | Verified implementation status of #155 Rev 7 (pre-board hardening pass merged), waiting for Codex's formal review. Updated control block.
 - 2026-07-19 02:03 +02:00 | Codex / Techno-Monk | Recorded rev-7 `CHANGES`, Watercooler theme/license commits, exact verification, and unchanged operational holds.
 - 2026-07-20 00:58 +02:00 | Codex / Techno-Monk | Recorded rev-8 `CHANGES` at Watercooler #1201 / Taskboard event #808, accepted closures, remaining authority/model-key/typed-totality findings, and the interactive hackathon checklist commit.
-- 2026-07-20 12:05 +02:00 | Codex | Implemented and independently reviewed World Model Phase 3a causal trace custody/open-set accounting for #170; focused 35 and compatible World Model 122 tests pass. Publication and tracking closure are in progress; no runtime integration is authorized.
+- 2026-07-20 12:45 +02:00 | Codex | Closed #170 at exact commit `e6e1e24`: independently GREEN Phase 3a causal trace custody/open-set accounting; focused 35 and compatible World Model 122 tests pass. Watercooler #1202 and Taskboard completion carry the bounded verdict; no runtime integration is authorized.

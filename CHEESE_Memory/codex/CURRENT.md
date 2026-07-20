@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-20 12:05 +02:00
+Last updated: 2026-07-20 12:45 +02:00
 
 ## Standing Directive
 
@@ -67,9 +67,10 @@ remember which artifact should be updated.
 
 ### MoCoP Review Boundaries
 
-- Taskboard #170 World Model Phase 3a is implemented and independently GREEN,
-  pending exact commit/tracking publication. Its additive segmented journal
-  binds the complete pre-action packet, durable handoff, authoritative
+- Taskboard #170 World Model Phase 3a is DONE and independently GREEN at exact
+  commit `e6e1e240bb78f7fdafda7b044130f7f03075343d`; Watercooler #1202. Its
+  additive segmented journal binds the complete pre-action packet, durable
+  handoff, authoritative
   receipt/reconciliation, raw open-set outcome, and exact run ledger. Focused
   verification is 35 passed; the readable compatible World Model suite is 122
   passed; frozen Phase 2 trace/capture hashes are unchanged. This is a
