@@ -6,6 +6,7 @@ report+journal (reusing the proven B0 helpers) so the terminal-frame authority i
 """
 import json
 import pathlib
+import re
 from itertools import combinations
 
 import pytest
@@ -1023,9 +1024,15 @@ def test_seam_refuses_a_verified_journal_whose_terminal_authority_is_not_integri
     # The DISPOSITION gate specifically: the journal parses/verifies (ok=True) but its terminal
     # authority is not integrity_verified. No C1 authorization may rest on that (Monk #1146). This
     # isolates the disposition check, which the empty-journal (ok=False) case does not reach.
+    # rev9 (a-Codex #1201): the terminal verifier is now a FROZEN authority, so a module-level
+    # setattr on verify_terminal_frames is a no-op (that is the point of the freeze). Inject the
+    # ok=True/non-verified verdict through the _auth accessor seam (._replace keeps every other
+    # authority frozen-real) so this still isolates the disposition gate.
     import p5_r4_sidecar
-    monkeypatch.setattr(p5_r4_sidecar, "verify_terminal_frames",
-                        lambda *a, **k: {"ok": True, "disposition": disp})
+    _real = p5_r4_sidecar._auth()
+    monkeypatch.setattr(
+        p5_r4_sidecar, "_auth",
+        lambda: _real._replace(terminal_verifier=lambda *a, **k: {"ok": True, "disposition": disp}))
     report = _sealed_report()
     rp = tmp_path / "b0.json"
     rp.write_text(json.dumps(report), encoding="utf-8")
@@ -1391,3 +1398,70 @@ def test_ftypename_a_hostile_metaclass_key_does_not_escape_a_public_self_check()
                    "mean_pairwise_embedding": 0.5, "n_pairs": 1},
         eligible_probe_ids=["a", "b"])
     assert any("key set is not" in x for x in r)                # refused; __name__ never inspected
+
+
+# --------------------------------------------------------------------------- #
+# rev9 a-Codex HARDENING — the freeze was INCOMPLETE. The /codex-review pass    #
+# found two more of the same class as #1201 at boundaries not yet frozen:      #
+# (A) the terminal/publication disposition authority, (B) the sidecar-side     #
+# validation policy. Both are now frozen; these are the two exact-target        #
+# canaries. See MoCoP/reviews/p5_item5_rev8_source_review_2026-07-20.md.        #
+# --------------------------------------------------------------------------- #
+def test_fauth_a_precall_disposition_rebind_cannot_admit_a_failed_terminal(tmp_path, monkeypatch):
+    # (A) _load_governed_report gated the parent on the LIVE DISPOSITION_VERIFIED label. Pre-call
+    # rebinding it to 'committed_integrity_failed' would make a verified-but-FAILED B0 terminal clear
+    # the gate. rev9 reads the frozen _A.disp_verified, so the failed terminal is still refused.
+    import p5_r4_sidecar
+    _real = p5_r4_sidecar._auth()
+    # A verdict that VERIFIES (ok=True) but whose terminal authority is committed_integrity_failed:
+    monkeypatch.setattr(p5_r4_sidecar, "_auth", lambda: _real._replace(
+        terminal_verifier=lambda *a, **k: {"ok": True, "disposition": "committed_integrity_failed"}))
+    # The exploit: rebind the module label so a rev8-style live read would treat FAILED as verified.
+    monkeypatch.setattr(p5_r4_sidecar, "DISPOSITION_VERIFIED", "committed_integrity_failed")
+    report = _sealed_report()
+    rp = tmp_path / "b0.json"
+    rp.write_text(json.dumps(report), encoding="utf-8")
+    jp = tmp_path / "b0.json.journal"
+    jp.write_text("{}\n", encoding="utf-8")
+    rows, agg = _comparison(_eligible_of(report))
+    with pytest.raises(R4SidecarError) as ei:
+        record_r4_comparison(report_path=rp, journal_path=jp, manifest=_manifest(report),
+                             per_pair=rows, aggregate=agg, sidecar_path=tmp_path / "r4.json")
+    assert "terminal authority" in str(ei.value)                # frozen disp_verified refuses it
+
+
+def test_fauth_a_carrier_callback_loosening_sidecar_policy_cannot_accept_a_mutable_ref(monkeypatch):
+    # (B) _verify_record fires the carrier's record.items() BEFORE re-validating the sidecar manifest
+    # against _MUTABLE_REFS / _SHA40. A callback that clears the mutable-ref denylist and loosens the
+    # 40-hex regex would let evaluator revision_sha='main' (a mutable ref) gate C1. rev9 reads the
+    # frozen policy from _auth(), captured before the callback, so 'main' is still refused.
+    import p5_r4_sidecar
+    monkeypatch.setattr(p5_r4_sidecar, "_MUTABLE_REFS", p5_r4_sidecar._MUTABLE_REFS)  # register teardown
+    monkeypatch.setattr(p5_r4_sidecar, "_SHA40", p5_r4_sidecar._SHA40)                # register teardown
+    report = _sealed_report(n=4)
+    rows, agg = _comparison(_eligible_of(report))
+    record = {
+        "schema": SIDECAR_SCHEMA,
+        "evaluator": {"evaluator_id": "sentence-transformers/all-MiniLM-L6-v2", "revision_sha": "main"},
+        "runner": {"runner_id": "r4_compare_sidecar", "runner_digest": "d" * 64},
+        "panel": report["execution_descriptor"]["panel_hash"],
+        "parent": _manifest(report)["parent"],
+        "per_pair": _canonicalize_comparison(rows), "aggregate": agg,
+    }
+    man = {k: record[k] for k in ("schema", "evaluator", "runner", "parent", "panel")}
+    fired = {"done": False}
+
+    class _PolicySwapRecord(dict):
+        def items(self):
+            if not fired["done"]:
+                fired["done"] = True
+                p5_r4_sidecar._MUTABLE_REFS = frozenset()          # clear the mutable-ref denylist
+                p5_r4_sidecar._SHA40 = re.compile(r".*")           # loosen the 40-hex format regex
+            return super().items()
+
+    carrier = R4SidecarRecord(manifest_digest=canonical_digest(man),
+                              output_digest=canonical_digest(record),
+                              record=_PolicySwapRecord(record))
+    with pytest.raises(R4SidecarError) as ei:
+        r4_decision(report, carrier)
+    assert "MUTABLE ref" in str(ei.value)                       # frozen denylist refuses 'main'

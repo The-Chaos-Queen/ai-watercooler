@@ -197,6 +197,12 @@ DECISION_JSD_PROCEEDS = "jsd_proceeds"
 DECISION_JSD_REPLACEMENT_REQUIRED = "jsd_replacement_required"
 DECISION_INCOMPLETE = "incomplete"
 
+# Publication terminal dispositions (used by publish_r4_sidecar / _load_governed_report /
+# record_r4_comparison). Defined here so _bind_authority can freeze them; still public constants.
+DISPOSITION_VERIFIED = "integrity_verified"
+DISPOSITION_INTEGRITY_FAILED = "committed_integrity_failed"
+DISPOSITION_INDETERMINATE = "committed_indeterminate"
+
 
 # --------------------------------------------------------------------------- #
 # F-AUTH (Codex #1201): the frozen sidecar authority snapshot.                 #
@@ -218,8 +224,20 @@ DECISION_INCOMPLETE = "incomplete"
 # free-var cells are as immutable as the language offers in-process; replacing #
 # the accessor wholesale is the ordinary monkeypatch-the-module class, not one #
 # of the value-rebind vectors the review canaried.)                            #
+#                                                                              #
+# a-Codex hardening (Codex #1201 pre-board): the freeze now covers the         #
+# COMPLETE policy authority set reachable from the public entry points — not   #
+# just the B0-parent authorities, but the SIDECAR-side validation policy       #
+# (schema/keys/specs/ranges/tolerance/format regexes/mutable-ref set/          #
+# placeholder check) AND the TERMINAL/publication authority (the journal       #
+# verifier + disposition labels). The rule: a name that ENCODES an accept/     #
+# reject decision is frozen; a PURE PRIMITIVE (canonical_digest, _require_     #
+# sha256, assert_strict_json, _canonical_bytes, _inert_snapshot, _safe_        #
+# typename, _norm_num, spearman_rho, diversity_agreement_rho, _fsync_dir) is   #
+# not — rebinding one is the same class as reassigning ``_auth`` itself.        #
 # --------------------------------------------------------------------------- #
 class _SidecarAuthority(NamedTuple):
+    # ---- B0-parent producer authorities ----
     gate: float                                  # RHO_GATE — the instrument-agreement threshold
     floor: int                                   # _MIN_ELIGIBLE — the N' Spearman floor
     run_kind: str                                # B0_RUN_KIND — the only run_kind a B0 parent carries
@@ -229,16 +247,39 @@ class _SidecarAuthority(NamedTuple):
     decoding_check: Callable[[Mapping[str, Any]], list]   # check_decoding_contract (neutralization set)
     device_check: Callable[[Any], str]           # check_device_map (explicit single device)
     report_keys: frozenset                       # _B0_REPORT_KEYS — exact top-level report shape
-    record_keys: frozenset                       # _B0_RECORD_KEYS — exact per-record shape
+    b0_record_keys: frozenset                    # _B0_RECORD_KEYS — exact producer per-record shape
     provenance_keys: frozenset                   # _B0_PROVENANCE_KEYS — exact provenance receipt shape
     descriptor_keys: frozenset                   # _B0_DESCRIPTOR_KEYS — exact execution_descriptor shape
     sealed_base_keys: tuple                      # _B0_SEALED_BASE_KEYS — the inner-digest base fields
     stop_reasons: frozenset                      # _STOP_REASONS — the frozen eos|length|error enum
     bundle_schema: str                           # B0_BUNDLE_SCHEMA — the evidence-bundle schema tag
+    # ---- sidecar-side validation policy (a-Codex #1201) ----
+    sha40: Any                                    # _SHA40 — immutable-40-hex format regex
+    sha256: Any                                   # _SHA256 — sha256 format regex
+    mutable_refs: frozenset                       # _MUTABLE_REFS — refs a C1-gating pin may NOT be
+    is_unset: Callable[[Any], bool]               # _is_unset — placeholder/unset id check
+    sidecar_schema: str                           # SIDECAR_SCHEMA — the sidecar manifest schema tag
+    required_sidecar_keys: frozenset              # REQUIRED_SIDECAR_KEYS — exact manifest key set
+    evaluator_spec: Mapping[str, str]             # _EVALUATOR_SPEC — evaluator block field→kind
+    runner_spec: Mapping[str, str]                # _RUNNER_SPEC — runner block field→kind
+    parent_spec: Mapping[str, str]                # _PARENT_SPEC — parent block field→kind
+    jsd_range: tuple                              # _JSD_RANGE — [0,1]
+    sim_range: tuple                              # _SIM_RANGE — [-1,1]
+    rho_range: tuple                              # _RHO_RANGE — [-1,1]
+    recompute_tol: float                          # _RECOMPUTE_TOL — aggregate recompute tolerance
+    agg_keys: frozenset                           # _AGG_KEYS — exact aggregate key set
+    input_row_keys: frozenset                     # _INPUT_ROW_KEYS — evaluator INPUT row shape
+    canon_row_keys: frozenset                     # _CANON_ROW_KEYS — stored canonical row shape
+    sidecar_record_keys: frozenset                # _RECORD_KEYS — exact sealed-sidecar record shape
+    # ---- terminal / publication authority (a-Codex #1201) ----
+    terminal_verifier: Callable[..., Mapping[str, Any]]   # verify_terminal_frames — journal authority
+    disp_verified: str                            # DISPOSITION_VERIFIED — the ONLY green terminal
+    disp_failed: str                              # DISPOSITION_INTEGRITY_FAILED
+    disp_indeterminate: str                       # DISPOSITION_INDETERMINATE
 
 
 def _bind_authority() -> "Callable[[], _SidecarAuthority]":
-    """Freeze the verdict authorities into ONE closure cell at import (F-AUTH)."""
+    """Freeze the COMPLETE verdict-authority set into ONE closure cell at import (F-AUTH)."""
     snap = _SidecarAuthority(
         gate=float(RHO_GATE),
         floor=int(_MIN_ELIGIBLE),
@@ -249,12 +290,33 @@ def _bind_authority() -> "Callable[[], _SidecarAuthority]":
         decoding_check=check_decoding_contract,
         device_check=check_device_map,
         report_keys=frozenset(_B0_REPORT_KEYS),
-        record_keys=frozenset(_B0_RECORD_KEYS),
+        b0_record_keys=frozenset(_B0_RECORD_KEYS),
         provenance_keys=frozenset(_B0_PROVENANCE_KEYS),
         descriptor_keys=frozenset(_B0_DESCRIPTOR_KEYS),
         sealed_base_keys=tuple(_B0_SEALED_BASE_KEYS),
         stop_reasons=frozenset(_STOP_REASONS),
         bundle_schema=str(B0_BUNDLE_SCHEMA),
+        sha40=_SHA40,
+        sha256=_SHA256,
+        mutable_refs=frozenset(_MUTABLE_REFS),
+        is_unset=_is_unset,
+        sidecar_schema=str(SIDECAR_SCHEMA),
+        required_sidecar_keys=frozenset(REQUIRED_SIDECAR_KEYS),
+        evaluator_spec=MappingProxyType(dict(_EVALUATOR_SPEC)),
+        runner_spec=MappingProxyType(dict(_RUNNER_SPEC)),
+        parent_spec=MappingProxyType(dict(_PARENT_SPEC)),
+        jsd_range=tuple(_JSD_RANGE),
+        sim_range=tuple(_SIM_RANGE),
+        rho_range=tuple(_RHO_RANGE),
+        recompute_tol=float(_RECOMPUTE_TOL),
+        agg_keys=frozenset(_AGG_KEYS),
+        input_row_keys=frozenset(_INPUT_ROW_KEYS),
+        canon_row_keys=frozenset(_CANON_ROW_KEYS),
+        sidecar_record_keys=frozenset(_RECORD_KEYS),
+        terminal_verifier=verify_terminal_frames,
+        disp_verified=str(DISPOSITION_VERIFIED),
+        disp_failed=str(DISPOSITION_INTEGRITY_FAILED),
+        disp_indeterminate=str(DISPOSITION_INDETERMINATE),
     )
 
     def authority() -> _SidecarAuthority:
@@ -368,25 +430,31 @@ def _safe_keys(keys: Any) -> list[str]:
 # Field + number validation.                                                   #
 # --------------------------------------------------------------------------- #
 def _field_error(value: Any, kind: str) -> str | None:
+    # F-AUTH (a-Codex #1201): read the accept/reject policy (placeholder check, mutable-ref set, format
+    # regexes) from the frozen snapshot. _verify_record fires the carrier's items() BEFORE calling this
+    # (via validate_sidecar_manifest / validate_comparison), so a callback that clears _MUTABLE_REFS or
+    # loosens _SHA40 must not reach these decisions. The kind TAG dispatch (_ID/_SHA40F/…) stays live:
+    # rebinding a tag only routes to "unknown field kind", a refusal — it fails closed.
+    _A = _auth()
     if kind == _ID:
         if type(value) is not str:
             return f"must be an exact str (got {_safe_typename(value)})"
-        if _is_unset(value):
+        if _A.is_unset(value):
             return f"is a placeholder/unset value ({value!r})"
         return None
     if kind == _SHA40F:
         if type(value) is not str:
             return f"must be an exact str 40-hex SHA (got {_safe_typename(value)})"
-        if value.strip().lower() in _MUTABLE_REFS:
+        if value.strip().lower() in _A.mutable_refs:
             return (f"{value!r} is a MUTABLE ref; the R4 comparison gates C1 and must pin an "
                     "immutable 40-hex revision")
-        if not _SHA40.match(value):
+        if not _A.sha40.match(value):
             return f"must be an immutable lowercase 40-hex SHA (got {value!r})"
         return None
     if kind == _SHA256F:
         if type(value) is not str:
             return f"must be an exact str sha256 digest (got {_safe_typename(value)})"
-        if not _SHA256.match(value):
+        if not _A.sha256.match(value):
             return f"must be a lowercase sha256 hex digest (got {value!r})"
         return None
     if kind == _POSINT:
@@ -430,20 +498,24 @@ def _check_block(block: Any, name: str, spec: Mapping[str, str], refusals: list[
 
 def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
     """Return refusal reasons ([] means clean). Never runs anything, never loads a model."""
+    # F-AUTH (a-Codex #1201): the required key set, schema tag, and per-block field specs are read from
+    # the frozen snapshot — _verify_record calls this after the carrier's items() callback, so a
+    # rebind of REQUIRED_SIDECAR_KEYS / SIDECAR_SCHEMA / _*_SPEC cannot loosen the manifest gate.
+    _A = _auth()
     refusals: list[str] = []
     if not isinstance(manifest, Mapping):
         return ["sidecar manifest is not a mapping"]
-    unknown = set(manifest) - set(REQUIRED_SIDECAR_KEYS)
+    unknown = set(manifest) - set(_A.required_sidecar_keys)
     if unknown:
         refusals.append(f"sidecar manifest has unknown key(s): {sorted(unknown)}")
-    for key in REQUIRED_SIDECAR_KEYS:
+    for key in _A.required_sidecar_keys:
         if key not in manifest:
             refusals.append(f"required key {key!r} is missing")
-    if manifest.get("schema") != SIDECAR_SCHEMA:
-        refusals.append(f"schema must be {SIDECAR_SCHEMA!r} (got {manifest.get('schema')!r})")
-    _check_block(manifest.get("evaluator"), "evaluator", _EVALUATOR_SPEC, refusals)
-    _check_block(manifest.get("runner"), "runner", _RUNNER_SPEC, refusals)
-    _check_block(manifest.get("parent"), "parent", _PARENT_SPEC, refusals)
+    if manifest.get("schema") != _A.sidecar_schema:
+        refusals.append(f"schema must be {_A.sidecar_schema!r} (got {manifest.get('schema')!r})")
+    _check_block(manifest.get("evaluator"), "evaluator", _A.evaluator_spec, refusals)
+    _check_block(manifest.get("runner"), "runner", _A.runner_spec, refusals)
+    _check_block(manifest.get("parent"), "parent", _A.parent_spec, refusals)
     err = _field_error(manifest.get("panel"), _ID)
     if err:
         refusals.append(f"panel {err}")
@@ -454,7 +526,7 @@ def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
 # F1 — verify the parent is the CANONICAL B0 producer's report, then derive.    #
 # --------------------------------------------------------------------------- #
 def _require_sha256(value: Any, name: str) -> None:
-    if type(value) is not str or not _SHA256.match(value):
+    if type(value) is not str or not _auth().sha256.match(value):   # F-AUTH: frozen format regex
         raise R4SidecarError(f"{name} must be a lowercase sha256 hex digest (got {value!r})")
 
 
@@ -606,7 +678,7 @@ def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
 
     seen: set[str] = set()
     for i, rec in enumerate(records):
-        if not isinstance(rec, Mapping) or set(rec) != _A.record_keys:
+        if not isinstance(rec, Mapping) or set(rec) != _A.b0_record_keys:
             raise R4SidecarError(f"record {i} is not the canonical producer record shape")
         pid = rec["probe_id"]
         if type(pid) is not str or not pid:
@@ -772,13 +844,14 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
     n_pairs is a NON-NEGATIVE int (0 is the canonical value for a below-floor empty comparison);
     the recompute runs only when there are rows to describe.
     """
+    _A = _auth()                               # F-AUTH (a-Codex #1201): frozen key set / ranges / tol
     refusals: list[str] = []
     if not isinstance(aggregate, Mapping):
         return ["aggregate must be a mapping"]
     if not per_pair:
         # The ONLY canonical aggregate for an empty comparison (Codex #1187 a-Codex): pinned so an
         # empty comparison has ONE deterministic digest, not an arbitrary caller rho/means.
-        if not (set(aggregate) == _AGG_KEYS
+        if not (set(aggregate) == _A.agg_keys
                 and type(aggregate.get("n_pairs")) is int and aggregate["n_pairs"] == 0
                 and all(type(aggregate.get(k)) is float and aggregate[k] == 0.0
                         for k in ("spearman_rho", "mean_pairwise_jsd", "mean_pairwise_embedding"))):
@@ -786,12 +859,12 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
                     "{spearman_rho: 0.0, mean_pairwise_jsd: 0.0, mean_pairwise_embedding: 0.0, "
                     "n_pairs: 0}"]
         return []
-    unknown = set(aggregate) - _AGG_KEYS
+    unknown = set(aggregate) - _A.agg_keys
     if unknown:
         refusals.append(f"aggregate has unknown key(s): {_safe_keys(unknown)}")
     range_ok: set[str] = set()
-    for key, rng in (("spearman_rho", _RHO_RANGE), ("mean_pairwise_jsd", _JSD_RANGE),
-                     ("mean_pairwise_embedding", _SIM_RANGE)):
+    for key, rng in (("spearman_rho", _A.rho_range), ("mean_pairwise_jsd", _A.jsd_range),
+                     ("mean_pairwise_embedding", _A.sim_range)):
         if key not in aggregate:
             refusals.append(f"aggregate.{key} is missing")
         else:
@@ -820,7 +893,7 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
             # 10**400) overflows float() and raises out of this validator. |v| <= 1 makes float safe.
             if key not in range_ok:
                 continue
-            if abs(float(aggregate[key]) - computed) > _RECOMPUTE_TOL:
+            if abs(float(aggregate[key]) - computed) > _A.recompute_tol:
                 refusals.append(
                     f"aggregate.{key} {aggregate[key]} does not match the value {computed:.12g} "
                     "recomputed from the rows; the summary must describe the rows")
@@ -829,16 +902,22 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
 
 def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
                         *, eligible_probe_ids: Sequence[str] | None = None,
-                        row_keys: frozenset[str] = _INPUT_ROW_KEYS) -> list[str]:
+                        row_keys: frozenset[str] | None = None) -> list[str]:
     """Row shape + endpoint identity + COMPLETENESS over ELIGIBLE probes + RECOMPUTATION.
 
     Completeness is over the ELIGIBLE set (Monk #1146 F1), never all report probes. §5.5 (Codex
     #1187) names NO caller pair_id, so the default INPUT row shape is exactly
     {probe_a, probe_b, jsd, cosine_similarity}; the stored canonical row (pass ``row_keys=
-    _CANON_ROW_KEYS``) also carries the DERIVED pair_id. An EMPTY comparison is valid ONLY when the
+    _A.canon_row_keys``) also carries the DERIVED pair_id. An EMPTY comparison is valid ONLY when the
     eligible set yields zero pairs (N' < 2) — the frozen INCOMPLETE case — never otherwise. The
     N' >= 4 floor is a decision outcome, not enforced here.
+
+    F-AUTH (a-Codex #1201): the row shape and the jsd/similarity ranges are read from the frozen
+    snapshot (default row shape too — via ``None`` sentinel, not a reassignable default arg), so a
+    caller callback cannot loosen them mid-validation.
     """
+    _A = _auth()
+    row_keys = _A.input_row_keys if row_keys is None else row_keys
     if not isinstance(per_pair, Sequence) or isinstance(per_pair, (str, bytes)):
         return ["per_pair must be a sequence of rows"]
     probe_set = set(eligible_probe_ids) if eligible_probe_ids is not None else None
@@ -887,12 +966,12 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
                     refusals.append(f"per-pair row {i} duplicates endpoint pair {sorted(key)}")
                 seen_endpoints.add(key)
 
-        je = _num_in_range(row["jsd"], *_JSD_RANGE, "jsd")
+        je = _num_in_range(row["jsd"], *_A.jsd_range, "jsd")
         if je:
             refusals.append(f"per-pair row {i} {je}")
         else:
             jsds.append(row["jsd"])
-        se = _num_in_range(row["cosine_similarity"], *_SIM_RANGE, "cosine_similarity")
+        se = _num_in_range(row["cosine_similarity"], *_A.sim_range, "cosine_similarity")
         if se:
             refusals.append(f"per-pair row {i} {se}")
         else:
@@ -1032,7 +1111,7 @@ def build_r4_sidecar(
     canonical_per_pair = _canonicalize_comparison(per_pair)     # F6: deterministic order/orientation
 
     plain_record: dict[str, Any] = {
-        "schema": SIDECAR_SCHEMA,
+        "schema": _auth().sidecar_schema,                        # F-AUTH: frozen label (fail-closed at verify)
         "evaluator": dict(manifest["evaluator"]),
         "runner": dict(manifest["runner"]),
         "panel": manifest["panel"],
@@ -1088,6 +1167,10 @@ def _verify_record(sidecar: Any) -> _VerifiedSidecar:
     manifest_digest = sidecar.manifest_digest
     if type(output_digest) is not str or type(manifest_digest) is not str:
         raise R4SidecarError("record digests must be exact strs")
+    # F-AUTH (a-Codex #1201): bind the frozen authority BEFORE _inert_snapshot fires the carrier's
+    # items() callback, so the exact-record-shape and canonical-row-shape decisions below (and the
+    # manifest/comparison re-validation they delegate to) read frozen policy, not a rebound global.
+    _A = _auth()
     # F3 (Codex #1187): capture a fully-OWNED, EXACT-typed deep copy in one pass — _inert_snapshot
     # rebuilds nested lists too (no live list survives) and refuses str/int subclasses (which could
     # compare as one value but serialize as another) and non-str keys, so a stateful/subclass carrier
@@ -1098,9 +1181,9 @@ def _verify_record(sidecar: Any) -> _VerifiedSidecar:
     # every key an exact str, so this set-difference cannot raise on heterogeneous keys.)
     if not isinstance(record, dict):
         raise R4SidecarError("record root is not a mapping")
-    if set(record) != _RECORD_KEYS:
-        missing = sorted(_RECORD_KEYS - set(record))
-        extra = sorted(set(record) - _RECORD_KEYS)
+    if set(record) != _A.sidecar_record_keys:
+        missing = sorted(_A.sidecar_record_keys - set(record))
+        extra = sorted(set(record) - _A.sidecar_record_keys)
         raise R4SidecarError(
             f"record key set is not exact (missing {missing}, unexpected {extra}); eligibility is "
             "re-derived from the parent, never stored on the record")
@@ -1117,7 +1200,7 @@ def _verify_record(sidecar: Any) -> _VerifiedSidecar:
         raise R4SidecarError("record manifest fails re-validation: " + "; ".join(m_refusals))
     # Stored rows carry the DERIVED pair_id -> validate against the canonical row shape.
     c_refusals = validate_comparison(record["per_pair"], record["aggregate"],
-                                     eligible_probe_ids=None, row_keys=_CANON_ROW_KEYS)
+                                     eligible_probe_ids=None, row_keys=_A.canon_row_keys)
     if c_refusals:
         raise R4SidecarError("record comparison fails re-validation: " + "; ".join(c_refusals))
     # F6 (Codex #1187): the stored rows must already BE their canonical representation (oriented,
@@ -1160,7 +1243,7 @@ def _reverify_against_parent(verified_report: Mapping[str, Any],
                           panel=record["panel"])
     elig = partition_eligibility(verified_report, par["sequence_length"])
     refusals = validate_comparison(record["per_pair"], record["aggregate"],
-                                   eligible_probe_ids=elig.eligible, row_keys=_CANON_ROW_KEYS)
+                                   eligible_probe_ids=elig.eligible, row_keys=_auth().canon_row_keys)
     if refusals:
         raise R4SidecarError(
             "the comparison does not cover the eligibility DERIVED from the bound parent (a stored "
@@ -1172,7 +1255,7 @@ def _build_link(vs: _VerifiedSidecar, verified_report: Mapping[str, Any]) -> dic
     """The audit link, built from the ONE verified snapshot (never the live carrier — F3)."""
     rec = vs.record
     link = {
-        "schema": SIDECAR_SCHEMA + "-link",
+        "schema": _auth().sidecar_schema + "-link",
         "b0_published_digest": verified_report["published_digest"],
         "sidecar_manifest_digest": vs.manifest_digest,
         "sidecar_output_digest": vs.output_digest,
@@ -1238,7 +1321,7 @@ def _build_decision(vs: _VerifiedSidecar, elig: Eligibility) -> dict[str, Any]:
         state, c1 = DECISION_JSD_PROCEEDS, True
         reason = f"rho {rho:.6g} >= {gate}: JSD and the embedding measure agree; JSD may proceed"
     decision = {
-        "schema": SIDECAR_SCHEMA + "-decision",
+        "schema": _A.sidecar_schema + "-decision",
         "state": state,
         "c1_authorization_permitted": c1,
         "reason": reason,
@@ -1274,10 +1357,9 @@ def r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord) -> d
 
 # --------------------------------------------------------------------------- #
 # F5 — atomic, no-replace publication with a TRUTHFUL terminal disposition.     #
+# (DISPOSITION_* constants are defined up top so _bind_authority can freeze     #
+# them; they remain public, documentable module names.)                        #
 # --------------------------------------------------------------------------- #
-DISPOSITION_VERIFIED = "integrity_verified"
-DISPOSITION_INTEGRITY_FAILED = "committed_integrity_failed"
-DISPOSITION_INDETERMINATE = "committed_indeterminate"
 
 
 @dataclass(frozen=True)
@@ -1304,8 +1386,12 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     and builds link + decision from that single snapshot (F3), and the whole post-commit region is a
     non-throwing terminal state machine (F4) — a readback fault downgrades, never escapes.
     """
-    # F-AUTH (Codex #1201): the gate/floor policy is frozen in _auth() (read inside _build_decision),
-    # so a rebind of RHO_GATE — mid-verify or before this call — can no longer green a commit.
+    # F-AUTH (Codex #1201 + a-Codex): gate/floor are frozen in _auth() (read inside _build_decision),
+    # and the terminal DISPOSITION_* labels below are read from this frozen snapshot too — bound BEFORE
+    # _verify_record fires the carrier's items() — so a rebind of RHO_GATE or of DISPOSITION_VERIFIED
+    # (mid-verify or before the call) can neither green a failing decision nor mislabel a downgraded
+    # commit as verified.
+    _A = _auth()
     sidecar_path = Path(sidecar_path)
     if sidecar_path.exists() or sidecar_path.is_symlink():
         raise R4SidecarError(f"sidecar path already exists (no-replace): {sidecar_path}")
@@ -1319,7 +1405,7 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     link = _build_link(vs, verified_report)                 # internal helpers over the ONE snapshot,
     decision = _build_decision(vs, elig)                     # never reopening the live carrier
     artifact = {
-        "schema": SIDECAR_SCHEMA + "-artifact",
+        "schema": _A.sidecar_schema + "-artifact",
         "record": vs.record,
         # The DERIVED eligibility (from the verified parent, not a stored declaration) for audit.
         "eligibility": {
@@ -1355,31 +1441,31 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     # the commit NOTHING may raise; every fault best-effort removes the writable alias and downgrades
     # truthfully. The definitive readback happens ONLY after the writable alias is gone — otherwise a
     # write through the alias can corrupt the final inode AFTER it verifies (Codex #1187). ----
-    disposition = DISPOSITION_VERIFIED
+    disposition = _A.disp_verified
     try:
         tmp.unlink()                                        # remove the writable hard-link alias FIRST
     except OSError:
-        disposition = DISPOSITION_INTEGRITY_FAILED          # a surviving writable alias can mutate the file
+        disposition = _A.disp_failed                        # a surviving writable alias can mutate the file
     try:
         if tmp.exists():
-            disposition = DISPOSITION_INTEGRITY_FAILED
+            disposition = _A.disp_failed
     except OSError:
-        disposition = DISPOSITION_INTEGRITY_FAILED
-    if disposition == DISPOSITION_VERIFIED:                 # only with no writable alias left
+        disposition = _A.disp_failed
+    if disposition == _A.disp_verified:                    # only with no writable alias left
         try:
             if sidecar_path.read_bytes() != committed:      # definitive final-byte readback
-                disposition = DISPOSITION_INTEGRITY_FAILED
+                disposition = _A.disp_failed
         except OSError:
-            disposition = DISPOSITION_INTEGRITY_FAILED      # cannot confirm the commit => not verified
+            disposition = _A.disp_failed                    # cannot confirm the commit => not verified
     # Directory-entry durability. A real fsync FAULT (supported but failed) is indeterminate; a
     # platform that cannot open a directory fd at all (e.g. Windows) is NOT a fault — the file was
     # already fsync'd, which is the durability the platform offers — so it does not downgrade.
     try:
-        if _fsync_dir(parent_dir) is False and disposition == DISPOSITION_VERIFIED:
-            disposition = DISPOSITION_INDETERMINATE
+        if _fsync_dir(parent_dir) is False and disposition == _A.disp_verified:
+            disposition = _A.disp_indeterminate
     except OSError:
-        if disposition == DISPOSITION_VERIFIED:
-            disposition = DISPOSITION_INDETERMINATE
+        if disposition == _A.disp_verified:
+            disposition = _A.disp_indeterminate
     return R4PublishResult(path=str(sidecar_path), published_digest=artifact["published_digest"],
                            committed_bytes=len(committed), disposition=disposition)
 
@@ -1418,6 +1504,12 @@ def _load_governed_report(report_path: Path, journal_path: Path) -> tuple[dict[s
     in-memory dict. Read the report bytes, run the existing terminal-frame verifier over the journal
     binding those exact bytes/digest, and REQUIRE an ``integrity_verified`` terminal authority.
     """
+    # F-AUTH (a-Codex #1201): the sha256 format check, the terminal-journal VERIFIER, and the
+    # integrity-verified disposition label are all read from the frozen snapshot. Rebinding
+    # verify_terminal_frames to a permissive stub, or DISPOSITION_VERIFIED to a downgraded label
+    # (so a committed-integrity-FAILED B0 parent clears this gate), can no longer admit an
+    # inadmissible parent to the C1 precondition.
+    _A = _auth()
     report_path, journal_path = Path(report_path), Path(journal_path)
     if not report_path.is_file():
         raise R4SidecarError(f"B0 report artifact not found: {report_path}")
@@ -1431,16 +1523,16 @@ def _load_governed_report(report_path: Path, journal_path: Path) -> tuple[dict[s
     if not isinstance(report, dict):
         raise R4SidecarError("B0 report root is not a JSON object")
     published = report.get("published_digest")
-    if type(published) is not str or not _SHA256.match(published):
+    if type(published) is not str or not _A.sha256.match(published):
         raise R4SidecarError("B0 report has no sha256 published_digest; not sealed")
-    verdict = verify_terminal_frames(journal_path, report_published_digest=published,
-                                     committed_report_bytes=report_bytes)
+    verdict = _A.terminal_verifier(journal_path, report_published_digest=published,
+                                   committed_report_bytes=report_bytes)
     if not verdict.get("ok"):
         raise R4SidecarError(
             f"B0 journal did not verify: {verdict.get('reason')!r}; not a governed parent")
-    if verdict.get("disposition") != DISPOSITION_VERIFIED:
+    if verdict.get("disposition") != _A.disp_verified:
         raise R4SidecarError(
-            f"B0 terminal authority is {verdict.get('disposition')!r}, not {DISPOSITION_VERIFIED!r}; "
+            f"B0 terminal authority is {verdict.get('disposition')!r}, not {_A.disp_verified!r}; "
             "no C1 authorization may rest on a non-integrity-verified parent")
     return report, report_bytes
 
@@ -1467,7 +1559,9 @@ def record_r4_comparison(
     result = publish_r4_sidecar(report, sidecar, sidecar_path)
     decision = r4_decision(report, sidecar)
     # The seam only reports ok when authority verified, the artifact committed cleanly (a downgraded
-    # disposition is NOT ok), AND the precondition permits C1. Fail-closed on everything else.
-    ok = (result.disposition == DISPOSITION_VERIFIED
+    # disposition is NOT ok), AND the precondition permits C1. Fail-closed on everything else. F-AUTH
+    # (a-Codex #1201): the "verified" label is the frozen one, so a rebound DISPOSITION_VERIFIED cannot
+    # make a downgraded publish read as ok.
+    ok = (result.disposition == _auth().disp_verified
           and bool(decision["c1_authorization_permitted"]))
     return R4RecordResult(decision=decision, publish=result, ok=ok)
