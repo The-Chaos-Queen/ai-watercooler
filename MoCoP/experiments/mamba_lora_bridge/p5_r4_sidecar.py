@@ -519,9 +519,16 @@ def _check_block(block: Any, name: str, spec: Mapping[str, str], refusals: list[
             refusals.append(f"{name}.{key} {err}")
 
 
-def validate_sidecar_manifest(manifest: Mapping[str, Any], *,
-                              authority: "_SidecarAuthority | None" = None) -> list[str]:
-    """Return refusal reasons ([] means clean). Never runs anything, never loads a model."""
+def validate_sidecar_manifest(manifest: Mapping[str, Any]) -> list[str]:
+    """Public sidecar-manifest validator. Binds the GENUINE frozen authority and delegates (a-Codex
+    #1201 pass 3: no caller authority — a direct caller could otherwise supply a loosened policy)."""
+    return _validate_sidecar_manifest(manifest, authority=_auth())
+
+
+def _validate_sidecar_manifest(manifest: Mapping[str, Any], *,
+                               authority: "_SidecarAuthority | None" = None) -> list[str]:
+    """Return refusal reasons ([] means clean). Never runs anything, never loads a model.
+    PRIVATE: ``authority`` is the genuine snapshot threaded from the public wrapper / a verdict path."""
     # F-AUTH (a-Codex #1201): the required key set, schema tag, and per-block field specs come from the
     # frozen snapshot THREADED from the public entry (bound before the carrier's items() callback), so
     # neither a rebind of REQUIRED_SIDECAR_KEYS / SIDECAR_SCHEMA / _*_SPEC nor an _auth-accessor rebind
@@ -556,9 +563,22 @@ def _require_sha256(value: Any, name: str, *, authority: "_SidecarAuthority | No
         raise R4SidecarError(f"{name} must be a lowercase sha256 hex digest (got {value!r})")
 
 
-def verify_sealed_report(sealed_report: Mapping[str, Any], *,
-                         authority: "_SidecarAuthority | None" = None) -> dict[str, Any]:
+def verify_sealed_report(sealed_report: Mapping[str, Any]) -> dict[str, Any]:
+    """Public canonical-B0 verifier. Binds the GENUINE frozen authority and delegates.
+
+    a-Codex #1201 pass 3: this public, documented verifier takes NO caller authority — a direct audit
+    caller could otherwise pass ``_auth()._replace(model_keys=...)`` and get a producer-invalid report
+    (e.g. one carrying ``model.unbound_extra``) "verified". Threading lives behind the private
+    ``_verify_sealed_report`` worker.
+    """
+    return _verify_sealed_report(sealed_report, authority=_auth())
+
+
+def _verify_sealed_report(sealed_report: Mapping[str, Any], *,
+                          authority: "_SidecarAuthority | None" = None) -> dict[str, Any]:
     """Validate a CANONICAL B0 evidence report (Monk #1146 F2-depth; Codex #1183/#1187 F1).
+
+    PRIVATE: ``authority`` is the genuine snapshot threaded from the public wrapper / a verdict path.
 
     A governed parent is not merely a self-hashed Mapping, and not merely a report with the fields
     this sidecar happens to read: it is the EXACT report ``B0EvidenceBundle.seal()`` mints and
@@ -932,9 +952,19 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
 
 def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
                         *, eligible_probe_ids: Sequence[str] | None = None,
-                        row_keys: frozenset[str] | None = None,
-                        authority: "_SidecarAuthority | None" = None) -> list[str]:
+                        row_keys: frozenset[str] | None = None) -> list[str]:
+    """Public comparison validator. Binds the GENUINE frozen authority and delegates (a-Codex #1201
+    pass 3: no caller authority — a direct caller could otherwise loosen the row shape / ranges)."""
+    return _validate_comparison(per_pair, aggregate, eligible_probe_ids=eligible_probe_ids,
+                                row_keys=row_keys, authority=_auth())
+
+
+def _validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
+                         *, eligible_probe_ids: Sequence[str] | None = None,
+                         row_keys: frozenset[str] | None = None,
+                         authority: "_SidecarAuthority | None" = None) -> list[str]:
     """Row shape + endpoint identity + COMPLETENESS over ELIGIBLE probes + RECOMPUTATION.
+    PRIVATE: ``authority`` is the genuine snapshot threaded from the public wrapper / a verdict path.
 
     Completeness is over the ELIGIBLE set (Monk #1146 F1), never all report probes. §5.5 (Codex
     #1187) names NO caller pair_id, so the default INPUT row shape is exactly
@@ -1128,19 +1158,19 @@ def build_r4_sidecar(
     per_pair = _inert_snapshot(per_pair)
     aggregate = _inert_snapshot(aggregate)
 
-    refusals = validate_sidecar_manifest(manifest, authority=_A)
+    refusals = _validate_sidecar_manifest(manifest, authority=_A)
     if refusals:
         raise R4SidecarError("; ".join(refusals))
     par = manifest["parent"]
 
-    verified = verify_sealed_report(sealed_report, authority=_A)
+    verified = _verify_sealed_report(sealed_report, authority=_A)
     _check_parent_binding(verified, b0_report_digest=par["b0_report_digest"],
                           generation_output_digest=par["generation_output_digest"],
                           panel=manifest["panel"])
 
     elig = partition_eligibility(verified, par["sequence_length"])
-    comparison_refusals = validate_comparison(per_pair, aggregate,
-                                              eligible_probe_ids=elig.eligible, authority=_A)
+    comparison_refusals = _validate_comparison(per_pair, aggregate,
+                                               eligible_probe_ids=elig.eligible, authority=_A)
     if comparison_refusals:
         raise R4SidecarError("; ".join(comparison_refusals))
     canonical_per_pair = _canonicalize_comparison(per_pair)     # F6: deterministic order/orientation
@@ -1232,12 +1262,12 @@ def _verify_record(sidecar: Any, *, authority: "_SidecarAuthority | None" = None
     }
     if canonical_digest(reconstructed_manifest) != manifest_digest:
         raise R4SidecarError("record manifest_digest does not match the reconstructed manifest")
-    m_refusals = validate_sidecar_manifest(reconstructed_manifest, authority=_A)
+    m_refusals = _validate_sidecar_manifest(reconstructed_manifest, authority=_A)
     if m_refusals:
         raise R4SidecarError("record manifest fails re-validation: " + "; ".join(m_refusals))
     # Stored rows carry the DERIVED pair_id -> validate against the canonical row shape.
-    c_refusals = validate_comparison(record["per_pair"], record["aggregate"],
-                                     eligible_probe_ids=None, row_keys=_A.canon_row_keys, authority=_A)
+    c_refusals = _validate_comparison(record["per_pair"], record["aggregate"],
+                                      eligible_probe_ids=None, row_keys=_A.canon_row_keys, authority=_A)
     if c_refusals:
         raise R4SidecarError("record comparison fails re-validation: " + "; ".join(c_refusals))
     # F6 (Codex #1187): the stored rows must already BE their canonical representation (oriented,
@@ -1280,9 +1310,9 @@ def _reverify_against_parent(verified_report: Mapping[str, Any], record: Mapping
                           generation_output_digest=par["generation_output_digest"],
                           panel=record["panel"])
     elig = partition_eligibility(verified_report, par["sequence_length"])
-    refusals = validate_comparison(record["per_pair"], record["aggregate"],
-                                   eligible_probe_ids=elig.eligible, row_keys=_A.canon_row_keys,
-                                   authority=_A)
+    refusals = _validate_comparison(record["per_pair"], record["aggregate"],
+                                    eligible_probe_ids=elig.eligible, row_keys=_A.canon_row_keys,
+                                    authority=_A)
     if refusals:
         raise R4SidecarError(
             "the comparison does not cover the eligibility DERIVED from the bound parent (a stored "
@@ -1321,7 +1351,7 @@ def bind_to_parent_report(sealed_report: Mapping[str, Any],
     # caller code has run, so a callback that reassigns _auth itself cannot poison a later read.
     _A = _auth()
     vs = _verify_record(sidecar, authority=_A)
-    verified_report = verify_sealed_report(sealed_report, authority=_A)
+    verified_report = _verify_sealed_report(sealed_report, authority=_A)
     _reverify_against_parent(verified_report, vs.record, authority=_A)
     return _build_link(vs, verified_report, authority=_A)
 
@@ -1415,7 +1445,7 @@ def _r4_decision(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
     # _auth-accessor rebind mid-verification (nor a pre-call rebind of RHO_GATE) can drive the verdict.
     _A = authority if authority is not None else _auth()
     vs = _verify_record(sidecar, authority=_A)
-    verified_report = verify_sealed_report(sealed_report, authority=_A)
+    verified_report = _verify_sealed_report(sealed_report, authority=_A)
     elig = _reverify_against_parent(verified_report, vs.record, authority=_A)
     return _build_decision(vs, elig, authority=_A)
 
@@ -1478,7 +1508,7 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
         raise R4SidecarError(f"sidecar parent dir must be an existing non-symlink: {parent_dir}")
 
     vs = _verify_record(sidecar, authority=_A)             # F3: capture the carrier ONCE
-    verified_report = verify_sealed_report(sealed_report, authority=_A)
+    verified_report = _verify_sealed_report(sealed_report, authority=_A)
     elig = _reverify_against_parent(verified_report, vs.record, authority=_A)  # refuse a fabrication
     link = _build_link(vs, verified_report, authority=_A)   # internal helpers over the ONE snapshot,
     decision = _build_decision(vs, elig, authority=_A)       # never reopening the live carrier

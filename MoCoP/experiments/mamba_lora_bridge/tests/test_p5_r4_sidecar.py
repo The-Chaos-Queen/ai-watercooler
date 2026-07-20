@@ -1572,3 +1572,26 @@ def test_the_public_c1_gates_reject_a_caller_supplied_authority():
         r4_decision(report, rec, authority=p5_r4_sidecar._auth()._replace(gate=-2.0))
     d = r4_decision(report, rec)
     assert d["state"] == DECISION_JSD_REPLACEMENT_REQUIRED and d["c1_authorization_permitted"] is False
+
+
+def test_the_public_standalone_verifiers_reject_a_caller_supplied_authority():
+    # (a-Codex #1201 pass 3) verify_sealed_report / validate_* are PUBLIC, documented verifiers that
+    # audit callers invoke DIRECTLY and trust. A public authority param let a caller pass
+    # _auth()._replace(model_keys=...+'unbound_extra') and get a producer-invalid report "verified" —
+    # a standalone-verifier bypass independent of the C1 gate. The public verifiers take NO caller
+    # authority; threading lives behind the private _verify_sealed_report / _validate_* workers.
+    import inspect
+
+    import p5_r4_sidecar
+    for fn in ("verify_sealed_report", "validate_sidecar_manifest", "validate_comparison"):
+        params = inspect.signature(getattr(p5_r4_sidecar, fn)).parameters
+        assert not any("authorit" in p for p in params), f"{fn} exposes a caller authority param"
+    report = _sealed_report()
+    report["execution_descriptor"]["model"]["unbound_extra"] = "accepted"   # producer-invalid
+    _reseal(report)
+    forged = p5_r4_sidecar._auth()._replace(
+        model_keys=frozenset(list(p5_r4_sidecar._auth().model_keys) + ["unbound_extra"]))
+    with pytest.raises(TypeError):                             # public verifier has no authority param
+        verify_sealed_report(report, authority=forged)
+    with pytest.raises(R4SidecarError):                        # genuine public verifier refuses it
+        verify_sealed_report(report)
