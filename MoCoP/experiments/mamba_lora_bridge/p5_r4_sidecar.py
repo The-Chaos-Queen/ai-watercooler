@@ -276,6 +276,10 @@ class _SidecarAuthority(NamedTuple):
     disp_verified: str                            # DISPOSITION_VERIFIED — the ONLY green terminal
     disp_failed: str                              # DISPOSITION_INTEGRITY_FAILED
     disp_indeterminate: str                       # DISPOSITION_INDETERMINATE
+    # ---- C1-precondition decision-state labels (Wachhund audit) ----
+    decision_proceeds: str                        # DECISION_JSD_PROCEEDS — stamped into decision.state
+    decision_replacement: str                     # DECISION_JSD_REPLACEMENT_REQUIRED
+    decision_incomplete: str                      # DECISION_INCOMPLETE
 
 
 def _bind_authority() -> "Callable[[], _SidecarAuthority]":
@@ -317,6 +321,9 @@ def _bind_authority() -> "Callable[[], _SidecarAuthority]":
         disp_verified=str(DISPOSITION_VERIFIED),
         disp_failed=str(DISPOSITION_INTEGRITY_FAILED),
         disp_indeterminate=str(DISPOSITION_INDETERMINATE),
+        decision_proceeds=str(DECISION_JSD_PROCEEDS),
+        decision_replacement=str(DECISION_JSD_REPLACEMENT_REQUIRED),
+        decision_incomplete=str(DECISION_INCOMPLETE),
     )
 
     def authority() -> _SidecarAuthority:
@@ -1309,16 +1316,19 @@ def _build_decision(vs: _VerifiedSidecar, elig: Eligibility) -> dict[str, Any]:
     # Take the floor outcome BEFORE trusting rho (Codex #1187 #6). Fewer than the N' >= 4 floor —
     # including N' = 0/1 whose canonical comparison is EMPTY — is the frozen INCOMPLETE, never a
     # division-by-zero or a structural refusal.
+    # Wachhund audit: the state LABEL is read from the frozen snapshot too — a pre-call rebind of
+    # DECISION_JSD_PROCEEDS (etc.) must not stamp a spoofed state into the record that feeds the future
+    # C1 boundary. The c1 bool is already derived from the frozen gate/floor branch, not the label.
     if n_eligible < floor:
-        state, c1 = DECISION_INCOMPLETE, False
+        state, c1 = _A.decision_incomplete, False
         reason = (f"n_eligible {n_eligible} < floor {floor}: too few non-refused prompts for "
                   "a meaningful Spearman; INCOMPLETE, not PASS")
     elif rho < gate:
-        state, c1 = DECISION_JSD_REPLACEMENT_REQUIRED, False
+        state, c1 = _A.decision_replacement, False
         reason = (f"rho {rho:.6g} < {gate}: JSD's residual is load-bearing; JSD must be replaced "
                   "with the embedding measure before C1")
     else:
-        state, c1 = DECISION_JSD_PROCEEDS, True
+        state, c1 = _A.decision_proceeds, True
         reason = f"rho {rho:.6g} >= {gate}: JSD and the embedding measure agree; JSD may proceed"
     decision = {
         "schema": _A.sidecar_schema + "-decision",

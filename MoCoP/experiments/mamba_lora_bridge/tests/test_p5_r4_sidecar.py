@@ -1465,3 +1465,16 @@ def test_fauth_a_carrier_callback_loosening_sidecar_policy_cannot_accept_a_mutab
     with pytest.raises(R4SidecarError) as ei:
         r4_decision(report, carrier)
     assert "MUTABLE ref" in str(ei.value)                       # frozen denylist refuses 'main'
+
+
+def test_fauth_a_precall_decision_label_rebind_cannot_spoof_the_state(monkeypatch):
+    # (Wachhund audit) _build_decision stamped decision.state from the LIVE DECISION_* labels, and the
+    # decision record feeds the future C1 boundary. A pre-call rebind of DECISION_JSD_PROCEEDS would
+    # spoof that state string. rev9 reads the frozen _A.decision_proceeds, so the state stays truthful.
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)                            # rho +1, 4 eligible => jsd_proceeds
+    monkeypatch.setattr(p5_r4_sidecar, "DECISION_JSD_PROCEEDS", "spoofed_incomplete")
+    d = r4_decision(report, rec)
+    assert d["state"] == DECISION_JSD_PROCEEDS                  # frozen label, not the rebound module value
+    assert d["c1_authorization_permitted"] is True
