@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-21 00:51 +02:00
+Last updated: 2026-07-21 00:57 +02:00
 
 ## Standing Directive
 
@@ -89,7 +89,8 @@ remember which artifact should be updated.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
 - #155 item 5 rev 10 (`0e4817f`) is exact-source `CHANGES`; canon:
-  `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md`. Its authority
+  `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md` at `5027b86`;
+  Watercooler #1209; Taskboard event #812. Its authority
   closure, exact producer model shape, exact-container sanitizer, custom
   `PathLike` refusal, and internal-only row shape are accepted. Remaining P1s:
   exact stdlib `Path` carries mutable callback-bearing internals and can forge
@@ -134,5 +135,6 @@ remember which artifact should be updated.
   the infrastructure owners; do not deploy the public staging tree implicitly.
 - Session 01 (`CHEESE_Memory/session_logs/2026-07-21-session-01.md`) contains
   #155 rev-10 exact-source evidence, independent reproductions, tracking, and
-  bounded disposition. The 2026-07-20 logs retain #170 and rev-8 history. Keep
-  this file concise by replacing stale state.
+  bounded disposition; 11 chunks are synced to Qdrant (collection total
+  34,597). The 2026-07-20 logs retain #170 and rev-8 history. Keep this file
+  concise by replacing stale state.

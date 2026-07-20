@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-21 00:51 +02:00
+- Last updated: 2026-07-21 00:57 +02:00
 - Current owner: Codex returned exact-source `CHANGES` on Gidim's #155 item-5 rev-10 packet; the repair lane and all B0/C1/model/GPU/sink/deployment gates remain held.
 - Primary focus: one immutable #155 successor for the exact-Path and directory-durability P1s plus public typed-totality closure.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-21-session-01.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (`2026-07-21-session-01.md`)
+  - Latest session log ingest: done (`2026-07-21-session-01.md`; 11 chunks; collection total 34,597)
 
 ## Current State - World Model Phase 3a Causal Custody (#170, 2026-07-20)
 
@@ -25,7 +25,7 @@
 
 ## Current State - #155 Item-5 Rev-10 Review (2026-07-21)
 
-- **Exact-source verdict: CHANGES.** Target `0e4817f11e0d1d87e5e5541b6787594a00b12794` was reviewed from an immutable Git archive, scoped to `p5_r4_sidecar.py` and its test blob. Canon: `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md`. The card remains blocked and unassigned.
+- **Exact-source verdict: CHANGES.** Target `0e4817f11e0d1d87e5e5541b6787594a00b12794` was reviewed from an immutable Git archive, scoped to `p5_r4_sidecar.py` and its test blob. Canon: `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md` at `5027b86`; Watercooler #1209; Taskboard #155 event #812. The card remains blocked and unassigned.
 - **Accepted:** the import-time authority closure, exact producer model shape, exact built-in evidence sanitizer, custom-`PathLike` refusal, internal-only row shape, and all prior custody/eligibility/canonicalization repairs remain intact.
 - **Two reproduced P1s remain:** an exact stdlib `Path` retains mutable callback-bearing internals and forged genuine negative evidence into an `integrity_verified / c1=true` artifact; any directory-open `OSError`, including `EIO`, is misclassified as unsupported and leaves publication verified.
 - **Three P2 classes remain:** malformed eligible-ID roots/elements can escape or false-clean; very large exact integers escape typed canonicalization; exported report/eligibility/correlation helpers still traverse caller values and have shape/empty-input totality gaps. Verification was `482 passed, 1 skipped in 3.77s`, with clean Ruff/`py_compile`/zero-torch/scoped diff checks and convergent independent probes. No B0/C1/model/GPU/Qdrant/sink/deployment/keeper action occurred.
@@ -232,11 +232,11 @@
 - #157 review completion is recorded in `5a156fb`; do not interpret it as extraction or C1 permission. The stale blocker is now reconciled: a separately scoped read-only artifact/validation plan and source review are still required.
 
 ## Handoff Checklist
-- Tracking surfaces updated if needed: pending exact rev-10 Watercooler verdict and Taskboard comment; state remains blocked
+- Tracking surfaces updated if needed: yes (Watercooler #1209; Taskboard #155 event #812; state remains blocked)
 - Session log written: yes (`2026-07-21-session-01.md`)
 - Session log path recorded here: yes
-- Qdrant ingest for latest session log confirmed: pending
-- Git preservation state: rev-10 canonical review commit pending; scoped continuity excludes unrelated dirty files
+- Qdrant ingest for latest session log confirmed: yes (11 chunks; collection total 34,597)
+- Git preservation state: canonical review commit `5027b86`; final continuity close pending and excludes unrelated dirty files
 - Watercooler findings reflected in docs: yes (canonical rev-10 review, Codex continuity, session-01)
 - No P0 bugs left unfixed: no new P0; #155 remains explicitly review-held rather than deployed
 - Blocking risks called out: yes
@@ -398,3 +398,4 @@
 - 2026-07-19 02:03 +02:00 | Codex / Techno-Monk | Recorded rev-7 `CHANGES`, Watercooler theme/license commits, exact verification, and unchanged operational holds.
 - 2026-07-20 00:58 +02:00 | Codex / Techno-Monk | Recorded rev-8 `CHANGES` at Watercooler #1201 / Taskboard event #808, accepted closures, remaining authority/model-key/typed-totality findings, and the interactive hackathon checklist commit.
 - 2026-07-20 12:45 +02:00 | Codex | Closed #170 at exact commit `e6e1e24`: independently GREEN Phase 3a causal trace custody/open-set accounting; focused 35 and compatible World Model 122 tests pass. Watercooler #1202 and Taskboard completion carry the bounded verdict; no runtime integration is authorized.
+- 2026-07-21 00:57 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 10 target `0e4817f` after immutable-archive verification and convergent adversarial review. Canon `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md` at `5027b86`; Watercooler #1209; Taskboard event #812. Two false-green publication P1s and three public-totality P2 classes remain; the card and all operational holds are unchanged. Session-01 ingested 11 chunks (collection 34,597).
