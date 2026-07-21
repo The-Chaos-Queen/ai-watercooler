@@ -101,6 +101,7 @@ import json
 import math
 import os
 import re
+import sys
 import tempfile
 from dataclasses import dataclass
 from itertools import combinations
@@ -392,14 +393,30 @@ def _safe_typename(value: Any) -> str:
 # --------------------------------------------------------------------------- #
 # Inert snapshot / deep-freeze (F2/F4).                                        #
 # --------------------------------------------------------------------------- #
-# Serialization-safe magnitude cap for exact ints (Codex #1209 P2). CPython 3.11+ raises ValueError
-# on int<->str above 4300 digits (~14284 bits), so a later str()/repr()/json.dumps on an un-bounded
-# huge int escapes the typed-refusal contract. 8192 bits (~2466 digits) sits with comfortable margin
-# below that crash threshold, above every legit field (token ids/counts/sequence lengths/wall-time ms
-# all fit in far fewer bits), AND above the existing F3 range/overflow probes (10**400 ~1329 bits,
-# which must still reach the range check) — so this bound rejects ONLY genuinely unserializable
-# magnitudes (e.g. 10**5000 ~16610 bits) without disturbing the accepted-closed refusal paths.
+# Absolute serialization-safe bit ceiling for exact ints when the int<->str digit limit is DISABLED
+# (sys.get_int_max_str_digits() == 0). ~2466 digits: above every legit field (token ids/counts/
+# sequence lengths/wall-time ms) and above the F3 range probes (10**400 ~1329 bits, which must still
+# reach the range check), while still rejecting genuinely unserializable magnitudes (10**5000 ~16610
+# bits). When a digit limit IS active, the bound is derived from THAT limit instead (see below).
 _MAX_INT_BITS = 8192
+
+
+def _int_is_serialization_safe(value: int) -> bool:
+    """True iff ``str()``/``repr()``/``json.dumps`` of ``value`` cannot raise (a-Codex #1209 follow-up).
+
+    CPython 3.11+ caps int<->str at ``sys.get_int_max_str_digits()`` decimal digits (0 == unlimited),
+    and that limit is CONFIGURABLE below the 4300 default (floor 640) via ``PYTHONINTMAXSTRDIGITS`` /
+    ``sys.set_int_max_str_digits``. A fixed bit cap assumed the default and would still leak a raw
+    ValueError from a refusal's ``repr()`` under a lower limit. Estimate the decimal length from
+    ``bit_length()`` (which never raises, unlike ``str()``): digits <= bit_length/log2(10) + 1, and
+    ``//3`` OVERESTIMATES (log2(10) ~ 3.32 > 3), so refusing when the estimate reaches the active limit
+    is conservative. Below the active limit AND (for the unlimited case) below the absolute ceiling.
+    """
+    limit = sys.get_int_max_str_digits()
+    approx_digits = value.bit_length() // 3 + 1
+    if limit and approx_digits >= limit:
+        return False
+    return value.bit_length() <= _MAX_INT_BITS
 
 
 def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
@@ -432,12 +449,13 @@ def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
         # ValueError out of a diagnostic or canonicalization, escaping the typed-refusal contract.
         # This sanitizer is the one choke both escape paths cross (verify_sealed_report and
         # build_r4_sidecar both _inert_snapshot before reading any int field), so bound it HERE with a
-        # magnitude far above every legit field (token ids/counts/lengths/ms) and far below the digit
-        # cap. The diagnostic reports only bit_length (a small, repr-safe int), never repr(obj).
-        if obj.bit_length() > _MAX_INT_BITS:
+        # magnitude bound derived from the ACTIVE int<->str digit limit (a-Codex #1209 follow-up: a
+        # fixed cap assumed the 4300 default and would still leak a raw ValueError under a lower
+        # configured limit). The diagnostic reports only bit_length (a small, repr-safe int).
+        if not _int_is_serialization_safe(obj):
             raise R4SidecarError(
-                f"integer field too large to canonicalize safely ({obj.bit_length()} bits > "
-                f"{_MAX_INT_BITS})")
+                f"integer field too large to canonicalize safely ({obj.bit_length()} bits; active "
+                f"int<->str limit {sys.get_int_max_str_digits() or 'unlimited'} digits)")
         return obj
     if type(obj) is str:
         return obj

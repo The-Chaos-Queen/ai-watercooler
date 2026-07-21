@@ -8,6 +8,7 @@ import json
 import os
 import pathlib
 import re
+import sys
 from itertools import combinations
 
 import pytest
@@ -1860,3 +1861,19 @@ def test_rev11_p2_correlation_helpers_are_private_and_total():
         p5_r4_sidecar._spearman_rho([1.0, 2.0], [1.0])                 # mismatched length -> refusal
     with pytest.raises(R4SidecarError):
         p5_r4_sidecar._diversity_agreement_rho([0.5], [0.5, 0.5])      # mismatched length -> refusal
+
+
+def test_rev11_p2_huge_int_respects_a_lower_configured_digit_limit():
+    # a-Codex #1209 follow-up: a fixed 8192-bit cap assumed CPython's 4300-digit default. Under a lower
+    # configured PYTHONINTMAXSTRDIGITS (floor 640), an int that slips a fixed bit cap but exceeds the
+    # ACTIVE decimal limit (e.g. 10**1000 under limit 640) must still be a typed refusal, not a raw
+    # ValueError from the refusal's repr(). The bound derives from the active limit.
+    prev = sys.get_int_max_str_digits()
+    try:
+        sys.set_int_max_str_digits(640)
+        report = _sealed_report(n=4)
+        report["record_count"] = 10 ** 1000                    # 1001 digits > 640; ~3322 bits < 8192
+        with pytest.raises(R4SidecarError):                    # typed refusal, NOT a raw ValueError
+            verify_sealed_report(report)
+    finally:
+        sys.set_int_max_str_digits(prev)
