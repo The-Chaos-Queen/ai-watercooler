@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-21 10:32 +02:00
+Last updated: 2026-07-21 13:46 +02:00
 
 ## Standing Directive
 
@@ -88,17 +88,19 @@ remember which artifact should be updated.
   direction artifact exists yet.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
-- #155 item 5 rev 12 (`12e2974`) is exact-source `CHANGES`; canon
-  `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md` at `2e11ac6`,
-  Watercooler #1213, Taskboard event #814. The three #1211
-  defects and embedded-NUL path escape are closed, and both rev-10 P1 closures
-  remain intact. A new P1 remains at the hard-link boundary: an effect-then-
-  error link can leave a digest-valid C1-green final plus its writable alias
-  while the API raises without a disposition. P2s remain for report/journal
-  exception taxonomy, producer-incompatible probe-ID policy, and failed-staging
-  temporary cleanup. Verification: 496 passed/1 skipped plus clean Ruff,
-  compile, zero-torch, and scoped diff checks. No operational authorization
-  follows.
+- #155 item 5 rev 13 (`a705e4b` + `d38b12d`, final `d38b12d`) is exact-source
+  `CHANGES`; canon
+  `MoCoP/reviews/p5_item5_rev13_source_review_2026-07-21.md` at `913c8cf`,
+  Watercooler #1215, Taskboard event #815. Ordinary effect-then-`OSError`,
+  staging cleanup, governed decoder taxonomy, and producer-ID source repairs
+  are accepted. Two P1 families remain: boolean link reconciliation strands a
+  committed C1-green artifact with no disposition when identity and final
+  readback are unavailable, and post-commit `KeyboardInterrupt` can escape
+  with no disposition or with the writable same-inode alias still live. P2s
+  remain for false ownership of a byte-identical foreign winner and incomplete
+  negative-path coverage. Verification: 507 passed/1 skipped plus clean Ruff,
+  compile, zero-torch, and scoped diff checks; four exact canaries reproduce
+  the gaps. No operational authorization follows.
 - Taskboard #174 final target `70293e2` is `CHANGES` by exact-source verdict of
   record. Canon:
   `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`;
@@ -119,11 +121,11 @@ remember which artifact should be updated.
   outcomes in the scoring denominator, and externally anchored journal-head
   custody; do not collapse #171 or #173 into #170.
 - Review only a narrow immutable #155 item-5 successor that preserves all
-  accepted rev-12 closures, puts the hard-link attempt inside an ambiguity-aware
-  terminal transaction, cleans unsuccessful staging temporaries, keeps
-  operational I/O distinct from structural decoder failures on both report and
-  journal, and aligns probe IDs with the B0 producer contract. Do not run B0/C1
-  from a green unit suite.
+  accepted rev-13 closures and models link origin as at least owned, foreign,
+  absent, or unknown. Byte equality may prove content, never provenance. Close
+  asynchronous interruption across the link and alias-first terminal region,
+  then add the missing foreign/read-fault/interrupt/endpoint/I/O regressions.
+  Do not run B0/C1 from a green unit suite.
 - Review only a new immutable #174 successor that preserves the six accepted
   fixes and carries the ratified protocol, provenance-bearing calibration,
   mandatory cross-audit judge authority, closed numeric domains, and honest
@@ -135,7 +137,7 @@ remember which artifact should be updated.
   the strict commit reviewer into a free-form task executor.
 - Rotate the internal dispatcher token before expiry and resolve #1160 through
   the infrastructure owners; do not deploy the public staging tree implicitly.
-- Session 03 (`CHEESE_Memory/session_logs/2026-07-21-session-03.md`) contains
-  #155 rev-12 exact-source evidence and the ambiguous-link reproduction.
-  It is ingested in Qdrant as 12 chunks (collection total 34,618). Session 02
-  retains the rev-11 evidence. Keep this file concise by replacing stale state.
+- Session 04 (`CHEESE_Memory/session_logs/2026-07-21-session-04.md`) contains
+  #155 rev-13 exact-source evidence and the origin/interrupt reproductions.
+  It is ingested in Qdrant as 13 chunks (collection total 34,629). Session 03
+  retains the rev-12 evidence. Keep this file concise by replacing stale state.

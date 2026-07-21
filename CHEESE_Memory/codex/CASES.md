@@ -668,3 +668,24 @@ evidence supports that promotion.
   refusal distinct from retryable operational I/O failure.
 - Evidence: target `12e2974`; Watercooler request #1212;
   `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md`.
+
+## 2026-07-21 - Content Equality Is Not Commit Provenance
+
+- Status: active engineering lesson
+- Domain: atomic publication / ambiguous outcomes / asynchronous interruption
+- Conditions: an effectful no-replace operation raises and the caller tries to
+  infer whether its own staged object reached the final name.
+- Finding: #155 rev 13 represented identity reconciliation as a boolean. It
+  collapsed different identity and unavailable identity, treated byte equality
+  as ownership proof, and treated a read fault as no effect. Exact probes both
+  adopted a byte-identical foreign winner and stranded a real committed
+  C1-green artifact with no disposition. `KeyboardInterrupt` could also escape
+  after commit and, at terminal alias deletion, leave the writable same-inode
+  alias alive.
+- Lesson: ambiguous publication needs provenance states, not a success boolean:
+  owned, foreign, absent, and origin-unknown are materially different. Bytes
+  prove content only. Once an effect may have occurred, asynchronous exceptions
+  must be deferred through alias-first cleanup and a recoverable terminal state;
+  ordinary `except OSError` control flow is not a non-throwing transaction.
+- Evidence: target `d38b12d`; Watercooler request #1214 / verdict #1215;
+  `MoCoP/reviews/p5_item5_rev13_source_review_2026-07-21.md`.
