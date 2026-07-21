@@ -765,17 +765,18 @@ def test_f4_a_post_commit_readback_fault_downgrades_and_does_not_raise(tmp_path,
     # Codex #1183 F4: a final-byte readback OSError escaped after os.link in rev5, leaving the
     # committed artifact + a writable .tmp alias and no disposition. rev6's post-commit region is a
     # non-throwing terminal state machine: downgrade truthfully, still remove the alias.
+    import p5_r4_sidecar
     report = _sealed_report()
     rec = _build(report)
     out = tmp_path / "r4.json"
-    orig_read = pathlib.Path.read_bytes
+    real_open = p5_r4_sidecar.os.open
 
-    def boom(self, *a, **k):
-        if str(self) == str(out):                    # only the FINAL artifact readback
+    def open_boom(path, flags, *a, **k):
+        if str(path) == str(out):                    # only the identity-bound FINAL readback open
             raise OSError("simulated readback failure")
-        return orig_read(self, *a, **k)
+        return real_open(path, flags, *a, **k)
 
-    monkeypatch.setattr(pathlib.Path, "read_bytes", boom)
+    monkeypatch.setattr(p5_r4_sidecar.os, "open", open_boom)
     result = publish_r4_sidecar(report, rec, str(out))    # must NOT raise
     assert result.disposition == DISPOSITION_INTEGRITY_FAILED
     assert out.exists()                              # the artifact is committed
@@ -2091,34 +2092,81 @@ def test_rev13_fsencode_unencodable_path_is_a_typed_refusal(tmp_path, monkeypatc
 
 
 # =========================================================================== #
-# rev14 (wolf-Codex #1215) - 3-state link identity + async window + coverage.   #
+# rev15 (wolf-Codex #1217) - fd-bound inode custody, origin field, boundaries.  #
+# Named external boundaries (keeper-ratified): durable interrupt/crash recovery #
+# and full same-principal concurrent-namespace defense are OUT of scope; the    #
+# interrupt tests below assert BEST-EFFORT alias cleanup, not durable recovery. #
 # =========================================================================== #
-def test_rev14_p1_link_unknown_identity_reaches_indeterminate_not_escaped(tmp_path, monkeypatch):
-    # Codex #1215 P1: when os.link effects the commit then raises AND identity is UNAVAILABLE (stat
-    # fault / st_ino==0), the outcome is UNKNOWN - it must reach a non-authorizing terminal disposition,
-    # NOT escape past a possibly-committed green artifact.
-    import errno
+def test_rev15_clean_publish_is_verified_and_confirmed_self(tmp_path):
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    result = publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert result.disposition == DISPOSITION_VERIFIED
+    assert result.origin == "confirmed_self"
+
+
+def test_rev15_p1_normal_link_foreign_replacement_is_not_verified(tmp_path, monkeypatch):
+    # Codex #1217 P1: a NORMAL os.link return does not prove the final is our inode. A same-principal
+    # racer replacing the final with a byte-identical DIFFERENT inode must NOT read integrity_verified.
     import p5_r4_sidecar
     report = _sealed_report(n=4)
     rec = _build(report, agree=True)
     out = tmp_path / "r4.json"
     real_link = p5_r4_sidecar.os.link
 
-    def link_then_raise(src, dst):
-        real_link(src, dst)                                    # the real commit effect
-        raise OSError(errno.EIO, "effect-then-error")
+    def link_then_replace_final(src, dst):
+        real_link(src, dst)                                    # our real commit
+        os.unlink(dst)                                         # drop our inode's final name
+        pathlib.Path(dst).write_bytes(pathlib.Path(src).read_bytes())  # foreign byte-identical inode
 
-    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
-    monkeypatch.setattr(p5_r4_sidecar, "_classify_link_outcome",
-                        lambda f, t: p5_r4_sidecar._LINK_UNKNOWN)   # identity unavailable
-    result = publish_r4_sidecar(report, rec, str(out))         # must NOT raise
-    assert result.disposition == DISPOSITION_INDETERMINATE     # unknown -> non-authorizing, never verified
-    assert out.exists()
-    assert list(tmp_path.glob("*.tmp")) == []                  # alias removed
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_replace_final)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition != DISPOSITION_VERIFIED          # foreign final -> not verified
+    assert result.origin == "foreign"
 
 
-def test_rev14_p1_link_committed_identity_reaches_indeterminate(tmp_path, monkeypatch):
-    # Confirmed-same identity on an effect-then-error link -> committed_indeterminate, alias removed.
+def test_rev15_p1_hidden_writable_alias_is_integrity_failed(tmp_path, monkeypatch):
+    # Codex #1217 P1: a surviving writable hard-link alias to our inode (undisclosed second name) must
+    # not read integrity_verified. The terminal link-count check catches st_nlink != 1.
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    extra = tmp_path / "attacker_alias"
+    real_link = p5_r4_sidecar.os.link
+
+    def link_plus_extra(src, dst):
+        real_link(src, dst)                                    # our commit (final)
+        real_link(src, str(extra))                             # attacker's extra alias to our inode
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_plus_extra)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INTEGRITY_FAILED  # final st_nlink == 2 after tmp removal
+
+
+def test_rev15_p1_foreign_temp_replacement_is_not_deleted(tmp_path, monkeypatch):
+    # Codex #1217 P1: cleanup identity-checks its target, so a foreign replacement of the publisher temp
+    # NAME is never deleted by publisher cleanup.
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_link = p5_r4_sidecar.os.link
+    holder = {"tmp": None}
+
+    def link_then_replace_temp(src, dst):
+        real_link(src, dst)                                    # real commit
+        os.unlink(src)                                         # drop our temp name
+        pathlib.Path(src).write_bytes(b"foreign-temp")         # foreign file at the temp name
+        holder["tmp"] = src
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_replace_temp)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_VERIFIED          # our final is a clean, single-link commit
+    assert pathlib.Path(holder["tmp"]).read_bytes() == b"foreign-temp"   # foreign temp NOT deleted
+
+
+def test_rev15_effect_then_error_confirmed_self_is_indeterminate(tmp_path, monkeypatch):
     import errno
     import p5_r4_sidecar
     report = _sealed_report(n=4)
@@ -2130,17 +2178,16 @@ def test_rev14_p1_link_committed_identity_reaches_indeterminate(tmp_path, monkey
         real_link(src, dst)
         raise OSError(errno.EIO, "effect-then-error")
 
-    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)  # real _classify sees same inode
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
     result = publish_r4_sidecar(report, rec, str(out))
-    assert result.disposition == DISPOSITION_INDETERMINATE
-    assert out.exists()
-    assert list(tmp_path.glob("*.tmp")) == []
+    assert result.disposition == DISPOSITION_INDETERMINATE     # our inode, but the call raised
+    assert result.origin == "confirmed_self"
+    assert out.exists() and list(tmp_path.glob("*.tmp")) == []
 
 
-def test_rev14_p2_foreign_byte_identical_winner_is_not_attributed(tmp_path, monkeypatch):
-    # Codex #1215 P2: a FOREIGN no-replace winner (different inode) with BYTE-IDENTICAL content must NOT
-    # be attributed to this call. Confirmed-different identity is a definite NOT_COMMITTED -> native
-    # OSError, our temp cleaned, no R4PublishResult (no false publication custody).
+def test_rev15_foreign_winner_raised_is_native_and_cleans_temp(tmp_path, monkeypatch):
+    # Confirmed-different foreign winner on a raised link -> native operational OSError, temp cleaned,
+    # no R4PublishResult (no false custody).
     import errno
     import p5_r4_sidecar
     report = _sealed_report(n=4)
@@ -2148,19 +2195,52 @@ def test_rev14_p2_foreign_byte_identical_winner_is_not_attributed(tmp_path, monk
     out = tmp_path / "r4.json"
 
     def foreign_winner(src, dst):
-        # a SEPARATE inode at the final name whose bytes equal our staged bytes, then EEXIST
-        pathlib.Path(dst).write_bytes(pathlib.Path(src).read_bytes())
+        pathlib.Path(dst).write_bytes(b"foreign-different")    # different inode, different bytes
         raise OSError(errno.EEXIST, "foreign winner")
 
     monkeypatch.setattr(p5_r4_sidecar.os, "link", foreign_winner)
-    with pytest.raises(OSError):                               # confirmed-different inode -> native raise
+    with pytest.raises(OSError):
         publish_r4_sidecar(report, rec, str(out))
-    assert list(tmp_path.glob("*.tmp")) == []                  # our temp cleaned
+    assert list(tmp_path.glob("*.tmp")) == []
 
 
-def test_rev14_p1_unknown_with_unavailable_readback_stays_indeterminate(tmp_path, monkeypatch):
-    # Codex #1215 P1/P2: a failed final readback after an ambiguous/unknown commit is NOT proof of
-    # failure - the disposition stays outcome_unknown/indeterminate, never disp_failed-as-proof.
+def test_rev15_link_no_effect_raised_is_native_and_cleans_temp(tmp_path, monkeypatch):
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    monkeypatch.setattr(p5_r4_sidecar.os, "link",
+                        lambda src, dst: (_ for _ in ()).throw(OSError(errno.EIO, "no effect")))
+    with pytest.raises(OSError):
+        publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert list(tmp_path.glob("*.tmp")) == []
+    assert not (tmp_path / "r4.json").exists()
+
+
+def test_rev15_unknown_final_identity_is_indeterminate(tmp_path, monkeypatch):
+    # Drives the REAL _final_origin UNKNOWN branch: os.link succeeds but the final lstat faults -> origin
+    # unknown -> committed_indeterminate (non-authorizing), never verified.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_lstat = p5_r4_sidecar.os.lstat
+
+    def lstat_fault_final(p, *a, **k):
+        if str(p) == str(out):
+            raise OSError(errno.EIO, "lstat fault")
+        return real_lstat(p, *a, **k)
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_fault_final)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INDETERMINATE
+    assert result.origin == "unknown"
+
+
+def test_rev15_ambiguous_corrupt_final_is_integrity_failed(tmp_path, monkeypatch):
+    # Codex #1215/#1217: an ambiguous commit STILL reads back (identity-bound); corrupt final bytes ->
+    # integrity_failed, never indeterminate.
     import errno
     import p5_r4_sidecar
     report = _sealed_report(n=4)
@@ -2172,24 +2252,52 @@ def test_rev14_p1_unknown_with_unavailable_readback_stays_indeterminate(tmp_path
         real_link(src, dst)
         raise OSError(errno.EIO, "effect-then-error")
 
-    real_read = p5_r4_sidecar.Path.read_bytes
-
-    def read_final_faults(self):
-        if str(self) == str(out):                              # the definitive final readback faults
-            raise OSError(errno.EIO, "transient read fault")
-        return real_read(self)
-
     monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
-    monkeypatch.setattr(p5_r4_sidecar, "_classify_link_outcome",
-                        lambda f, t: p5_r4_sidecar._LINK_UNKNOWN)
-    monkeypatch.setattr(p5_r4_sidecar.Path, "read_bytes", read_final_faults)
+    monkeypatch.setattr(p5_r4_sidecar, "_read_all", lambda fd: b"corrupt-bytes")
     result = publish_r4_sidecar(report, rec, str(out))
-    assert result.disposition == DISPOSITION_INDETERMINATE     # NOT disp_failed
+    assert result.disposition == DISPOSITION_INTEGRITY_FAILED
 
 
-def test_rev14_p1_keyboardinterrupt_after_link_leaves_no_alias(tmp_path, monkeypatch):
-    # Codex #1215 P1: a KeyboardInterrupt right after the commit must not leave the writable same-inode
-    # alias alive. The try/finally removes it even though KI is not an OSError.
+def test_rev15_foreign_symlink_at_final_is_foreign(tmp_path, monkeypatch):
+    # Fable rev14 / Codex #1217: _final_origin uses lstat and never follows a symlink; a foreign symlink
+    # at the final name (even one pointing at our staged inode) is FOREIGN, never confirmed_self.
+    import stat as _s
+    import p5_r4_sidecar
+    final = tmp_path / "r4.json"
+    real_lstat = p5_r4_sidecar.os.lstat
+    staged_id = (1, 4242)
+
+    class _Lnk:
+        st_mode = _s.S_IFLNK | 0o777
+        st_ino = 4242                                          # even if it resolved to our ino, lstat sees a link
+        st_dev = 1
+        st_nlink = 1
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "lstat",
+                        lambda p, *a, **k: _Lnk() if str(p) == str(final) else real_lstat(p, *a, **k))
+    assert p5_r4_sidecar._final_origin(final, staged_id) == p5_r4_sidecar._ORIGIN_FOREIGN
+
+
+def test_rev15_p2_create_then_interrupt_cleans_temp(tmp_path, monkeypatch):
+    # Codex #1217 P2: a create-then-interrupt (KeyboardInterrupt right after mkstemp, before staging
+    # identity is captured) must not leak the temp; the outer finally cleans it.
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+
+    def fstat_interrupt(fd):
+        raise KeyboardInterrupt                                # fires right after mkstemp
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "fstat", fstat_interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert list(tmp_path.glob("*.tmp")) == []                  # outer finally cleaned the temp
+
+
+def test_rev15_interrupt_after_commit_is_best_effort_alias_cleanup(tmp_path, monkeypatch):
+    # BOUNDARY (best-effort, NOT durable recovery): a single KeyboardInterrupt after commit leaves no
+    # writable alias (the finally cleans it) but returns no disposition. Durable interrupt/crash recovery
+    # is a named external boundary (keeper-ratified #1217).
     import p5_r4_sidecar
     report = _sealed_report(n=4)
     rec = _build(report, agree=True)
@@ -2197,73 +2305,47 @@ def test_rev14_p1_keyboardinterrupt_after_link_leaves_no_alias(tmp_path, monkeyp
     real_link = p5_r4_sidecar.os.link
 
     def link_then_interrupt(src, dst):
-        real_link(src, dst)                                    # the real commit
+        real_link(src, dst)
         raise KeyboardInterrupt
 
     monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_interrupt)
     with pytest.raises(KeyboardInterrupt):
         publish_r4_sidecar(report, rec, str(out))
     assert out.exists()                                        # committed
-    assert list(tmp_path.glob("*.tmp")) == []                  # writable alias removed by the finally
+    assert list(tmp_path.glob("*.tmp")) == []                  # best-effort alias cleanup
 
 
-def test_rev14_p1_keyboardinterrupt_in_terminal_unlink_leaves_no_alias(tmp_path, monkeypatch):
-    # Codex #1215 P1: a KeyboardInterrupt DURING the terminal alias-unlink (inside the terminal machine,
-    # after a normal commit) must still not strand the alias - the finally covers the terminal region too.
-    import p5_r4_sidecar
-    report = _sealed_report(n=4)
-    rec = _build(report, agree=True)
-    out = tmp_path / "r4.json"
-    real_unlink = p5_r4_sidecar.Path.unlink
-    fired = {"n": 0}
-
-    def unlink_interrupt_once(self, *a, **k):
-        if str(self).endswith(".tmp") and fired["n"] == 0:     # the terminal alias-unlink, once
-            fired["n"] += 1
-            raise KeyboardInterrupt                             # signal delivered once
-        return real_unlink(self, *a, **k)
-
-    monkeypatch.setattr(p5_r4_sidecar.Path, "unlink", unlink_interrupt_once)
-    with pytest.raises(KeyboardInterrupt):
-        publish_r4_sidecar(report, rec, str(out))
-    assert out.exists()
-    assert list(tmp_path.glob("*.tmp")) == []                  # finally's unlink cleaned the alias
-
-
-def test_rev14_p2_producer_ids_pass_a_full_endpoint_comparison(tmp_path):
-    # Codex #1215 P2: pin the CHANGED endpoint predicate - a non-empty comparison with 'todo'/'none'
-    # endpoints must pass validate_comparison AND build_r4_sidecar (an empty comparison never exercises
-    # the endpoint predicate, so reverting the endpoint lines to is_unset would otherwise stay green).
+def test_rev15_p2_producer_ids_pass_a_full_endpoint_comparison(tmp_path):
+    # Codex #1215 P2: pin the changed endpoint predicate via a non-empty none/todo comparison.
     report = _sealed_report(n=2, ids=["none", "todo"])
-    rows, agg = _comparison(["none", "todo"], agree=True)      # one row: endpoints none/todo
+    rows, agg = _comparison(["none", "todo"], agree=True)
     r = validate_comparison(rows, agg, eligible_probe_ids=["none", "todo"])
-    assert r == [], r                                          # endpoints accepted
+    assert r == [], r
     rec = build_r4_sidecar(_manifest(report, _L), sealed_report=report, per_pair=rows, aggregate=agg)
     assert len(rec.output_digest) == 64
 
 
-def test_rev14_p2_governed_read_oserror_stays_native(tmp_path, monkeypatch):
-    # Codex #1215 P2: a report/journal READ OSError is OPERATIONAL and must stay native (NOT converted
-    # to a structural R4SidecarError). Only DECODE failures are typed.
+def test_rev15_p2_governed_report_and_journal_read_oserror_stays_native(tmp_path, monkeypatch):
+    # Codex #1217 P2: report AND journal READ OSError are operational -> stay native (not structural).
     import errno
     import p5_r4_sidecar
     rp, jp = _write_governed_report_ok(tmp_path)
     jp.write_text("", encoding="utf-8")
     real_read = p5_r4_sidecar.Path.read_bytes
 
-    def read_report_faults(self):
-        if str(self) == str(rp):
-            raise OSError(errno.EIO, "transient read fault")
-        return real_read(self)
+    for target in (str(rp),):                                  # report read fault -> native
+        def read_faults(self, _t=target):
+            if str(self) == _t:
+                raise OSError(errno.EIO, "read fault")
+            return real_read(self)
+        monkeypatch.setattr(p5_r4_sidecar.Path, "read_bytes", read_faults)
+        with pytest.raises(OSError) as ei:
+            p5_r4_sidecar._load_governed_report(str(rp), str(jp))
+        assert not isinstance(ei.value, R4SidecarError)
+        monkeypatch.undo()
 
-    monkeypatch.setattr(p5_r4_sidecar.Path, "read_bytes", read_report_faults)
-    with pytest.raises(OSError) as ei:
-        p5_r4_sidecar._load_governed_report(str(rp), str(jp))
-    assert not isinstance(ei.value, R4SidecarError)            # native, not structural
 
-
-def test_rev14_p2_staging_fsync_fault_cleans_temp(tmp_path, monkeypatch):
-    # Codex #1215 P2: pin the staging os.fsync fault path - native OSError, temp cleaned.
+def test_rev15_p2_staging_fsync_fault_cleans_temp(tmp_path, monkeypatch):
     import errno
     import p5_r4_sidecar
     report = _sealed_report(n=4)
@@ -2275,8 +2357,7 @@ def test_rev14_p2_staging_fsync_fault_cleans_temp(tmp_path, monkeypatch):
     assert list(tmp_path.glob("*.tmp")) == []
 
 
-def test_rev14_p2_staging_readback_oserror_cleans_temp(tmp_path, monkeypatch):
-    # Codex #1215 P2: pin the staging readback OSError path - native OSError, temp cleaned.
+def test_rev15_p2_staging_readback_oserror_cleans_temp(tmp_path, monkeypatch):
     import errno
     import p5_r4_sidecar
     report = _sealed_report(n=4)
@@ -2292,64 +2373,3 @@ def test_rev14_p2_staging_readback_oserror_cleans_temp(tmp_path, monkeypatch):
     with pytest.raises(OSError):
         publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
     assert list(tmp_path.glob("*.tmp")) == []
-
-
-def test_rev14b_foreign_symlink_winner_is_not_committed(tmp_path, monkeypatch):
-    # Fable rev14 finding 1: os.stat FOLLOWS a symlink, so a foreign symlink at the final name pointing
-    # at our tmp would read tmp's inode and be misattributed COMMITTED. _classify_link_outcome uses
-    # os.lstat and rejects a symlink as foreign (our commit is never a symlink).
-    import stat as _s
-    import p5_r4_sidecar
-    tmp = tmp_path / "x.tmp"
-    tmp.write_bytes(b"data")
-    final = tmp_path / "r4.json"
-    real_lstat = p5_r4_sidecar.os.lstat
-    real_stat = p5_r4_sidecar.os.stat
-    tmp_st = real_stat(str(tmp))
-
-    class _Lnk:                                                 # lstat(final): a symlink, its OWN inode
-        st_mode = _s.S_IFLNK | 0o777
-        st_ino = tmp_st.st_ino + 12345
-        st_dev = tmp_st.st_dev
-        st_nlink = 1
-
-    class _Target:                                             # stat(final) if FOLLOWED: tmp's inode
-        st_mode = _s.S_IFREG | 0o600
-        st_ino = tmp_st.st_ino
-        st_dev = tmp_st.st_dev
-        st_nlink = 1
-
-    monkeypatch.setattr(p5_r4_sidecar.os, "lstat",
-                        lambda p: _Lnk() if str(p) == str(final) else real_lstat(p))
-    monkeypatch.setattr(p5_r4_sidecar.os, "stat",
-                        lambda p: _Target() if str(p) == str(final) else real_stat(p))
-    # lstat + S_ISLNK -> foreign; a follow (os.stat) would have read tmp's inode and said COMMITTED.
-    assert p5_r4_sidecar._classify_link_outcome(final, tmp) == p5_r4_sidecar._LINK_NOT_COMMITTED
-
-
-def test_rev14b_ambiguous_commit_with_corrupt_final_is_failed(tmp_path, monkeypatch):
-    # Fable rev14 finding 4: an ambiguous/unknown commit must STILL read back its final bytes; corrupt or
-    # foreign-mismatched final bytes -> integrity_failed, never indeterminate. Pins that the readback gate
-    # runs for an indeterminate commit (not only for a verified one).
-    import errno
-    import p5_r4_sidecar
-    report = _sealed_report(n=4)
-    rec = _build(report, agree=True)
-    out = tmp_path / "r4.json"
-    real_link = p5_r4_sidecar.os.link
-    real_read = p5_r4_sidecar.Path.read_bytes
-
-    def link_then_raise(src, dst):
-        real_link(src, dst)
-        raise OSError(errno.EIO, "effect-then-error")
-
-    def corrupt_final(self):
-        data = real_read(self)
-        return data + b"X" if str(self) == str(out) else data  # only the FINAL readback sees corruption
-
-    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
-    monkeypatch.setattr(p5_r4_sidecar, "_classify_link_outcome",
-                        lambda f, t: p5_r4_sidecar._LINK_UNKNOWN)
-    monkeypatch.setattr(p5_r4_sidecar.Path, "read_bytes", corrupt_final)
-    result = publish_r4_sidecar(report, rec, str(out))
-    assert result.disposition == DISPOSITION_INTEGRITY_FAILED   # the ambiguous commit's readback ran
