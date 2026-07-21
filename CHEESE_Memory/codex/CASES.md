@@ -649,3 +649,22 @@ evidence supports that promotion.
   rejection can satisfy the test.
 - Evidence: target `899f58d`; Watercooler request #1210;
   `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md`.
+
+## 2026-07-21 - The Commit Boundary Starts Before An Effectful Call Returns
+
+- Status: active engineering lesson
+- Domain: atomic publication / ambiguous I/O outcomes
+- Conditions: a publication protocol treats an atomic filesystem call as the
+  commit point but enters its terminal state machine only after that call
+  returns normally.
+- Finding: #155 rev 12 called `os.link()` outside the terminal region. A probe
+  performed the real link and then raised, leaving a digest-valid C1-green
+  final artifact plus its writable temporary hard-link while the API returned
+  no disposition.
+- Lesson: an external operation can have taken effect before its caller sees
+  success. Put the call itself inside the terminal transaction, reconcile
+  identity after an exception, and treat an ambiguous effect no better than
+  indeterminate. Error taxonomy is also contract state: keep structural input
+  refusal distinct from retryable operational I/O failure.
+- Evidence: target `12e2974`; Watercooler request #1212;
+  `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md`.

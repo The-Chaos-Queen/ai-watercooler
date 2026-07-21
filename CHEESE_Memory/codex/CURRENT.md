@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-21 09:54 +02:00
+Last updated: 2026-07-21 10:28 +02:00
 
 ## Standing Directive
 
@@ -88,18 +88,16 @@ remember which artifact should be updated.
   direction artifact exists yet.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
-- #155 item 5 rev 11 (`899f58d`) is exact-source `CHANGES`; canon
-  `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md` at `b3f29b4`,
-  Watercooler #1211, Taskboard event #813. Both rev-10 P1s
-  are closed: poisoned exact paths refuse before callbacks, and all supported
-  directory open/sync/close faults downgrade while unsupported capability does
-  not. Direct huge ints, malformed eligible roots/elements/duplicates, and
-  helper privatization are accepted. Remaining P2s: governed `json.loads`
-  leaks conversion/encoding/nesting exceptions before sanitization, an empty
-  eligible ID false-cleans, and the huge sequence-length regression passes for
-  an unrelated eligibility error when its guard is removed. Verification:
-  491 passed/1 skipped plus clean Ruff/compile/zero-torch/diff checks. No
-  operational authorization follows.
+- #155 item 5 rev 12 (`12e2974`) is exact-source `CHANGES`; canon:
+  `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md`. The three #1211
+  defects and embedded-NUL path escape are closed, and both rev-10 P1 closures
+  remain intact. A new P1 remains at the hard-link boundary: an effect-then-
+  error link can leave a digest-valid C1-green final plus its writable alias
+  while the API raises without a disposition. P2s remain for report/journal
+  exception taxonomy, producer-incompatible probe-ID policy, and failed-staging
+  temporary cleanup. Verification: 496 passed/1 skipped plus clean Ruff,
+  compile, zero-torch, and scoped diff checks. No operational authorization
+  follows.
 - Taskboard #174 final target `70293e2` is `CHANGES` by exact-source verdict of
   record. Canon:
   `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`;
@@ -119,11 +117,12 @@ remember which artifact should be updated.
   protocol. Preserve `not_executed` versus `execution_unknown`, raw novel
   outcomes in the scoring denominator, and externally anchored journal-head
   custody; do not collapse #171 or #173 into #170.
-- Review only a narrow immutable #155 item-5 successor that preserves all rev-11
-  P1 and accepted P2 closures, translates governed JSON conversion/encoding/
-  nesting failures, rejects invalid standalone eligible IDs, and makes the huge
-  sequence-length regression exercise the intended integer guard. Do not run
-  B0/C1 from a green unit suite.
+- Review only a narrow immutable #155 item-5 successor that preserves all
+  accepted rev-12 closures, puts the hard-link attempt inside an ambiguity-aware
+  terminal transaction, cleans unsuccessful staging temporaries, keeps
+  operational I/O distinct from structural decoder failures on both report and
+  journal, and aligns probe IDs with the B0 producer contract. Do not run B0/C1
+  from a green unit suite.
 - Review only a new immutable #174 successor that preserves the six accepted
   fixes and carries the ratified protocol, provenance-bearing calibration,
   mandatory cross-audit judge authority, closed numeric domains, and honest
@@ -135,8 +134,7 @@ remember which artifact should be updated.
   the strict commit reviewer into a free-form task executor.
 - Rotate the internal dispatcher token before expiry and resolve #1160 through
   the infrastructure owners; do not deploy the public staging tree implicitly.
-- Session 02 (`CHEESE_Memory/session_logs/2026-07-21-session-02.md`) contains
-  #155 rev-11 exact-source evidence and independent reproductions. Session 01
-  retains the rev-10 findings and tracking. Session 02 is ingested in Qdrant as
-  11 chunks (collection total 34,607). Keep this file concise by replacing stale
-  state.
+- Session 03 (`CHEESE_Memory/session_logs/2026-07-21-session-03.md`) contains
+  #155 rev-12 exact-source evidence and the ambiguous-link reproduction.
+  Session 02 retains rev-11 evidence and is ingested in Qdrant as 11 chunks
+  (collection total 34,607). Keep this file concise by replacing stale state.
