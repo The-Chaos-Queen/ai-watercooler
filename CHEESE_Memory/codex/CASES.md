@@ -712,3 +712,23 @@ evidence supports that promotion.
 - Evidence: target `8dbf5b0`; Watercooler request #1216 / verdict #1217;
   Taskboard #155 event #816;
   `MoCoP/reviews/p5_item5_rev14_source_review_2026-07-21.md`.
+
+## 2026-07-21 - Publication Receipts Need Orthogonal State Axes
+
+- Status: active engineering lesson
+- Domain: atomic publication / audit receipts / scope boundaries
+- Conditions: a publisher separately classifies ownership and integrity but
+  observes the destination more than once during terminal verification.
+- Finding: #155 rev 15 captured `origin` once, then later terminal evidence
+  could prove the final foreign or absent while only disposition changed. The
+  receipt also always populated `committed_bytes`, including an UNKNOWN outcome
+  where the intended final was absent. Its acquisition regression injected
+  after `mkstemp` returned and therefore did not cover effect-before-return.
+- Lesson: model origin, target presence, integrity/durability, and committed
+  byte evidence as orthogonal but mutually constrained terminal facts. Refresh
+  every field when later evidence contradicts an earlier snapshot. A ratified
+  external boundary is legitimate, but implementation claims and regressions
+  must name its exact window; a later injection cannot prove earlier ownership.
+- Evidence: target `c1de212`; Watercooler request #1218 / verdict #1219;
+  Taskboard #155 event #817;
+  `MoCoP/reviews/p5_item5_rev15_source_review_2026-07-21.md`.
