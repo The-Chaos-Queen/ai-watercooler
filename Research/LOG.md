@@ -259,6 +259,32 @@ All five cross-linked into `INDEX.md` under a new top-level "wiki pages" section
 
 ---
 
+## 2026-07-18 — Research sweep: Laura's watercooler links (Elf)
+
+**Operation:** Fetched and analyzed 5 external links Laura posted on WC #1188–#1193.
+
+**Sources:**
+- oaklab.ai/mission — Rich Sutton's OaK architecture (continual learning, temporal abstractions)
+- schema-harness.github.io — Schema harness (~99% ARC-AGI-3 via structured evaluation scaffolding)
+- researchhub.com/proposal/4248 — Endogenous DMT brain biotypes (multi-modal neuroimaging)
+- arxiv 2606.30986 — "Organizational Behavior of Agentic AI" (context architecture > human-imitation)
+- arxiv 2605.30343 / aichberger.github.io/blog/reasoning-in-memory — RiM: Reasoning in Memory (memory blocks = latent working memory for LLMs)
+
+**Outcome:** Summary written to `MoCoP/experiments/mamba_lora_bridge/spikes/RESEARCH_SWEEP_2026-07-18.md`. INDEX.md updated with new rows.
+
+**Key finding:** RiM (Aichberger & Hochreiter) independently validates the core MoCoP bridge-as-working-memory architecture — fixed-size latent state injected at specific locations, consumed in one forward pass, two-stage curriculum (grounded → unsupervised). Convergent solution from a different starting point (efficient inference vs neuroscience-inspired endocrine bridge).
+
+**MoCoP connections:**
+- RiM → bridge injection mechanism, matched-delta training, Zheng & Meister bottleneck
+- OaK → world-model phases (#170/#171), batch-size-one = Mamba streaming
+- Org. Behavior → pack/watercooler architecture validation (shared-state > lossy handoffs)
+- Schema Harness → P5 harness design, structured scaffolding
+- DMT Biotypes → multi-modal disposition clustering methodology (post-B0)
+
+**Graph:** no rebuild. Add to next batch.
+
+---
+
 ## 2026-07-13 - Cerebellum-inspired memtransistor novelty-gate intake (Codex)
 
 **Operation:** Read Laura's Northwestern link, followed it to the primary Nature
@@ -282,3 +308,33 @@ or authorize Gemma/Mamba/bridge/controller integration.
 
 **Graph:** no rebuild. Add this note and its prediction-error/event-trigger concepts to
 the next batched knowledge-graph refresh.
+
+---
+
+## 2026-07-20 — Always-On Memory Agent design extraction (Techno-Monk)
+
+**Operation:** Read-only implementation review and bounded design note from Laura's
+link to GoogleCloudPlatform's Always-On Memory Agent example.
+
+**Source:** `GoogleCloudPlatform/generative-ai` at
+`e0113753d154040e3f4f7fe10ae1216520c5dbb6`, path
+`gemini/agents/always-on-memory-agent`; relevant `agent.py` last changed at
+`15febc473f49ebc5cd4831461d4cd41a24967b4f` (2026-05-12 UTC).
+
+**Outcome:** Wrote
+`MoCoP/archive/always_on_memory_agent_design_extraction_2026-07-20.md` and indexed it
+as `memory-context`, relevance `adjacent`.
+
+**Reusable pattern:** Separate explicit intake from a bounded consolidation rhythm;
+keep derived records tied to source records; make browse/correction/supersession/
+deletion first-class.
+
+**Scope lock:** The note is an inspiration/anti-pattern record, not a dependency or
+implementation request. It does not authorize intake, Qdrant/Mnemosyne writes,
+service exposure, model execution, or changes to MoCoP sleep. Its required local
+translation is source-admitted candidate formation with provenance, structured
+participant/subject attribution, time/validity, epistemic category, review, and
+private authenticated management. Qdrant remains evidence retrieval, not biography
+authority.
+
+**Graph:** no rebuild. Add this note only in a later deliberate research-graph batch.
