@@ -31,6 +31,7 @@ watercooler-summary = "watercooler.summary:main"
 watercooler-steward = "watercooler.steward:entrypoint"
 watercooler-loop = "watercooler.loop:main"
 watercooler-assets = "watercooler.assets:main"
+watercooler-demo = "watercooler.demo:main"
 watercooler-review-dispatch = "watercooler.dispatcher.commit_review:main"
 watercooler-review-request = "watercooler.dispatcher.request:main"
 

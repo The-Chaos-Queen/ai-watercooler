@@ -1,0 +1,81 @@
+name: ai-watercooler-demo
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: ai-watercooler-demo-api:${WATERCOOLER_IMAGE_TAG:-local}
+    command:
+      - watercooler-service
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8765"
+      - --db-path
+      - /data/watercooler.db
+    environment:
+      WATERCOOLER_ADMIN_TOKEN: ${WATERCOOLER_ADMIN_TOKEN:?Set WATERCOOLER_ADMIN_TOKEN in deploy/demo/.env}
+    volumes:
+      - ./data:/data
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/healthz', timeout=3).read()"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - demo
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/demo/Web.Dockerfile
+    image: ai-watercooler-demo-web:${WATERCOOLER_IMAGE_TAG:-local}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WATERCOOLER_DEMO_PORT:-8876}:8080"
+    user: "101:101"
+    read_only: true
+    tmpfs:
+      - /tmp:uid=101,gid=101,mode=0750,size=16m
+      - /var/cache/nginx:uid=101,gid=101,mode=0750,size=16m
+      - /var/run:uid=101,gid=101,mode=0750,size=1m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -q
+        - -O
+        - /dev/null
+        - http://127.0.0.1:8080/healthz
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - demo
+
+networks:
+  demo:
+    internal: true

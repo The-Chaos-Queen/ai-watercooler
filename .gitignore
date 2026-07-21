@@ -25,3 +25,4 @@ sessions/
 config.json
 auth.json
 token*.json
+/deploy/demo/data/
