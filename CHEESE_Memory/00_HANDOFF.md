@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-21 13:46 +02:00
-- Current owner: Codex returned exact-source `CHANGES` on Gidim's #155 item-5 rev-13 packet. Ordinary OSError/taxonomy/ID/cleanup repairs are accepted; link-origin evidence and post-commit interrupt handling remain unsafe. All B0/C1/model/GPU/sink/deployment gates remain held.
-- Primary focus: one immutable #155 successor with provenance-aware link outcomes, interrupt-safe terminal cleanup, and complete negative-path regressions.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-21-session-04.md`
+- Last updated: 2026-07-21 14:38 +02:00
+- Current owner: Codex returned exact-source `CHANGES` on Gidim's #155 item-5 rev-14 packet. Ordinary raised-link identity, symlink, endpoint, and I/O repairs are accepted; normal-link inode/alias custody and durable interruption recovery remain unsafe. All B0/C1/model/GPU/sink/deployment gates remain held.
+- Primary focus: one immutable #155 successor with descriptor-bound staging identity, final no-follow identity/link-count custody, explicit origin/presence, and a durable recoverable terminal receipt.
+- Last session log: `CHEESE_Memory/session_logs/2026-07-21-session-05.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-21-session-04.md`; 13 chunks; collection total 34,629)
+  - Latest session log ingest: done (`2026-07-21-session-05.md`; 12 chunks; collection total 34,639)
 
 ## Current State - World Model Phase 3a Causal Custody (#170, 2026-07-20)
 
@@ -23,11 +23,11 @@
 - **Four P1 blockers:** no owner-ratified spec for the new decisive level detector or `0.3/0.8` disposition cutoffs; judge identity may change on every audit and still `PASS` when `expected_judge_ref` is omitted; `GateCalibrationBinding` has no provenance custody; and accepted numeric domains allow invalid baseline/span configurations to produce overall `PASS`.
 - **Two P2 plus P3:** the direct disposition scorer can raise on a huge exact int, source authority/deferred-status prose is stale, and the exact delta has non-driving whitespace failures. Raw judge discrimination and true root runner origin remain external evidence/integration work. The card's existing `done` state is not endorsed or mutated; operational launch remains keeper-held.
 
-## Current State - #155 Item-5 Rev-13 Review (2026-07-21)
+## Current State - #155 Item-5 Rev-14 Review (2026-07-21)
 
-- **Exact-source verdict: CHANGES.** Target `d38b12d92197930a688f9445944bcfbc483a2609` (`a705e4b` + `d38b12d`) was reviewed from an immutable Git archive, scoped to `p5_r4_sidecar.py` and its test blob. Canon: `MoCoP/reviews/p5_item5_rev13_source_review_2026-07-21.md` at `913c8cf`; Watercooler #1215; Taskboard #155 event #815. The card remains blocked and unassigned.
-- **Accepted:** ordinary effect-then-`OSError` reaches non-authorizing indeterminate when identity/content evidence is available; definite no-effect/write/mismatch paths clean staging; report+journal decoder taxonomy and producer-aligned ID predicates are correct; all prior accepted repairs remain intact.
-- **Two P1 plus two P2 families remain:** unavailable identity plus readback fault strands a digest-valid C1-green final with raw `OSError` and no disposition; post-commit `KeyboardInterrupt` can escape and can leave the writable same-inode alias; byte equality falsely attributes a different-inode foreign winner; and endpoint-ID/native-I/O/fsync/readback regressions are incomplete. Verification was `507 passed, 1 skipped in 3.73s`, with clean static checks and four failing exact canaries. No B0/C1/model/GPU/Qdrant/sink/deployment/keeper action occurred.
+- **Exact-source verdict: CHANGES.** Target `8dbf5b0eabdf7a874f694e055126b69d958101f4` (`26c1696` + `8dbf5b0`) was reviewed from an immutable Git archive, scoped to `p5_r4_sidecar.py` and its test blob. Canon: `MoCoP/reviews/p5_item5_rev14_source_review_2026-07-21.md` at `67532f1`; Watercooler #1217; Taskboard #155 event #816. The card remains blocked and unassigned.
+- **Accepted:** the raised-link path now distinguishes committed/not-committed/unknown without byte equality; the ordinary foreign-identical winner and raised-link symlink are rejected; ambiguous corrupt readback, full endpoint comparison, report I/O, staging fsync, and staging readback are pinned; all prior accepted repairs remain intact.
+- **Two P1 roots remain:** normal-returning `os.link` can verify a byte-identical foreign inode or a final with a hidden writable hard-link alias, while pathname cleanup can delete a foreign temp replacement; and SIGINT masking loses the memory-only terminal result at mask restore while persistent/direct `BaseException` can still leave the alias. P2 remains for unknown-origin-as-committed receipts, pre-owned `mkstemp`, and incomplete UNKNOWN/journal/signal/race coverage. Verification was `517 passed, 1 skipped in 4.32s`, with clean static checks and eight failing exact canaries. No B0/C1/model/GPU/Qdrant/sink/deployment/keeper action occurred.
 
 ## Current State - Public Watercooler And #157 Pickup Test (2026-07-18)
 
@@ -50,7 +50,7 @@
 - **Dispatcher operational:** commit `4c81565`, Watercooler #1141; strict full-SHA requests only; hardened Git-object packet construction; exact Codex 0.144.5 Docker image ID `sha256:4ffe2737b08dc9091a94fb191f7ff390da46e3aae5d1acaee6eb5b097e5d8c6d`; host repo/home/socket absent from the worker. Scheduled every two minutes with `IgnoreNew` and a silent `wscript.exe //B` zero-window launcher; live task result 0.
 - **Authority boundary:** automated results are second opinions only, never wolf-Codex attestation or verdicts of record. Dedicated token has exactly mailbox read/write scopes, expires 2026-07-24 14:14:48Z, and traverses an explicitly accepted plaintext trusted-LAN endpoint.
 - **#156 exact review GREEN:** Watercooler #1122; canon `MoCoP/reviews/p5_manifest_attempt_reconciliation_review_2026-07-17.md`. It clears only the manifest/attempt reconciliation packet.
-- **#155 current exact review CHANGES:** rev 6 `a0bdec6` + `1ec8284`, Watercooler #1187 and Taskboard event #806. F2 is closed; canonical-parent authority, recursive snapshot custody, and post-commit ordering remain P1, with four P2 contract/totality groups. Canon `MoCoP/reviews/p5_item5_rev6_source_review_2026-07-18.md`. No run is authorized.
+- **#155 current exact review CHANGES:** rev 14 `26c1696` + `8dbf5b0`, Watercooler #1217 and Taskboard event #816. Raised-link repairs are accepted; normal-link inode/alias custody and durable interruption recovery remain P1, with origin/presence, staging acquisition, and branch coverage P2. Canon `MoCoP/reviews/p5_item5_rev14_source_review_2026-07-21.md`. No run is authorized.
 
 ## Current State - Baseline Drift Gate Review (2026-07-16)
 - **V8 progress:** `4512622` implemented private snapshots, decision-exact float custody, exact A1 routing, single-shot acquisition receipts, total schema handling, UTC chronology, and non-softening report merge. Cairn #998 GREENed the A1/Case 07b ethics wording.
@@ -353,11 +353,12 @@
 - Decide first:
   - Treat #172 commit `3ca9e01` as an immutable reviewed FAIL pending an external verdict. Repair only under a new frozen protocol; do not compose or connect it to any model/runtime path.
   - Preserve `bridge_refit_eval_20260716T131105Z` as a mixed/non-win bridge result. Do not scale or reopen C1/injection; read its debrief before proposing any diagnostic or new corpus.
-  - Treat #155 rev 13 `d38b12d` as CHANGES under the canonical review
-    `p5_item5_rev13_source_review_2026-07-21.md`. Preserve accepted rev-13
-    closures, but require provenance-aware link outcomes, no content-to-origin
-    inference, interrupt-safe alias-first terminal handling, and the complete
-    negative-path matrix in one immutable successor.
+  - Treat #155 rev 14 `8dbf5b0` as CHANGES under the canonical review
+    `p5_item5_rev14_source_review_2026-07-21.md`. Preserve accepted rev-14
+    closures, but require descriptor-bound staging identity, no-follow final
+    identity on both link outcomes, identity-controlled cleanup, expected link
+    count, explicit origin/presence, and a durable recoverable terminal receipt
+    with the complete branch/signal/race matrix in one immutable successor.
     Automated dispatcher reviews are never verdicts of record.
   - Treat #174 target `70293e2` as CHANGES under Codex #1184 and canonical review `drift_gate_task174_final_source_review_2026-07-18.md`. Preserve its six closed runtime defects, but require a ratified protocol, provenance-bearing calibration, mandatory cross-audit judge authority, closed numeric domains, and honest external raw/origin scope in one immutable successor. Do not re-review completed #156 packet `c17f6d8`; no launch lane is authorized.
   - Treat Gemma/LiteRT as a separate offline infrastructure lane: require an explicit read-only ML-WS preflight before any install/model/server/audio bench, and require a separate training protocol before any fine-tune.
@@ -381,6 +382,7 @@
   - `MoCoP/reviews/world_model_phase3c_controller_audit_review_2026-07-18.md`
   - `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`
   - `MoCoP/reviews/p5_b0_runner_review_2026-07-12.md`
+  - `MoCoP/reviews/p5_item5_rev14_source_review_2026-07-21.md`
   - `MoCoP/reviews/p5_item5_rev13_source_review_2026-07-21.md`
   - `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md`
   - `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md` (historical rev-11 review)
@@ -406,3 +408,4 @@
 - 2026-07-21 09:54 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 11 target `899f58d` after immutable-archive verification and three convergent reviews. Both rev-10 P1s are closed; raw JSON-ingress exceptions, invalid eligible IDs, and a non-load-bearing huge-length regression remain P2. Canon `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md` at `b3f29b4`; Watercooler #1211; Taskboard event #813. Session-02 ingested 11 chunks (collection 34,607); the card and all operational holds are unchanged.
 - 2026-07-21 10:32 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 12 target `12e2974` after immutable-archive verification and three independent reviews. The rev-11 findings are closed; an ambiguity-unsafe hard-link commit P1 plus governed-ingress taxonomy, probe-ID consistency, and staging-cleanup P2s remain. Canon `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md` at `2e11ac6`; Watercooler #1213; Taskboard event #814. Session-03 ingested 12 chunks (collection 34,618); the card and all operational holds are unchanged.
 - 2026-07-21 13:49 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 13 target `d38b12d` after immutable-archive verification and three independent reviews. Ordinary rev-12 source repairs are accepted; origin-unknown and post-commit interrupt P1s plus foreign-attribution and coverage P2s remain. Canon `MoCoP/reviews/p5_item5_rev13_source_review_2026-07-21.md` at `913c8cf`; Watercooler #1215; Taskboard event #815. Session-04 ingested 13 chunks (collection 34,629); the card and all operational holds are unchanged.
+- 2026-07-21 14:38 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 14 target `8dbf5b0` after immutable-archive verification and three independent reviews. Ordinary raised-link/source-coverage repairs are accepted; normal-link inode/alias custody and durable interruption recovery remain P1, with origin/presence, staging acquisition, and exact branch coverage P2. Canon `MoCoP/reviews/p5_item5_rev14_source_review_2026-07-21.md` at `67532f1`; Watercooler #1217; Taskboard event #816. Session-05 ingested 12 chunks (collection 34,639); the card and all operational holds are unchanged.

@@ -689,3 +689,26 @@ evidence supports that promotion.
   ordinary `except OSError` control flow is not a non-throwing transaction.
 - Evidence: target `d38b12d`; Watercooler request #1214 / verdict #1215;
   `MoCoP/reviews/p5_item5_rev13_source_review_2026-07-21.md`.
+
+## 2026-07-21 - Atomic Publication Needs Identity-Bound Terminal Custody
+
+- Status: active engineering lesson
+- Domain: atomic publication / filesystem races / interruption recovery
+- Conditions: a no-replace hard-link publisher cleans a known staging pathname,
+  checks final bytes, and defers POSIX SIGINT around an in-memory return value.
+- Finding: #155 rev 14 classified identity only when `os.link` raised. After a
+  normal return, a byte-identical different-inode replacement and a final with
+  an undisclosed writable hard-link alias both reached `integrity_verified`;
+  pathname-only cleanup also deleted a foreign replacement at the staging name.
+  Separately, pending SIGINT was delivered when the mask was restored before the
+  prepared result reached the caller, while persistent direct interruption could
+  still leave the committed file plus its writable alias.
+- Lesson: pathname bytes and one known alias are not inode custody. Carry staging
+  identity from an open descriptor, validate final identity after both normal and
+  exceptional effects, identity-check cleanup, and require the expected final
+  link count. Model origin and presence separately from integrity. An interrupt-
+  safe terminal must be durable and recoverable before signals are unmasked; a
+  memory-only return inside a signal context is not a terminal protocol.
+- Evidence: target `8dbf5b0`; Watercooler request #1216 / verdict #1217;
+  Taskboard #155 event #816;
+  `MoCoP/reviews/p5_item5_rev14_source_review_2026-07-21.md`.
