@@ -2234,8 +2234,11 @@ def test_rev15_unknown_final_identity_is_indeterminate(tmp_path, monkeypatch):
 
     monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_fault_final)
     result = publish_r4_sidecar(report, rec, str(out))
-    assert result.disposition == DISPOSITION_INDETERMINATE
-    assert result.origin == "unknown"
+    assert result.disposition == DISPOSITION_INDETERMINATE     # normal link, but identity unconfirmable
+    # The terminal lstat faulted (unknown), but the identity-bound readback fstat then proved self+present,
+    # so origin refreshes to confirmed_self (Fable rev16 A2). Disposition stays indeterminate: a clean
+    # os.link but we could not confirm identity by lstat, and the readback cannot upgrade it to verified.
+    assert result.origin == "confirmed_self"
 
 
 def test_rev15_ambiguous_corrupt_final_is_integrity_failed(tmp_path, monkeypatch):
@@ -2458,45 +2461,34 @@ def test_rev16_receipt_link_no_effect_unknown_reports_zero_bytes(tmp_path, monke
     monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_fault_final)
     result = publish_r4_sidecar(report, rec, str(out))
     assert result.disposition == DISPOSITION_INDETERMINATE
-    assert result.committed_bytes == 0
-    assert result.target_presence == "unknown"
-    assert result.origin == "unknown"
+    assert result.committed_bytes == 0                         # the point: never claims payload length
+    # The final never existed (no-effect link); the readback open POSITIVELY proves absence, so the
+    # receipt refreshes to absent/absent (Fable rev16 A1 — the last observation is truthful).
+    assert result.target_presence == "absent"
+    assert result.origin == "absent"
 
 
 def test_rev16_terminal_foreign_refreshes_origin(tmp_path, monkeypatch):
-    # Codex #1219 canary B: initial final is self; the terminal lstat observes a foreign replacement.
+    # Codex #1219 canary B: initial final is self; a LATER terminal lstat observes a foreign replacement.
     # origin/presence must REFRESH to foreign/present (not stay stale confirmed_self); committed_bytes 0.
+    # Interpreter-robust (Fable rev16 P3): force the initial snapshot self via _final_origin, and let the
+    # real terminal lstat supply the contradiction — no reliance on os.lstat call ordering.
     import stat as _s
     import p5_r4_sidecar
     report = _sealed_report(n=4)
     rec = _build(report, agree=True)
     out = tmp_path / "r4.json"
     real_lstat = p5_r4_sidecar.os.lstat
-    real_fstat = p5_r4_sidecar.os.fstat
-    st8 = {"staged": None, "out": 0}
 
-    def fstat_wrap(fd):
-        s = real_fstat(fd)
-        if st8["staged"] is None:
-            st8["staged"] = (s.st_dev, s.st_ino)
-        return s
+    class _Foreign:                                           # a different inode at the final name
+        st_mode = _s.S_IFREG | 0o600
+        st_dev = 0
+        st_ino = 987654321
+        st_nlink = 1
 
-    class _Foreign:
-        def __init__(self, dev):
-            self.st_mode = _s.S_IFREG | 0o600
-            self.st_dev = dev
-            self.st_ino = 987654321
-            self.st_nlink = 1
-
-    def lstat_wrap(p, *a, **k):
-        if str(p) == str(out):
-            st8["out"] += 1
-            real = real_lstat(p, *a, **k)
-            return real if st8["out"] == 1 else _Foreign(real.st_dev)   # 1st self; terminal foreign
-        return real_lstat(p, *a, **k)
-
-    monkeypatch.setattr(p5_r4_sidecar.os, "fstat", fstat_wrap)
-    monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_wrap)
+    monkeypatch.setattr(p5_r4_sidecar, "_final_origin", lambda f, s: p5_r4_sidecar._ORIGIN_SELF)
+    monkeypatch.setattr(p5_r4_sidecar.os, "lstat",
+                        lambda p, *a, **k: _Foreign() if str(p) == str(out) else real_lstat(p, *a, **k))
     result = publish_r4_sidecar(report, rec, str(out))
     assert result.disposition == DISPOSITION_INTEGRITY_FAILED
     assert result.origin == "foreign"                         # refreshed at the terminal lstat
@@ -2506,24 +2498,21 @@ def test_rev16_terminal_foreign_refreshes_origin(tmp_path, monkeypatch):
 
 def test_rev16_terminal_absent_refreshes_origin(tmp_path, monkeypatch):
     # Codex #1219 canary C: the final is deleted at the terminal boundary. origin/presence must refresh
-    # to absent/absent (not stay confirmed_self); committed_bytes 0.
+    # to absent/absent (not stay confirmed_self); committed_bytes 0. Interpreter-robust as above.
     import errno
     import p5_r4_sidecar
     report = _sealed_report(n=4)
     rec = _build(report, agree=True)
     out = tmp_path / "r4.json"
     real_lstat = p5_r4_sidecar.os.lstat
-    st8 = {"out": 0}
 
-    def lstat_wrap(p, *a, **k):
+    def lstat_absent(p, *a, **k):
         if str(p) == str(out):
-            st8["out"] += 1
-            if st8["out"] == 1:
-                return real_lstat(p, *a, **k)                 # _final_origin sees self
             raise FileNotFoundError(errno.ENOENT, "final vanished")   # terminal sees absent
         return real_lstat(p, *a, **k)
 
-    monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_wrap)
+    monkeypatch.setattr(p5_r4_sidecar, "_final_origin", lambda f, s: p5_r4_sidecar._ORIGIN_SELF)
+    monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_absent)
     result = publish_r4_sidecar(report, rec, str(out))
     assert result.disposition == DISPOSITION_INTEGRITY_FAILED
     assert result.origin == "absent"
@@ -2554,8 +2543,12 @@ def test_rev16_raised_link_unknown_is_indeterminate(tmp_path, monkeypatch):
     monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
     monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_fault_final)
     result = publish_r4_sidecar(report, rec, str(out))
-    assert result.disposition == DISPOSITION_INDETERMINATE
-    assert result.origin == "unknown"
+    assert result.disposition == DISPOSITION_INDETERMINATE     # the #1220 point: raised+unknown -> indeterminate
+    # The terminal lstat faulted (unknown), but the identity-bound readback fstat then PROVED self+present,
+    # so origin/presence REFRESH to confirmed_self/present (Fable rev16 A2). Disposition stays
+    # indeterminate because the link raised. committed_bytes stays 0 (not verified).
+    assert result.origin == "confirmed_self"
+    assert result.target_presence == "present"
     assert result.committed_bytes == 0
 
 
@@ -2603,3 +2596,46 @@ def test_rev16_seam_verified_non_self_origin_is_not_ok(monkeypatch):
     res = p5_r4_sidecar.record_r4_comparison(report_path="r", journal_path="j", manifest={},
                                              per_pair=[], aggregate={}, sidecar_path="s")
     assert res.ok is False                                     # verified + c1-permitted but origin foreign
+
+
+def test_rev16_readback_open_enoent_refreshes_presence_absent(tmp_path, monkeypatch):
+    # Fable rev16 A1: a clean commit whose final is deleted BEFORE the identity-bound readback -> the
+    # readback os.open raises FileNotFoundError, which POSITIVELY proves absence. The receipt must refresh
+    # origin/presence to absent/absent (not keep the terminal-lstat's stale confirmed_self/present).
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_open = p5_r4_sidecar.os.open
+
+    def open_enoent(path, flags, *a, **k):
+        if str(path) == str(out):                              # the readback open sees the final gone
+            raise FileNotFoundError(errno.ENOENT, "final vanished")
+        return real_open(path, flags, *a, **k)
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "open", open_enoent)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INTEGRITY_FAILED
+    assert result.origin == "absent"
+    assert result.target_presence == "absent"
+    assert result.committed_bytes == 0
+
+
+def test_rev16_seam_verified_absent_presence_is_not_ok(monkeypatch):
+    # Fable rev16 P3: pin the seam's target_presence conjunct too — a verified + confirmed_self result
+    # whose target_presence is NOT present must still make ok=False.
+    import p5_r4_sidecar
+    from p5_r4_sidecar import DISPOSITION_VERIFIED, R4PublishResult
+    monkeypatch.setattr(p5_r4_sidecar, "_load_governed_report", lambda rp, jp, **k: ({}, b""))
+    monkeypatch.setattr(p5_r4_sidecar, "build_r4_sidecar", lambda *a, **k: object())
+    monkeypatch.setattr(p5_r4_sidecar, "_r4_decision",
+                        lambda *a, **k: {"state": "jsd_proceeds", "c1_authorization_permitted": True})
+    monkeypatch.setattr(
+        p5_r4_sidecar, "_publish_r4_sidecar",
+        lambda *a, **k: R4PublishResult(path="x", published_digest="d", committed_bytes=0,
+                                        disposition=DISPOSITION_VERIFIED, origin="confirmed_self",
+                                        target_presence="absent"))
+    res = p5_r4_sidecar.record_r4_comparison(report_path="r", journal_path="j", manifest={},
+                                             per_pair=[], aggregate={}, sidecar_path="s")
+    assert res.ok is False                                     # verified + self + c1 but presence != present

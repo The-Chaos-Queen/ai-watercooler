@@ -1908,17 +1908,29 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
                     if _identity(rst) != staged_id:
                         disposition = _A.disp_failed    # final is a different inode than we staged
                         origin, presence = _ORIGIN_FOREIGN, _PRESENCE_PRESENT
-                    elif rst.st_nlink != 1:
-                        # Fable rev15 B1: re-check link count on the SAME read handle — a writable alias
-                        # that raced in after the earlier lstat nlink check is caught here too (halves the
-                        # window; the window itself is the same-principal-race external boundary).
-                        disposition = _A.disp_failed
-                    elif _read_all(rfd) != committed:
-                        disposition = _A.disp_failed    # positive evidence of corruption
+                    else:
+                        # The fstat is a fresh, more authoritative observation proving self + present;
+                        # REFRESH origin/presence even on the match/downgrade branches (Fable rev16 A2 —
+                        # a stale unknown from an earlier terminal-lstat fault must not survive it).
+                        origin, presence = _ORIGIN_SELF, _PRESENCE_PRESENT
+                        if rst.st_nlink != 1:
+                            # Fable rev15 B1: re-check link count on the SAME read handle — a writable
+                            # alias that raced in after the earlier lstat nlink check is caught here too.
+                            disposition = _A.disp_failed
+                        elif _read_all(rfd) != committed:
+                            disposition = _A.disp_failed    # positive evidence of corruption
                 finally:
                     os.close(rfd)
+            except FileNotFoundError:
+                # The open POSITIVELY proved the final is absent — refresh (Fable rev16 A1: the lstat
+                # boundary refreshed on ENOENT, the open boundary must mirror it).
+                origin, presence = _ORIGIN_ABSENT, _PRESENCE_ABSENT
+                if disposition == _A.disp_verified:
+                    disposition = _A.disp_failed
             except OSError:
-                if disposition == _A.disp_verified:     # ambiguous/unknown adds no failure evidence
+                # A generic open fault is not a positive observation; keep the last successful (lstat)
+                # snapshot but downgrade a clean commit we can no longer confirm.
+                if disposition == _A.disp_verified:
                     disposition = _A.disp_failed
         # Directory-entry durability. A real fsync FAULT (supported but failed) is indeterminate; a
         # platform that cannot open a directory fd at all (e.g. Windows) is NOT a fault.
