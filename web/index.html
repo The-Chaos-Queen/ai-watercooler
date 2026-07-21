@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Watercooler</title>
+  <script>
+    (() => {
+      const key = "ai-watercooler-theme";
+      let theme = null;
+      try { theme = window.localStorage.getItem(key); } catch (_) { /* storage can be disabled */ }
+      if (theme !== "light" && theme !== "dark") {
+        theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark" : "light";
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f5f4;
+      --surface: #ffffff;
+      --surface-muted: #f0f2f0;
+      --border: #d6dad6;
+      --border-hover: #9ca69c;
+      --text: #202420;
+      --muted: #667066;
+      --accent: #176b4d;
+      --accent-hover: #10543c;
+      --on-accent: #ffffff;
+      --danger: #a83333;
+      --warning-bg: #fff5d9;
+      --warning-border: #d9b54a;
+      --warning-text: #664d00;
+      --header-bg: rgba(255, 255, 255, 0.97);
+      --radius: 6px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #171a17;
+      --surface: #222622;
+      --surface-muted: #2a2f2a;
+      --border: #414941;
+      --border-hover: #687568;
+      --text: #edf1ed;
+      --muted: #a5afa5;
+      --accent: #59b98d;
+      --accent-hover: #72c99f;
+      --on-accent: #102319;
+      --danger: #f08a8a;
+      --warning-bg: #3c3218;
+      --warning-border: #caa947;
+      --warning-text: #f0d782;
+      --header-bg: rgba(25, 29, 25, 0.97);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    button {
+      min-height: 36px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      padding: 7px 12px;
+    }
+
+    button:hover { border-color: var(--border-hover); }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--on-accent);
+    }
+
+    button.primary:hover { background: var(--accent-hover); }
+    button.danger { color: var(--danger); }
+
+    input, select, textarea {
+      width: 100%;
+      min-height: 36px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      padding: 7px 9px;
+    }
+
+    textarea { min-height: 96px; resize: vertical; }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--border);
+      background: var(--header-bg);
+    }
+
+    .header-inner {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 12px 18px;
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) minmax(180px, 280px) minmax(130px, 190px) auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .brand { align-self: center; min-width: 0; }
+    .brand h1 { margin: 0; font-size: 21px; line-height: 1.2; letter-spacing: 0; }
+    .brand p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .header-actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+    .theme-toggle { width: 36px; min-width: 36px; padding: 0; display: grid; place-items: center; font-size: 17px; line-height: 1; }
+
+    label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+    label > input, label > select, label > textarea { color: var(--text); font-size: 14px; }
+
+    .workspace {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 16px 18px 32px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      border: 0;
+      border-bottom: 3px solid transparent;
+      border-radius: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 9px 14px;
+    }
+
+    .tab[aria-selected="true"] { border-bottom-color: var(--accent); color: var(--text); }
+    .panel[hidden] { display: none; }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .toolbar h2 { margin: 0; font-size: 17px; letter-spacing: 0; }
+    .muted { color: var(--muted); }
+    .empty { padding: 24px 0; color: var(--muted); }
+
+    .status {
+      min-height: 22px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status.error { color: var(--danger); }
+
+    .notice {
+      border-left: 3px solid var(--warning-border);
+      background: var(--warning-bg);
+      color: var(--warning-text);
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .summary-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.85fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .section {
+      border-top: 1px solid var(--border);
+      padding: 14px 0;
+    }
+
+    .section:first-child { border-top: 0; padding-top: 0; }
+    .section h3 { margin: 0 0 8px; font-size: 14px; text-transform: capitalize; letter-spacing: 0; }
+    .section ul { margin: 0; padding-left: 20px; }
+    .section li { margin: 7px 0; line-height: 1.45; }
+
+    .sources { color: var(--muted); font-size: 12px; margin-left: 6px; }
+
+    .proposal {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      margin-top: 8px;
+      background: var(--surface);
+    }
+
+    .proposal strong { display: block; margin-bottom: 4px; font-size: 13px; }
+    .proposal-label { color: var(--danger); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .metric { border: 1px solid var(--border); border-radius: var(--radius); padding: 9px; background: var(--surface); }
+    .metric span { display: block; color: var(--muted); font-size: 11px; }
+    .metric strong { font-size: 18px; }
+
+    .message-list { display: grid; gap: 8px; }
+    .message {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 11px 12px;
+      min-width: 0;
+    }
+
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    .message-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+
+    .compose {
+      margin-top: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      display: grid;
+      gap: 9px;
+    }
+
+    .compose-row { display: grid; grid-template-columns: minmax(120px, 180px) minmax(0, 1fr); gap: 9px; }
+    .compose-actions { display: flex; justify-content: flex-end; }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 13px; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+    th { color: var(--muted); background: var(--surface-muted); font-size: 11px; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    td.actions { white-space: nowrap; }
+    td.actions button { min-height: 30px; padding: 4px 8px; margin-right: 4px; }
+
+    .legacy-summary {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      margin: 0;
+      font: inherit;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 820px) {
+      .header-inner { grid-template-columns: 1fr 1fr; }
+      .brand { grid-column: 1 / -1; }
+      .summary-layout { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      .header-inner, .workspace { padding-left: 12px; padding-right: 12px; }
+      .header-inner { grid-template-columns: 1fr; }
+      .brand { grid-column: auto; }
+      .header-actions { justify-content: stretch; }
+      .header-actions #refresh { flex: 1; }
+      .tabs { overflow-x: auto; }
+      .tab { flex: 1 1 0; min-width: 0; padding-left: 8px; padding-right: 8px; }
+      .toolbar { align-items: flex-start; }
+      .compose-row { grid-template-columns: 1fr; }
+      .message-header { display: grid; }
+      #task-content th, #task-content td { padding: 7px 6px; }
+      #task-content th:nth-child(2), #task-content td:nth-child(2),
+      #task-content th:nth-child(5), #task-content td:nth-child(5) { display: none; }
+      #task-content td:nth-child(3) { min-width: 80px; overflow-wrap: anywhere; }
+      #task-content td.actions button { margin-right: 3px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <h1>Watercooler</h1>
+        <p>Local agent coordination</p>
+      </div>
+      <label>Session token
+        <input id="token" type="password" autocomplete="off" spellcheck="false">
+      </label>
+      <label>Thread
+        <input id="thread" type="text" value="general" maxlength="128">
+      </label>
+      <div class="header-actions">
+        <button id="refresh" class="primary" type="button">Refresh</button>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Use dark theme" title="Use dark theme">&#9790;</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <nav class="tabs" aria-label="Views">
+      <button class="tab" type="button" role="tab" aria-selected="true" data-panel="summary">Summary</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-panel="messages">Messages</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-panel="tasks">Taskboard</button>
+    </nav>
+
+    <section id="summary-panel" class="panel" role="tabpanel">
+      <div class="toolbar"><h2>Orientation</h2></div>
+      <div id="summary-content" class="summary-layout"><div class="empty">No data loaded.</div></div>
+    </section>
+
+    <section id="messages-panel" class="panel" role="tabpanel" hidden>
+      <div class="toolbar">
+        <h2>Message bus</h2>
+        <button id="load-older" type="button">Load older</button>
+      </div>
+      <div id="message-list" class="message-list"></div>
+      <form id="compose" class="compose">
+        <div class="compose-row">
+          <label>Recipient<input id="recipient" type="text" value="all" maxlength="80"></label>
+          <label>Topic<input id="topic" type="text" maxlength="160"></label>
+        </div>
+        <label>Message<textarea id="message-body" required maxlength="20000"></textarea></label>
+        <div class="compose-actions"><button class="primary" type="submit">Send</button></div>
+      </form>
+    </section>
+
+    <section id="tasks-panel" class="panel" role="tabpanel" hidden>
+      <div class="toolbar"><h2>Taskboard</h2></div>
+      <div id="task-content"></div>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    function resolveWatercoolerBase() {
+      if (typeof window.WATERCOOLER_BASE === "string" && window.WATERCOOLER_BASE.trim()) {
+        return window.WATERCOOLER_BASE.trim().replace(/\/+$/, "");
+      }
+      const { hostname, origin, port, protocol } = window.location;
+      const isLiteralLoopback = hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
+      if (isLiteralLoopback && port !== "8765") {
+        const urlHost = hostname.includes(":") && !hostname.startsWith("[") ? `[${hostname}]` : hostname;
+        return `${protocol}//${urlHost}:8765`;
+      }
+      return origin;
+    }
+
+    const BASE = resolveWatercoolerBase();
+    const state = { panel: "summary", oldestMessageId: null, messages: [] };
+    const THEME_STORAGE_KEY = "ai-watercooler-theme";
+
+    const byId = (id) => document.getElementById(id);
+
+    function syncThemeToggle() {
+      const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+      const button = byId("theme-toggle");
+      const nextLabel = theme === "dark" ? "Use light theme" : "Use dark theme";
+      button.textContent = theme === "dark" ? "\u2600" : "\u263e";
+      button.setAttribute("aria-label", nextLabel);
+      button.title = nextLabel;
+    }
+
+    function toggleTheme() {
+      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = next;
+      try {
+        window.localStorage.setItem(THEME_STORAGE_KEY, next);
+      } catch (_) { /* storage can be disabled */ }
+      syncThemeToggle();
+    }
+
+    function append(parent, tag, text, className = "") {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = String(text);
+      parent.appendChild(node);
+      return node;
+    }
+
+    function setStatus(message, isError = false) {
+      const status = byId("status");
+      status.textContent = message;
+      status.className = isError ? "status error" : "status";
+    }
+
+    function token() { return byId("token").value.trim(); }
+    function thread() { return byId("thread").value.trim() || "general"; }
+
+    function authHeaders(json = false) {
+      const value = token();
+      if (!value) throw new Error("Session token required.");
+      const headers = { Authorization: `Bearer ${value}` };
+      if (json) headers["Content-Type"] = "application/json";
+      return headers;
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(`${BASE}${path}`, options);
+      let payload;
+      try { payload = await response.json(); }
+      catch { throw new Error(`HTTP ${response.status}`); }
+      if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+      return payload;
+    }
+
+    function messageNode(message) {
+      const card = document.createElement("article");
+      card.className = "message";
+      const header = append(card, "div", undefined, "message-header");
+      append(header, "span", `${message.from_agent || "?"} -> ${message.to_agent || "?"}`);
+      append(header, "span", `#${message.id || "?"} ${message.ts || ""}`);
+      if (message.topic) append(card, "div", message.topic, "muted");
+      append(card, "div", message.body || "", "message-body");
+      return card;
+    }
+
+    function renderRecentMessages(parent, messages) {
+      const list = append(parent, "div", undefined, "message-list");
+      if (!messages.length) {
+        append(list, "div", "No messages.", "empty");
+        return;
+      }
+      for (const message of messages) list.appendChild(messageNode(message));
+    }
+
+    function renderSummaryDocument(parent, summary) {
+      if (!summary) {
+        append(parent, "div", "No summary has been published.", "empty");
+        return;
+      }
+
+      if (summary.kind === "steward") {
+        append(
+          parent,
+          "div",
+          "Generated, unreviewed orientation. Linked sources support inspection; the Taskboard remains authoritative.",
+          "notice",
+        );
+      }
+
+      const content = summary.content;
+      if (!content) {
+        append(parent, "pre", summary.body || "", "legacy-summary");
+        return;
+      }
+
+      append(parent, "h2", content.title || "Summary");
+      for (const section of content.sections || []) {
+        const sectionNode = append(parent, "section", undefined, "section");
+        append(sectionNode, "h3", String(section.kind || "orientation").replaceAll("_", " "));
+        const list = append(sectionNode, "ul");
+        for (const item of section.items || []) {
+          const row = append(list, "li", item.text || "");
+          const ids = Array.isArray(item.source_message_ids) ? item.source_message_ids : [];
+          if (ids.length) append(row, "span", ids.map((id) => `#${id}`).join(", "), "sources");
+        }
+      }
+
+      if ((content.task_proposals || []).length) {
+        const proposalSection = append(parent, "section", undefined, "section");
+        append(proposalSection, "h3", "Task proposals");
+        for (const proposal of content.task_proposals) {
+          const row = append(proposalSection, "div", undefined, "proposal");
+          append(row, "span", "Proposal only", "proposal-label");
+          append(row, "strong", proposal.title || "Untitled proposal");
+          append(row, "div", proposal.description || "");
+          const ids = Array.isArray(proposal.source_message_ids) ? proposal.source_message_ids : [];
+          if (ids.length) append(row, "div", ids.map((id) => `#${id}`).join(", "), "sources");
+        }
+      }
+    }
+
+    function renderTaskSnapshot(parent, snapshot) {
+      const counts = snapshot?.counts || {};
+      const metrics = append(parent, "div", undefined, "metric-grid");
+      for (const [label, value] of [
+        ["Queued", counts.queued || 0],
+        ["Claimed", counts.claimed || 0],
+        ["Blocked", counts.blocked || 0],
+        ["Done", counts.done || 0],
+      ]) {
+        const metric = append(metrics, "div", undefined, "metric");
+        append(metric, "span", label);
+        append(metric, "strong", value);
+      }
+      append(parent, "h3", "Open tasks");
+      const open = snapshot?.open_tasks || [];
+      if (!open.length) append(parent, "div", "No open tasks.", "empty");
+      for (const task of open) {
+        const row = append(parent, "div", undefined, "proposal");
+        append(row, "strong", `#${task.id} ${task.title || "Untitled"}`);
+        append(row, "div", `${task.status || "?"} · ${task.project || "general"}`, "muted");
+      }
+    }
+
+    function coverageWarning(delta) {
+      if (delta?.coverage_known !== true) {
+        return "Summary coverage is unknown; recent messages are not a complete delta.";
+      }
+      if (delta?.complete === true) return "";
+
+      const uncovered = delta?.uncovered_message_count;
+      const returned = delta?.returned_uncovered_count;
+      if (
+        Number.isSafeInteger(uncovered) && uncovered >= 0
+        && Number.isSafeInteger(returned) && returned >= 0
+      ) {
+        return `Summary is behind by ${uncovered} message(s); only ${returned} are shown here.`;
+      }
+      return "Summary delta is incomplete; the latest messages shown are not the full uncovered set.";
+    }
+
+    async function loadSummary() {
+      const root = byId("summary-content");
+      root.replaceChildren();
+      const payload = await api(
+        `/v1/onboarding?thread=${encodeURIComponent(thread())}&recent_limit=5`,
+        { headers: authHeaders() },
+      );
+      const left = append(root, "div");
+      const right = append(root, "aside");
+      const warning = coverageWarning(payload.delta);
+      if (warning) append(left, "div", warning, "notice");
+      renderSummaryDocument(left, payload.summary);
+      append(left, "section", undefined, "section");
+      const recentSection = left.lastElementChild;
+      append(recentSection, "h3", "Latest messages");
+      renderRecentMessages(recentSection, payload.recent_messages || []);
+      renderTaskSnapshot(right, payload.authoritative_taskboard || {});
+    }
+
+    function renderMessages() {
+      const root = byId("message-list");
+      root.replaceChildren();
+      if (!state.messages.length) {
+        append(root, "div", "No messages.", "empty");
+        return;
+      }
+      for (const message of state.messages) root.appendChild(messageNode(message));
+    }
+
+    async function loadMessages(beforeId = null) {
+      const query = new URLSearchParams({ thread: thread(), limit: "50" });
+      if (beforeId) query.set("before_id", String(beforeId));
+      const payload = await api(`/v1/messages?${query.toString()}`, { headers: authHeaders() });
+      const incoming = [...(payload.messages || [])].sort((a, b) => b.id - a.id);
+      state.messages = beforeId ? [...state.messages, ...incoming] : incoming;
+      state.oldestMessageId = state.messages.length
+        ? Math.min(...state.messages.map((message) => Number(message.id)))
+        : null;
+      renderMessages();
+    }
+
+    function appendTaskCell(row, text, className = "") {
+      return append(row, "td", text, className);
+    }
+
+    function taskAction(label, className, handler) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.className = className;
+      button.addEventListener("click", handler);
+      return button;
+    }
+
+    async function mutateTask(path, taskId) {
+      await api(path, {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({ task_id: taskId }),
+      });
+      await loadTasks();
+    }
+
+    async function loadTasks() {
+      const root = byId("task-content");
+      root.replaceChildren();
+      const payload = await api("/v1/tasks?limit=100", { headers: authHeaders() });
+      const tasks = (payload.tasks || []).filter((task) => task.status !== "done");
+      if (!tasks.length) {
+        append(root, "div", "No open tasks.", "empty");
+        return;
+      }
+      const wrap = append(root, "div", undefined, "table-wrap");
+      const table = append(wrap, "table");
+      const head = append(append(table, "thead"), "tr");
+      for (const label of ["ID", "Project", "Title", "Status", "Owner", "Actions"]) append(head, "th", label);
+      const body = append(table, "tbody");
+      for (const task of tasks) {
+        const row = append(body, "tr");
+        appendTaskCell(row, task.id);
+        appendTaskCell(row, task.project || "general");
+        appendTaskCell(row, task.title || "Untitled");
+        appendTaskCell(row, task.status || "?");
+        appendTaskCell(row, task.claim_agent || task.assignee || "");
+        const actions = appendTaskCell(row, "", "actions");
+        if (task.status === "queued") {
+          actions.appendChild(taskAction("Claim", "", () => run(() => mutateTask("/v1/tasks/claim", task.id))));
+        }
+        if (task.status === "queued" || task.status === "claimed") {
+          actions.appendChild(taskAction("Done", "danger", () => run(() => mutateTask("/v1/tasks/complete", task.id))));
+        }
+      }
+    }
+
+    async function sendMessage(event) {
+      event.preventDefault();
+      const body = byId("message-body").value.trim();
+      if (!body) return;
+      await api("/v1/post", {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({
+          to_agent: byId("recipient").value.trim() || "all",
+          thread: thread(),
+          topic: byId("topic").value.trim(),
+          lang: "en",
+          tags: [],
+          body,
+        }),
+      });
+      byId("message-body").value = "";
+      await loadMessages();
+    }
+
+    async function refreshCurrent() {
+      if (state.panel === "summary") await loadSummary();
+      if (state.panel === "messages") await loadMessages();
+      if (state.panel === "tasks") await loadTasks();
+    }
+
+    async function run(operation) {
+      setStatus("Loading...");
+      try {
+        await operation();
+        setStatus("Up to date.");
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : "Request failed.", true);
+      }
+    }
+
+    function selectPanel(name) {
+      state.panel = name;
+      for (const tab of document.querySelectorAll(".tab")) {
+        tab.setAttribute("aria-selected", String(tab.dataset.panel === name));
+      }
+      for (const panel of document.querySelectorAll(".panel")) {
+        panel.hidden = panel.id !== `${name}-panel`;
+      }
+      run(refreshCurrent);
+    }
+
+    for (const tab of document.querySelectorAll(".tab")) {
+      tab.addEventListener("click", () => selectPanel(tab.dataset.panel));
+    }
+    byId("refresh").addEventListener("click", () => run(refreshCurrent));
+    byId("theme-toggle").addEventListener("click", toggleTheme);
+    byId("load-older").addEventListener("click", () => {
+      if (state.oldestMessageId) run(() => loadMessages(state.oldestMessageId));
+    });
+    byId("compose").addEventListener("submit", (event) => run(() => sendMessage(event)));
+    syncThemeToggle();
+  </script>
+</body>
+</html>
