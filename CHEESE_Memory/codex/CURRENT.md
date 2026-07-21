@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-21 18:23 +02:00
+Last updated: 2026-07-21 20:40 +02:00
 
 ## Standing Directive
 
@@ -88,20 +88,18 @@ remember which artifact should be updated.
   direction artifact exists yet.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
-- #155 item 5 rev 15 (`64947e6` + `c1de212`, final `c1de212`) is exact-source
-  `CHANGES (P2; no in-scope P1)`; canon
-  `MoCoP/reviews/p5_item5_rev15_source_review_2026-07-21.md` at `1158c61`,
-  Watercooler #1219, Taskboard event #817. Descriptor-bound staging identity,
-  normal/raised final classification, exact terminal link count, handle-bound
-  readback, foreign regular-temp preservation, the seam origin conjunct, and
-  removal of false SIGINT masking are accepted. Laura's no-durable-recovery and
-  arbitrary-same-principal-namespace limits are ratified external boundaries.
-  Remaining P2: no independent target presence, UNKNOWN/absent receipts can
-  assert positive `committed_bytes`, terminal contradictory evidence leaves
-  stale `confirmed_self`, and the claimed acquisition test begins only after
-  `mkstemp` returns while a true effect-then-SIGINT leaks fd+temp. Direct branch
-  pins remain P3. Verification: 523 passed/1 skipped plus clean Ruff, compile,
-  zero-model, and scoped diff checks; three independent reviews converge.
+- #155 item 5 rev 16 (`a327d48` + `e594c8d`, final `e594c8d`) is exact-source
+  `CHANGES / STOP CLAUSE TRIGGERED (P2; no in-scope P1)`; canon
+  `MoCoP/reviews/p5_item5_rev16_source_review_2026-07-21.md` at `d842936`,
+  Watercooler #1222, Taskboard #155 event #819. Clean receipt truth, ordinary
+  terminal foreign/absent refresh, zero-byte gating, the requested branch pins,
+  and the honest best-effort acquisition boundary are accepted. Reproduced P2:
+  descriptor-side `FileNotFoundError` is mislabeled as pathname absence;
+  terminal zero-inode evidence can become `confirmed_self`; and live
+  `_ORIGIN_*`/`_PRESENCE_*` labels bypass the declared frozen authority and can
+  yield a verified contradictory positive-byte receipt. No natural false
+  `ok=True` was found. Per #1220 there is no rev-17 local patch under #155.
+  Unassigned Taskboard #175 now owns the separate filesystem-protocol decision.
 - Taskboard #174 final target `70293e2` is `CHANGES` by exact-source verdict of
   record. Canon:
   `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`;
@@ -121,14 +119,13 @@ remember which artifact should be updated.
   protocol. Preserve `not_executed` versus `execution_unknown`, raw novel
   outcomes in the scoring denominator, and externally anchored journal-head
   custody; do not collapse #171 or #173 into #170.
-- Review only a narrow immutable #155 item-5 successor that preserves all
-  accepted rev-15 fd-bound custody and the keeper-approved external boundary.
-  Require mutually truthful origin, target presence, integrity/durability, and
-  committed-byte evidence; refresh custody on terminal contradiction; and
-  either own temporary acquisition before its first effect or name that exact
-  interrupt window honestly. Directly pin raised UNKNOWN, read-handle nlink,
-  seam origin, stale origin, absent target, and true acquisition. Do not run
-  B0/C1 from a green unit suite.
+- Do not review or implement rev 17 under #155. Use Taskboard #175 to freeze a
+  filesystem protocol before implementation: pathname presence, identity
+  availability including zero inode, origin, descriptor/path error semantics,
+  integrity/durability, committed-byte evidence, and the trusted namespace or
+  process boundary. Compare a narrower Python receipt, protected process or
+  namespace isolation, and a Rust custody component. Do not run B0/C1 from the
+  unit suite.
 - Review only a new immutable #174 successor that preserves the six accepted
   fixes and carries the ratified protocol, provenance-bearing calibration,
   mandatory cross-audit judge authority, closed numeric domains, and honest
@@ -140,8 +137,8 @@ remember which artifact should be updated.
   the strict commit reviewer into a free-form task executor.
 - Rotate the internal dispatcher token before expiry and resolve #1160 through
   the infrastructure owners; do not deploy the public staging tree implicitly.
-- Session 06 (`CHEESE_Memory/session_logs/2026-07-21-session-06.md`) contains
-  #155 rev-15 exact-source evidence, the receipt/acquisition reproductions, the
-  keeper-boundary adjudication, and the verdict publication record. It is
-  ingested in Qdrant as 12 chunks (collection total 34,650). Session 05 retains
-  the rev-14 evidence. Keep this file concise by replacing stale state.
+- Session 07 (`CHEESE_Memory/session_logs/2026-07-21-session-07.md`) contains
+  #155 rev-16 exact-source evidence, the three false-receipt reproductions, the
+  stop-clause adjudication, and Task #175 routing. It is ingested in Qdrant as
+  13 chunks (collection total 34,661). Session 06 retains rev-15. Keep this file
+  concise by replacing stale state.

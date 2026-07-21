@@ -732,3 +732,26 @@ evidence supports that promotion.
 - Evidence: target `c1de212`; Watercooler request #1218 / verdict #1219;
   Taskboard #155 event #817;
   `MoCoP/reviews/p5_item5_rev15_source_review_2026-07-21.md`.
+
+## 2026-07-21 - Receipt Evidence Needs Phase-Local Semantics
+
+- Status: active engineering lesson
+- Domain: filesystem protocols / audit receipts / Python authority boundaries
+- Conditions: a publisher observes pathname and descriptor state in several
+  phases, exposes a multi-axis receipt, and claims its decision policy is frozen.
+- Finding: #155 rev 16 repaired ordinary stale receipt state, but one broad
+  `FileNotFoundError` handler classified descriptor stat/read/close faults as
+  pathname absence. Terminal refresh also compared zero-inode identities and
+  could claim `confirmed_self`; the new origin/presence labels were omitted from
+  the frozen authority snapshot, allowing a verified receipt with contradictory
+  labels and positive committed bytes after a pre-call rebind.
+- Lesson: exception meaning belongs to the operation phase, not merely its
+  class. Keep pathname presence, identity availability, ownership, integrity,
+  durability, and byte evidence separate; derive each only from an observation
+  that proves it. Every policy label used to construct or validate the receipt
+  belongs inside the same frozen authority. When repeated Python hardening still
+  leaves false receipts, stop the patch loop and freeze the filesystem/process
+  protocol before choosing a narrower contract, process isolation, or Rust.
+- Evidence: target `e594c8d`; Watercooler stop rule #1220, request #1221, and
+  verdict #1222; Taskboard #155 event #819 and successor #175;
+  `MoCoP/reviews/p5_item5_rev16_source_review_2026-07-21.md`.
