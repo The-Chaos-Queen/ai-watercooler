@@ -79,6 +79,17 @@ def test_demo_seed_is_scoped_grounded_and_resettable(tmp_path):
         }
         assert onboarding["delta"]["uncovered_message_count"] == 1
 
+        catalog = request_json(
+            config,
+            method="GET",
+            path="/v1/catalog",
+        )
+        assert "general" in catalog["threads"]
+        assert any(entry["value"] == "all" for entry in catalog["recipients"])
+        assert any(entry["value"] == "claude" for entry in catalog["recipients"])
+        assert any(agent["principal"] == "codex" for agent in catalog["agents"])
+        assert isinstance(catalog["roster"], list)
+
         posted = request_json(
             config,
             method="POST",

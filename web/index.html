@@ -227,6 +227,10 @@
     .metric { border: 1px solid var(--border); border-radius: var(--radius); padding: 9px; background: var(--surface); }
     .metric span { display: block; color: var(--muted); font-size: 11px; }
     .metric strong { font-size: 18px; }
+    .metric.status-blocked { border-color: rgba(168, 51, 51, 0.45); background: color-mix(in srgb, var(--danger) 8%, var(--surface)); }
+    .metric.status-queued { border-color: rgba(23, 107, 77, 0.28); }
+    .metric.status-claimed { border-color: rgba(23, 107, 77, 0.45); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+    .metric.status-done { border-color: rgba(102, 112, 102, 0.32); }
 
     .message-list { display: grid; gap: 8px; }
     .message {
@@ -241,12 +245,88 @@
       display: flex;
       justify-content: space-between;
       gap: 10px;
-      color: var(--muted);
-      font-size: 12px;
+      align-items: flex-start;
       margin-bottom: 7px;
     }
 
+    .message-header-main {
+      min-width: 0;
+      display: grid;
+      gap: 4px;
+    }
+
+    .message-route {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+
+    .message-meta {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    .topic-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 7px;
+    }
+
+    .topic-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 2px 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface-muted);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
     .message-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+
+    .roster-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .roster-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 10px;
+    }
+
+    .roster-card strong { display: block; margin-bottom: 4px; }
+    .roster-meta { color: var(--muted); font-size: 12px; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      border: 1px solid var(--border);
+      background: var(--surface-muted);
+      color: var(--text);
+    }
+    .status-pill.queued { border-color: rgba(23, 107, 77, 0.28); }
+    .status-pill.claimed { border-color: rgba(23, 107, 77, 0.45); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+    .status-pill.blocked { border-color: rgba(168, 51, 51, 0.55); background: color-mix(in srgb, var(--danger) 10%, var(--surface)); color: var(--danger); }
+    .status-pill.done { border-color: rgba(102, 112, 102, 0.32); }
+
+    tr[data-status="blocked"] td { background: color-mix(in srgb, var(--danger) 8%, var(--surface)); }
+    tr[data-status="claimed"] td { background: color-mix(in srgb, var(--accent) 5%, var(--surface)); }
 
     .compose {
       margin-top: 16px;
@@ -311,7 +391,7 @@
         <input id="token" type="password" autocomplete="off" spellcheck="false">
       </label>
       <label>Thread
-        <input id="thread" type="text" value="general" maxlength="128">
+        <select id="thread"></select>
       </label>
       <div class="header-actions">
         <button id="refresh" class="primary" type="button">Refresh</button>
@@ -341,7 +421,7 @@
       <div id="message-list" class="message-list"></div>
       <form id="compose" class="compose">
         <div class="compose-row">
-          <label>Recipient<input id="recipient" type="text" value="all" maxlength="80"></label>
+          <label>Recipient<select id="recipient"></select></label>
           <label>Topic<input id="topic" type="text" maxlength="160"></label>
         </div>
         <label>Message<textarea id="message-body" required maxlength="20000"></textarea></label>
@@ -372,7 +452,13 @@
     }
 
     const BASE = resolveWatercoolerBase();
-    const state = { panel: "summary", oldestMessageId: null, messages: [] };
+    const state = {
+      panel: "summary",
+      oldestMessageId: null,
+      messages: [],
+      catalog: null,
+      refreshTimer: null,
+    };
     const THEME_STORAGE_KEY = "ai-watercooler-theme";
 
     const byId = (id) => document.getElementById(id);
@@ -412,6 +498,67 @@
     function token() { return byId("token").value.trim(); }
     function thread() { return byId("thread").value.trim() || "general"; }
 
+    function statusClass(status) {
+      return String(status || "").toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+    }
+
+    function populateSelect(select, values, fallbackValue) {
+      const current = select.value || fallbackValue;
+      const normalized = [];
+      const seen = new Set();
+      for (const raw of values) {
+        const value = String(raw || "").trim();
+        if (!value || seen.has(value)) continue;
+        seen.add(value);
+        normalized.push(value);
+      }
+      if (!seen.has(fallbackValue)) normalized.unshift(fallbackValue);
+      select.replaceChildren();
+      for (const value of normalized) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      }
+      select.value = normalized.includes(current) ? current : normalized[0];
+    }
+
+    function populateRecipientSelect(recipients) {
+      const select = byId("recipient");
+      const current = select.value || "all";
+      const options = [];
+      const seen = new Set();
+      for (const recipient of recipients || []) {
+        const value = String(recipient?.value || "").trim();
+        if (!value || seen.has(value)) continue;
+        seen.add(value);
+        options.push({
+          value,
+          label: String(recipient?.label || value),
+          kind: String(recipient?.kind || ""),
+        });
+      }
+      if (!seen.has("all")) options.unshift({ value: "all", label: "all", kind: "broadcast" });
+      select.replaceChildren();
+      for (const entry of options) {
+        const option = document.createElement("option");
+        option.value = entry.value;
+        option.textContent = entry.kind && entry.kind !== "broadcast"
+          ? `${entry.label} (${entry.kind})`
+          : entry.label;
+        select.appendChild(option);
+      }
+      select.value = options.some((entry) => entry.value === current) ? current : "all";
+    }
+
+    async function loadCatalog() {
+      const payload = await api("/v1/catalog", { headers: authHeaders() });
+      state.catalog = payload;
+      populateSelect(byId("thread"), payload.threads || [], "general");
+      populateRecipientSelect(payload.recipients || []);
+      return payload;
+    }
+
     function authHeaders(json = false) {
       const value = token();
       if (!value) throw new Error("Session token required.");
@@ -433,20 +580,15 @@
       const card = document.createElement("article");
       card.className = "message";
       const header = append(card, "div", undefined, "message-header");
-      append(header, "span", `${message.from_agent || "?"} -> ${message.to_agent || "?"}`);
-      append(header, "span", `#${message.id || "?"} ${message.ts || ""}`);
-      if (message.topic) append(card, "div", message.topic, "muted");
+      const main = append(header, "div", undefined, "message-header-main");
+      append(main, "div", `${message.from_agent || "?"} -> ${message.to_agent || "?"}`, "message-route");
+      append(header, "div", `#${message.id || "?"}\n${message.ts || ""}`, "message-meta");
+      if (message.topic) {
+        const chips = append(card, "div", undefined, "topic-chip-row");
+        append(chips, "span", message.topic, "topic-chip");
+      }
       append(card, "div", message.body || "", "message-body");
       return card;
-    }
-
-    function renderRecentMessages(parent, messages) {
-      const list = append(parent, "div", undefined, "message-list");
-      if (!messages.length) {
-        append(list, "div", "No messages.", "empty");
-        return;
-      }
-      for (const message of messages) list.appendChild(messageNode(message));
     }
 
     function renderSummaryDocument(parent, summary) {
@@ -505,7 +647,7 @@
         ["Blocked", counts.blocked || 0],
         ["Done", counts.done || 0],
       ]) {
-        const metric = append(metrics, "div", undefined, "metric");
+        const metric = append(metrics, "div", undefined, `metric status-${statusClass(label)}`);
         append(metric, "span", label);
         append(metric, "strong", value);
       }
@@ -516,6 +658,32 @@
         const row = append(parent, "div", undefined, "proposal");
         append(row, "strong", `#${task.id} ${task.title || "Untitled"}`);
         append(row, "div", `${task.status || "?"} · ${task.project || "general"}`, "muted");
+      }
+    }
+
+    function renderRoster(parent, roster, agents) {
+      append(parent, "h3", "Roster");
+      const list = append(parent, "div", undefined, "roster-list");
+      const entries = Array.isArray(roster) ? roster : [];
+      if (!entries.length) {
+        append(list, "div", "No roster entries.", "empty");
+        return;
+      }
+      const byPrincipal = new Map((agents || []).map((agent) => [agent.principal, agent]));
+      for (const entry of entries) {
+        const card = append(list, "div", undefined, "roster-card");
+        append(card, "strong", entry.name || "Unnamed");
+        const agent = byPrincipal.get(entry.name);
+        const pieces = [];
+        if (entry.model) pieces.push(entry.model);
+        else if (agent?.model) pieces.push(agent.model);
+        if (entry.role) pieces.push(entry.role);
+        if (entry.section) pieces.push(entry.section);
+        if (pieces.length) append(card, "div", pieces.join(" · "), "roster-meta");
+        const status = entry.status || agent?.status || "unknown";
+        const pill = append(card, "span", status, `status-pill ${statusClass(status)}`);
+        pill.title = entry.notes || "";
+        if (entry.notes) append(card, "div", entry.notes, "roster-meta");
       }
     }
 
@@ -539,6 +707,7 @@
     async function loadSummary() {
       const root = byId("summary-content");
       root.replaceChildren();
+      const catalog = state.catalog || await loadCatalog();
       const payload = await api(
         `/v1/onboarding?thread=${encodeURIComponent(thread())}&recent_limit=5`,
         { headers: authHeaders() },
@@ -548,11 +717,9 @@
       const warning = coverageWarning(payload.delta);
       if (warning) append(left, "div", warning, "notice");
       renderSummaryDocument(left, payload.summary);
-      append(left, "section", undefined, "section");
-      const recentSection = left.lastElementChild;
-      append(recentSection, "h3", "Latest messages");
-      renderRecentMessages(recentSection, payload.recent_messages || []);
       renderTaskSnapshot(right, payload.authoritative_taskboard || {});
+      const rosterSection = append(right, "section", undefined, "section");
+      renderRoster(rosterSection, catalog.roster || [], catalog.agents || []);
     }
 
     function renderMessages() {
@@ -615,10 +782,12 @@
       const body = append(table, "tbody");
       for (const task of tasks) {
         const row = append(body, "tr");
+        row.dataset.status = task.status || "";
         appendTaskCell(row, task.id);
         appendTaskCell(row, task.project || "general");
         appendTaskCell(row, task.title || "Untitled");
-        appendTaskCell(row, task.status || "?");
+        const statusCell = appendTaskCell(row, "", "");
+        append(statusCell, "span", task.status || "?", `status-pill ${statusClass(task.status || "")}`);
         appendTaskCell(row, task.claim_agent || task.assignee || "");
         const actions = appendTaskCell(row, "", "actions");
         if (task.status === "queued") {
@@ -651,9 +820,20 @@
     }
 
     async function refreshCurrent() {
+      await loadCatalog();
       if (state.panel === "summary") await loadSummary();
       if (state.panel === "messages") await loadMessages();
       if (state.panel === "tasks") await loadTasks();
+    }
+
+    function installAutoRefresh() {
+      if (state.refreshTimer) window.clearInterval(state.refreshTimer);
+      state.refreshTimer = window.setInterval(() => {
+        if (!token()) return;
+        if (document.hidden) return;
+        if (state.panel !== "summary" && state.panel !== "tasks") return;
+        run(refreshCurrent);
+      }, 15000);
     }
 
     async function run(operation) {
@@ -682,11 +862,15 @@
     }
     byId("refresh").addEventListener("click", () => run(refreshCurrent));
     byId("theme-toggle").addEventListener("click", toggleTheme);
+    byId("thread").addEventListener("change", () => run(refreshCurrent));
     byId("load-older").addEventListener("click", () => {
       if (state.oldestMessageId) run(() => loadMessages(state.oldestMessageId));
     });
     byId("compose").addEventListener("submit", (event) => run(() => sendMessage(event)));
     syncThemeToggle();
+    populateSelect(byId("thread"), ["general"], "general");
+    populateRecipientSelect([{ value: "all", label: "all", kind: "broadcast" }]);
+    installAutoRefresh();
   </script>
 </body>
 </html>

@@ -345,3 +345,9 @@ def test_web_console_uses_the_current_onboarding_snapshot_contract():
     assert "payload.taskboard" not in html
     assert "Summary coverage is unknown; recent messages are not a complete delta." in html
     assert "Summary delta is incomplete; the latest messages shown are not the full uncovered set." in html
+    assert "/v1/catalog" in html
+    assert 'id="thread"></select>' in html
+    assert 'id="recipient"></select>' in html
+    assert "renderRoster(" in html
+    assert "installAutoRefresh()" in html
+    assert "Latest messages" not in html

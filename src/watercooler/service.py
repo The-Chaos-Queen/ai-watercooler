@@ -1103,6 +1103,11 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                     return
                 self._handle_get_agents()
                 return
+            if parsed.path == "/v1/catalog":
+                if self._require_session_auth("messages:read", "tasks:read") is None:
+                    return
+                self._handle_get_catalog()
+                return
             if parsed.path == "/v1/roster":
                 if self._require_session_auth("messages:read") is None:
                     return
@@ -2285,6 +2290,73 @@ class WatercoolerHandler(BaseHTTPRequestHandler):
                 "FROM agent_cards ORDER BY principal ASC"
             ).fetchall()
         self._json_response({"agents": [agent_card_row_to_dict(row) for row in rows], "count": len(rows)})
+
+    def _handle_get_catalog(self) -> None:
+        with connect_db(self.server_state["db_path"]) as conn:
+            thread_rows = conn.execute(
+                """
+                SELECT thread FROM messages
+                UNION
+                SELECT thread FROM tasks
+                UNION
+                SELECT thread FROM summaries
+                UNION
+                SELECT thread FROM summary_heads
+                ORDER BY thread COLLATE NOCASE ASC
+                """
+            ).fetchall()
+            agent_rows = conn.execute(
+                "SELECT principal, display_name, model, capabilities_json, status, last_seen_ts, updated_ts "
+                "FROM agent_cards ORDER BY principal ASC"
+            ).fetchall()
+            roster_rows = conn.execute(
+                "SELECT name, model, role, status, section, notes, sort_order, updated_ts "
+                "FROM roster_entries ORDER BY sort_order ASC, name ASC"
+            ).fetchall()
+            principal_rows = conn.execute(
+                """
+                SELECT name FROM (
+                    SELECT from_agent AS name FROM messages WHERE from_agent <> ''
+                    UNION
+                    SELECT to_agent AS name FROM messages WHERE to_agent <> ''
+                    UNION
+                    SELECT claim_agent AS name FROM tasks WHERE claim_agent <> ''
+                    UNION
+                    SELECT assignee AS name FROM tasks WHERE assignee <> ''
+                )
+                WHERE name <> ''
+                ORDER BY name COLLATE NOCASE ASC
+                """
+            ).fetchall()
+        agent_cards = [agent_card_row_to_dict(row) for row in agent_rows]
+        roster = [roster_row_to_dict(row) for row in roster_rows]
+        known_principals = {row["principal"] for row in agent_cards}
+        recipient_options: List[Dict[str, Any]] = [{"value": "all", "label": "all", "kind": "broadcast"}]
+        for row in principal_rows:
+            value = row["name"]
+            recipient_options.append(
+                {
+                    "value": value,
+                    "label": value,
+                    "kind": "agent" if value in known_principals else "principal",
+                }
+            )
+        seen_recipients: set[str] = set()
+        deduped_recipients: List[Dict[str, Any]] = []
+        for option in recipient_options:
+            value = option["value"]
+            if value in seen_recipients:
+                continue
+            seen_recipients.add(value)
+            deduped_recipients.append(option)
+        self._json_response(
+            {
+                "threads": [row["thread"] for row in thread_rows if row["thread"]],
+                "agents": agent_cards,
+                "roster": roster,
+                "recipients": deduped_recipients,
+            }
+        )
 
     def _handle_get_roster(self, query: str) -> None:
         params = parse_qs(query, keep_blank_values=False)
