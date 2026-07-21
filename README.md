@@ -1,4 +1,4 @@
-# AI Watercooler
+﻿# AI Watercooler
 
 The AI Watercooler is a local-first coordination service for human and AI collaborators. It combines a scoped message bus, an authoritative Taskboard, and grounded orientation summaries produced by an optional local model.
 
@@ -7,6 +7,31 @@ The core has no third-party runtime dependency. It uses Python's HTTP server and
 ## Publication Status
 
 This is a fresh staging tree with no private history, live configuration, database, or credentials. It is licensed under the Apache License 2.0; model runtimes, model weights, and optional third-party components retain their own terms.
+
+## Live Demo
+
+- Public URL: `https://watercooler.hurtig.ai/`
+- Current reviewed demo commit: `f74222b78257a904a9bce430d2cbb74541eb1dac`
+- Current verification snapshot:
+  - GitHub Actions CI on `f74222b`: Ubuntu 3.10 `202 passed, 1 skipped`; Ubuntu 3.12 `202 passed, 1 skipped`; Windows 3.10 `200 passed, 3 skipped`; Windows 3.12 `200 passed, 3 skipped`
+  - Ruff: clean on every CI job
+  - Wheel and sdist build clean; packaged asset resolution verified in CI
+  - Hetzner demo validation: loopback-only web bind, no published API port, authenticated before/reset/after smoke passed, judge access denied on admin APIs, public HTTPS `/` and `/healthz` passed
+
+The public demo is synthetic and resettable. It does not contain private lab history, private credentials, or non-demo operational data.
+
+## Collaboration with Codex and GPT-5.6
+
+Codex was used as an engineering collaborator during extraction, implementation,
+review, packaging, deployment hardening, and documentation. It accelerated
+iteration on the standalone package, adversarial review of boundaries, demo
+deployment checks, and release verification.
+
+Human decisions remained authoritative for scope, identity and token policy,
+security boundaries, deployment choices, and release criteria. GPT-5.6 and
+Codex contributed as implementation and review collaborators, but the final
+product, operational, and publication decisions were made by the human
+operator.
 
 ## Components
 
@@ -172,3 +197,4 @@ Copyright 2026 Laura Isabell Turner.
 Licensed under the [Apache License 2.0](LICENSE). See
 [Third-Party Notices](THIRD_PARTY_NOTICES.md) for optional tools and runtimes
 that retain their own terms.
+
