@@ -28,15 +28,20 @@ REV4 (Monk #1146 A-prime — a real model-free source seam; NO live run):
      digests once, and RE-VALIDATE the manifest+comparison semantics, not merely digest consistency.
   F5 TRUTHFUL PUBLICATION — fd-bound identity custody (staging identity captured from the open
      descriptor; the final classified against it after both a normal and a raised link; our inode with
-     exactly one link; identity-bound readback), and an explicit integrity_verified /
-     committed_integrity_failed / committed_indeterminate disposition plus a publication `origin`
-     (confirmed_self / foreign / absent / unknown). Never ordinary success after an integrity/durability
-     fault, and only origin == confirmed_self with integrity_verified is a self-owned clean publication.
-     ⚠ NAMED EXTERNAL BOUNDARIES (keeper-ratified #1217): the "no surviving writable alias" guarantee and
-     foreign-replacement rejection hold against fault injection and the checked races, but NOT against an
-     arbitrary SAME-PRINCIPAL concurrent-namespace attacker, and durable interrupt/crash terminal-receipt
-     RECOVERY is not provided in-process (the try/finally is best-effort). Both mirror the project's
-     sudden-power-loss durability boundary (#170) and are non-authorizing by construction.
+     exactly one link; identity-bound readback), and a mutually-truthful receipt: an explicit
+     integrity_verified / committed_integrity_failed / committed_indeterminate disposition, a publication
+     `origin` (confirmed_self / foreign / absent / unknown) and `target_presence` (present/absent/unknown)
+     REFRESHED from the last terminal observation, and `committed_bytes` reported as > 0 ONLY when that
+     evidence proves a verified, self-owned, present final. Never ordinary success after an integrity/
+     durability fault; only origin == confirmed_self + target_presence == present + integrity_verified is
+     a self-owned clean publication.
+     ⚠ NAMED EXTERNAL BOUNDARIES (keeper-ratified #1217/#1219): foreign-replacement rejection and the
+     "no surviving writable alias" property hold against fault injection and the checked races, but NOT
+     against an arbitrary SAME-PRINCIPAL concurrent-namespace attacker; alias cleanup and temp acquisition
+     are BEST-EFFORT under interruption (a persistent BaseException, or an interrupt in the pre-return
+     mkstemp/Path window, may leave the final and/or a live temp); durable interrupt/crash terminal-
+     receipt RECOVERY is not provided in-process. All mirror the project's sudden-power-loss durability
+     boundary (#170) and are non-authorizing by construction.
   SEAM — record_r4_comparison: a production-callable entry that takes GOVERNED evidence paths,
      verifies authority, runs build/bind/publish, and emits a fail-closed C1-precondition decision
      (rho < 0.7 => JSD replacement required; absent/invalid/non-integrity-verified/INCOMPLETE => no
@@ -1657,9 +1662,13 @@ class R4PublishResult:
     committed_bytes: int
     disposition: str                          # one of the DISPOSITION_* above (integrity/durability)
     origin: str = "unknown"                   # who owns the final name: confirmed_self/foreign/absent/unknown
-    # ``origin`` is REPORTED SEPARATELY from ``disposition`` (Codex #1217): only origin == confirmed_self
-    # with disposition == integrity_verified is a self-owned clean publication. A foreign/absent/unknown
-    # origin never asserts that THIS call committed the bytes at ``path``, regardless of disposition.
+    target_presence: str = "unknown"          # present/absent/unknown at the LAST identity-bound observation
+    # ``origin`` and ``target_presence`` are REPORTED SEPARATELY from ``disposition`` (Codex #1217/#1219),
+    # and are REFRESHED from the last terminal lstat/open/fstat evidence — a later observation that
+    # contradicts the first snapshot updates them. ``committed_bytes`` is > 0 ONLY when the terminal
+    # evidence proves a verified, self-owned, present final; otherwise it is 0 (never the intended payload
+    # length as a committed claim). Only origin == confirmed_self + target_presence == present +
+    # disposition == integrity_verified is a self-owned clean publication.
 
 
 def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
@@ -1684,6 +1693,20 @@ _ORIGIN_SELF = "confirmed_self"          # the final name IS our staged inode (f
 _ORIGIN_FOREIGN = "foreign"              # a different inode, or a symlink, occupies the final name
 _ORIGIN_ABSENT = "absent"                # the final name does not exist
 _ORIGIN_UNKNOWN = "unknown"              # identity evidence unavailable (lstat fault / zero inode)
+
+# Target PRESENCE at the last observation (Codex #1219), independent of who owns it.
+_PRESENCE_PRESENT = "present"
+_PRESENCE_ABSENT = "absent"
+_PRESENCE_UNKNOWN = "unknown"
+
+
+def _presence_of(origin: str) -> str:
+    """Map a just-observed origin to the final-name presence it implies (Codex #1219)."""
+    if origin == _ORIGIN_ABSENT:
+        return _PRESENCE_ABSENT
+    if origin == _ORIGIN_UNKNOWN:
+        return _PRESENCE_UNKNOWN
+    return _PRESENCE_PRESENT              # SELF or FOREIGN -> a file is present, ours or not
 
 
 def _identity(st: os.stat_result) -> tuple[int, int]:
@@ -1796,14 +1819,19 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
     # identifies our staged inode, so a foreign replacement of a publisher name is never removed.
     # Codex #1213 P2-3: operational OSError stays NATIVE (F4-compatible); the staged-bytes mismatch stays
     # a typed refusal.
-    # ⚠ NAMED EXTERNAL BOUNDARIES (Codex #1217, keeper-ratified 2026-07-21): (1) durable interrupt/crash
-    # terminal-receipt RECOVERY is NOT provided in-process — a KeyboardInterrupt/SystemExit/kill in the
-    # critical region may leave a committed artifact with no returned disposition; the try/finally is a
-    # best-effort alias cleanup, not a durable protocol. (2) defence against a SAME-PRINCIPAL concurrent
-    # attacker mutating the publisher namespace is bounded to the fd-bound identity checks here, not a
-    # full transactional guarantee. Both mirror the project's existing sudden-power-loss durability
-    # boundary (#170) and are non-authorizing by construction (only origin==confirmed_self +
-    # integrity_verified authorizes).
+    # ⚠ NAMED EXTERNAL BOUNDARIES (Codex #1217/#1219, keeper-ratified 2026-07-21): (1) durable interrupt/
+    # crash terminal-receipt RECOVERY is NOT provided in-process. Alias cleanup is BEST-EFFORT under
+    # interruption: a KeyboardInterrupt/SystemExit/BaseException in the critical region may leave a
+    # committed artifact with no returned disposition, and a PERSISTENT interruption at BOTH unlink
+    # attempts can leave the final plus a live writable temp hard-link. Acquisition ownership is also
+    # best-effort: an interrupt after mkstemp's underlying open but BEFORE the ``fd, tmp_name`` tuple
+    # assignment (or while constructing ``Path(tmp_name)``) can leak the descriptor and/or the temp name
+    # — these exact PRE-RETURN windows are inside this best-effort boundary, not a closed guarantee.
+    # (2) defence against a SAME-PRINCIPAL concurrent attacker mutating the publisher namespace is bounded
+    # to the fd-bound identity checks here (incl. the no-follow-check→open and identity-check→unlink race
+    # windows, and a temp-replaced-with-symlink pathname), not a full transactional guarantee. Both mirror
+    # the project's existing sudden-power-loss durability boundary (#170) and are non-authorizing by
+    # construction (only origin==confirmed_self + target_presence==present + integrity_verified authorizes).
     fd = None
     tmp = None
     staged_id: tuple[int, int] | None = None
@@ -1827,8 +1855,10 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
             os.link(str(tmp), str(sidecar_path))        # COMMIT — no-replace
         except OSError as exc:
             link_error = exc
-        # Classify the FINAL by fd-bound identity on BOTH paths (Codex #1217).
+        # Classify the FINAL by fd-bound identity on BOTH paths (Codex #1217). origin + presence are
+        # REFRESHED from every later terminal observation that contradicts this first snapshot (#1219).
         origin = _final_origin(sidecar_path, staged_id)
+        presence = _presence_of(origin)
         if link_error is not None and origin in (_ORIGIN_FOREIGN, _ORIGIN_ABSENT):
             # our link had no effect / a foreign winner holds the name -> native operational OSError.
             raise link_error
@@ -1845,7 +1875,7 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
         # ---- Terminal state machine, alias-FIRST, all fd/identity-bound (Codex #1217). Remove OUR
         # writable alias, but ONLY while the tmp name still identifies our staged inode (never delete a
         # foreign replacement). Then require the final to be our inode with exactly ONE link, and read it
-        # back through an identity-bound handle. ----
+        # back through an identity-bound handle. Each observation refreshes origin/presence (#1219). ----
         if _path_identity(tmp) == staged_id:
             try:
                 tmp.unlink()                            # remove the writable hard-link alias FIRST
@@ -1856,9 +1886,18 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
                 fst = os.lstat(str(sidecar_path))       # no-follow: a symlink is never our commit
                 if _stat.S_ISLNK(fst.st_mode) or _identity(fst) != staged_id:
                     disposition = _A.disp_failed        # final is not our inode
+                    origin, presence = _ORIGIN_FOREIGN, _PRESENCE_PRESENT   # refresh: a foreign file is present
                 elif fst.st_nlink != 1:
                     disposition = _A.disp_failed        # an undisclosed writable alias to our inode survives
+                    origin, presence = _ORIGIN_SELF, _PRESENCE_PRESENT
+                else:
+                    origin, presence = _ORIGIN_SELF, _PRESENCE_PRESENT      # confirmed our inode present
+            except FileNotFoundError:
+                origin, presence = _ORIGIN_ABSENT, _PRESENCE_ABSENT         # the final vanished
+                if disposition == _A.disp_verified:
+                    disposition = _A.disp_failed
             except OSError:
+                origin, presence = _ORIGIN_UNKNOWN, _PRESENCE_UNKNOWN       # cannot observe
                 if disposition == _A.disp_verified:
                     disposition = _A.disp_failed        # cannot confirm a clean commit -> not verified
         if disposition in (_A.disp_verified, _A.disp_indeterminate):
@@ -1868,11 +1907,11 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
                     rst = os.fstat(rfd)
                     if _identity(rst) != staged_id:
                         disposition = _A.disp_failed    # final is a different inode than we staged
+                        origin, presence = _ORIGIN_FOREIGN, _PRESENCE_PRESENT
                     elif rst.st_nlink != 1:
-                        # Fable rev15 B1: re-check link count on the SAME handle used for readback — a
-                        # writable alias raced in after the earlier lstat nlink check is caught here too
-                        # (halves the window; the window itself is the same-principal-race external
-                        # boundary). fst is already in hand, so this costs nothing.
+                        # Fable rev15 B1: re-check link count on the SAME read handle — a writable alias
+                        # that raced in after the earlier lstat nlink check is caught here too (halves the
+                        # window; the window itself is the same-principal-race external boundary).
                         disposition = _A.disp_failed
                     elif _read_all(rfd) != committed:
                         disposition = _A.disp_failed    # positive evidence of corruption
@@ -1889,8 +1928,15 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
         except OSError:
             if disposition == _A.disp_verified:
                 disposition = _A.disp_indeterminate
+        # Receipt truth (Codex #1219/#1220): committed_bytes asserts OUR bytes at the intended path ONLY
+        # when the terminal evidence proved a verified, self-owned, present final. The unavoidable race
+        # AFTER this last observation is the named external boundary; the receipt is truthful about the
+        # last evidence it used.
+        committed_here = (disposition == _A.disp_verified and origin == _ORIGIN_SELF
+                          and presence == _PRESENCE_PRESENT)
         return R4PublishResult(path=str(sidecar_path), published_digest=artifact["published_digest"],
-                               committed_bytes=len(committed), disposition=disposition, origin=origin)
+                               committed_bytes=len(committed) if committed_here else 0,
+                               disposition=disposition, origin=origin, target_presence=presence)
     finally:
         # Best-effort cleanup. Close a still-open fd, and delete the temp ONLY while its name still
         # identifies our staged inode (or before identity was captured — the freshly-created temp is
@@ -2035,5 +2081,6 @@ def record_r4_comparison(
     # publish read as ok.
     ok = (result.disposition == _A.disp_verified
           and result.origin == "confirmed_self"
+          and result.target_presence == "present"
           and bool(decision["c1_authorization_permitted"]))
     return R4RecordResult(decision=decision, publish=result, ok=ok)

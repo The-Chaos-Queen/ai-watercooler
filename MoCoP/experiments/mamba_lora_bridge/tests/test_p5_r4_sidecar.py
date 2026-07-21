@@ -2278,20 +2278,23 @@ def test_rev15_foreign_symlink_at_final_is_foreign(tmp_path, monkeypatch):
     assert p5_r4_sidecar._final_origin(final, staged_id) == p5_r4_sidecar._ORIGIN_FOREIGN
 
 
-def test_rev15_p2_create_then_interrupt_cleans_temp(tmp_path, monkeypatch):
-    # Codex #1217 P2: a create-then-interrupt (KeyboardInterrupt right after mkstemp, before staging
-    # identity is captured) must not leak the temp; the outer finally cleans it.
+def test_rev16_post_acquisition_interrupt_cleans_temp(tmp_path, monkeypatch):
+    # Codex #1219 P2 (relabelled, honest): this exercises the POST-acquisition interrupt — AFTER mkstemp
+    # returned and `fd, tmp_name`/`tmp` are assigned (injected at os.fstat) — where the outer finally DOES
+    # own cleanup and removes the temp. It does NOT (and no longer claims to) cover the PRE-RETURN
+    # mkstemp/Path-assignment window, which is inside the ratified best-effort interruption boundary (see
+    # the boundary note in _publish_r4_sidecar) and is intentionally not closed in-process.
     import p5_r4_sidecar
     report = _sealed_report(n=4)
     rec = _build(report, agree=True)
 
     def fstat_interrupt(fd):
-        raise KeyboardInterrupt                                # fires right after mkstemp
+        raise KeyboardInterrupt                                # after mkstemp returned + locals assigned
 
     monkeypatch.setattr(p5_r4_sidecar.os, "fstat", fstat_interrupt)
     with pytest.raises(KeyboardInterrupt):
         publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
-    assert list(tmp_path.glob("*.tmp")) == []                  # outer finally cleaned the temp
+    assert list(tmp_path.glob("*.tmp")) == []                  # outer finally cleaned the assigned temp
 
 
 def test_rev15_interrupt_after_commit_is_best_effort_alias_cleanup(tmp_path, monkeypatch):
@@ -2418,3 +2421,185 @@ def test_rev15_readback_foreign_inode_is_integrity_failed(tmp_path, monkeypatch)
     monkeypatch.setattr(p5_r4_sidecar.os, "fstat", fstat_wrap)
     result = publish_r4_sidecar(report, rec, str(out))
     assert result.disposition == DISPOSITION_INTEGRITY_FAILED
+
+
+# =========================================================================== #
+# rev16 (wolf-Codex #1219/#1220) — receipt truth + acquisition boundary +       #
+# direct branch pins. One narrow successor under the keeper stop rule.          #
+# =========================================================================== #
+def test_rev16_clean_positive_control_receipt(tmp_path):
+    # Clean self-owned publish: verified + confirmed_self + present + committed_bytes == payload length.
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    result = publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert result.disposition == DISPOSITION_VERIFIED
+    assert result.origin == "confirmed_self"
+    assert result.target_presence == "present"
+    assert result.committed_bytes > 0
+
+
+def test_rev16_receipt_link_no_effect_unknown_reports_zero_bytes(tmp_path, monkeypatch):
+    # Codex #1219 canary A: a link with no effect + an unavailable final lstat previously returned
+    # committed_bytes > 0. Now it reports committed_bytes == 0 and target_presence == unknown.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    monkeypatch.setattr(p5_r4_sidecar.os, "link",
+                        lambda s, d: (_ for _ in ()).throw(OSError(errno.EIO, "no effect")))
+    real_lstat = p5_r4_sidecar.os.lstat
+
+    def lstat_fault_final(p, *a, **k):
+        if str(p) == str(out):
+            raise OSError(errno.EIO, "lstat fault")
+        return real_lstat(p, *a, **k)
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_fault_final)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INDETERMINATE
+    assert result.committed_bytes == 0
+    assert result.target_presence == "unknown"
+    assert result.origin == "unknown"
+
+
+def test_rev16_terminal_foreign_refreshes_origin(tmp_path, monkeypatch):
+    # Codex #1219 canary B: initial final is self; the terminal lstat observes a foreign replacement.
+    # origin/presence must REFRESH to foreign/present (not stay stale confirmed_self); committed_bytes 0.
+    import stat as _s
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_lstat = p5_r4_sidecar.os.lstat
+    real_fstat = p5_r4_sidecar.os.fstat
+    st8 = {"staged": None, "out": 0}
+
+    def fstat_wrap(fd):
+        s = real_fstat(fd)
+        if st8["staged"] is None:
+            st8["staged"] = (s.st_dev, s.st_ino)
+        return s
+
+    class _Foreign:
+        def __init__(self, dev):
+            self.st_mode = _s.S_IFREG | 0o600
+            self.st_dev = dev
+            self.st_ino = 987654321
+            self.st_nlink = 1
+
+    def lstat_wrap(p, *a, **k):
+        if str(p) == str(out):
+            st8["out"] += 1
+            real = real_lstat(p, *a, **k)
+            return real if st8["out"] == 1 else _Foreign(real.st_dev)   # 1st self; terminal foreign
+        return real_lstat(p, *a, **k)
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "fstat", fstat_wrap)
+    monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_wrap)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INTEGRITY_FAILED
+    assert result.origin == "foreign"                         # refreshed at the terminal lstat
+    assert result.target_presence == "present"
+    assert result.committed_bytes == 0
+
+
+def test_rev16_terminal_absent_refreshes_origin(tmp_path, monkeypatch):
+    # Codex #1219 canary C: the final is deleted at the terminal boundary. origin/presence must refresh
+    # to absent/absent (not stay confirmed_self); committed_bytes 0.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_lstat = p5_r4_sidecar.os.lstat
+    st8 = {"out": 0}
+
+    def lstat_wrap(p, *a, **k):
+        if str(p) == str(out):
+            st8["out"] += 1
+            if st8["out"] == 1:
+                return real_lstat(p, *a, **k)                 # _final_origin sees self
+            raise FileNotFoundError(errno.ENOENT, "final vanished")   # terminal sees absent
+        return real_lstat(p, *a, **k)
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_wrap)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INTEGRITY_FAILED
+    assert result.origin == "absent"
+    assert result.target_presence == "absent"
+    assert result.committed_bytes == 0
+
+
+def test_rev16_raised_link_unknown_is_indeterminate(tmp_path, monkeypatch):
+    # Codex #1220 item 3: a RAISED os.link whose final identity is UNKNOWN (lstat fault) -> indeterminate
+    # (non-authorizing), not a native re-raise and not verified. committed_bytes 0.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_link = p5_r4_sidecar.os.link
+    real_lstat = p5_r4_sidecar.os.lstat
+
+    def link_then_raise(src, dst):
+        real_link(src, dst)
+        raise OSError(errno.EIO, "effect-then-error")
+
+    def lstat_fault_final(p, *a, **k):
+        if str(p) == str(out):
+            raise OSError(errno.EIO, "lstat fault")
+        return real_lstat(p, *a, **k)
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
+    monkeypatch.setattr(p5_r4_sidecar.os, "lstat", lstat_fault_final)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INDETERMINATE
+    assert result.origin == "unknown"
+    assert result.committed_bytes == 0
+
+
+def test_rev16_read_handle_nlink_independent_of_lstat(tmp_path, monkeypatch):
+    # Codex #1220 item 3: the readback fstat st_nlink check must catch an alias INDEPENDENTLY of the
+    # earlier final lstat (which sees nlink==1). A late alias raced in after the lstat check -> failed.
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_fstat = p5_r4_sidecar.os.fstat
+    calls = {"n": 0}
+
+    class _TwoLink:
+        def __init__(self, st):
+            self.st_dev = st.st_dev
+            self.st_ino = st.st_ino                            # SAME inode (identity passes)
+            self.st_nlink = 2                                  # but a second link exists
+
+    def fstat_wrap(fd):
+        calls["n"] += 1
+        st = real_fstat(fd)
+        return st if calls["n"] == 1 else _TwoLink(st)         # staging real; readback -> nlink 2
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "fstat", fstat_wrap)
+    result = publish_r4_sidecar(report, rec, str(out))         # lstat (real) sees nlink 1; fstat sees 2
+    assert result.disposition == DISPOSITION_INTEGRITY_FAILED
+
+
+def test_rev16_seam_verified_non_self_origin_is_not_ok(monkeypatch):
+    # Codex #1220 item 3: at the seam, a verified disposition with a NON-self origin must make ok=False.
+    # (The receipt fix couples verified⟹self inside publish, so inject a fake result to pin the seam
+    # conjunct itself against a future disposition-ladder edit.)
+    import p5_r4_sidecar
+    from p5_r4_sidecar import DISPOSITION_VERIFIED, R4PublishResult
+    monkeypatch.setattr(p5_r4_sidecar, "_load_governed_report", lambda rp, jp, **k: ({}, b""))
+    monkeypatch.setattr(p5_r4_sidecar, "build_r4_sidecar", lambda *a, **k: object())
+    monkeypatch.setattr(p5_r4_sidecar, "_r4_decision",
+                        lambda *a, **k: {"state": "jsd_proceeds", "c1_authorization_permitted": True})
+    monkeypatch.setattr(
+        p5_r4_sidecar, "_publish_r4_sidecar",
+        lambda *a, **k: R4PublishResult(path="x", published_digest="d", committed_bytes=0,
+                                        disposition=DISPOSITION_VERIFIED, origin="foreign",
+                                        target_presence="present"))
+    res = p5_r4_sidecar.record_r4_comparison(report_path="r", journal_path="j", manifest={},
+                                             per_pair=[], aggregate={}, sidecar_path="s")
+    assert res.ok is False                                     # verified + c1-permitted but origin foreign
