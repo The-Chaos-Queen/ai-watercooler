@@ -1,13 +1,14 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-21 20:40 +02:00
+- Last updated: 2026-07-21 21:24 +02:00
 - Current owner: Codex returned exact-source `CHANGES / STOP CLAUSE TRIGGERED (P2; no in-scope P1)` on #155 item-5 rev 16. The ordinary receipt/acquisition packet is substantially repaired, but three exact canaries still produce false receipts. Per Watercooler #1220, the Python patch loop is over; all B0/C1/model/GPU/sink/deployment gates remain held.
 - Primary focus: freeze the separate P5 R4 filesystem protocol under unassigned Taskboard #175; do not create rev 17 under #155.
-- Last session log: `CHEESE_Memory/session_logs/2026-07-21-session-07.md`
+- Last session log: `CHEESE_Memory/session_logs/2026-07-21-session-08.md`
+- Repository hygiene: commits `b170abb`, `cc57e52`, and `b157ded` banked historical/research/Codesight documentation; LegalAI line-ending churn and an empty sentinel were restored. Ambiguous local snapshots live in ignored `_Archive_untracked/2026-07-21-git-tidy/`; permission-bound `.agents` and Codex review trees remain untouched. Generated `tools/ambient/state.md` is deliberately left unstaged to avoid recursive hook commits.
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: done (`2026-07-21-session-07.md`; 13 chunks; collection total 34,661)
+  - Latest session log ingest: skipped (`2026-07-21-session-08.md`; no fresh Qdrant-write authorization). Prior ingest: done (`2026-07-21-session-07.md`; 13 chunks; collection total 34,661)
 
 ## Current State - World Model Phase 3a Causal Custody (#170, 2026-07-20)
 
