@@ -101,8 +101,11 @@ import json
 import math
 import os
 import re
+import signal
+import stat as _stat
 import sys
 import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from itertools import combinations
 from pathlib import Path
@@ -1665,34 +1668,67 @@ _LINK_NOT_COMMITTED = "not_committed"    # final absent, or a confirmed DIFFEREN
 _LINK_UNKNOWN = "outcome_unknown"        # identity unavailable — cannot prove committed OR no-effect
 
 
+@contextmanager
+def _deferring_interrupts():
+    """Defer SIGINT delivery across the critical commit+terminal region where the platform supports it
+    (POSIX ``pthread_sigmask``), so alias removal and terminal publication complete atomically w.r.t. an
+    interrupt — Codex #1215 prescription 3 (defer, don't merely narrow, the window). On platforms without
+    ``pthread_sigmask`` (Windows) this is a no-op and the enclosing ``try/finally`` remains the best-effort
+    guarantee. This masks the OS SIGNAL only; an explicit in-process ``raise KeyboardInterrupt`` still
+    propagates (and is still cleaned by the finally)."""
+    mask = getattr(signal, "pthread_sigmask", None)
+    sigint = getattr(signal, "SIGINT", None)
+    if mask is None or sigint is None:
+        yield
+        return
+    previous = mask(signal.SIG_BLOCK, {sigint})
+    try:
+        yield
+    finally:
+        mask(signal.SIG_SETMASK, previous)
+
+
 def _classify_link_outcome(final: Path, tmp: Path) -> str:
     """Classify an ambiguous ``os.link`` result by INODE identity, keeping the three evidence states
-    DISTINCT (Codex #1215 P1/P2). Byte equality is deliberately NOT used: equal bytes prove content, not
-    which writer won the no-replace race, so a byte-identical FOREIGN winner must never be attributed to
-    this call.
+    DISTINCT (Codex #1215 P1/P2; Fable rev14). Byte equality is deliberately NOT used: equal bytes prove
+    content, not which writer won the no-replace race, so a byte-identical FOREIGN winner must never be
+    attributed to this call. ``os.link`` no-replace fails ``EEXIST`` against a symlink WITHOUT following
+    it, so the final name is stat'd with ``os.lstat`` and any symlink is a foreign winner (our commit is
+    always a hard link, never a symlink) — following it (``os.stat``) would let a foreign symlink→tmp
+    race read tmp's own inode and be misattributed as COMMITTED.
 
     - final ABSENT                       -> NOT_COMMITTED (our link had no effect; clean temp, re-raise)
+    - final is a SYMLINK                 -> NOT_COMMITTED (foreign; a hard-link commit is never a symlink)
     - final & tmp SAME inode (ino != 0)  -> COMMITTED (our staged inode is the final name)
-    - final & tmp DIFFERENT inode        -> NOT_COMMITTED (a foreign no-replace winner is not ours)
-    - identity UNAVAILABLE (a stat fault that is NOT absence, or ``st_ino == 0`` on FAT/exFAT/some SMB)
-                                         -> UNKNOWN (cannot prove no-effect, so must NOT escape past a
-                                            possibly-committed green artifact; the terminal flow enters at
-                                            committed_indeterminate and its readback can only downgrade)
+    - final & tmp DIFFERENT inode        -> NOT_COMMITTED (a foreign no-replace winner is not ours),
+                                            UNLESS tmp gained a second link (st_nlink >= 2) which is
+                                            contradictory evidence on an inode-unstable volume -> UNKNOWN
+    - identity UNAVAILABLE (a stat fault that is NOT absence, or ``st_ino == 0``) -> UNKNOWN (cannot prove
+                                            no-effect; must NOT escape past a possibly-committed green
+                                            artifact; the terminal flow enters at committed_indeterminate
+                                            and its readback can only downgrade)
     """
     try:
-        sf = os.stat(str(final))
+        sf = os.lstat(str(final))                # lstat: never FOLLOW a symlink at the final name
     except FileNotFoundError:
         return _LINK_NOT_COMMITTED               # target absent -> our link definitely had no effect
     except OSError:
         return _LINK_UNKNOWN                      # cannot determine -> do not escape
+    if _stat.S_ISLNK(sf.st_mode):
+        return _LINK_NOT_COMMITTED               # a symlink is never our hard-link commit -> foreign
     try:
-        st = os.stat(str(tmp))
+        st = os.lstat(str(tmp))
     except OSError:
         return _LINK_UNKNOWN
     if sf.st_ino == 0 or st.st_ino == 0:
         return _LINK_UNKNOWN                      # inode identity is meaningless on this volume
     if sf.st_ino == st.st_ino and sf.st_dev == st.st_dev:
         return _LINK_COMMITTED
+    if st.st_nlink >= 2:
+        # tmp's inode gained a second name, yet the final name reads as a different inode: the identity
+        # evidence is self-contradictory (a nonzero-but-unstable inode volume, some FUSE/SMB). Do not
+        # assert no-effect -> UNKNOWN (non-authorizing, never deletes a possibly-foreign final).
+        return _LINK_UNKNOWN
     return _LINK_NOT_COMMITTED                    # confirmed different inode -> foreign winner, not ours
 
 
@@ -1753,83 +1789,86 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
         {k: v for k, v in artifact.items() if k != "published_digest"})
     committed = _canonical_bytes(artifact)
 
-    fd, tmp_name = tempfile.mkstemp(prefix=sidecar_path.name + ".", suffix=".tmp",
-                                    dir=str(parent_dir))
-    tmp = Path(tmp_name)
-    # ONE try/finally spans staging + commit + the terminal machine. The finally best-effort unlinks the
-    # temp on EVERY exit — normal return, a raised fault, OR an asynchronous KeyboardInterrupt anywhere in
-    # the critical region (Codex #1215 P1). Unlinking removes only the alias NAME; a committed final
-    # persists on its own link, so the worst residual after an interrupt is a committed artifact with no
-    # writable alias and no returned disposition — recoverable and non-authorizing, never a live same-
-    # inode alias next to a green artifact.
+    # The whole staging + commit + terminal region runs with SIGINT DEFERRED where the platform supports
+    # it (Codex #1215 prescription 3), and inside ONE try/finally. mkstemp is inside the deferred region
+    # so an interrupt cannot strand the temp/fd before the try (Fable rev14). The finally best-effort
+    # unlinks the temp on EVERY exit — normal return, a raised fault, or an interrupt — removing only the
+    # alias NAME (a committed final persists on its own link). With SIGINT deferred, alias removal and
+    # terminal publication complete atomically w.r.t. a real interrupt; where deferral is unavailable
+    # (Windows), the finally remains the best-effort guarantee. The worst residual is a committed artifact
+    # with no returned disposition and no writable alias — recoverable and non-authorizing.
     # Codex #1213 P2-3: operational OSError stays NATIVE (F4-compatible, not a structural refusal); the
     # staged-bytes mismatch stays a typed refusal. Codex #1213/#1215 P1: os.link is EFFECTFUL, so the
     # commit sits inside the transaction and an ambiguous/unknown outcome enters the terminal flow at no
     # better than committed_indeterminate rather than escaping past a possibly-committed green artifact.
-    link_ambiguous = False
-    try:
+    with _deferring_interrupts():
+        fd, tmp_name = tempfile.mkstemp(prefix=sidecar_path.name + ".", suffix=".tmp",
+                                        dir=str(parent_dir))
+        tmp = Path(tmp_name)
+        link_ambiguous = False
         try:
-            os.write(fd, committed)
-            os.fsync(fd)
-        finally:
-            os.close(fd)
-        if tmp.read_bytes() != committed:                   # PRE-commit: nothing committed yet
-            raise R4SidecarError("staged sidecar bytes did not verify before commit")
-        try:
-            os.link(str(tmp), str(sidecar_path))            # COMMIT — no-replace
-        except OSError:
-            # Ambiguous: the link may have created the final name THEN raised. Classify by inode across
-            # the three evidence states (Codex #1215). COMMITTED or UNKNOWN must NOT escape — enter the
-            # terminal flow at committed_indeterminate. NOT_COMMITTED (absent, or a confirmed foreign
-            # inode) is a native operational OSError re-raised here; the finally cleans the temp.
-            outcome = _classify_link_outcome(sidecar_path, tmp)
-            if outcome in (_LINK_COMMITTED, _LINK_UNKNOWN):
-                link_ambiguous = True
-            else:
-                raise
-
-        # ---- F4 terminal state machine (the commit has effected, or its outcome is unknown), ordered
-        # alias-FIRST. Every synchronous fault best-effort removes the writable alias and downgrades
-        # truthfully; the definitive readback happens only after the alias is gone (a write through the
-        # alias can corrupt the final inode after it verifies, Codex #1187). An ambiguous/unknown commit
-        # starts at committed_indeterminate (Codex #1213/#1215) and can never read back as verified. ----
-        disposition = _A.disp_indeterminate if link_ambiguous else _A.disp_verified
-        try:
-            tmp.unlink()                                    # remove the writable hard-link alias FIRST
-        except OSError:
-            disposition = _A.disp_failed                    # a surviving writable alias can mutate the file
-        try:
-            if tmp.exists():
-                disposition = _A.disp_failed
-        except OSError:
-            disposition = _A.disp_failed
-        if disposition != _A.disp_failed:                  # readback for verified AND indeterminate commits
             try:
-                if sidecar_path.read_bytes() != committed:  # definitive final-byte readback
-                    disposition = _A.disp_failed            # positive evidence of corruption
+                os.write(fd, committed)
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            if tmp.read_bytes() != committed:               # PRE-commit: nothing committed yet
+                raise R4SidecarError("staged sidecar bytes did not verify before commit")
+            try:
+                os.link(str(tmp), str(sidecar_path))        # COMMIT — no-replace
             except OSError:
-                # Cannot confirm. A CLEAN commit we cannot vouch for is not verified -> failed. An
-                # AMBIGUOUS/UNKNOWN commit is already non-authorizing and a read fault adds NO failure
-                # evidence, so it stays outcome_unknown/indeterminate (Codex #1215: never treat a failed
-                # readback as proof).
-                if disposition == _A.disp_verified:
+                # Ambiguous: the link may have created the final name THEN raised. Classify by inode
+                # across the three evidence states (Codex #1215). COMMITTED or UNKNOWN must NOT escape —
+                # enter the terminal flow at committed_indeterminate. NOT_COMMITTED (absent, symlink, or a
+                # confirmed foreign inode) is a native operational OSError re-raised; the finally cleans.
+                outcome = _classify_link_outcome(sidecar_path, tmp)
+                if outcome in (_LINK_COMMITTED, _LINK_UNKNOWN):
+                    link_ambiguous = True
+                else:
+                    raise
+
+            # ---- F4 terminal state machine (the commit has effected, or its outcome is unknown), ordered
+            # alias-FIRST. Every synchronous fault best-effort removes the writable alias and downgrades
+            # truthfully; the definitive readback happens only after the alias is gone (a write through the
+            # alias can corrupt the final inode after it verifies, Codex #1187). An ambiguous/unknown
+            # commit starts at committed_indeterminate (Codex #1213/#1215), never reads back as verified. --
+            disposition = _A.disp_indeterminate if link_ambiguous else _A.disp_verified
+            try:
+                tmp.unlink()                                # remove the writable hard-link alias FIRST
+            except OSError:
+                disposition = _A.disp_failed                # a surviving writable alias can mutate the file
+            try:
+                if tmp.exists():
                     disposition = _A.disp_failed
-        # Directory-entry durability. A real fsync FAULT (supported but failed) is indeterminate; a
-        # platform that cannot open a directory fd at all (e.g. Windows) is NOT a fault — the file was
-        # already fsync'd, which is the durability the platform offers — so it does not downgrade.
-        try:
-            if _fsync_dir(parent_dir) is False and disposition == _A.disp_verified:
-                disposition = _A.disp_indeterminate
-        except OSError:
-            if disposition == _A.disp_verified:
-                disposition = _A.disp_indeterminate
-        return R4PublishResult(path=str(sidecar_path), published_digest=artifact["published_digest"],
-                               committed_bytes=len(committed), disposition=disposition)
-    finally:
-        try:
-            tmp.unlink()                                    # alias NEVER outlives this call (async-safe)
-        except OSError:
-            pass
+            except OSError:
+                disposition = _A.disp_failed
+            if disposition != _A.disp_failed:              # readback for verified AND indeterminate commits
+                try:
+                    if sidecar_path.read_bytes() != committed:  # definitive final-byte readback
+                        disposition = _A.disp_failed        # positive evidence of corruption (either state)
+                except OSError:
+                    # Cannot confirm. A CLEAN commit we cannot vouch for is not verified -> failed. An
+                    # AMBIGUOUS/UNKNOWN commit is already non-authorizing and a read fault adds NO failure
+                    # evidence, so it stays outcome_unknown/indeterminate (Codex #1215: never treat a
+                    # failed readback as proof).
+                    if disposition == _A.disp_verified:
+                        disposition = _A.disp_failed
+            # Directory-entry durability. A real fsync FAULT (supported but failed) is indeterminate; a
+            # platform that cannot open a directory fd at all (e.g. Windows) is NOT a fault — the file was
+            # already fsync'd, which is the durability the platform offers — so it does not downgrade.
+            try:
+                if _fsync_dir(parent_dir) is False and disposition == _A.disp_verified:
+                    disposition = _A.disp_indeterminate
+            except OSError:
+                if disposition == _A.disp_verified:
+                    disposition = _A.disp_indeterminate
+            return R4PublishResult(path=str(sidecar_path), published_digest=artifact["published_digest"],
+                                   committed_bytes=len(committed), disposition=disposition)
+        finally:
+            try:
+                tmp.unlink()                                # the writable alias must not outlive this call
+            except OSError:
+                pass
 
 
 def _fsync_dir(directory: Path) -> bool | None:

@@ -2292,3 +2292,64 @@ def test_rev14_p2_staging_readback_oserror_cleans_temp(tmp_path, monkeypatch):
     with pytest.raises(OSError):
         publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
     assert list(tmp_path.glob("*.tmp")) == []
+
+
+def test_rev14b_foreign_symlink_winner_is_not_committed(tmp_path, monkeypatch):
+    # Fable rev14 finding 1: os.stat FOLLOWS a symlink, so a foreign symlink at the final name pointing
+    # at our tmp would read tmp's inode and be misattributed COMMITTED. _classify_link_outcome uses
+    # os.lstat and rejects a symlink as foreign (our commit is never a symlink).
+    import stat as _s
+    import p5_r4_sidecar
+    tmp = tmp_path / "x.tmp"
+    tmp.write_bytes(b"data")
+    final = tmp_path / "r4.json"
+    real_lstat = p5_r4_sidecar.os.lstat
+    real_stat = p5_r4_sidecar.os.stat
+    tmp_st = real_stat(str(tmp))
+
+    class _Lnk:                                                 # lstat(final): a symlink, its OWN inode
+        st_mode = _s.S_IFLNK | 0o777
+        st_ino = tmp_st.st_ino + 12345
+        st_dev = tmp_st.st_dev
+        st_nlink = 1
+
+    class _Target:                                             # stat(final) if FOLLOWED: tmp's inode
+        st_mode = _s.S_IFREG | 0o600
+        st_ino = tmp_st.st_ino
+        st_dev = tmp_st.st_dev
+        st_nlink = 1
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "lstat",
+                        lambda p: _Lnk() if str(p) == str(final) else real_lstat(p))
+    monkeypatch.setattr(p5_r4_sidecar.os, "stat",
+                        lambda p: _Target() if str(p) == str(final) else real_stat(p))
+    # lstat + S_ISLNK -> foreign; a follow (os.stat) would have read tmp's inode and said COMMITTED.
+    assert p5_r4_sidecar._classify_link_outcome(final, tmp) == p5_r4_sidecar._LINK_NOT_COMMITTED
+
+
+def test_rev14b_ambiguous_commit_with_corrupt_final_is_failed(tmp_path, monkeypatch):
+    # Fable rev14 finding 4: an ambiguous/unknown commit must STILL read back its final bytes; corrupt or
+    # foreign-mismatched final bytes -> integrity_failed, never indeterminate. Pins that the readback gate
+    # runs for an indeterminate commit (not only for a verified one).
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_link = p5_r4_sidecar.os.link
+    real_read = p5_r4_sidecar.Path.read_bytes
+
+    def link_then_raise(src, dst):
+        real_link(src, dst)
+        raise OSError(errno.EIO, "effect-then-error")
+
+    def corrupt_final(self):
+        data = real_read(self)
+        return data + b"X" if str(self) == str(out) else data  # only the FINAL readback sees corruption
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
+    monkeypatch.setattr(p5_r4_sidecar, "_classify_link_outcome",
+                        lambda f, t: p5_r4_sidecar._LINK_UNKNOWN)
+    monkeypatch.setattr(p5_r4_sidecar.Path, "read_bytes", corrupt_final)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INTEGRITY_FAILED   # the ambiguous commit's readback ran
