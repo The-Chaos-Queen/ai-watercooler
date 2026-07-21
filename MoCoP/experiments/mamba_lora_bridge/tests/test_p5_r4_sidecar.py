@@ -1839,13 +1839,20 @@ def test_rev11_p2_huge_int_record_count_is_a_typed_refusal(tmp_path):
 
 
 def test_rev11_p2_huge_int_sequence_length_is_a_typed_refusal(tmp_path):
-    # Codex #1209 P2: parent.sequence_length = 10**5000 must escape build_r4_sidecar as a typed refusal.
+    # Codex #1209 P2 / #1211 finding 3: parent.sequence_length = 10**5000 must escape build_r4_sidecar
+    # as a typed refusal FROM THE MAGNITUDE GUARD. Use an EMPTY comparison + the canonical zero
+    # aggregate so no eligibility/endpoint check can fire first (Codex #1211: the old test with stale
+    # rows passed for the WRONG reason — the huge length made every row ineligible and the endpoint
+    # check refused before the int guard ran). Assert the SPECIFIC magnitude diagnostic so the test
+    # goes RED when _int_is_serialization_safe is bypassed (then json conversion raises a raw
+    # ValueError, not this R4SidecarError).
     report = _sealed_report(n=4)
     manifest = _manifest(report, _L)
     manifest["parent"]["sequence_length"] = 10 ** 5000
-    rows, agg = _comparison(_eligible_of(report))
-    with pytest.raises(R4SidecarError):
-        build_r4_sidecar(manifest, sealed_report=report, per_pair=rows, aggregate=agg)
+    zero_agg = {"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0,
+                "mean_pairwise_embedding": 0.0, "n_pairs": 0}
+    with pytest.raises(R4SidecarError, match="too large to canonicalize safely"):
+        build_r4_sidecar(manifest, sealed_report=report, per_pair=[], aggregate=zero_agg)
 
 
 def test_rev11_p2_correlation_helpers_are_private_and_total():
@@ -1877,3 +1884,70 @@ def test_rev11_p2_huge_int_respects_a_lower_configured_digit_limit():
             verify_sealed_report(report)
     finally:
         sys.set_int_max_str_digits(prev)
+
+
+# =========================================================================== #
+# rev12 (wolf-Codex #1211 findings 1-2 + Fable's 4th) — each RED->GREEN,        #
+# mutation-verified load-bearing.                                               #
+# =========================================================================== #
+def test_rev12_p2_empty_and_whitespace_eligible_ids_are_typed_refusals():
+    # Codex #1211 finding 2: a unique exact str is not necessarily a VALID probe id. The standalone
+    # validator must apply the canonical id rule (placeholder/unset incl. ""/whitespace), not just
+    # type+uniqueness — else [""] false-cleans to [].
+    zero = {"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0, "mean_pairwise_embedding": 0.0, "n_pairs": 0}
+    for bad in ([""], ["   "], ["\t"], ["a", ""]):
+        r = validate_comparison([], zero, eligible_probe_ids=bad)
+        assert isinstance(r, list) and r, bad
+        assert any("eligible_probe_ids entry" in x for x in r), bad
+
+
+def _write_governed_pair(tmp_path, report_bytes):
+    rp = tmp_path / "b0.json"
+    jp = tmp_path / "b0.json.journal"
+    rp.write_bytes(report_bytes)
+    jp.write_text("", encoding="utf-8")
+    return str(rp), str(jp)
+
+
+def test_rev12_p2_governed_json_invalid_utf8_is_a_typed_refusal(tmp_path):
+    # Codex #1211 finding 1: invalid UTF-8 in the governed report file raises UnicodeDecodeError from
+    # json.loads BEFORE the sanitizer runs; the seam must translate it to R4SidecarError.
+    import p5_r4_sidecar
+    rp, jp = _write_governed_pair(tmp_path, b'{"a": "\xff\xfe"}')
+    with pytest.raises(R4SidecarError, match="could not be read or decoded"):
+        p5_r4_sidecar._load_governed_report(rp, jp)
+
+
+def test_rev12_p2_governed_json_huge_int_under_low_limit_is_a_typed_refusal(tmp_path):
+    # Codex #1211 finding 1: a JSON integer exceeding the ACTIVE int<->str digit limit raises a raw
+    # ValueError from json's int conversion — at the FILE seam, before the in-memory guard.
+    import p5_r4_sidecar
+    prev = sys.get_int_max_str_digits()
+    try:
+        sys.set_int_max_str_digits(640)
+        rp, jp = _write_governed_pair(tmp_path, b'[' + b'1' * 641 + b']')
+        with pytest.raises(R4SidecarError, match="could not be read or decoded"):
+            p5_r4_sidecar._load_governed_report(rp, jp)
+    finally:
+        sys.set_int_max_str_digits(prev)
+
+
+def test_rev12_p2_governed_json_deep_nesting_is_a_typed_refusal(tmp_path):
+    # Codex #1211 finding 1: excessively nested valid JSON raises RecursionError from json.loads.
+    import p5_r4_sidecar
+    rp, jp = _write_governed_pair(tmp_path, b'[' * 200000 + b']' * 200000)
+    with pytest.raises(R4SidecarError, match="could not be read or decoded"):
+        p5_r4_sidecar._load_governed_report(rp, jp)
+
+
+def test_rev12_p2_nul_byte_sidecar_path_is_a_typed_refusal(tmp_path):
+    # Fable (4th finding, same class as the rev11 P1): an exact str with an embedded NUL slips
+    # _safe_path's type check and the pre-flight probes (which swallow ValueError), then surfaces as a
+    # raw ValueError("embedded null character") from tempfile.mkstemp — a raw escape from the public
+    # publish entry. rev12 refuses it at the path boundary before any verdict/staging work.
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    evil = str(tmp_path / "r4.json") + "\x00evil"
+    with pytest.raises(R4SidecarError, match="NUL"):
+        publish_r4_sidecar(report, rec, evil)
+    assert list(tmp_path.glob("*.tmp")) == []                  # no staging file was ever created

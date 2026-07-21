@@ -508,6 +508,19 @@ def _safe_path(p: Any, name: str) -> Path:
         raise R4SidecarError(
             f"{name} must be an exact str path (got {_safe_typename(p)}); pathlib objects and other "
             "path-likes carry mutable/active state and are refused (rev11)")
+    # rev12 (Fable, same class as the rev11 P1): an exact str is immutable, but it is not necessarily a
+    # LEGAL filesystem carrier. An embedded NUL slips the pre-flight probes (Path.exists/is_symlink/
+    # is_dir swallow ValueError since 3.8) and surfaces as a RAW ValueError("embedded null character")
+    # from tempfile.mkstemp/os.open AFTER all verdict work; a platform-unencodable name (e.g. a POSIX
+    # lone surrogate) raises a raw UnicodeEncodeError. Refuse both here so no path boundary leaks a raw
+    # exception from a public entry.
+    if "\x00" in p:
+        raise R4SidecarError(f"{name} must not contain an embedded NUL character")
+    try:
+        os.fsencode(p)
+    except ValueError as exc:
+        raise R4SidecarError(
+            f"{name} is not an encodable filesystem path ({type(exc).__name__})") from None
     return Path(p)
 
 
@@ -1081,6 +1094,7 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
             eligible_probe_ids = _inert_snapshot(eligible_probe_ids)
     except R4SidecarError as exc:
         return [str(exc)]
+    _A = _auth()
     if eligible_probe_ids is not None:
         # Codex #1209 P2: the exported self-check must TYPE its root/elements before set()/sorted().
         # _inert_snapshot renders an exact list/tuple as a list, but it still admits non-str leaves
@@ -1093,8 +1107,16 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
             return ["eligible_probe_ids must contain only probe id strings"]
         if len(set(eligible_probe_ids)) != len(eligible_probe_ids):
             return ["eligible_probe_ids must not contain duplicate probe ids"]
+        # Codex #1211 P2: a unique exact str is not necessarily a VALID probe id. Apply the SAME
+        # canonical id rule the comparison endpoints and the parent report use (_field_error(id_kind),
+        # which rejects placeholder/unset ids incl. "" and whitespace), so [""] is a typed refusal, not
+        # a false-clean [].
+        for x in eligible_probe_ids:
+            e = _field_error(x, _A.id_kind, authority=_A)
+            if e:
+                return [f"eligible_probe_ids entry {e}"]
     return _validate_comparison(per_pair, aggregate, eligible_probe_ids=eligible_probe_ids,
-                                authority=_auth())
+                                authority=_A)
 
 
 def _validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mapping[str, Any],
@@ -1777,11 +1799,20 @@ def _load_governed_report(report_path: str, journal_path: str, *,
         raise R4SidecarError(f"B0 report artifact not found: {report_path}")
     if not journal_path.is_file():
         raise R4SidecarError(f"B0 journal artifact not found: {journal_path}")
-    report_bytes = report_path.read_bytes()
     try:
+        report_bytes = report_path.read_bytes()
         report = json.loads(report_bytes)
     except json.JSONDecodeError as exc:
         raise R4SidecarError(f"B0 report is not valid JSON: {exc}") from None
+    except (OSError, ValueError, RecursionError) as exc:
+        # Codex #1211 P2 (+ Fable adjacency): the governed-file ingress can raise BEYOND
+        # JSONDecodeError, BEFORE _inert_snapshot's typed guards run — a read fault (OSError), a JSON
+        # integer exceeding the active int<->str digit limit (ValueError), invalid UTF-8
+        # (UnicodeDecodeError, a ValueError subclass), or excessive nesting (RecursionError). Totalize
+        # the read+decode seam so the production file ingress cannot leak a raw exception into the C1
+        # precondition path. type(exc).__name__ never renders an untrusted value.
+        raise R4SidecarError(
+            f"B0 report could not be read or decoded ({type(exc).__name__})") from None
     if not isinstance(report, dict):
         raise R4SidecarError("B0 report root is not a JSON object")
     published = report.get("published_digest")
