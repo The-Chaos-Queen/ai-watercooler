@@ -2088,3 +2088,43 @@ def test_rev13_fsencode_unencodable_path_is_a_typed_refusal(tmp_path, monkeypatc
                         lambda p: (_ for _ in ()).throw(UnicodeEncodeError("utf-8", "x", 0, 1, "bad")))
     with pytest.raises(R4SidecarError, match="encodable"):
         publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+
+
+def test_rev13b_link_effect_then_error_with_inode_evidence_unavailable(tmp_path, monkeypatch):
+    # Fable P3: os.link effects the commit then raises AND inode evidence is unavailable (a stat fault,
+    # or st_ino==0 on FAT/exFAT/some SMB shares). The byte-compare fallback must still recognize the
+    # commit -> terminal reconciliation at committed_indeterminate, NOT a raw escape that strands a
+    # digest-valid C1-green artifact at the final name outside the terminal protocol.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_link = p5_r4_sidecar.os.link
+
+    def link_then_raise(src, dst):
+        real_link(src, dst)                                    # the real commit effect
+        raise OSError(errno.EIO, "effect-then-error")
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
+    monkeypatch.setattr(p5_r4_sidecar, "_same_inode", lambda a, b: False)  # inode evidence unavailable
+    result = publish_r4_sidecar(report, rec, str(out))         # must NOT raise (byte-compare fallback)
+    assert result.disposition == DISPOSITION_INDETERMINATE
+    assert out.exists()                                        # the artifact committed
+    assert list(tmp_path.glob("*.tmp")) == []                  # alias removed by the terminal machine
+
+
+def test_rev13b_link_no_effect_with_inode_unavailable_still_cleans_and_raises(tmp_path, monkeypatch):
+    # The other side of the fallback: a genuine NO-EFFECT link (target absent) with inode evidence
+    # unavailable must NOT be misread as committed — byte compare sees no target, stays native + cleans.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    monkeypatch.setattr(p5_r4_sidecar.os, "link",
+                        lambda src, dst: (_ for _ in ()).throw(OSError(errno.EIO, "no effect")))
+    monkeypatch.setattr(p5_r4_sidecar, "_same_inode", lambda a, b: False)
+    with pytest.raises(OSError):
+        publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert list(tmp_path.glob("*.tmp")) == []
+    assert not (tmp_path / "r4.json").exists()

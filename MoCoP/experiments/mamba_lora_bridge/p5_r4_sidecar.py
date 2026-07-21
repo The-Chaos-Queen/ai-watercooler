@@ -1660,16 +1660,34 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
 
 
 def _same_inode(a: Path, b: Path) -> bool:
-    """True iff ``a`` and ``b`` currently name the SAME filesystem inode (Codex #1213 P1). A committed
-    hard link shares the staged temp's inode, so this reconciles an ambiguous ``os.link`` effect-then-
-    error: if the final name is our staged inode, the commit HAPPENED even though the call raised. Any
-    stat failure (or a platform that reports inode 0) reads as 'not our inode' — fail closed to a
-    non-committed classification, which cleans the temp and stays non-authorizing."""
+    """True iff ``a`` and ``b`` currently name the SAME filesystem inode. A committed hard link shares
+    the staged temp's inode. A stat failure, or a platform that reports inode 0 (FAT/exFAT, some SMB
+    shares), makes inode evidence UNAVAILABLE — returns False here, and the caller falls back to a byte
+    compare rather than misclassifying an effected commit as no-effect."""
     try:
         sa, sb = os.stat(str(a)), os.stat(str(b))
     except OSError:
         return False
     return sa.st_ino != 0 and sa.st_ino == sb.st_ino and sa.st_dev == sb.st_dev
+
+
+def _link_committed(final: Path, tmp: Path, committed: bytes) -> bool:
+    """Did an ambiguous ``os.link`` actually commit our staged bytes to ``final``? (Codex #1213 P1;
+    Fable P3 — inode evidence can be UNAVAILABLE.)
+
+    Inode identity is the primary evidence (a committed hard link shares ``tmp``'s inode). When it is
+    unavailable — a stat fault, or ``st_ino == 0`` — fall back to a byte compare of the final name
+    against the staged bytes: equal bytes are commit evidence as strong as the inode. Only a truly
+    ABSENT target (read raises) or a PROVABLY FOREIGN one (a no-replace winner whose bytes differ) is a
+    no-effect/foreign failure that must stay non-authorizing and clean the temp. Without the byte
+    fallback, an effected-then-raised link on an ``st_ino == 0`` volume was misclassified as no-effect,
+    stranding a digest-valid C1-green artifact at ``final`` outside the terminal protocol."""
+    if _same_inode(final, tmp):
+        return True
+    try:
+        return final.read_bytes() == committed
+    except OSError:
+        return False
 
 
 def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
@@ -1739,7 +1757,10 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
     # Codex #1213 P1: os.link is EFFECTFUL — an effect-then-error can create the final inode AND raise.
     # So the commit sits INSIDE the transaction: reconcile by inode, and an ambiguous commit enters the
     # terminal flow at no better than committed_indeterminate rather than escaping with a live alias.
-    commit_effected = False
+    # Control flow: the terminal machine below is reached IFF no exception propagates out of this
+    # transaction. A propagating exception (pre-commit fault, or a definite no-effect/foreign link) is a
+    # non-commit that the handler cleans and re-raises. link_ambiguous distinguishes a committed-but-the-
+    # call-raised outcome so the terminal machine starts at committed_indeterminate.
     link_ambiguous = False
     try:
         try:
@@ -1751,24 +1772,25 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
             raise R4SidecarError("staged sidecar bytes did not verify before commit")
         try:
             os.link(str(tmp), str(sidecar_path))            # COMMIT — no-replace
-            commit_effected = True
         except OSError:
-            # Ambiguous: the link may have created the final name THEN raised. Reconcile by inode — a
-            # hard link shares tmp's inode. If the final name IS our staged inode, the commit HAPPENED,
-            # so do NOT escape: fall into the terminal flow at indeterminate. A foreign no-replace
-            # winner or a definite no-effect failure is a native operational OSError (re-raised below
-            # after the temp is cleaned), and remains non-authorizing.
-            if _same_inode(sidecar_path, tmp):
-                commit_effected = True
+            # Ambiguous: the link may have created the final name THEN raised. Reconcile by inode, with a
+            # byte-compare fallback when inode evidence is unavailable (Fable P3). If the commit
+            # HAPPENED, do NOT escape: fall into the terminal flow at indeterminate. A definite no-effect
+            # or a provably-foreign no-replace winner is a native operational OSError (re-raised below
+            # after the temp is cleaned) and remains non-authorizing.
+            if _link_committed(sidecar_path, tmp, committed):
                 link_ambiguous = True
             else:
                 raise
     except BaseException:
-        if not commit_effected:
-            try:
-                tmp.unlink()                                # best-effort temp cleanup on every failed path
-            except OSError:
-                pass
+        # Best-effort temp cleanup on EVERY exit through here — UNCONDITIONAL (Fable async nit): a
+        # KeyboardInterrupt delivered after a commit but before the terminal machine would otherwise
+        # leave the writable alias alive next to the committed artifact. Unlinking tmp removes only the
+        # alias NAME (the final name persists on its own link), so it is safe in both states.
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
         raise
 
     # ---- F4 (Codex #1183/#1187/#1213): a non-throwing terminal state machine, ordered alias-FIRST.
