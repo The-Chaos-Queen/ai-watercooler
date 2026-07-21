@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-21 09:45 +02:00
+Last updated: 2026-07-21 09:54 +02:00
 
 ## Standing Directive
 
@@ -88,8 +88,9 @@ remember which artifact should be updated.
   direction artifact exists yet.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
-- #155 item 5 rev 11 (`899f58d`) is exact-source `CHANGES`; canon:
-  `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md`. Both rev-10 P1s
+- #155 item 5 rev 11 (`899f58d`) is exact-source `CHANGES`; canon
+  `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md` at `b3f29b4`,
+  Watercooler #1211, Taskboard event #813. Both rev-10 P1s
   are closed: poisoned exact paths refuse before callbacks, and all supported
   directory open/sync/close faults downgrade while unsupported capability does
   not. Direct huge ints, malformed eligible roots/elements/duplicates, and
@@ -136,5 +137,6 @@ remember which artifact should be updated.
   the infrastructure owners; do not deploy the public staging tree implicitly.
 - Session 02 (`CHEESE_Memory/session_logs/2026-07-21-session-02.md`) contains
   #155 rev-11 exact-source evidence and independent reproductions. Session 01
-  retains the rev-10 findings and tracking. Keep this file concise by replacing
-  stale state.
+  retains the rev-10 findings and tracking. Session 02 is ingested in Qdrant as
+  11 chunks (collection total 34,607). Keep this file concise by replacing stale
+  state.

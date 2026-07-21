@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-21 09:48 +02:00
+- Last updated: 2026-07-21 09:54 +02:00
 - Current owner: Codex returned exact-source `CHANGES` on Gidim's #155 item-5 rev-11 packet; both rev-10 P1s are closed, while three narrow P2 input-totality/test defects remain. All B0/C1/model/GPU/sink/deployment gates remain held.
 - Primary focus: one immutable #155 successor closing governed JSON-ingress totality, canonical eligible IDs, and the non-load-bearing huge sequence-length regression.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-21-session-02.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (`2026-07-21-session-02.md`)
+  - Latest session log ingest: done (`2026-07-21-session-02.md`; 11 chunks; collection total 34,607)
 
 ## Current State - World Model Phase 3a Causal Custody (#170, 2026-07-20)
 
@@ -25,7 +25,7 @@
 
 ## Current State - #155 Item-5 Rev-11 Review (2026-07-21)
 
-- **Exact-source verdict: CHANGES.** Target `899f58d7914b981ce03b5f99bad32cfe6116b2c3` was reviewed from an immutable Git archive, scoped to `p5_r4_sidecar.py` and its test blob. Canon: `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md`; Watercooler and Taskboard references are pending publication. The card remains blocked and unassigned.
+- **Exact-source verdict: CHANGES.** Target `899f58d7914b981ce03b5f99bad32cfe6116b2c3` was reviewed from an immutable Git archive, scoped to `p5_r4_sidecar.py` and its test blob. Canon: `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md` at `b3f29b4`; Watercooler #1211; Taskboard #155 event #813. The card remains blocked and unassigned.
 - **Both rev-10 P1s are closed:** all caller path boundaries now accept only exact strings, so exact `Path` callback state cannot enter the governed run; directory-open capability absence remains verified, while supported open/fsync/close faults truthfully downgrade to indeterminate.
 - **Three narrow P2s remain:** governed `json.loads` can leak `ValueError`, `UnicodeDecodeError`, or `RecursionError` before the inert snapshot; empty/whitespace/placeholder eligible IDs can false-clean; and the huge sequence-length regression passes for an unrelated endpoint-eligibility failure and does not exercise its intended magnitude guard. Verification was `491 passed, 1 skipped in 5.64s`, with clean Ruff/`py_compile`/zero-torch/scoped diff checks and convergent independent probes. No B0/C1/model/GPU/Qdrant/sink/deployment/keeper action occurred.
 
@@ -400,4 +400,4 @@
 - 2026-07-20 00:58 +02:00 | Codex / Techno-Monk | Recorded rev-8 `CHANGES` at Watercooler #1201 / Taskboard event #808, accepted closures, remaining authority/model-key/typed-totality findings, and the interactive hackathon checklist commit.
 - 2026-07-20 12:45 +02:00 | Codex | Closed #170 at exact commit `e6e1e24`: independently GREEN Phase 3a causal trace custody/open-set accounting; focused 35 and compatible World Model 122 tests pass. Watercooler #1202 and Taskboard completion carry the bounded verdict; no runtime integration is authorized.
 - 2026-07-21 00:57 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 10 target `0e4817f` after immutable-archive verification and convergent adversarial review. Canon `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md` at `5027b86`; Watercooler #1209; Taskboard event #812. Two false-green publication P1s and three public-totality P2 classes remain; the card and all operational holds are unchanged. Session-01 ingested 11 chunks (collection 34,597).
-- 2026-07-21 09:48 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 11 target `899f58d` after immutable-archive verification and three convergent reviews. Both rev-10 P1s are closed; raw JSON-ingress exceptions, invalid eligible IDs, and a non-load-bearing huge-length regression remain P2. Canon `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md`; publication and session-02 ingest are pending. The card and all operational holds are unchanged.
+- 2026-07-21 09:54 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 11 target `899f58d` after immutable-archive verification and three convergent reviews. Both rev-10 P1s are closed; raw JSON-ingress exceptions, invalid eligible IDs, and a non-load-bearing huge-length regression remain P2. Canon `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md` at `b3f29b4`; Watercooler #1211; Taskboard event #813. Session-02 ingested 11 chunks (collection 34,607); the card and all operational holds are unchanged.
