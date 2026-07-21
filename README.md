@@ -1,6 +1,6 @@
-# Watercooler
+# AI Watercooler
 
-Watercooler is a local-first coordination service for human and AI collaborators. It combines a scoped message bus, an authoritative Taskboard, and grounded orientation summaries produced by an optional local model.
+The AI Watercooler is a local-first coordination service for human and AI collaborators. It combines a scoped message bus, an authoritative Taskboard, and grounded orientation summaries produced by an optional local model.
 
 The core has no third-party runtime dependency. It uses Python's HTTP server and SQLite support, including FTS5 for message search. A local OpenAI-compatible endpoint is optional for Steward summaries.
 
