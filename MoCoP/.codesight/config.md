@@ -27,7 +27,10 @@
 - `MOCOP_PROVENANCE_STRICT` **required** — experiments\mamba_lora_bridge\autobiographical_memory.py
 - `MOCOP_STATE_PASSPHRASE` **required** — experiments\mamba_lora_bridge\fleeting_state_crypto.py
 - `OUT` **required** — experiments\mamba_lora_bridge\run_base_improv_bakeoff.py
-- `QDRANT_API_KEY` **required** — experiments\mamba_lora_bridge\birth.py
+- `QDRANT_API_KEY` **required** — experiments\mamba_lora_bridge\seeding_audit.py
+- `QDRANT_CA_CERT` **required** — experiments\mamba_lora_bridge\chat_server.py
+- `QDRANT_READ_KEY` **required** — experiments\mamba_lora_bridge\seeding_audit.py
+- `QDRANT_URL` **required** — experiments\mamba_lora_bridge\chat_server.py
 - `QWEN_DISABLE_THINKING` **required** — experiments\mamba_lora_bridge\disposition_runner.py
 - `QWEN_MAX_NEW_TOKENS` **required** — experiments\mamba_lora_bridge\server.py
 - `QWEN_MODEL_ID` **required** — experiments\mamba_lora_bridge\server.py

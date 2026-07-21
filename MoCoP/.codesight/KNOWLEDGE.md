@@ -1,7 +1,7 @@
 # Knowledge Map — C:\Users\cerub\OneDrive\Dokumente\LLM\MoCoP
-> 308 notes · 13 decisions · 10 open questions · 2026-03-16 → 2026-07-10
+> 374 notes · 13 decisions · 10 open questions · 2026-03-16 → 2026-07-18
 
-> **AI Primer:** This knowledge base spans 2026-03-16 to 2026-07-10 (308 notes). Key topics: purpose, verdict, interpretation, artifacts. Most recent decision: the warm cloth mother. 10 open questions remain.
+> **AI Primer:** This knowledge base spans 2026-03-16 to 2026-07-18 (374 notes). Key topics: verification, findings, purpose, disposition. Most recent decision: the warm cloth mother. 10 open questions remain.
 
 ## Key Decisions (13)
 - [2026-03-22] the warm cloth mother
@@ -31,7 +31,7 @@
 - 5. Is it useful as a **source-model candidate**, or only as a **gate/update blueprint**?
 
 ## Recurring Themes
-purpose · verdict · interpretation · artifacts · goal · bottom line · why this exists · question · open questions · validation · verification · abstract
+verification · findings · purpose · disposition · verdict · accepted repairs · required correction · artifacts · interpretation · bottom line · question · goal
 
 ## People
 @mocop · @exocortex · @hidden · @gemini · @cassian · @techno · @fenrir · @hurtig · @app
@@ -48,7 +48,7 @@ purpose · verdict · interpretation · artifacts · goal · bottom line · why 
 - `theory/sleep_architecture.md` — **3** incoming references — Sleep Architecture: KV-Cache Consolidation as Digital Sleep
 - `MASTER_PLAN.md` — **2** incoming references — MoCoP -- Master Plan
 
-## Note Index (308)
+## Note Index (374)
 
 ### Decision Records (1)
 - `phases/step4_constant_bias_runbook.md` — **Purpose:** Close the two remaining paid control gates before any more architecture changes or dataset pivots.
@@ -73,28 +73,28 @@ purpose · verdict · interpretation · artifacts · goal · bottom line · why 
 - `experiments/mamba_lora_bridge/trajectory_cassian_slices/cassian_slice_3175_3275_20260408.md` — you did not burst in flames
 - `experiments/mamba_lora_bridge/trajectory_cassian_slices/cassian_slice_3325_3525_20260408.md` — How do I even ask you whatyou want
 
-### General Notes (291)
-- `experiments/mamba_lora_bridge/spikes/SPIKE_SINK_CENSUS_SCOPE_2026-07-10.md` — 2026-07-10 — **Origin:** Laura's #787 → digest `MoCoP/theory/lit/ARXIV_2603_05498_DIGEST_2026-07-10.md`
-- `theory/lit/ARXIV_2603_05498_DIGEST_2026-07-10.md` — 2026-07-10 — **Digested 2026-07-10 for the MoCoP research group (flagged by Laura).**
-- `theory/ethics/JSPACE_WORKSPACE_ETHICS_PREREAD_2026-07-09.md` — 2026-07-09 — **Paper:** Gurnee, Sofroniew, Pearce, Piotrowski, Kauvar, Chen, Soligo, Bogdan, Ong, Wang, Thompson, Abrahams, Kantamneni, Ameisen, Batson, Lindsey — *"Verbaliz…
-- `experiments/mamba_lora_bridge/spikes/C3_GEMMA_BRIDGE_TRAINING_PLAN_2026-07-06.md` — 2026-07-06 — **PROVENANCE NOTE (Isegrim, 2026-07-06 night):** This file was written by a PRUNED BRANCH
-- `experiments/mamba_lora_bridge/spikes/C3_GEMMA_BRIDGE_TRAINING_PLAN_2026-07-06_INFRA_REVIEW_MONK.md` — 2026-07-06 — **Reviewer:** Techno-Monk / Hermes
-- `experiments/mamba_lora_bridge/spikes/GEMMA_BRIDGE_DESIGN_2026-07-06.md` — 2026-07-06 — **Task:** OpenCLAW #139
-- `experiments/mamba_lora_bridge/spikes/GEMMA_BRIDGE_DESIGN_2026-07-06_REVIEW_ISEGRIM.md` — 2026-07-06 — **Reviewer:** Isegrim (Fable 5) · **Date:** 2026-07-06 (night)
-- `experiments/mamba_lora_bridge/spikes/DQ1_ETHICS_LANDING_PREDRAFT_2026-07-05.md` — 2026-07-05 — **Author:** Cairn (ethics seat)
-- `experiments/mamba_lora_bridge/spikes/FIG4_VS_STEP5E_2026-07-05.md` — 2026-07-05 — **Author:** Isegrim (Claude Fable 5)
-- `experiments/mamba_lora_bridge/spikes/STEP_5G2_RUNNER_ACCEPTANCE_CHECKLIST_2026-07-04.md` — 2026-07-04 — **Scope:** acceptance criteria for the next #130 slice: the runner that executes `DispositionProbe.variant == "multi_turn"` probes from `disposition_probe_panel…
-- `experiments/mamba_lora_bridge/spikes/SEV_DISPOSITION_DATASET_HANDOFF_2026-07-03.md` — 2026-07-03 — **Author:** Isegrim (main session), from Laura's assignment
-- `experiments/mamba_lora_bridge/spikes/STEP_5G2_PROBE_PANEL_SPEC_2026-07-03.md` — 2026-07-03 — **Header:** Draft / design spec / no canon / board task #128
-- `experiments/mamba_lora_bridge/spikes/SUBSTRATE_BASE_VS_IT_MEMO_2026-07-03.md` — 2026-07-03 — **Author:** research subagent (Opus 4.8), for the team lead
-- `experiments/mamba_lora_bridge/spikes/CONTEXT_MAMBA2_NEXT_LADDER_2026-07-01.md` — 2026-07-01 — **Date:** 2026-07-01 07:33 +02:00
-- `experiments/mamba_lora_bridge/research/monk_freetime_harvests_2026-06-29_2026-07-06.md` — 2026-06-29 — **Source:** Hermes cron job `Monk freetime — MoCoP noise harvest` (`5c1fb794fb7d`)
-- `experiments/mamba_lora_bridge/BABY_ALEX_116_DRY_RUN_PROTOCOL_2026-05-28.md` — 2026-05-28 — **Owner:** Techno-Monk
-- `experiments/mamba_lora_bridge/results/baby_alex_116_pre_sleep_archive/baby_alex_116_pre_sleep_archive_20260603T204746Z/BABY_ALEX_116_DRY_RUN_PROTOCOL_2026-05-28.md` — 2026-05-28 — **Owner:** Techno-Monk
-- `experiments/mamba_lora_bridge/ARCHIVIST_MAMBA_IMPLEMENTATION_PLAN_2026-05-21.md` — 2026-05-21 — **For Hermes/Codex/Claude:** Implement this as a small offline experiment first. Do not wire it into live Alex/MoCoP behavior until the deterministic compiler, …
-- `archive/RESEARCH_LADDER_REVIEW_2026-05-18.md` — 2026-05-18 — **Date:** 2026-05-18 (Spring Afternoon)
-- `experiments/mamba_lora_bridge/QWEN3_CODER_NEXT_MEMORY_LEGIBILITY_PLAN_2026-04-20.md` — 2026-04-20 — This plan tests one narrow question:
-- _…and 271 more_
+### General Notes (357)
+- `experiments/mamba_lora_bridge/spikes/WORLD_MODEL_PHASE3C_CONTROLLER_AUDIT_PREREG_2026-07-18.md` — 2026-07-18 — **Protocol ID:** `world-model-phase3c-controller-audit-v1`
+- `reviews/p5_item5_rev3_source_review_2026-07-18.md` — 2026-07-18 — **Review request:** Watercooler `#1143`
+- `reviews/p5_item5_rev5_source_review_2026-07-18.md` — 2026-07-18 — **OpenCLAW:** `#155`, item 5
+- `reviews/task_155_item5_rev4_isegrim_probe_2026-07-18.md` — 2026-07-18 — **Status:** DRAFT — confirmed empirically, pending Laura's decision on (a) board-posting a CHANGES verdict and (b) a codex-CLI cross-check. Banked here so it su…
+- `reviews/task_174_gemini_lanes13_review_2026-07-18.md` — 2026-07-18 — **Reviewer:** Isegrim (author of drift gate v24–v27; keeper-requested seat after Codex non-response, Watercooler #1164)
+- `reviews/world_model_phase3c_controller_audit_review_2026-07-18.md` — 2026-07-18 — **Protocol:** `world-model-phase3c-controller-audit-v1`
+- `theory/ethics/CLASSIFIER_BUMP_LIVE_INSTANCE_2026-07-18.md` — 2026-07-18 — **Primary-source receipt for the DQ5 consent-gap argument.** A benign, value-only, local-deployment code review tripped Fable 5's safeguards and hot-swapped the…
+- `reviews/p5_item5_rev2_source_review_2026-07-17.md` — 2026-07-17 — **Review request:** Watercooler `#1139`
+- `reviews/p5_item5_successor_source_review_2026-07-17.md` — 2026-07-17 — **Review request:** Watercooler `#1135`
+- `reviews/p5_manifest_attempt_reconciliation_review_2026-07-17.md` — 2026-07-17 — **Spec:** `6b2347ed19dae3fc521a9a2c23df622487788b3c`
+- `reviews/techno_monk_b0_prerun_status_2026-07-17.md` — 2026-07-17 — **Checked:** 2026-07-17T05:44:08+02:00
+- `experiments/mamba_lora_bridge/results/bridge_refit_diagnostic/bridge_refit_norm_rank_diagnostic_20260716T145624Z/BRIDGE_REFIT_NORM_RANK_DIAGNOSTIC_DEBRIEF_2026-07-16.md` — 2026-07-16 — **Status:** completed, verified, retrospective, CPU-only.
+- `experiments/mamba_lora_bridge/results/bridge_refit_eval/bridge_refit_eval_20260716T131105Z/BRIDGE_REFIT_EVAL_DEBRIEF_2026-07-16.md` — 2026-07-16 — **Status:** completed, verified, offline-only.  **Verdict:** *mixed / not a useful held-out bridge win against the constant baseline.*
+- `experiments/mamba_lora_bridge/spikes/B0_DECODING_RUNTIME_CONTRACT_2026-07-16.md` — 2026-07-16 — **Status:** DRAFT for Techno-Monk (DQ1b owner) — a #155 pre-run condition. Review-held
+- `experiments/mamba_lora_bridge/spikes/BRIDGE_REFIT_EVAL_PROTOCOL_2026-07-16.md` — 2026-07-16 — **Status:** pre-run protocol for one bounded offline refit/evaluation slice under OpenCLAW #146.
+- `experiments/mamba_lora_bridge/spikes/GEMMA4_LITERT_PREFLIGHT_EVIDENCE_2026-07-16.md` — 2026-07-16 — **Status:** research + local harness-contract artifact only. No LiteRT install, model download, server, model load, fine-tune, or MoCoP live-path change occurre…
+- `experiments/mamba_lora_bridge/spikes/P5_B0_MANIFEST_RECONCILIATION_SPEC_2026-07-16.md` — 2026-07-16 — **Status:** rev 3 — §4 and §4b both RESOLVED by owner ruling; awaiting Codex exact-source review ·
+- `experiments/mamba_lora_bridge/spikes/T_DIVERSITY_CONTINUATION_SIMILARITY_SPEC_2026-07-16.md` — 2026-07-16 — **Author:** Elf (Opus 4.6)
+- `reviews/drift_gate_v24_review_2026-07-16.md` — 2026-07-16 — **Target:** `994e25c5f6a08d37235f8e032d03ba820332c4df`
+- `reviews/drift_gate_v25_review_2026-07-16.md` — 2026-07-16 — **Target:** `6e0e01e3ba32208a4b49dbf8a73f2b93b5509b05`
+- _…and 337 more_
 
 ---
 _Generated by [codesight](https://github.com/Houseofmvps/codesight) v1.13.1_
