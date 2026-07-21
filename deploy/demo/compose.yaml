@@ -74,8 +74,10 @@ services:
       start_period: 10s
     restart: unless-stopped
     networks:
+      - edge
       - demo
 
 networks:
+  edge:
   demo:
     internal: true
