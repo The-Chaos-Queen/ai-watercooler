@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-21 00:57 +02:00
+Last updated: 2026-07-21 09:45 +02:00
 
 ## Standing Directive
 
@@ -88,16 +88,17 @@ remember which artifact should be updated.
   direction artifact exists yet.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
-- #155 item 5 rev 10 (`0e4817f`) is exact-source `CHANGES`; canon:
-  `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md` at `5027b86`;
-  Watercooler #1209; Taskboard event #812. Its authority
-  closure, exact producer model shape, exact-container sanitizer, custom
-  `PathLike` refusal, and internal-only row shape are accepted. Remaining P1s:
-  exact stdlib `Path` carries mutable callback-bearing internals and can forge
-  `integrity_verified / c1=true`; directory-open durability faults are treated
-  as unsupported and remain verified. Public eligible-ID, large-int, and
-  exported-helper totality remain P2. Exact verification: 482 passed/1 skipped,
-  Ruff/compile/zero-torch/diff clean. No operational authorization follows.
+- #155 item 5 rev 11 (`899f58d`) is exact-source `CHANGES`; canon:
+  `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md`. Both rev-10 P1s
+  are closed: poisoned exact paths refuse before callbacks, and all supported
+  directory open/sync/close faults downgrade while unsupported capability does
+  not. Direct huge ints, malformed eligible roots/elements/duplicates, and
+  helper privatization are accepted. Remaining P2s: governed `json.loads`
+  leaks conversion/encoding/nesting exceptions before sanitization, an empty
+  eligible ID false-cleans, and the huge sequence-length regression passes for
+  an unrelated eligibility error when its guard is removed. Verification:
+  491 passed/1 skipped plus clean Ruff/compile/zero-torch/diff checks. No
+  operational authorization follows.
 - Taskboard #174 final target `70293e2` is `CHANGES` by exact-source verdict of
   record. Canon:
   `MoCoP/reviews/drift_gate_task174_final_source_review_2026-07-18.md`;
@@ -117,11 +118,11 @@ remember which artifact should be updated.
   protocol. Preserve `not_executed` versus `execution_unknown`, raw novel
   outcomes in the scoring denominator, and externally anchored journal-head
   custody; do not collapse #171 or #173 into #170.
-- Review only a new immutable #155 item-5 repair that preserves rev 10's
-  accepted authority/exact-container closures, accepts only exact strings at
-  caller path boundaries, downgrades every supported-platform directory-open
-  or sync fault, and totalizes the supported public helper contracts. Do not
-  run B0/C1 from a green unit suite.
+- Review only a narrow immutable #155 item-5 successor that preserves all rev-11
+  P1 and accepted P2 closures, translates governed JSON conversion/encoding/
+  nesting failures, rejects invalid standalone eligible IDs, and makes the huge
+  sequence-length regression exercise the intended integer guard. Do not run
+  B0/C1 from a green unit suite.
 - Review only a new immutable #174 successor that preserves the six accepted
   fixes and carries the ratified protocol, provenance-bearing calibration,
   mandatory cross-audit judge authority, closed numeric domains, and honest
@@ -133,8 +134,7 @@ remember which artifact should be updated.
   the strict commit reviewer into a free-form task executor.
 - Rotate the internal dispatcher token before expiry and resolve #1160 through
   the infrastructure owners; do not deploy the public staging tree implicitly.
-- Session 01 (`CHEESE_Memory/session_logs/2026-07-21-session-01.md`) contains
-  #155 rev-10 exact-source evidence, independent reproductions, tracking, and
-  bounded disposition; 11 chunks are synced to Qdrant (collection total
-  34,597). The 2026-07-20 logs retain #170 and rev-8 history. Keep this file
-  concise by replacing stale state.
+- Session 02 (`CHEESE_Memory/session_logs/2026-07-21-session-02.md`) contains
+  #155 rev-11 exact-source evidence and independent reproductions. Session 01
+  retains the rev-10 findings and tracking. Keep this file concise by replacing
+  stale state.

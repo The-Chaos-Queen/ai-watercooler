@@ -630,3 +630,22 @@ evidence supports that promotion.
   to deliver a promised guarantee.
 - Evidence: target `0e4817f`; `p5_b0_run.py:968-975` reference behavior;
   `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md`.
+
+## 2026-07-21 - The Parser Is Part Of The Untrusted Boundary
+
+- Status: active engineering lesson
+- Domain: structured input / typed refusal / regression quality
+- Conditions: a public file seam parses raw bytes and only then applies a
+  strict owned-object sanitizer.
+- Finding: #155 rev 11 correctly bounded already-materialized Python integers,
+  but `json.loads()` raised raw digit-limit, encoding, and nesting exceptions
+  before the sanitizer could run. One regression also asserted only the final
+  exception class and remained green through an unrelated eligibility failure
+  after its intended integer guard was removed.
+- Lesson: parsing is the first validation stage, not a neutral precursor. Map
+  parser conversion, encoding, and resource-shape failures into the boundary's
+  typed error contract. Mutation-sensitive tests must assert the intended
+  diagnostic or state transition and shape fixtures so no earlier independent
+  rejection can satisfy the test.
+- Evidence: target `899f58d`; Watercooler request #1210;
+  `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md`.
