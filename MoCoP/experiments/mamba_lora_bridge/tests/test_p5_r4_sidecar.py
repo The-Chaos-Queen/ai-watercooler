@@ -2090,11 +2090,13 @@ def test_rev13_fsencode_unencodable_path_is_a_typed_refusal(tmp_path, monkeypatc
         publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
 
 
-def test_rev13b_link_effect_then_error_with_inode_evidence_unavailable(tmp_path, monkeypatch):
-    # Fable P3: os.link effects the commit then raises AND inode evidence is unavailable (a stat fault,
-    # or st_ino==0 on FAT/exFAT/some SMB shares). The byte-compare fallback must still recognize the
-    # commit -> terminal reconciliation at committed_indeterminate, NOT a raw escape that strands a
-    # digest-valid C1-green artifact at the final name outside the terminal protocol.
+# =========================================================================== #
+# rev14 (wolf-Codex #1215) - 3-state link identity + async window + coverage.   #
+# =========================================================================== #
+def test_rev14_p1_link_unknown_identity_reaches_indeterminate_not_escaped(tmp_path, monkeypatch):
+    # Codex #1215 P1: when os.link effects the commit then raises AND identity is UNAVAILABLE (stat
+    # fault / st_ino==0), the outcome is UNKNOWN - it must reach a non-authorizing terminal disposition,
+    # NOT escape past a possibly-committed green artifact.
     import errno
     import p5_r4_sidecar
     report = _sealed_report(n=4)
@@ -2107,24 +2109,186 @@ def test_rev13b_link_effect_then_error_with_inode_evidence_unavailable(tmp_path,
         raise OSError(errno.EIO, "effect-then-error")
 
     monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
-    monkeypatch.setattr(p5_r4_sidecar, "_same_inode", lambda a, b: False)  # inode evidence unavailable
-    result = publish_r4_sidecar(report, rec, str(out))         # must NOT raise (byte-compare fallback)
-    assert result.disposition == DISPOSITION_INDETERMINATE
-    assert out.exists()                                        # the artifact committed
-    assert list(tmp_path.glob("*.tmp")) == []                  # alias removed by the terminal machine
+    monkeypatch.setattr(p5_r4_sidecar, "_classify_link_outcome",
+                        lambda f, t: p5_r4_sidecar._LINK_UNKNOWN)   # identity unavailable
+    result = publish_r4_sidecar(report, rec, str(out))         # must NOT raise
+    assert result.disposition == DISPOSITION_INDETERMINATE     # unknown -> non-authorizing, never verified
+    assert out.exists()
+    assert list(tmp_path.glob("*.tmp")) == []                  # alias removed
 
 
-def test_rev13b_link_no_effect_with_inode_unavailable_still_cleans_and_raises(tmp_path, monkeypatch):
-    # The other side of the fallback: a genuine NO-EFFECT link (target absent) with inode evidence
-    # unavailable must NOT be misread as committed — byte compare sees no target, stays native + cleans.
+def test_rev14_p1_link_committed_identity_reaches_indeterminate(tmp_path, monkeypatch):
+    # Confirmed-same identity on an effect-then-error link -> committed_indeterminate, alias removed.
     import errno
     import p5_r4_sidecar
     report = _sealed_report(n=4)
     rec = _build(report, agree=True)
-    monkeypatch.setattr(p5_r4_sidecar.os, "link",
-                        lambda src, dst: (_ for _ in ()).throw(OSError(errno.EIO, "no effect")))
-    monkeypatch.setattr(p5_r4_sidecar, "_same_inode", lambda a, b: False)
+    out = tmp_path / "r4.json"
+    real_link = p5_r4_sidecar.os.link
+
+    def link_then_raise(src, dst):
+        real_link(src, dst)
+        raise OSError(errno.EIO, "effect-then-error")
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)  # real _classify sees same inode
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INDETERMINATE
+    assert out.exists()
+    assert list(tmp_path.glob("*.tmp")) == []
+
+
+def test_rev14_p2_foreign_byte_identical_winner_is_not_attributed(tmp_path, monkeypatch):
+    # Codex #1215 P2: a FOREIGN no-replace winner (different inode) with BYTE-IDENTICAL content must NOT
+    # be attributed to this call. Confirmed-different identity is a definite NOT_COMMITTED -> native
+    # OSError, our temp cleaned, no R4PublishResult (no false publication custody).
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+
+    def foreign_winner(src, dst):
+        # a SEPARATE inode at the final name whose bytes equal our staged bytes, then EEXIST
+        pathlib.Path(dst).write_bytes(pathlib.Path(src).read_bytes())
+        raise OSError(errno.EEXIST, "foreign winner")
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", foreign_winner)
+    with pytest.raises(OSError):                               # confirmed-different inode -> native raise
+        publish_r4_sidecar(report, rec, str(out))
+    assert list(tmp_path.glob("*.tmp")) == []                  # our temp cleaned
+
+
+def test_rev14_p1_unknown_with_unavailable_readback_stays_indeterminate(tmp_path, monkeypatch):
+    # Codex #1215 P1/P2: a failed final readback after an ambiguous/unknown commit is NOT proof of
+    # failure - the disposition stays outcome_unknown/indeterminate, never disp_failed-as-proof.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_link = p5_r4_sidecar.os.link
+
+    def link_then_raise(src, dst):
+        real_link(src, dst)
+        raise OSError(errno.EIO, "effect-then-error")
+
+    real_read = p5_r4_sidecar.Path.read_bytes
+
+    def read_final_faults(self):
+        if str(self) == str(out):                              # the definitive final readback faults
+            raise OSError(errno.EIO, "transient read fault")
+        return real_read(self)
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
+    monkeypatch.setattr(p5_r4_sidecar, "_classify_link_outcome",
+                        lambda f, t: p5_r4_sidecar._LINK_UNKNOWN)
+    monkeypatch.setattr(p5_r4_sidecar.Path, "read_bytes", read_final_faults)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INDETERMINATE     # NOT disp_failed
+
+
+def test_rev14_p1_keyboardinterrupt_after_link_leaves_no_alias(tmp_path, monkeypatch):
+    # Codex #1215 P1: a KeyboardInterrupt right after the commit must not leave the writable same-inode
+    # alias alive. The try/finally removes it even though KI is not an OSError.
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_link = p5_r4_sidecar.os.link
+
+    def link_then_interrupt(src, dst):
+        real_link(src, dst)                                    # the real commit
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        publish_r4_sidecar(report, rec, str(out))
+    assert out.exists()                                        # committed
+    assert list(tmp_path.glob("*.tmp")) == []                  # writable alias removed by the finally
+
+
+def test_rev14_p1_keyboardinterrupt_in_terminal_unlink_leaves_no_alias(tmp_path, monkeypatch):
+    # Codex #1215 P1: a KeyboardInterrupt DURING the terminal alias-unlink (inside the terminal machine,
+    # after a normal commit) must still not strand the alias - the finally covers the terminal region too.
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_unlink = p5_r4_sidecar.Path.unlink
+    fired = {"n": 0}
+
+    def unlink_interrupt_once(self, *a, **k):
+        if str(self).endswith(".tmp") and fired["n"] == 0:     # the terminal alias-unlink, once
+            fired["n"] += 1
+            raise KeyboardInterrupt                             # signal delivered once
+        return real_unlink(self, *a, **k)
+
+    monkeypatch.setattr(p5_r4_sidecar.Path, "unlink", unlink_interrupt_once)
+    with pytest.raises(KeyboardInterrupt):
+        publish_r4_sidecar(report, rec, str(out))
+    assert out.exists()
+    assert list(tmp_path.glob("*.tmp")) == []                  # finally's unlink cleaned the alias
+
+
+def test_rev14_p2_producer_ids_pass_a_full_endpoint_comparison(tmp_path):
+    # Codex #1215 P2: pin the CHANGED endpoint predicate - a non-empty comparison with 'todo'/'none'
+    # endpoints must pass validate_comparison AND build_r4_sidecar (an empty comparison never exercises
+    # the endpoint predicate, so reverting the endpoint lines to is_unset would otherwise stay green).
+    report = _sealed_report(n=2, ids=["none", "todo"])
+    rows, agg = _comparison(["none", "todo"], agree=True)      # one row: endpoints none/todo
+    r = validate_comparison(rows, agg, eligible_probe_ids=["none", "todo"])
+    assert r == [], r                                          # endpoints accepted
+    rec = build_r4_sidecar(_manifest(report, _L), sealed_report=report, per_pair=rows, aggregate=agg)
+    assert len(rec.output_digest) == 64
+
+
+def test_rev14_p2_governed_read_oserror_stays_native(tmp_path, monkeypatch):
+    # Codex #1215 P2: a report/journal READ OSError is OPERATIONAL and must stay native (NOT converted
+    # to a structural R4SidecarError). Only DECODE failures are typed.
+    import errno
+    import p5_r4_sidecar
+    rp, jp = _write_governed_report_ok(tmp_path)
+    jp.write_text("", encoding="utf-8")
+    real_read = p5_r4_sidecar.Path.read_bytes
+
+    def read_report_faults(self):
+        if str(self) == str(rp):
+            raise OSError(errno.EIO, "transient read fault")
+        return real_read(self)
+
+    monkeypatch.setattr(p5_r4_sidecar.Path, "read_bytes", read_report_faults)
+    with pytest.raises(OSError) as ei:
+        p5_r4_sidecar._load_governed_report(str(rp), str(jp))
+    assert not isinstance(ei.value, R4SidecarError)            # native, not structural
+
+
+def test_rev14_p2_staging_fsync_fault_cleans_temp(tmp_path, monkeypatch):
+    # Codex #1215 P2: pin the staging os.fsync fault path - native OSError, temp cleaned.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    monkeypatch.setattr(p5_r4_sidecar.os, "fsync",
+                        lambda fd: (_ for _ in ()).throw(OSError(errno.EIO, "fsync fault")))
     with pytest.raises(OSError):
         publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
     assert list(tmp_path.glob("*.tmp")) == []
-    assert not (tmp_path / "r4.json").exists()
+
+
+def test_rev14_p2_staging_readback_oserror_cleans_temp(tmp_path, monkeypatch):
+    # Codex #1215 P2: pin the staging readback OSError path - native OSError, temp cleaned.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    real_read = p5_r4_sidecar.Path.read_bytes
+
+    def read_tmp_faults(self):
+        if str(self).endswith(".tmp"):
+            raise OSError(errno.EIO, "staged readback fault")
+        return real_read(self)
+
+    monkeypatch.setattr(p5_r4_sidecar.Path, "read_bytes", read_tmp_faults)
+    with pytest.raises(OSError):
+        publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert list(tmp_path.glob("*.tmp")) == []
