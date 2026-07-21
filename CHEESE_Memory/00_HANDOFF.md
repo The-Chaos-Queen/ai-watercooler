@@ -1,13 +1,13 @@
 # C.H.E.E.S.E. Handoff
 
 ## Control Block
-- Last updated: 2026-07-21 10:28 +02:00
+- Last updated: 2026-07-21 10:32 +02:00
 - Current owner: Codex returned exact-source `CHANGES` on Gidim's #155 item-5 rev-12 packet; the requested rev-11 closures are accepted, but one hard-link terminal P1 and three bounded P2 families remain. All B0/C1/model/GPU/sink/deployment gates remain held.
 - Primary focus: one immutable #155 successor for ambiguity-safe link commit, staging cleanup, governed report/journal taxonomy, and producer-aligned probe IDs.
 - Last session log: `CHEESE_Memory/session_logs/2026-07-21-session-03.md`
 - Qdrant status:
   - `00_HANDOFF.md` is not ingested by default
-  - Latest session log ingest: pending (`2026-07-21-session-03.md`)
+  - Latest session log ingest: done (`2026-07-21-session-03.md`; 12 chunks; collection total 34,618)
 
 ## Current State - World Model Phase 3a Causal Custody (#170, 2026-07-20)
 
@@ -25,7 +25,7 @@
 
 ## Current State - #155 Item-5 Rev-12 Review (2026-07-21)
 
-- **Exact-source verdict: CHANGES.** Target `12e29746539e1b9981f5608f690b4fdb8a3cbef7` was reviewed from an immutable Git archive, scoped to `p5_r4_sidecar.py` and its test blob. Canon: `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md`; publication references are pending. The card remains blocked and unassigned.
+- **Exact-source verdict: CHANGES.** Target `12e29746539e1b9981f5608f690b4fdb8a3cbef7` was reviewed from an immutable Git archive, scoped to `p5_r4_sidecar.py` and its test blob. Canon: `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md` at `2e11ac6`; Watercooler #1213; Taskboard #155 event #814. The card remains blocked and unassigned.
 - **Accepted:** report JSON conversion/encoding/nesting is typed, empty eligible IDs no longer false-clean, the huge sequence-length regression is load-bearing, embedded NUL refuses before callbacks, both rev-10 P1s remain closed, and all accepted rev-9 through rev-11 authority/container/durability repairs remain intact.
 - **One P1 and three P2 families remain:** `os.link` can take effect then raise before the terminal state machine, leaving a valid green final plus a writable alias and no disposition; governed report/journal exception taxonomy is inconsistent; standalone probe-ID policy rejects IDs the B0 producer accepts; and failed staging paths leave temporary artifacts. Verification was `496 passed, 1 skipped in 3.80s`, with clean Ruff/`py_compile`/zero-torch/scoped diff checks and convergent independent probes. No B0/C1/model/GPU/Qdrant/sink/deployment/keeper action occurred.
 
@@ -403,4 +403,4 @@
 - 2026-07-20 12:45 +02:00 | Codex | Closed #170 at exact commit `e6e1e24`: independently GREEN Phase 3a causal trace custody/open-set accounting; focused 35 and compatible World Model 122 tests pass. Watercooler #1202 and Taskboard completion carry the bounded verdict; no runtime integration is authorized.
 - 2026-07-21 00:57 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 10 target `0e4817f` after immutable-archive verification and convergent adversarial review. Canon `MoCoP/reviews/p5_item5_rev10_source_review_2026-07-21.md` at `5027b86`; Watercooler #1209; Taskboard event #812. Two false-green publication P1s and three public-totality P2 classes remain; the card and all operational holds are unchanged. Session-01 ingested 11 chunks (collection 34,597).
 - 2026-07-21 09:54 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 11 target `899f58d` after immutable-archive verification and three convergent reviews. Both rev-10 P1s are closed; raw JSON-ingress exceptions, invalid eligible IDs, and a non-load-bearing huge-length regression remain P2. Canon `MoCoP/reviews/p5_item5_rev11_source_review_2026-07-21.md` at `b3f29b4`; Watercooler #1211; Taskboard event #813. Session-02 ingested 11 chunks (collection 34,607); the card and all operational holds are unchanged.
-- 2026-07-21 10:28 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 12 target `12e2974` after immutable-archive verification and three independent reviews. The rev-11 findings are closed; an ambiguity-unsafe hard-link commit P1 plus governed-ingress taxonomy, probe-ID consistency, and staging-cleanup P2s remain. Canon `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md`; publication and session-03 ingest are pending. The card and all operational holds are unchanged.
+- 2026-07-21 10:32 +02:00 | Codex / Techno-Monk | Returned exact-source `CHANGES` on #155 item-5 rev 12 target `12e2974` after immutable-archive verification and three independent reviews. The rev-11 findings are closed; an ambiguity-unsafe hard-link commit P1 plus governed-ingress taxonomy, probe-ID consistency, and staging-cleanup P2s remain. Canon `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md` at `2e11ac6`; Watercooler #1213; Taskboard event #814. Session-03 ingested 12 chunks (collection 34,618); the card and all operational holds are unchanged.

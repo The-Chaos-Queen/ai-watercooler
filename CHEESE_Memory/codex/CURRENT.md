@@ -1,6 +1,6 @@
 # Codex Current Memory
 
-Last updated: 2026-07-21 10:28 +02:00
+Last updated: 2026-07-21 10:32 +02:00
 
 ## Standing Directive
 
@@ -88,8 +88,9 @@ remember which artifact should be updated.
   direction artifact exists yet.
 - #156's manifest/attempt reconciliation packet remains GREEN at Watercooler
   #1122 and clears only that contract.
-- #155 item 5 rev 12 (`12e2974`) is exact-source `CHANGES`; canon:
-  `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md`. The three #1211
+- #155 item 5 rev 12 (`12e2974`) is exact-source `CHANGES`; canon
+  `MoCoP/reviews/p5_item5_rev12_source_review_2026-07-21.md` at `2e11ac6`,
+  Watercooler #1213, Taskboard event #814. The three #1211
   defects and embedded-NUL path escape are closed, and both rev-10 P1 closures
   remain intact. A new P1 remains at the hard-link boundary: an effect-then-
   error link can leave a digest-valid C1-green final plus its writable alias
@@ -136,5 +137,5 @@ remember which artifact should be updated.
   the infrastructure owners; do not deploy the public staging tree implicitly.
 - Session 03 (`CHEESE_Memory/session_logs/2026-07-21-session-03.md`) contains
   #155 rev-12 exact-source evidence and the ambiguous-link reproduction.
-  Session 02 retains rev-11 evidence and is ingested in Qdrant as 11 chunks
-  (collection total 34,607). Keep this file concise by replacing stale state.
+  It is ingested in Qdrant as 12 chunks (collection total 34,618). Session 02
+  retains the rev-11 evidence. Keep this file concise by replacing stale state.
