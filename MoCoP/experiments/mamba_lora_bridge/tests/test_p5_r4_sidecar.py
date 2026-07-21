@@ -2327,13 +2327,14 @@ def test_rev15_p2_producer_ids_pass_a_full_endpoint_comparison(tmp_path):
 
 def test_rev15_p2_governed_report_and_journal_read_oserror_stays_native(tmp_path, monkeypatch):
     # Codex #1217 P2: report AND journal READ OSError are operational -> stay native (not structural).
+    # Both read paths are exercised (Fable rev15 F1: the rev14 single-element loop only faulted report).
     import errno
     import p5_r4_sidecar
     rp, jp = _write_governed_report_ok(tmp_path)
     jp.write_text("", encoding="utf-8")
     real_read = p5_r4_sidecar.Path.read_bytes
 
-    for target in (str(rp),):                                  # report read fault -> native
+    for target in (str(rp), str(jp)):                          # BOTH report and journal read faults
         def read_faults(self, _t=target):
             if str(self) == _t:
                 raise OSError(errno.EIO, "read fault")
@@ -2341,7 +2342,7 @@ def test_rev15_p2_governed_report_and_journal_read_oserror_stays_native(tmp_path
         monkeypatch.setattr(p5_r4_sidecar.Path, "read_bytes", read_faults)
         with pytest.raises(OSError) as ei:
             p5_r4_sidecar._load_governed_report(str(rp), str(jp))
-        assert not isinstance(ei.value, R4SidecarError)
+        assert not isinstance(ei.value, R4SidecarError), target   # native, not structural
         monkeypatch.undo()
 
 
@@ -2373,3 +2374,47 @@ def test_rev15_p2_staging_readback_oserror_cleans_temp(tmp_path, monkeypatch):
     with pytest.raises(OSError):
         publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
     assert list(tmp_path.glob("*.tmp")) == []
+
+
+def test_rev15_zero_inode_final_is_unknown(tmp_path, monkeypatch):
+    # Fable rev15 coverage: a zero-inode final (FAT/exFAT/some SMB) is identity-meaningless -> UNKNOWN.
+    import stat as _s
+    import p5_r4_sidecar
+    final = tmp_path / "r4.json"
+    real_lstat = p5_r4_sidecar.os.lstat
+
+    class _Zero:
+        st_mode = _s.S_IFREG | 0o600
+        st_ino = 0
+        st_dev = 1
+        st_nlink = 1
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "lstat",
+                        lambda p, *a, **k: _Zero() if str(p) == str(final) else real_lstat(p, *a, **k))
+    assert p5_r4_sidecar._final_origin(final, (1, 4242)) == p5_r4_sidecar._ORIGIN_UNKNOWN
+
+
+def test_rev15_readback_foreign_inode_is_integrity_failed(tmp_path, monkeypatch):
+    # Fable rev15 coverage: the identity-bound readback catches a final swapped to a DIFFERENT inode
+    # after the terminal lstat identity check (fstat on the read handle mismatches staged identity).
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_fstat = p5_r4_sidecar.os.fstat
+    calls = {"n": 0}
+
+    class _Foreign:
+        def __init__(self, st):
+            self.st_dev = st.st_dev
+            self.st_ino = st.st_ino + 9999                     # a different inode
+            self.st_nlink = 1
+
+    def fstat_wrap(fd):
+        calls["n"] += 1
+        st = real_fstat(fd)
+        return st if calls["n"] == 1 else _Foreign(st)         # staging real; readback -> foreign inode
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "fstat", fstat_wrap)
+    result = publish_r4_sidecar(report, rec, str(out))
+    assert result.disposition == DISPOSITION_INTEGRITY_FAILED

@@ -26,9 +26,17 @@ REV4 (Monk #1146 A-prime — a real model-free source seam; NO live run):
      an `integrity_verified` terminal authority.
   F4 CAPTURE-ONCE / REVALIDATE-AT-EVERY-BOUNDARY — bind/publish exact-type the record, read its
      digests once, and RE-VALIDATE the manifest+comparison semantics, not merely digest consistency.
-  F5 TRUTHFUL PUBLICATION — final-byte readback, no surviving writable hard-link alias, directory
-     durability, and an explicit integrity_verified / committed_integrity_failed /
-     committed_indeterminate disposition. Never ordinary success after an integrity/durability fault.
+  F5 TRUTHFUL PUBLICATION — fd-bound identity custody (staging identity captured from the open
+     descriptor; the final classified against it after both a normal and a raised link; our inode with
+     exactly one link; identity-bound readback), and an explicit integrity_verified /
+     committed_integrity_failed / committed_indeterminate disposition plus a publication `origin`
+     (confirmed_self / foreign / absent / unknown). Never ordinary success after an integrity/durability
+     fault, and only origin == confirmed_self with integrity_verified is a self-owned clean publication.
+     ⚠ NAMED EXTERNAL BOUNDARIES (keeper-ratified #1217): the "no surviving writable alias" guarantee and
+     foreign-replacement rejection hold against fault injection and the checked races, but NOT against an
+     arbitrary SAME-PRINCIPAL concurrent-namespace attacker, and durable interrupt/crash terminal-receipt
+     RECOVERY is not provided in-process (the try/finally is best-effort). Both mirror the project's
+     sudden-power-loss durability boundary (#170) and are non-authorizing by construction.
   SEAM — record_r4_comparison: a production-callable entry that takes GOVERNED evidence paths,
      verifies authority, runs build/bind/publish, and emits a fail-closed C1-precondition decision
      (rho < 0.7 => JSD replacement required; absent/invalid/non-integrity-verified/INCOMPLETE => no
@@ -1857,8 +1865,15 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
             try:
                 rfd = os.open(str(sidecar_path), os.O_RDONLY)  # identity-bound content readback
                 try:
-                    if _identity(os.fstat(rfd)) != staged_id:
+                    rst = os.fstat(rfd)
+                    if _identity(rst) != staged_id:
                         disposition = _A.disp_failed    # final is a different inode than we staged
+                    elif rst.st_nlink != 1:
+                        # Fable rev15 B1: re-check link count on the SAME handle used for readback — a
+                        # writable alias raced in after the earlier lstat nlink check is caught here too
+                        # (halves the window; the window itself is the same-principal-race external
+                        # boundary). fst is already in hand, so this costs nothing.
+                        disposition = _A.disp_failed
                     elif _read_all(rfd) != committed:
                         disposition = _A.disp_failed    # positive evidence of corruption
                 finally:
@@ -2013,9 +2028,12 @@ def record_r4_comparison(
     result = _publish_r4_sidecar(report, sidecar, sidecar_path, authority=_A)
     decision = _r4_decision(report, sidecar, authority=_A)
     # The seam only reports ok when authority verified, the artifact committed cleanly (a downgraded
-    # disposition is NOT ok), AND the precondition permits C1. Fail-closed on everything else. The
+    # disposition is NOT ok), the publication is SELF-OWNED (origin confirmed_self — Fable rev15 D: make
+    # the verified⟹confirmed_self invariant explicit at the seam so a future disposition-ladder edit
+    # can't silently decouple them), AND the precondition permits C1. Fail-closed on everything else. The
     # "verified" label is the frozen one, so a rebound DISPOSITION_VERIFIED cannot make a downgraded
     # publish read as ok.
     ok = (result.disposition == _A.disp_verified
+          and result.origin == "confirmed_self"
           and bool(decision["c1_authorization_permitted"]))
     return R4RecordResult(decision=decision, publish=result, ok=ok)
