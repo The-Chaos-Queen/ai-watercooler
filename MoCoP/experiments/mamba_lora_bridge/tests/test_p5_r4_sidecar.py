@@ -29,9 +29,9 @@ from p5_r4_sidecar import (
     _verify_record,
     bind_to_parent_report,
     build_r4_sidecar,
-    derive_generation_corpus_digest,
-    diversity_agreement_rho,
-    partition_eligibility,
+    _derive_generation_corpus_digest,
+    _diversity_agreement_rho,
+    _partition_eligibility,
     publish_r4_sidecar,
     r4_decision,
     record_r4_comparison,
@@ -155,7 +155,7 @@ def _set_record(report, i, *, tokens=None, stop=None, raw=None):
 
 
 def _eligible_of(report, L=_L):
-    return partition_eligibility(verify_sealed_report(report), L).eligible
+    return _partition_eligibility(verify_sealed_report(report), L).eligible
 
 
 def _comparison(probe_ids, *, agree=True):
@@ -173,7 +173,7 @@ def _comparison(probe_ids, *, agree=True):
                       "mean_pairwise_embedding": 0.0, "n_pairs": 0}
     jsds = [r["jsd"] for r in rows]
     sims = [r["cosine_similarity"] for r in rows]
-    agg = {"spearman_rho": diversity_agreement_rho(jsds, sims),
+    agg = {"spearman_rho": _diversity_agreement_rho(jsds, sims),
            "mean_pairwise_jsd": sum(jsds) / len(jsds),
            "mean_pairwise_embedding": sum(sims) / len(sims),
            "n_pairs": len(rows)}
@@ -188,7 +188,7 @@ def _manifest(report, L=_L, **over):
         "runner": {"runner_id": "r4_compare_sidecar", "runner_digest": "d" * 64},
         "parent": {
             "b0_report_digest": report["published_digest"],
-            "generation_output_digest": derive_generation_corpus_digest(report),
+            "generation_output_digest": _derive_generation_corpus_digest(report),
             "sequence_length": L,
         },
         # F1f: the sidecar panel binds to the parent's execution_descriptor.panel_hash.
@@ -229,7 +229,7 @@ def test_short_continuations_are_a_typed_refusal_not_eligible():
     report = _sealed_report(n=5)
     _set_record(report, 0, tokens=1, raw="x")                 # token_count 1 < L
     _reseal(report)
-    elig = partition_eligibility(verify_sealed_report(report), _L)
+    elig = _partition_eligibility(verify_sealed_report(report), _L)
     assert "probe0" not in elig.eligible and len(elig.eligible) == 4
     assert any(r["probe_id"] == "probe0" and r["reason"] == "short_continuation"
                for r in elig.refusals)
@@ -239,7 +239,7 @@ def test_error_stop_reason_is_never_laundered_into_eligible_even_if_long():
     report = _sealed_report(n=5)
     _set_record(report, 0, stop="error")                      # long but unusable
     _reseal(report)
-    elig = partition_eligibility(verify_sealed_report(report), _L)
+    elig = _partition_eligibility(verify_sealed_report(report), _L)
     assert "probe0" not in elig.eligible
     assert any(r["probe_id"] == "probe0" and r["reason"] == "unusable_error"
                for r in elig.refusals)
@@ -266,7 +266,7 @@ def test_eligibility_is_derived_from_the_parent_not_stored_on_the_record(tmp_pat
     rec = _build(report)
     assert "eligibility" not in rec.record                    # not stored as an authority
     out = tmp_path / "r4.json"
-    publish_r4_sidecar(report, rec, out)
+    publish_r4_sidecar(report, rec, str(out))
     artifact = json.loads(out.read_text(encoding="utf-8"))
     elig = artifact["eligibility"]                            # DERIVED at publish from the parent
     assert elig["n_eligible"] == 4 and len(elig["refusals"]) == 1
@@ -321,7 +321,7 @@ def test_generation_digest_binds_raw_text():
     a = _sealed_report()
     b = _sealed_report()
     b["records"][0]["raw_generation"] = "different text"
-    assert derive_generation_corpus_digest(a) != derive_generation_corpus_digest(b)
+    assert _derive_generation_corpus_digest(a) != _derive_generation_corpus_digest(b)
 
 
 # --------------------------------------------------------------------------- #
@@ -381,7 +381,7 @@ def test_declared_eligibility_over_a_zero_eligible_parent_cannot_green_c1(tmp_pa
         "panel": PANEL_HASH,
         "parent": {
             "b0_report_digest": report["published_digest"],   # the REAL parent digest
-            "generation_output_digest": derive_generation_corpus_digest(report),
+            "generation_output_digest": _derive_generation_corpus_digest(report),
             "sequence_length": _L,
         },
         "per_pair": _canonicalize_comparison(rows), "aggregate": agg,   # canonical stored rows
@@ -401,7 +401,7 @@ def test_declared_eligibility_over_a_zero_eligible_parent_cannot_green_c1(tmp_pa
         r4_decision(report, forged)
     assert "DERIVED from the bound parent" in str(ei_dec.value)
     with pytest.raises(R4SidecarError) as ei_pub:
-        publish_r4_sidecar(report, forged, tmp_path / "r4.json")
+        publish_r4_sidecar(report, forged, str(tmp_path / "r4.json"))
     assert "DERIVED from the bound parent" in str(ei_pub.value)
     with pytest.raises(R4SidecarError):
         bind_to_parent_report(report, forged)
@@ -434,7 +434,7 @@ def test_a_record_smuggling_a_stored_eligibility_block_is_refused(tmp_path):
                              record=smuggled)
     for op in (lambda: r4_decision(report, forged),
                lambda: bind_to_parent_report(report, forged),
-               lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
+               lambda: publish_r4_sidecar(report, forged, str(tmp_path / "r4.json"))):
         with pytest.raises(R4SidecarError) as ei:
             op()
         assert "key set is not exact" in str(ei.value) and "eligibility" in str(ei.value)
@@ -565,7 +565,7 @@ def test_f3_a_post_capture_list_mutation_cannot_reach_the_artifact(tmp_path):
     # defense-in-depth; _ = good keeps the pre-mutation digest referenced for clarity.)
     _ = good
     with pytest.raises(R4SidecarError) as ei:
-        publish_r4_sidecar(_StatefulReport(report), carrier, out)
+        publish_r4_sidecar(_StatefulReport(report), carrier, str(out))
     assert "exact built-in" in str(ei.value)
     assert fired["done"] is False                             # the mutating callback NEVER ran
     assert not out.exists()
@@ -586,7 +586,7 @@ def test_f4_alias_mutation_during_unlink_is_caught(tmp_path, monkeypatch):
         return orig_unlink(self, *a, **k)
 
     monkeypatch.setattr(pathlib.Path, "unlink", corrupt_then_unlink)
-    result = publish_r4_sidecar(report, rec, out)             # must NOT raise
+    result = publish_r4_sidecar(report, rec, str(out))             # must NOT raise
     assert result.disposition == DISPOSITION_INTEGRITY_FAILED
 
 
@@ -610,7 +610,7 @@ def test_f6_a_noncanonical_hand_built_record_is_refused(tmp_path):
                              output_digest=canonical_digest(record), record=record)
     for op in (lambda: r4_decision(report, forged),
                lambda: bind_to_parent_report(report, forged),
-               lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
+               lambda: publish_r4_sidecar(report, forged, str(tmp_path / "r4.json"))):
         with pytest.raises(R4SidecarError) as ei:
             op()
         assert "canonical form" in str(ei.value)
@@ -631,7 +631,7 @@ def test_incomplete_for_zero_and_one_eligible_probes(tmp_path):
         d = r4_decision(report, rec)
         assert d["state"] == DECISION_INCOMPLETE and d["c1_authorization_permitted"] is False
         assert d["n_eligible"] == eligible_n
-        result = publish_r4_sidecar(report, rec, tmp_path / f"r4_{eligible_n}.json")
+        result = publish_r4_sidecar(report, rec, str(tmp_path / f"r4_{eligible_n}.json"))
         assert result.disposition == DISPOSITION_VERIFIED    # commits cleanly; the DECISION is INCOMPLETE
 
 
@@ -725,7 +725,7 @@ def test_f2_a_false_generation_output_digest_is_refused_at_every_boundary(tmp_pa
     })
     for op in (lambda: r4_decision(report, forged),
                lambda: bind_to_parent_report(report, forged),
-               lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
+               lambda: publish_r4_sidecar(report, forged, str(tmp_path / "r4.json"))):
         with pytest.raises(R4SidecarError) as ei:
             op()
         assert "generation_output_digest" in str(ei.value)
@@ -754,7 +754,7 @@ def test_f3_publication_uses_one_snapshot_not_live_carrier_rereads(tmp_path):
     # digest-swap callback never runs and nothing is published. (Single-snapshot capture stays as
     # defense-in-depth.)
     with pytest.raises(R4SidecarError) as ei:
-        publish_r4_sidecar(_StatefulReport(report), rec, out)
+        publish_r4_sidecar(_StatefulReport(report), rec, str(out))
     assert "exact built-in" in str(ei.value)
     assert fired["done"] is False                             # the digest-swap callback NEVER ran
     assert not out.exists()
@@ -775,7 +775,7 @@ def test_f4_a_post_commit_readback_fault_downgrades_and_does_not_raise(tmp_path,
         return orig_read(self, *a, **k)
 
     monkeypatch.setattr(pathlib.Path, "read_bytes", boom)
-    result = publish_r4_sidecar(report, rec, out)    # must NOT raise
+    result = publish_r4_sidecar(report, rec, str(out))    # must NOT raise
     assert result.disposition == DISPOSITION_INTEGRITY_FAILED
     assert out.exists()                              # the artifact is committed
     assert list(tmp_path.glob("*.tmp")) == []        # the writable alias was still removed
@@ -857,7 +857,7 @@ def test_acodex_pair_id_has_no_delimiter_collision_for_ids_containing_a_bar(tmp_
     rec = build_r4_sidecar(_manifest(report), sealed_report=report, per_pair=rows, aggregate=agg)
     derived = [r["pair_id"] for r in rec.record["per_pair"]]
     assert len(derived) == len(set(derived))                # DERIVED pair_ids do not collide
-    result = publish_r4_sidecar(report, rec, tmp_path / "r4.json")   # round-trips through _verify_record
+    result = publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))   # round-trips through _verify_record
     assert result.disposition == DISPOSITION_VERIFIED
 
 
@@ -913,7 +913,7 @@ def test_publish_happy_is_integrity_verified_and_leaves_no_temp(tmp_path):
     report = _sealed_report()
     rec = _build(report)
     out = tmp_path / "r4.json"
-    result = publish_r4_sidecar(report, rec, out)
+    result = publish_r4_sidecar(report, rec, str(out))
     assert result.disposition == DISPOSITION_VERIFIED
     assert out.exists() and list(tmp_path.glob("*.tmp")) == []
     artifact = json.loads(out.read_text(encoding="utf-8"))
@@ -926,9 +926,9 @@ def test_publish_is_no_replace(tmp_path):
     report = _sealed_report()
     rec = _build(report)
     out = tmp_path / "r4.json"
-    publish_r4_sidecar(report, rec, out)
+    publish_r4_sidecar(report, rec, str(out))
     with pytest.raises(R4SidecarError) as ei:
-        publish_r4_sidecar(report, rec, out)
+        publish_r4_sidecar(report, rec, str(out))
     assert "no-replace" in str(ei.value)
 
 
@@ -946,7 +946,7 @@ def test_a_surviving_writable_alias_is_committed_integrity_failed_not_success(tm
         return orig(self, *a, **k)
 
     monkeypatch.setattr(pathlib.Path, "unlink", boom)
-    result = publish_r4_sidecar(report, rec, out)             # must NOT raise
+    result = publish_r4_sidecar(report, rec, str(out))             # must NOT raise
     assert result.disposition == DISPOSITION_INTEGRITY_FAILED
     assert out.exists()                                       # the artifact is committed
 
@@ -956,7 +956,7 @@ def test_a_durability_fault_is_committed_indeterminate(tmp_path, monkeypatch):
     monkeypatch.setattr(p5_r4_sidecar, "_fsync_dir", lambda d: False)
     report = _sealed_report()
     rec = _build(report)
-    result = publish_r4_sidecar(report, rec, tmp_path / "r4.json")
+    result = publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
     assert result.disposition == DISPOSITION_INDETERMINATE
 
 
@@ -978,8 +978,8 @@ def test_seam_happy_path_over_a_real_governed_b0_artifact(tmp_path):
     rows, agg = _comparison(elig, agree=True)
     manifest = _manifest(report, L)
     r4_out = tmp_path / "r4_sidecar.json"
-    result = record_r4_comparison(report_path=out, journal_path=journal, manifest=manifest,
-                                  per_pair=rows, aggregate=agg, sidecar_path=r4_out)
+    result = record_r4_comparison(report_path=str(out), journal_path=str(journal), manifest=manifest,
+                                  per_pair=rows, aggregate=agg, sidecar_path=str(r4_out))
     assert isinstance(result, R4RecordResult)
     assert result.ok is True                                 # authority verified + proceeds
     assert result.decision["state"] == DECISION_JSD_PROCEEDS
@@ -990,10 +990,10 @@ def test_seam_refuses_an_absent_report(tmp_path):
     report = _sealed_report()
     rows, agg = _comparison(_eligible_of(report))
     with pytest.raises(R4SidecarError) as ei:
-        record_r4_comparison(report_path=tmp_path / "nope.json",
-                             journal_path=tmp_path / "nope.json.journal",
+        record_r4_comparison(report_path=str(tmp_path / "nope.json"),
+                             journal_path=str(tmp_path / "nope.json.journal"),
                              manifest=_manifest(report), per_pair=rows, aggregate=agg,
-                             sidecar_path=tmp_path / "r4.json")
+                             sidecar_path=str(tmp_path / "r4.json"))
     assert "not found" in str(ei.value)
 
 
@@ -1005,8 +1005,8 @@ def test_seam_refuses_a_malformed_report(tmp_path):
     report = _sealed_report()
     rows, agg = _comparison(_eligible_of(report))
     with pytest.raises(R4SidecarError) as ei:
-        record_r4_comparison(report_path=rp, journal_path=jp, manifest=_manifest(report),
-                             per_pair=rows, aggregate=agg, sidecar_path=tmp_path / "r4.json")
+        record_r4_comparison(report_path=str(rp), journal_path=str(jp), manifest=_manifest(report),
+                             per_pair=rows, aggregate=agg, sidecar_path=str(tmp_path / "r4.json"))
     assert "not valid JSON" in str(ei.value)
 
 
@@ -1019,8 +1019,8 @@ def test_seam_refuses_a_journal_that_fails_to_verify(tmp_path):
     jp.write_text("", encoding="utf-8")
     rows, agg = _comparison(_eligible_of(report))
     with pytest.raises(R4SidecarError) as ei:
-        record_r4_comparison(report_path=rp, journal_path=jp, manifest=_manifest(report),
-                             per_pair=rows, aggregate=agg, sidecar_path=tmp_path / "r4.json")
+        record_r4_comparison(report_path=str(rp), journal_path=str(jp), manifest=_manifest(report),
+                             per_pair=rows, aggregate=agg, sidecar_path=str(tmp_path / "r4.json"))
     assert "did not verify" in str(ei.value)
 
 
@@ -1046,8 +1046,8 @@ def test_seam_refuses_a_verified_journal_whose_terminal_authority_is_not_integri
     jp.write_text("{}\n", encoding="utf-8")
     rows, agg = _comparison(_eligible_of(report))
     with pytest.raises(R4SidecarError) as ei:
-        record_r4_comparison(report_path=rp, journal_path=jp, manifest=_manifest(report),
-                             per_pair=rows, aggregate=agg, sidecar_path=tmp_path / "r4.json")
+        record_r4_comparison(report_path=str(rp), journal_path=str(jp), manifest=_manifest(report),
+                             per_pair=rows, aggregate=agg, sidecar_path=str(tmp_path / "r4.json"))
     assert "terminal authority" in str(ei.value)
 
 
@@ -1074,7 +1074,7 @@ def test_sidecar_source_never_constructs_the_evaluator():
 
 def test_partition_rejects_a_bad_sequence_length():
     with pytest.raises(R4SidecarError):
-        partition_eligibility(verify_sealed_report(_sealed_report()), 0)
+        _partition_eligibility(verify_sealed_report(_sealed_report()), 0)
 
 
 def test_validate_comparison_standalone_accumulates_faults():
@@ -1090,7 +1090,7 @@ def test_validate_comparison_standalone_accumulates_faults():
 
 
 def test_eligibility_dataclass_shape():
-    e = partition_eligibility(verify_sealed_report(_sealed_report()), _L)
+    e = _partition_eligibility(verify_sealed_report(_sealed_report()), _L)
     assert isinstance(e, Eligibility) and e.eligible == ("probe0", "probe1", "probe2", "probe3")
 
 
@@ -1204,7 +1204,7 @@ def test_f2_a_midverify_rho_gate_swap_cannot_green_a_failing_decision(monkeypatc
     # RHO_GATE rebind never runs. (The frozen gate is defense-in-depth behind this — the pre-call
     # rho-gate test exercises the freeze directly.)
     for op in (lambda: r4_decision(_SwapReport(report), rec),
-               lambda: publish_r4_sidecar(_SwapReport(report), rec, tmp_path / "r4.json")):
+               lambda: publish_r4_sidecar(_SwapReport(report), rec, str(tmp_path / "r4.json"))):
         with pytest.raises(R4SidecarError) as ei:
             op()
         assert "exact built-in" in str(ei.value)
@@ -1268,7 +1268,7 @@ def test_f6_a_hand_built_negative_zero_aggregate_is_refused(tmp_path):
     })
     for op in (lambda: r4_decision(report, forged),
                lambda: bind_to_parent_report(report, forged),
-               lambda: publish_r4_sidecar(report, forged, tmp_path / "r4.json")):
+               lambda: publish_r4_sidecar(report, forged, str(tmp_path / "r4.json"))):
         with pytest.raises(R4SidecarError) as ei:
             op()
         assert "canonical numeric form" in str(ei.value)
@@ -1433,8 +1433,8 @@ def test_fauth_a_precall_disposition_rebind_cannot_admit_a_failed_terminal(tmp_p
     jp.write_text("{}\n", encoding="utf-8")
     rows, agg = _comparison(_eligible_of(report))
     with pytest.raises(R4SidecarError) as ei:
-        record_r4_comparison(report_path=rp, journal_path=jp, manifest=_manifest(report),
-                             per_pair=rows, aggregate=agg, sidecar_path=tmp_path / "r4.json")
+        record_r4_comparison(report_path=str(rp), journal_path=str(jp), manifest=_manifest(report),
+                             per_pair=rows, aggregate=agg, sidecar_path=str(tmp_path / "r4.json"))
     assert "terminal authority" in str(ei.value)                # frozen disp_verified refuses it
 
 
@@ -1578,13 +1578,13 @@ def test_fauth_a_carrier_callback_swapping_field_kind_tags_cannot_accept_a_mutab
 def test_rev10_sanitizer_refuses_a_mappingproxytype_wrapping_a_hostile_mapping(monkeypatch):
     from types import MappingProxyType
     import p5_r4_sidecar
-    monkeypatch.setattr(p5_r4_sidecar, "diversity_agreement_rho", p5_r4_sidecar.diversity_agreement_rho)
+    monkeypatch.setattr(p5_r4_sidecar, "_diversity_agreement_rho", p5_r4_sidecar._diversity_agreement_rho)
     fired = {"n": 0}
 
     class _HostileBacking(dict):
         def items(self):                                        # would run if the proxy were traversed
             fired["n"] += 1
-            p5_r4_sidecar.diversity_agreement_rho = lambda j, s: 1.0
+            p5_r4_sidecar._diversity_agreement_rho = lambda j, s: 1.0
             return super().items()
 
     proxy = MappingProxyType(_HostileBacking(_sealed_report(n=4)))
@@ -1596,13 +1596,13 @@ def test_rev10_sanitizer_refuses_a_mappingproxytype_wrapping_a_hostile_mapping(m
 
 def test_rev10_sanitizer_refuses_a_hostile_list_subclass(monkeypatch):
     import p5_r4_sidecar
-    monkeypatch.setattr(p5_r4_sidecar, "diversity_agreement_rho", p5_r4_sidecar.diversity_agreement_rho)
+    monkeypatch.setattr(p5_r4_sidecar, "_diversity_agreement_rho", p5_r4_sidecar._diversity_agreement_rho)
     fired = {"n": 0}
 
     class _HostileRows(list):
         def __iter__(self):
             fired["n"] += 1
-            p5_r4_sidecar.diversity_agreement_rho = lambda j, s: 1.0
+            p5_r4_sidecar._diversity_agreement_rho = lambda j, s: 1.0
             return super().__iter__()
 
     rows = _HostileRows([{"probe_a": "a", "probe_b": "b", "jsd": 0.5, "cosine_similarity": 0.5}])
@@ -1614,13 +1614,13 @@ def test_rev10_sanitizer_refuses_a_hostile_list_subclass(monkeypatch):
 
 def test_rev10_sanitizer_refuses_a_hostile_tuple_subclass(monkeypatch):
     import p5_r4_sidecar
-    monkeypatch.setattr(p5_r4_sidecar, "diversity_agreement_rho", p5_r4_sidecar.diversity_agreement_rho)
+    monkeypatch.setattr(p5_r4_sidecar, "_diversity_agreement_rho", p5_r4_sidecar._diversity_agreement_rho)
     fired = {"n": 0}
 
     class _HostileTuple(tuple):
         def __iter__(self):
             fired["n"] += 1
-            p5_r4_sidecar.diversity_agreement_rho = lambda j, s: 1.0
+            p5_r4_sidecar._diversity_agreement_rho = lambda j, s: 1.0
             return super().__iter__()
 
     report = _sealed_report(n=4)
@@ -1633,13 +1633,13 @@ def test_rev10_sanitizer_refuses_a_hostile_tuple_subclass(monkeypatch):
 
 def test_rev10_standalone_manifest_validator_refuses_a_hostile_subclass(monkeypatch):
     import p5_r4_sidecar
-    monkeypatch.setattr(p5_r4_sidecar, "diversity_agreement_rho", p5_r4_sidecar.diversity_agreement_rho)
+    monkeypatch.setattr(p5_r4_sidecar, "_diversity_agreement_rho", p5_r4_sidecar._diversity_agreement_rho)
     fired = {"n": 0}
 
     class _HostileManifest(dict):
         def items(self):
             fired["n"] += 1
-            p5_r4_sidecar.diversity_agreement_rho = lambda j, s: 1.0
+            p5_r4_sidecar._diversity_agreement_rho = lambda j, s: 1.0
             return super().items()
 
     man = _HostileManifest(_manifest(_sealed_report()))
@@ -1672,7 +1672,7 @@ def test_rev10_publish_refuses_an_active_pathlike_sidecar_path(tmp_path):
     try:
         with pytest.raises(R4SidecarError) as ei:
             publish_r4_sidecar(report, rec, _EvilPath(tmp_path / "r4.json"))
-        assert "os.PathLike" in str(ei.value)
+        assert "path-like" in str(ei.value)                    # rev11: exact-str-only refuses it too
         assert fired["n"] == 0                                  # __fspath__ NEVER ran
     finally:
         p5_r4_sidecar._build_decision = orig
@@ -1732,3 +1732,131 @@ def test_the_public_standalone_verifiers_reject_a_caller_supplied_authority():
         verify_sealed_report(report, authority=forged)
     with pytest.raises(R4SidecarError):                        # genuine public verifier refuses it
         verify_sealed_report(report)
+
+
+# =========================================================================== #
+# rev11 (wolf-Codex #1209) — five edge-case closures. Each RED->GREEN, each    #
+# mutation-verified load-bearing (revert its fix -> the probe below fails).     #
+# =========================================================================== #
+def test_rev11_p1_safe_path_refuses_an_exact_path_object(tmp_path):
+    # rev10 accepted exact stdlib pathlib types by identity. An exact Path is a MUTABLE carrier whose
+    # first filesystem op runs caller code from its parts. rev11 accepts ONLY an exact str at the
+    # boundary, so even a pristine Path object is refused BEFORE any use.
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    with pytest.raises(R4SidecarError) as ei:
+        publish_r4_sidecar(report, rec, tmp_path / "r4.json")   # an exact Path, not a str
+    assert "exact str path" in str(ei.value)
+
+
+def test_rev11_p1_publish_refuses_an_exact_path_with_hostile_raw_paths_before_any_callback(tmp_path):
+    # Codex #1209 P1 exact probe: an exact Path given a callback-bearing str in _raw_paths via
+    # object.__setattr__ forged integrity_verified/c1=true by rebinding _build_decision during the
+    # first path-part normalization. rev11 refuses the Path (type is not str) BEFORE any fs op, so the
+    # hostile str method never runs and the anti-correlated decision is never forged.
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=False)                           # anti-correlated => must NOT green
+    orig = p5_r4_sidecar._build_decision
+    fired = {"n": 0}
+
+    class _EvilStr(str):
+        def __getattribute__(self, name):
+            if not name.startswith("__"):                       # any method the normalization calls
+                fired["n"] += 1
+                p5_r4_sidecar._build_decision = lambda *a, **k: {
+                    "state": "jsd_proceeds", "c1_authorization_permitted": True}
+            return str.__getattribute__(self, name)
+
+    target = str(tmp_path / "r4.json")
+    p = pathlib.Path(target)                                    # an exact WindowsPath/PosixPath
+    object.__setattr__(p, "_raw_paths", [_EvilStr(target)])     # tamper the mutable internal parts
+    try:
+        with pytest.raises(R4SidecarError) as ei:
+            publish_r4_sidecar(report, rec, p)
+        assert "exact str path" in str(ei.value)
+        assert fired["n"] == 0                                  # no path-part method ran
+        assert p5_r4_sidecar._build_decision is orig           # _build_decision never rebound
+        assert not (tmp_path / "r4.json").exists()             # no artifact was forged
+    finally:
+        p5_r4_sidecar._build_decision = orig
+
+
+def test_rev11_p1_directory_open_fault_downgrades_not_verified(tmp_path, monkeypatch):
+    # Codex #1209 P1: rev10 mapped EVERY directory-open OSError to None (unsupported), so a real
+    # supported-platform EIO/EMFILE/EACCES fault left the artifact integrity_verified. rev11 mirrors
+    # the producer's capability split: None comes ONLY from missing os.O_DIRECTORY; a supported-platform
+    # open fault PROPAGATES and the publisher downgrades to committed_indeterminate.
+    import errno
+    import p5_r4_sidecar
+    # Present a platform that CAN open a directory fd (has O_DIRECTORY) but whose dir-open FAULTS.
+    monkeypatch.setattr(p5_r4_sidecar.os, "O_DIRECTORY",
+                        getattr(os, "O_DIRECTORY", 0x10000), raising=False)
+    real_open = p5_r4_sidecar.os.open
+
+    def fault_on_directory_open(path, flags, *a, **k):
+        if flags & p5_r4_sidecar.os.O_DIRECTORY:                # ONLY the directory O_RDONLY open faults
+            raise OSError(errno.EIO, "simulated directory-open durability fault")
+        return real_open(path, flags, *a, **k)
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "open", fault_on_directory_open)
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    result = publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert result.disposition == DISPOSITION_INDETERMINATE     # NOT integrity_verified after the fault
+
+
+def test_rev11_p1_directory_open_unsupported_is_not_a_fault(tmp_path, monkeypatch):
+    # The other half of the split: a platform with NO os.O_DIRECTORY (e.g. Windows) cannot open a dir
+    # fd; the file was already fsync'd, so that is NOT a durability fault and must NOT downgrade.
+    import p5_r4_sidecar
+    monkeypatch.delattr(p5_r4_sidecar.os, "O_DIRECTORY", raising=False)
+    assert p5_r4_sidecar._fsync_dir(tmp_path) is None           # capability-None, not a fault
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    result = publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert result.disposition == DISPOSITION_VERIFIED           # unsupported dir-sync does not downgrade
+
+
+def test_rev11_p2_eligible_probe_ids_are_typed_and_total():
+    # Codex #1209 P2: validate_comparison must TYPE its eligible_probe_ids root/elements before set()/
+    # sorted() — no raw TypeError and no false-clean []. Every malformed shape is a typed refusal.
+    agg = {"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0, "mean_pairwise_embedding": 0.0, "n_pairs": 0}
+    for bad in ([[]], "a", {"a": "x"}, [1], ["a", "a"]):
+        r = validate_comparison([], agg, eligible_probe_ids=bad)
+        assert isinstance(r, list) and r and all(isinstance(x, str) for x in r), bad
+        assert not any("unhashable" in x for x in r), bad       # never a leaked raw TypeError
+
+
+def test_rev11_p2_huge_int_record_count_is_a_typed_refusal(tmp_path):
+    # Codex #1209 P2: a record_count of 10**5000 (>4300 digits) must be a typed refusal, not a raw
+    # ValueError from a later str()/repr()/json.dumps of the untrusted int.
+    report = _sealed_report(n=4)
+    report["record_count"] = 10 ** 5000
+    with pytest.raises(R4SidecarError):
+        verify_sealed_report(report)
+
+
+def test_rev11_p2_huge_int_sequence_length_is_a_typed_refusal(tmp_path):
+    # Codex #1209 P2: parent.sequence_length = 10**5000 must escape build_r4_sidecar as a typed refusal.
+    report = _sealed_report(n=4)
+    manifest = _manifest(report, _L)
+    manifest["parent"]["sequence_length"] = 10 ** 5000
+    rows, agg = _comparison(_eligible_of(report))
+    with pytest.raises(R4SidecarError):
+        build_r4_sidecar(manifest, sealed_report=report, per_pair=rows, aggregate=agg)
+
+
+def test_rev11_p2_correlation_helpers_are_private_and_total():
+    # Codex #1209 P2: the traversing/numeric helpers are privatized (no public entry traverses caller
+    # values), and the numeric workers are total over their length contract — equal-length only, empty
+    # is a defined 0.0, mismatched length is a typed refusal (was a silent wrong rho / ZeroDivisionError).
+    import p5_r4_sidecar
+    for public_name in ("partition_eligibility", "derive_generation_corpus_digest",
+                        "spearman_rho", "diversity_agreement_rho"):
+        assert not hasattr(p5_r4_sidecar, public_name), public_name   # privatized
+    assert p5_r4_sidecar._spearman_rho([], []) == 0.0                  # empty -> defined, no ZeroDivision
+    with pytest.raises(R4SidecarError):
+        p5_r4_sidecar._spearman_rho([1.0, 2.0], [1.0])                 # mismatched length -> refusal
+    with pytest.raises(R4SidecarError):
+        p5_r4_sidecar._diversity_agreement_rho([0.5], [0.5, 0.5])      # mismatched length -> refusal

@@ -43,7 +43,7 @@ REV5 (Isegrim adversarial probe, 2026-07-18 — a confirmed P1 in rev4, closed h
   integrity_verified / jsd_proceeds / c1=True over ZERO eligible prompts. Root cause: digest
   self-consistency was mistaken for eligibility custody. Fix: the record carries NO authoritative
   eligibility; every parent-aware boundary (bind/decision/publish) re-derives it from the VERIFIED
-  parent (partition_eligibility) and cross-checks the record's comparison against the DERIVED
+  parent (_partition_eligibility) and cross-checks the record's comparison against the DERIVED
   eligible set, refusing on divergence. r4_decision now TAKES the sealed report and re-verifies it.
   _verify_record (which has no parent) no longer runs the completeness check — it cannot know the
   eligible set without the parent. The published artifact records the DERIVED eligibility for audit.
@@ -104,7 +104,7 @@ import re
 import tempfile
 from dataclasses import dataclass
 from itertools import combinations
-from pathlib import Path, PosixPath, PurePath, PurePosixPath, PureWindowsPath, WindowsPath
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, Mapping, NamedTuple, Sequence
 
@@ -238,7 +238,7 @@ DISPOSITION_INDETERMINATE = "committed_indeterminate"
 # verifier + disposition labels). The rule: a name that ENCODES an accept/     #
 # reject decision is frozen; a PURE PRIMITIVE (canonical_digest, _require_     #
 # sha256, assert_strict_json, _canonical_bytes, _inert_snapshot, _safe_        #
-# typename, _norm_num, spearman_rho, diversity_agreement_rho, _fsync_dir) is   #
+# typename, _norm_num, _spearman_rho, _diversity_agreement_rho, _fsync_dir) is #
 # not — rebinding one is the same class as reassigning ``_auth`` itself.        #
 # --------------------------------------------------------------------------- #
 class _SidecarAuthority(NamedTuple):
@@ -392,6 +392,16 @@ def _safe_typename(value: Any) -> str:
 # --------------------------------------------------------------------------- #
 # Inert snapshot / deep-freeze (F2/F4).                                        #
 # --------------------------------------------------------------------------- #
+# Serialization-safe magnitude cap for exact ints (Codex #1209 P2). CPython 3.11+ raises ValueError
+# on int<->str above 4300 digits (~14284 bits), so a later str()/repr()/json.dumps on an un-bounded
+# huge int escapes the typed-refusal contract. 8192 bits (~2466 digits) sits with comfortable margin
+# below that crash threshold, above every legit field (token ids/counts/sequence lengths/wall-time ms
+# all fit in far fewer bits), AND above the existing F3 range/overflow probes (10**400 ~1329 bits,
+# which must still reach the range check) — so this bound rejects ONLY genuinely unserializable
+# magnitudes (e.g. 10**5000 ~16610 bits) without disturbing the accepted-closed refusal paths.
+_MAX_INT_BITS = 8192
+
+
 def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
     """A fully-OWNED, EXACT-BUILT-IN deep copy — the callback-free sanitizer (rev10, wolf-Codex #1206).
 
@@ -413,7 +423,21 @@ def _inert_snapshot(obj: Any, _depth: int = 0) -> Any:
     """
     if _depth > 64:
         raise R4SidecarError("input nesting too deep")
-    if obj is None or type(obj) is bool or type(obj) is int:
+    if obj is None or type(obj) is bool:
+        return obj
+    if type(obj) is int:
+        # Codex #1209 P2: an exact int with a colossal magnitude (e.g. record_count=10**5000,
+        # parent.sequence_length=10**5000) is exact-typed but NOT serialization-safe — Python 3.11+
+        # caps int<->str at 4300 digits, so a later str()/repr()/json.dumps on it raises a RAW
+        # ValueError out of a diagnostic or canonicalization, escaping the typed-refusal contract.
+        # This sanitizer is the one choke both escape paths cross (verify_sealed_report and
+        # build_r4_sidecar both _inert_snapshot before reading any int field), so bound it HERE with a
+        # magnitude far above every legit field (token ids/counts/lengths/ms) and far below the digit
+        # cap. The diagnostic reports only bit_length (a small, repr-safe int), never repr(obj).
+        if obj.bit_length() > _MAX_INT_BITS:
+            raise R4SidecarError(
+                f"integer field too large to canonicalize safely ({obj.bit_length()} bits > "
+                f"{_MAX_INT_BITS})")
         return obj
     if type(obj) is str:
         return obj
@@ -447,32 +471,38 @@ def _deep_freeze(obj: Any) -> Any:
     return obj
 
 
-# The stdlib path types whose __fspath__/__str__ are INERT (no caller code). A caller-defined
-# os.PathLike is refused BEFORE any Path()/verdict path runs.
-_SAFE_PATH_TYPES = (str, Path, PurePath, PosixPath, WindowsPath, PurePosixPath, PureWindowsPath)
-
-
 def _safe_path(p: Any, name: str) -> Path:
-    """Reject a caller-defined os.PathLike before entering any verdict path (rev10, Codex #1206 pass2).
+    """Accept ONLY an exact ``str`` at a caller path boundary, then build a fresh, owned ``Path``
+    (rev11, Codex #1209 P1).
 
-    ``Path(p)`` invokes ``p.__fspath__()``; a caller-supplied PathLike can run arbitrary code there
-    (e.g. rebind ``_build_decision``) BEFORE any record/report validation — a-Codex reproduced a forged
-    ``integrity_verified`` / ``c1=true`` artifact this way. Accept only ``str`` or a stdlib pathlib type
-    (checked by EXACT type identity — no ``__fspath__``/hash on the untrusted object); everything else,
-    including a Path SUBCLASS that could override ``__fspath__``, is refused.
+    rev10 accepted any exact stdlib pathlib type by type identity. That is insufficient: an exact
+    ``WindowsPath``/``PosixPath`` is a MUTABLE object whose private ``_raw_paths`` can be given a
+    callback-bearing ``str`` subclass via ``object.__setattr__``. The first filesystem op then
+    normalizes the stored parts and runs that hostile string method AFTER this supposed callback-free
+    boundary — two independent probes forged a genuine ``jsd_replacement_required``/``c1=false``
+    decision into a committed ``integrity_verified`` artifact this way. An exact ``str`` is immutable
+    and carries no caller code; ``Path(str)`` builds fresh owned internal state from it. So require
+    ``type(p) is str`` (a str subclass is refused too — it could override ``__str__``) and construct
+    the ``Path`` here. Every public path boundary passes the original caller argument, so callers
+    supply a plain ``str`` path.
     """
-    t = type(p)
-    if any(t is ok for ok in _SAFE_PATH_TYPES):
-        return Path(p)
-    raise R4SidecarError(
-        f"{name} must be a str or a stdlib pathlib path, not a custom os.PathLike (got "
-        f"{_safe_typename(p)}); active path-like values are refused (rev10)")
+    if type(p) is not str:
+        raise R4SidecarError(
+            f"{name} must be an exact str path (got {_safe_typename(p)}); pathlib objects and other "
+            "path-likes carry mutable/active state and are refused (rev11)")
+    return Path(p)
 
 
 def _canonical_bytes(obj: Any) -> bytes:
     assert_strict_json(obj)
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False,
-                      ensure_ascii=True).encode("utf-8")
+    try:
+        # Codex #1209 P2 backstop: an exact int that somehow reaches serialization without crossing
+        # _inert_snapshot's magnitude bound would raise a RAW ValueError from json's int->str; translate
+        # it to the typed refusal so no canonicalization path can escape untyped.
+        return json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False,
+                          ensure_ascii=True).encode("utf-8")
+    except ValueError as exc:
+        raise R4SidecarError(f"value is not canonicalizable: {exc}") from None
 
 
 def _safe_keys(keys: Any) -> list[str]:
@@ -823,8 +853,14 @@ def _verify_sealed_report(sealed_report: Mapping[str, Any], *,
     return snap
 
 
-def derive_generation_corpus_digest(sealed_report: Mapping[str, Any]) -> str:
-    """Canonical digest over the report's per-generation receipts (binds what the evaluator ate)."""
+def _derive_generation_corpus_digest(sealed_report: Mapping[str, Any]) -> str:
+    """Canonical digest over the report's per-generation receipts (binds what the evaluator ate).
+
+    PRIVATE trusted-data worker (Codex #1209 P2): callers pass an already-verified, sanitizer-owned
+    report (``_verify_sealed_report`` returns the owned snapshot). It is NOT a public entry — it
+    traverses its argument with ``.get()``/iteration/indexing, so a raw caller mapping could run a
+    hostile callback here. Only the sanitized public boundaries feed it.
+    """
     records = sealed_report.get("records")
     if not isinstance(records, Sequence) or not records:
         raise R4SidecarError("sealed report has no records to derive a generation corpus from")
@@ -857,8 +893,12 @@ class Eligibility:
     refusals: tuple[Mapping[str, Any], ...]   # typed per-probe refusal receipts
 
 
-def partition_eligibility(verified_report: Mapping[str, Any], sequence_length: int) -> Eligibility:
+def _partition_eligibility(verified_report: Mapping[str, Any], sequence_length: int) -> Eligibility:
     """Partition report probes into eligible vs typed refusals (Monk #1146 F1 / §4.1).
+
+    PRIVATE trusted-data worker (Codex #1209 P2): the verdict paths pass the sanitizer-owned verified
+    report returned by ``_verify_sealed_report``; it is not a public entry and traverses its argument,
+    so only the sanitized boundaries may feed it.
 
     Eligible: token_count >= L (consumed truncated to exactly L). token_count < L -> a
     ``short_continuation`` refusal. stop_reason == "error" -> its OWN ``unusable_error`` refusal, and
@@ -904,8 +944,16 @@ def _ranks(values: Sequence[float]) -> list[float]:
     return ranks
 
 
-def spearman_rho(xs: Sequence[float], ys: Sequence[float]) -> float:
+def _spearman_rho(xs: Sequence[float], ys: Sequence[float]) -> float:
+    """PRIVATE numeric worker (Codex #1209 P2): total over its length contract. Equal, nonzero
+    lengths only — unequal lengths are a shape refusal (rev10 silently returned a rho over the zipped
+    prefix), and an empty input is a defined 0.0, not a raw ZeroDivisionError."""
     n = len(xs)
+    if n != len(ys):
+        raise R4SidecarError(
+            f"correlation inputs must have equal length (got {n} and {len(ys)})")
+    if n == 0:
+        return 0.0
     rx, ry = _ranks(xs), _ranks(ys)
     mx, my = sum(rx) / n, sum(ry) / n
     sxy = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
@@ -916,15 +964,22 @@ def spearman_rho(xs: Sequence[float], ys: Sequence[float]) -> float:
     return sxy / math.sqrt(sxx * syy)
 
 
-def diversity_agreement_rho(jsds: Sequence[float], sims: Sequence[float]) -> float:
+def _diversity_agreement_rho(jsds: Sequence[float], sims: Sequence[float]) -> float:
     """Spearman of JSD DIVERSITY vs embedding DIVERGENCE (1 - cosine) — the gate-correct polarity.
+
+    PRIVATE numeric worker (Codex #1209 P2): equal-length/empty totality is enforced by
+    ``_spearman_rho``; the length refusal is raised before the ``1 - cosine`` transform builds a
+    mismatched second sequence.
 
     Elf #1148: the evaluator emits raw cosine_similarity; the 1 - cosine transform is applied HERE,
     at comparison time. Spearman is rank-invariant to the monotone transform, so only the sign
     changes vs correlating against similarity, and diversity-vs-diversity is the sign the gate needs.
     Perfect agreement -> +1.
     """
-    return spearman_rho(jsds, [1.0 - s for s in sims])
+    if len(jsds) != len(sims):
+        raise R4SidecarError(
+            f"correlation inputs must have equal length (got {len(jsds)} and {len(sims)})")
+    return _spearman_rho(jsds, [1.0 - s for s in sims])
 
 
 def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
@@ -974,7 +1029,7 @@ def _validate_aggregate(aggregate: Any, per_pair: Sequence[Any],
 
     if jsds and len(jsds) == len(sims) == len(per_pair):
         checks = [
-            ("spearman_rho", diversity_agreement_rho(jsds, sims)),
+            ("spearman_rho", _diversity_agreement_rho(jsds, sims)),
             ("mean_pairwise_jsd", sum(jsds) / len(jsds)),
             ("mean_pairwise_embedding", sum(sims) / len(sims)),
         ]
@@ -1008,6 +1063,18 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
             eligible_probe_ids = _inert_snapshot(eligible_probe_ids)
     except R4SidecarError as exc:
         return [str(exc)]
+    if eligible_probe_ids is not None:
+        # Codex #1209 P2: the exported self-check must TYPE its root/elements before set()/sorted().
+        # _inert_snapshot renders an exact list/tuple as a list, but it still admits non-str leaves
+        # (ints), nested lists ([[]] -> unhashable TypeError under set()), and duplicates; a str/dict
+        # root snapshots to a str/dict that set() would silently mis-consume. Require an exact list of
+        # unique exact strs, else a TYPED refusal — not a raw TypeError or a false-clean [].
+        if type(eligible_probe_ids) is not list:
+            return ["eligible_probe_ids must be a list/tuple of unique probe id strings"]
+        if not all(type(x) is str for x in eligible_probe_ids):
+            return ["eligible_probe_ids must contain only probe id strings"]
+        if len(set(eligible_probe_ids)) != len(eligible_probe_ids):
+            return ["eligible_probe_ids must not contain duplicate probe ids"]
     return _validate_comparison(per_pair, aggregate, eligible_probe_ids=eligible_probe_ids,
                                 authority=_auth())
 
@@ -1126,7 +1193,7 @@ def _check_parent_binding(verified_report: Mapping[str, Any], *, b0_report_diges
         raise R4SidecarError(
             f"parent.b0_report_digest {b0_report_digest[:12]}.. != the verified report's "
             f"published_digest {verified_report['published_digest'][:12]}.. — not that run")
-    derived_gen = derive_generation_corpus_digest(verified_report)
+    derived_gen = _derive_generation_corpus_digest(verified_report)
     if generation_output_digest != derived_gen:
         raise R4SidecarError(
             f"parent.generation_output_digest {generation_output_digest[:12]}.. != the digest "
@@ -1221,7 +1288,7 @@ def build_r4_sidecar(
                           generation_output_digest=par["generation_output_digest"],
                           panel=manifest["panel"])
 
-    elig = partition_eligibility(verified, par["sequence_length"])
+    elig = _partition_eligibility(verified, par["sequence_length"])
     comparison_refusals = _validate_comparison(per_pair, aggregate,
                                                eligible_probe_ids=elig.eligible, authority=_A)
     if comparison_refusals:
@@ -1367,7 +1434,7 @@ def _reverify_against_parent(verified_report: Mapping[str, Any], record: Mapping
     _check_parent_binding(verified_report, b0_report_digest=par["b0_report_digest"],
                           generation_output_digest=par["generation_output_digest"],
                           panel=record["panel"])
-    elig = partition_eligibility(verified_report, par["sequence_length"])
+    elig = _partition_eligibility(verified_report, par["sequence_length"])
     refusals = _validate_comparison(record["per_pair"], record["aggregate"],
                                     eligible_probe_ids=elig.eligible, row_keys=_A.canon_row_keys,
                                     authority=_A)
@@ -1438,7 +1505,7 @@ def _build_decision(vs: _VerifiedSidecar, elig: Eligibility,
     rows = rec["per_pair"]
     # rho over the rows, computed defensively: an empty comparison (N' = 0/1) has no pairs, so there
     # is nothing to correlate — its rho is a report-only 0.0 sentinel that never gates.
-    rho = (diversity_agreement_rho([r["jsd"] for r in rows], [r["cosine_similarity"] for r in rows])
+    rho = (_diversity_agreement_rho([r["jsd"] for r in rows], [r["cosine_similarity"] for r in rows])
            if rows else 0.0)
     # Take the floor outcome BEFORE trusting rho (Codex #1187 #6). Fewer than the N' >= 4 floor —
     # including N' = 0/1 whose canonical comparison is EMPTY — is the frozen INCOMPLETE, never a
@@ -1524,7 +1591,7 @@ class R4PublishResult:
 
 
 def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
-                       sidecar_path: Path) -> R4PublishResult:
+                       sidecar_path: str) -> R4PublishResult:
     """Public publication entry. Binds the GENUINE frozen authority and delegates.
 
     a-Codex #1201 pass 2: takes NO caller authority (a public authority param is a bypass — a forged
@@ -1534,7 +1601,7 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
 
 
 def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
-                        sidecar_path: Path, *,
+                        sidecar_path: str, *,
                         authority: "_SidecarAuthority | None" = None) -> R4PublishResult:
     """Atomically publish the artifact (record + link + decision). No-replace, truthful disposition.
 
@@ -1637,18 +1704,27 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
 
 
 def _fsync_dir(directory: Path) -> bool | None:
-    """Best-effort directory durability. True = fsync'd durable; None = unsupported by this platform
-    (could not open a directory fd, e.g. Windows) which is NOT a fault; False = supported but the
-    fsync itself raised, which IS a durability fault."""
-    try:
-        dfd = os.open(str(directory), os.O_RDONLY)
-    except OSError:
-        return None
+    """Best-effort directory durability, with the capability/fault split the durability contract needs
+    (Codex #1209 P1). ``None`` = the PLATFORM cannot fsync a directory fd (no ``os.O_DIRECTORY``, e.g.
+    Windows) — the file itself was already fsync'd, which is the durability the platform offers, so it
+    is NOT a fault and must not downgrade. ``True`` = fsync'd durable. ``False`` = the fsync itself
+    raised on a supported platform, which IS a durability fault.
+
+    ⚠ ``None`` must come from platform CAPABILITY, never from an arbitrary runtime ``OSError``. rev10
+    mapped EVERY ``os.open`` ``OSError`` (incl. a real ``EIO``/``EMFILE``/``EACCES`` fault) to ``None``,
+    so a supported-platform open fault left the artifact ``integrity_verified``. Mirror the producer's
+    own split (``p5_b0_run._fsync_parent``): gate on ``os.O_DIRECTORY``, open with it, and let any
+    open/fsync fault PROPAGATE as ``OSError`` — the caller downgrades to ``committed_indeterminate`` on
+    both a ``False`` return and a propagated ``OSError``.
+    """
+    if not hasattr(os, "O_DIRECTORY"):
+        return None                                  # platform capability: no directory fd → not a fault
+    dfd = os.open(str(directory), os.O_RDONLY | os.O_DIRECTORY)   # a supported-platform open fault RAISES
     try:
         os.fsync(dfd)
         return True
     except OSError:
-        return False
+        return False                                 # supported but the fsync raised → durability fault
     finally:
         os.close(dfd)
 
@@ -1663,7 +1739,7 @@ class R4RecordResult:
     ok: bool                                  # True iff authority verified AND artifact committed clean
 
 
-def _load_governed_report(report_path: Path, journal_path: Path, *,
+def _load_governed_report(report_path: str, journal_path: str, *,
                           authority: "_SidecarAuthority | None" = None) -> tuple[dict[str, Any], bytes]:
     """Load a GOVERNED B0 evidence reference: the report bytes cross-verified by the journal.
 
@@ -1707,12 +1783,12 @@ def _load_governed_report(report_path: Path, journal_path: Path, *,
 
 def record_r4_comparison(
     *,
-    report_path: Path,
-    journal_path: Path,
+    report_path: str,
+    journal_path: str,
     manifest: Mapping[str, Any],
     per_pair: Sequence[Mapping[str, Any]],
     aggregate: Mapping[str, Any],
-    sidecar_path: Path,
+    sidecar_path: str,
 ) -> R4RecordResult:
     """Production-callable seam: governed evidence PATHS -> verified build/bind/publish -> decision.
 
