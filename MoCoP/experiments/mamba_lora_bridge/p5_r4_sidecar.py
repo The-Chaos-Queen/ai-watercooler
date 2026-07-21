@@ -585,6 +585,24 @@ def _field_error(value: Any, kind: str, *, authority: "_SidecarAuthority | None"
     raise R4SidecarError(f"unknown field kind {kind!r}")
 
 
+def _probe_id_error(value: Any) -> str | None:
+    """The SINGLE probe-ID validity predicate (Codex #1213), used at every probe-id boundary: parent
+    records, comparison endpoints, and the standalone eligible list.
+
+    The frozen B0 producer (p5_b0_run:768-783) and the R4 parent verifier accept EVERY exact non-empty
+    string probe_id. The manifest placeholder policy (``is_unset``: "todo"/"none"/whitespace) belongs to
+    CONFIG ids (e.g. panel), NOT producer-emitted probe ids — rev12 applied ``_field_error(id_kind)``
+    here and thereby rejected governed probe ids the module otherwise verifies and builds. Align on the
+    producer contract: minimally an exact non-empty str. (If placeholder rejection is ever wanted for
+    probe ids, it must be a coordinated, reviewed B0 producer-contract change, not a sidecar-local one.)
+    """
+    if type(value) is not str:
+        return f"must be an exact str (got {_safe_typename(value)})"
+    if not value:
+        return "must be a non-empty probe id"
+    return None
+
+
 def _num_in_range(value: Any, lo: float, hi: float, name: str) -> str | None:
     if isinstance(value, bool) or type(value) not in (int, float):
         # F-TYPENAME (Codex #1201): inert type label only — no metaclass __name__, no repr of an
@@ -831,8 +849,9 @@ def _verify_sealed_report(sealed_report: Mapping[str, Any], *,
         if not isinstance(rec, Mapping) or set(rec) != _A.b0_record_keys:
             raise R4SidecarError(f"record {i} is not the canonical producer record shape")
         pid = rec["probe_id"]
-        if type(pid) is not str or not pid:
-            raise R4SidecarError(f"record {i} has no valid probe_id")
+        pe = _probe_id_error(pid)                               # Codex #1213: one shared probe-id predicate
+        if pe:
+            raise R4SidecarError(f"record {i} probe_id {pe}")
         if pid in seen:
             raise R4SidecarError(f"duplicate probe_id {pid!r} in report")
         seen.add(pid)
@@ -1107,12 +1126,12 @@ def validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappin
             return ["eligible_probe_ids must contain only probe id strings"]
         if len(set(eligible_probe_ids)) != len(eligible_probe_ids):
             return ["eligible_probe_ids must not contain duplicate probe ids"]
-        # Codex #1211 P2: a unique exact str is not necessarily a VALID probe id. Apply the SAME
-        # canonical id rule the comparison endpoints and the parent report use (_field_error(id_kind),
-        # which rejects placeholder/unset ids incl. "" and whitespace), so [""] is a typed refusal, not
-        # a false-clean [].
+        # Codex #1211 P2 / #1213: a unique exact str is not necessarily a VALID probe id. Apply the ONE
+        # shared probe-id predicate the parent report and comparison endpoints use — the frozen producer
+        # contract (exact NON-EMPTY str), so "" is a typed refusal but a governed id like "todo" the
+        # producer accepts is NOT over-rejected (rev12's is_unset rule was stricter than the producer).
         for x in eligible_probe_ids:
-            e = _field_error(x, _A.id_kind, authority=_A)
+            e = _probe_id_error(x)
             if e:
                 return [f"eligible_probe_ids entry {e}"]
     return _validate_comparison(per_pair, aggregate, eligible_probe_ids=eligible_probe_ids,
@@ -1169,8 +1188,8 @@ def _validate_comparison(per_pair: Sequence[Mapping[str, Any]], aggregate: Mappi
                 f"per-pair row {i} key set is not {sorted(row_keys)} (got {_safe_keys(row)})")
             continue
         a, b = row["probe_a"], row["probe_b"]
-        ae = _field_error(a, _A.id_kind, authority=_A)
-        be = _field_error(b, _A.id_kind, authority=_A)
+        ae = _probe_id_error(a)                                 # Codex #1213: producer probe-id contract
+        be = _probe_id_error(b)
         if ae:
             refusals.append(f"per-pair row {i} probe_a {ae}")
         if be:
@@ -1640,6 +1659,19 @@ def publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecor
     return _publish_r4_sidecar(sealed_report, sidecar, sidecar_path, authority=_auth())
 
 
+def _same_inode(a: Path, b: Path) -> bool:
+    """True iff ``a`` and ``b`` currently name the SAME filesystem inode (Codex #1213 P1). A committed
+    hard link shares the staged temp's inode, so this reconciles an ambiguous ``os.link`` effect-then-
+    error: if the final name is our staged inode, the commit HAPPENED even though the call raised. Any
+    stat failure (or a platform that reports inode 0) reads as 'not our inode' — fail closed to a
+    non-committed classification, which cleans the temp and stays non-authorizing."""
+    try:
+        sa, sb = os.stat(str(a)), os.stat(str(b))
+    except OSError:
+        return False
+    return sa.st_ino != 0 and sa.st_ino == sb.st_ino and sa.st_dev == sb.st_dev
+
+
 def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarRecord,
                         sidecar_path: str, *,
                         authority: "_SidecarAuthority | None" = None) -> R4PublishResult:
@@ -1700,21 +1732,52 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
     fd, tmp_name = tempfile.mkstemp(prefix=sidecar_path.name + ".", suffix=".tmp",
                                     dir=str(parent_dir))
     tmp = Path(tmp_name)
+    # Codex #1213 P2-3: EVERY unsuccessful staging/commit path must best-effort remove the temp (rev12
+    # leaked it on write/fsync/readback/no-replace faults). Operational OSError stays NATIVE (F4-
+    # compatible — not blanket-converted to a structural refusal); the readback mismatch stays a typed
+    # refusal. This transaction only guarantees no temp leaks AND that the commit is ambiguity-aware.
+    # Codex #1213 P1: os.link is EFFECTFUL — an effect-then-error can create the final inode AND raise.
+    # So the commit sits INSIDE the transaction: reconcile by inode, and an ambiguous commit enters the
+    # terminal flow at no better than committed_indeterminate rather than escaping with a live alias.
+    commit_effected = False
+    link_ambiguous = False
     try:
-        os.write(fd, committed)
-        os.fsync(fd)
-    finally:
-        os.close(fd)
-    if tmp.read_bytes() != committed:                       # PRE-commit: raising is safe, nothing committed
-        tmp.unlink(missing_ok=True)
-        raise R4SidecarError("staged sidecar bytes did not verify before commit")
-    os.link(str(tmp), str(sidecar_path))          # COMMIT — no-replace: fails if the target appeared
+        try:
+            os.write(fd, committed)
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        if tmp.read_bytes() != committed:                   # PRE-commit: nothing committed yet
+            raise R4SidecarError("staged sidecar bytes did not verify before commit")
+        try:
+            os.link(str(tmp), str(sidecar_path))            # COMMIT — no-replace
+            commit_effected = True
+        except OSError:
+            # Ambiguous: the link may have created the final name THEN raised. Reconcile by inode — a
+            # hard link shares tmp's inode. If the final name IS our staged inode, the commit HAPPENED,
+            # so do NOT escape: fall into the terminal flow at indeterminate. A foreign no-replace
+            # winner or a definite no-effect failure is a native operational OSError (re-raised below
+            # after the temp is cleaned), and remains non-authorizing.
+            if _same_inode(sidecar_path, tmp):
+                commit_effected = True
+                link_ambiguous = True
+            else:
+                raise
+    except BaseException:
+        if not commit_effected:
+            try:
+                tmp.unlink()                                # best-effort temp cleanup on every failed path
+            except OSError:
+                pass
+        raise
 
-    # ---- F4 (Codex #1183/#1187): a non-throwing terminal state machine, ordered alias-FIRST. Past
-    # the commit NOTHING may raise; every fault best-effort removes the writable alias and downgrades
-    # truthfully. The definitive readback happens ONLY after the writable alias is gone — otherwise a
-    # write through the alias can corrupt the final inode AFTER it verifies (Codex #1187). ----
-    disposition = _A.disp_verified
+    # ---- F4 (Codex #1183/#1187/#1213): a non-throwing terminal state machine, ordered alias-FIRST.
+    # The commit has effected; NOTHING may raise past here. Every fault best-effort removes the writable
+    # alias and downgrades truthfully. The definitive readback happens ONLY after the writable alias is
+    # gone (a write through the alias can corrupt the final inode AFTER it verifies, Codex #1187). An
+    # AMBIGUOUS link commit (the call raised but our inode is committed) starts at committed_indeterminate
+    # (Codex #1213 P1) and can only downgrade further — it can never read back as integrity_verified. ----
+    disposition = _A.disp_indeterminate if link_ambiguous else _A.disp_verified
     try:
         tmp.unlink()                                        # remove the writable hard-link alias FIRST
     except OSError:
@@ -1724,7 +1787,7 @@ def _publish_r4_sidecar(sealed_report: Mapping[str, Any], sidecar: R4SidecarReco
             disposition = _A.disp_failed
     except OSError:
         disposition = _A.disp_failed
-    if disposition == _A.disp_verified:                    # only with no writable alias left
+    if disposition != _A.disp_failed:                      # readback for verified AND indeterminate commits
         try:
             if sidecar_path.read_bytes() != committed:      # definitive final-byte readback
                 disposition = _A.disp_failed
@@ -1799,27 +1862,33 @@ def _load_governed_report(report_path: str, journal_path: str, *,
         raise R4SidecarError(f"B0 report artifact not found: {report_path}")
     if not journal_path.is_file():
         raise R4SidecarError(f"B0 journal artifact not found: {journal_path}")
+    # Codex #1213 P2: keep OPERATIONAL i/o (a transient read fault) NATIVE — it is not a structural
+    # refusal (R4SidecarError's contract is a bug/unsafe-config refusal). Only STRUCTURAL decode/
+    # conversion failures become typed refusals.
+    report_bytes = report_path.read_bytes()                    # operational OSError stays native
     try:
-        report_bytes = report_path.read_bytes()
         report = json.loads(report_bytes)
     except json.JSONDecodeError as exc:
         raise R4SidecarError(f"B0 report is not valid JSON: {exc}") from None
-    except (OSError, ValueError, RecursionError) as exc:
-        # Codex #1211 P2 (+ Fable adjacency): the governed-file ingress can raise BEYOND
-        # JSONDecodeError, BEFORE _inert_snapshot's typed guards run — a read fault (OSError), a JSON
-        # integer exceeding the active int<->str digit limit (ValueError), invalid UTF-8
-        # (UnicodeDecodeError, a ValueError subclass), or excessive nesting (RecursionError). Totalize
-        # the read+decode seam so the production file ingress cannot leak a raw exception into the C1
-        # precondition path. type(exc).__name__ never renders an untrusted value.
-        raise R4SidecarError(
-            f"B0 report could not be read or decoded ({type(exc).__name__})") from None
+    except (ValueError, RecursionError) as exc:
+        # A JSON integer exceeding the active int<->str digit limit (ValueError), invalid UTF-8
+        # (UnicodeDecodeError, a ValueError subclass), or excessive nesting (RecursionError) — all raise
+        # BEFORE _inert_snapshot's typed guards run. Totalize the report decode seam; type(exc).__name__
+        # never renders an untrusted value.
+        raise R4SidecarError(f"B0 report could not be decoded ({type(exc).__name__})") from None
     if not isinstance(report, dict):
         raise R4SidecarError("B0 report root is not a JSON object")
     published = report.get("published_digest")
     if type(published) is not str or not _A.sha256.match(published):
         raise R4SidecarError("B0 report has no sha256 published_digest; not sealed")
-    verdict = _A.terminal_verifier(journal_path, report_published_digest=published,
-                                   committed_report_bytes=report_bytes)
+    # Codex #1213 P2: the OTHER half of the governed pair. The frozen terminal verifier reads+decodes
+    # the JOURNAL; a malformed journal (invalid UTF-8 / over-limit integer / deep nesting) escaped raw.
+    # Translate its STRUCTURAL decode failures here (operational OSError stays native, mirroring report).
+    try:
+        verdict = _A.terminal_verifier(journal_path, report_published_digest=published,
+                                       committed_report_bytes=report_bytes)
+    except (ValueError, RecursionError) as exc:
+        raise R4SidecarError(f"B0 journal could not be decoded ({type(exc).__name__})") from None
     if not verdict.get("ok"):
         raise R4SidecarError(
             f"B0 journal did not verify: {verdict.get('reason')!r}; not a governed parent")

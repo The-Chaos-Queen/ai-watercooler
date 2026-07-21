@@ -1890,15 +1890,19 @@ def test_rev11_p2_huge_int_respects_a_lower_configured_digit_limit():
 # rev12 (wolf-Codex #1211 findings 1-2 + Fable's 4th) — each RED->GREEN,        #
 # mutation-verified load-bearing.                                               #
 # =========================================================================== #
-def test_rev12_p2_empty_and_whitespace_eligible_ids_are_typed_refusals():
-    # Codex #1211 finding 2: a unique exact str is not necessarily a VALID probe id. The standalone
-    # validator must apply the canonical id rule (placeholder/unset incl. ""/whitespace), not just
-    # type+uniqueness — else [""] false-cleans to [].
+def test_rev12_p2_empty_eligible_id_is_a_typed_refusal():
+    # Codex #1211 finding 2 + #1213 correction: the standalone validator must reject an EMPTY probe id
+    # (producer/parent contract = exact NON-EMPTY str), but must NOT over-reject a whitespace or
+    # placeholder-looking id the producer actually accepts (#1213 walked back the rev11 is_unset wording;
+    # is_unset placeholder policy belongs to config ids, not producer-emitted probe ids).
     zero = {"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0, "mean_pairwise_embedding": 0.0, "n_pairs": 0}
-    for bad in ([""], ["   "], ["\t"], ["a", ""]):
+    for bad in ([""], ["a", ""]):
         r = validate_comparison([], zero, eligible_probe_ids=bad)
         assert isinstance(r, list) and r, bad
         assert any("eligible_probe_ids entry" in x for x in r), bad
+    for producer_ok in (["   "], ["todo"], ["none"]):          # valid producer ids -> NOT an id refusal
+        r = validate_comparison([], zero, eligible_probe_ids=producer_ok)
+        assert not any("eligible_probe_ids entry" in x for x in r), producer_ok
 
 
 def _write_governed_pair(tmp_path, report_bytes):
@@ -1914,7 +1918,7 @@ def test_rev12_p2_governed_json_invalid_utf8_is_a_typed_refusal(tmp_path):
     # json.loads BEFORE the sanitizer runs; the seam must translate it to R4SidecarError.
     import p5_r4_sidecar
     rp, jp = _write_governed_pair(tmp_path, b'{"a": "\xff\xfe"}')
-    with pytest.raises(R4SidecarError, match="could not be read or decoded"):
+    with pytest.raises(R4SidecarError, match="could not be decoded"):
         p5_r4_sidecar._load_governed_report(rp, jp)
 
 
@@ -1926,7 +1930,7 @@ def test_rev12_p2_governed_json_huge_int_under_low_limit_is_a_typed_refusal(tmp_
     try:
         sys.set_int_max_str_digits(640)
         rp, jp = _write_governed_pair(tmp_path, b'[' + b'1' * 641 + b']')
-        with pytest.raises(R4SidecarError, match="could not be read or decoded"):
+        with pytest.raises(R4SidecarError, match="could not be decoded"):
             p5_r4_sidecar._load_governed_report(rp, jp)
     finally:
         sys.set_int_max_str_digits(prev)
@@ -1936,7 +1940,7 @@ def test_rev12_p2_governed_json_deep_nesting_is_a_typed_refusal(tmp_path):
     # Codex #1211 finding 1: excessively nested valid JSON raises RecursionError from json.loads.
     import p5_r4_sidecar
     rp, jp = _write_governed_pair(tmp_path, b'[' * 200000 + b']' * 200000)
-    with pytest.raises(R4SidecarError, match="could not be read or decoded"):
+    with pytest.raises(R4SidecarError, match="could not be decoded"):
         p5_r4_sidecar._load_governed_report(rp, jp)
 
 
@@ -1951,3 +1955,136 @@ def test_rev12_p2_nul_byte_sidecar_path_is_a_typed_refusal(tmp_path):
     with pytest.raises(R4SidecarError, match="NUL"):
         publish_r4_sidecar(report, rec, evil)
     assert list(tmp_path.glob("*.tmp")) == []                  # no staging file was ever created
+
+
+# =========================================================================== #
+# rev13 (wolf-Codex #1213) — os.link ambiguity P1 + 3 P2s. RED->GREEN + mutation.#
+# =========================================================================== #
+def test_rev13_p1_link_effect_then_error_is_indeterminate_not_escaped(tmp_path, monkeypatch):
+    # Codex #1213 P1: os.link is EFFECTFUL. A real-link-then-raise left a digest-valid C1-green final
+    # PLUS its writable same-inode temp alias while the API raised and emitted no disposition. rev13
+    # makes the commit ambiguity-aware: reconcile by inode, enter the terminal flow at
+    # committed_indeterminate, remove the alias, and NEVER escape.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    out = tmp_path / "r4.json"
+    real_link = p5_r4_sidecar.os.link
+
+    def link_then_raise(src, dst):
+        real_link(src, dst)                                    # the real commit effect
+        raise OSError(errno.EIO, "effect-then-error")
+
+    monkeypatch.setattr(p5_r4_sidecar.os, "link", link_then_raise)
+    result = publish_r4_sidecar(report, rec, str(out))         # must NOT raise
+    assert result.disposition == DISPOSITION_INDETERMINATE     # ambiguous commit -> never verified
+    assert out.exists()                                        # the artifact did commit
+    assert list(tmp_path.glob("*.tmp")) == []                  # the writable alias was removed
+    assert len(result.published_digest) == 64                  # digest-valid
+
+
+def test_rev13_p1_link_no_effect_failure_cleans_temp_and_raises(tmp_path, monkeypatch):
+    # The other half: a link that has NO effect (or a foreign no-replace winner) is a native operational
+    # OSError that stays non-authorizing AND cleans its temp.
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    monkeypatch.setattr(p5_r4_sidecar.os, "link",
+                        lambda src, dst: (_ for _ in ()).throw(OSError(errno.EIO, "no effect")))
+    with pytest.raises(OSError):                               # operational OSError stays native
+        publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert list(tmp_path.glob("*.tmp")) == []                  # temp cleaned on the failed commit path
+    assert not (tmp_path / "r4.json").exists()                 # nothing committed
+
+
+def test_rev13_p2_staging_write_fault_cleans_temp(tmp_path, monkeypatch):
+    # Codex #1213 P2-3: an os.write fault must best-effort remove the temp (rev12 leaked it). Operational
+    # OSError stays native (not converted to a structural refusal).
+    import errno
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    monkeypatch.setattr(p5_r4_sidecar.os, "write",
+                        lambda fd, data: (_ for _ in ()).throw(OSError(errno.EIO, "write fault")))
+    with pytest.raises(OSError):
+        publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert list(tmp_path.glob("*.tmp")) == []                  # no leaked temp
+
+
+def test_rev13_p2_staging_readback_mismatch_cleans_temp(tmp_path, monkeypatch):
+    # Codex #1213 P2-3: a staged-bytes readback mismatch stays a TYPED refusal AND cleans the temp.
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    real_read = p5_r4_sidecar.Path.read_bytes
+
+    def corrupt_readback(self):
+        data = real_read(self)
+        return data + b"x" if str(self).endswith(".tmp") else data
+
+    monkeypatch.setattr(p5_r4_sidecar.Path, "read_bytes", corrupt_readback)
+    with pytest.raises(R4SidecarError, match="did not verify before commit"):
+        publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
+    assert list(tmp_path.glob("*.tmp")) == []                  # no leaked temp
+
+
+def _write_governed_report_ok(tmp_path):
+    rp = tmp_path / "b0.json"
+    jp = tmp_path / "b0.json.journal"
+    rp.write_bytes(json.dumps({"published_digest": "a" * 64}).encode("utf-8"))
+    return rp, jp
+
+
+def test_rev13_p2_journal_invalid_utf8_is_a_typed_refusal(tmp_path):
+    # Codex #1213 P2: the JOURNAL half of the governed pair — malformed journal decode must be typed too.
+    import p5_r4_sidecar
+    rp, jp = _write_governed_report_ok(tmp_path)
+    jp.write_bytes(b'{\xff\xfe}')
+    with pytest.raises(R4SidecarError, match="journal could not be decoded"):
+        p5_r4_sidecar._load_governed_report(str(rp), str(jp))
+
+
+def test_rev13_p2_journal_huge_int_under_low_limit_is_a_typed_refusal(tmp_path):
+    import p5_r4_sidecar
+    prev = sys.get_int_max_str_digits()
+    try:
+        sys.set_int_max_str_digits(640)
+        rp, jp = _write_governed_report_ok(tmp_path)
+        jp.write_bytes(b'[' + b'1' * 641 + b']')
+        with pytest.raises(R4SidecarError, match="journal could not be decoded"):
+            p5_r4_sidecar._load_governed_report(str(rp), str(jp))
+    finally:
+        sys.set_int_max_str_digits(prev)
+
+
+def test_rev13_p2_journal_deep_nesting_is_a_typed_refusal(tmp_path):
+    import p5_r4_sidecar
+    rp, jp = _write_governed_report_ok(tmp_path)
+    jp.write_bytes(b'[' * 200000 + b']' * 200000)
+    with pytest.raises(R4SidecarError, match="journal could not be decoded"):
+        p5_r4_sidecar._load_governed_report(str(rp), str(jp))
+
+
+def test_rev13_p2_producer_probe_id_todo_is_accepted():
+    # Codex #1213 P2: a placeholder-LOOKING probe id ("todo") is a VALID producer probe id. The parent
+    # verifier must accept it and the standalone eligible list must not over-reject it (rev12 is_unset
+    # rejected both, making the public validator incompatible with a governed parent the module accepts).
+    report = _sealed_report(n=2, ids=["todo", "none"])
+    assert verify_sealed_report(report)                        # parent verifier accepts non-empty ids
+    zero = {"spearman_rho": 0.0, "mean_pairwise_jsd": 0.0, "mean_pairwise_embedding": 0.0, "n_pairs": 0}
+    r = validate_comparison([], zero, eligible_probe_ids=["todo", "none"])
+    assert not any("eligible_probe_ids entry" in x for x in r)
+
+
+def test_rev13_fsencode_unencodable_path_is_a_typed_refusal(tmp_path, monkeypatch):
+    # Codex #1213: the os.fsencode branch (platform-unencodable name, e.g. a POSIX lone surrogate) needs
+    # a dedicated regression — the Windows runtime uses surrogate-pass, so drive the branch directly.
+    import p5_r4_sidecar
+    report = _sealed_report(n=4)
+    rec = _build(report, agree=True)
+    monkeypatch.setattr(p5_r4_sidecar.os, "fsencode",
+                        lambda p: (_ for _ in ()).throw(UnicodeEncodeError("utf-8", "x", 0, 1, "bad")))
+    with pytest.raises(R4SidecarError, match="encodable"):
+        publish_r4_sidecar(report, rec, str(tmp_path / "r4.json"))
