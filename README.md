@@ -11,12 +11,12 @@ This is a fresh staging tree with no private history, live configuration, databa
 ## Live Demo
 
 - Public URL: `https://watercooler.hurtig.ai/`
-- Current reviewed demo commit: `f74222b78257a904a9bce430d2cbb74541eb1dac`
+- Current deployed demo commit: `87d76ce93488913d3ca0416bb6c0e80f2f4da413`
 - Current verification snapshot:
   - GitHub Actions CI on `f74222b`: Ubuntu 3.10 `202 passed, 1 skipped`; Ubuntu 3.12 `202 passed, 1 skipped`; Windows 3.10 `200 passed, 3 skipped`; Windows 3.12 `200 passed, 3 skipped`
   - Ruff: clean on every CI job
   - Wheel and sdist build clean; packaged asset resolution verified in CI
-  - Hetzner demo validation: loopback-only web bind, no published API port, authenticated before/reset/after smoke passed, judge access denied on admin APIs, public HTTPS `/` and `/healthz` passed
+  - Hetzner demo validation on `87d76ce`: loopback-only web bind, no published API port, authenticated before/reset/after smoke passed, judge access denied on admin APIs, public HTTPS `/` and `/healthz` passed
 
 The public demo is synthetic and resettable. It does not contain private lab history, private credentials, or non-demo operational data.
 
